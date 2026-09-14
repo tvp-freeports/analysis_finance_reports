@@ -38,7 +38,7 @@ msgid ""
 "release, and it is a good one."
 msgstr ""
 "Più spesso girano i test, i linter e la copertura, più solido è l'albero. È tutta qui"
-" l'argomentazione per controllare a ogni commit anziché a ogni rilascio, ed è buona."
+" l'argomentazione per controllare a ogni commit anziché a ogni release, ed è buona."
 
 #: ../../source/guides/devops/fast-and-slow.rst:14
 msgid ""
@@ -111,9 +111,9 @@ msgid ""
 " process-per-test half of the tooling suite, a formats repository's whole-document "
 "runs"
 msgstr ""
-"la compilazione strumentata per la copertura Rust, i test di integrazione e i doctest"
-" del crate, la metà a un processo per test della suite degli strumenti, le esecuzioni"
-" sull'intero documento di un repository di formati"
+"la build strumentata per la copertura Rust, i test di integrazione e i doctest del "
+"crate, la metà a un processo per test della suite degli strumenti, le esecuzioni "
+"sull'intero documento di un repository di formati"
 
 #: ../../source/guides/devops/fast-and-slow.rst:43
 msgid "resolving methodology pages, looking a granter's key up on a key server"

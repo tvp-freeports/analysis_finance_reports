@@ -352,7 +352,7 @@ msgstr ""
 "Il ragionamento, le misure e i due livelli che le misure hanno fatto cancellare fanno"
 " parte del progetto dell'algoritmo e stanno in "
 ":doc:`../../../reference/design/parallelism`. Due note appartengono invece a qui, "
-"perché riguardano la realizzazione anziché il progetto:"
+"perché riguardano l'implementazione anziché il progetto:"
 
 #: ../../source/guides/engine/advanced/implementation-notes.rst:138
 msgid ""

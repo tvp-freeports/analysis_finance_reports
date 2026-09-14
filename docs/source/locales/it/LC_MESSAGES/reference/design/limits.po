@@ -165,7 +165,7 @@ msgid ""
 msgstr ""
 "**Il quarto segmento.** Separare il filtraggio dall'interpretazione semantica, con "
 "valori predefiniti per i due segmenti che di solito sono routine. Progettato, "
-"argomentato, non realizzato — vedi {doc}`segments`."
+"argomentato, non implementato — vedi {doc}`segments`."
 
 #: ../../source/reference/design/limits.md:55
 #, python-brace-format

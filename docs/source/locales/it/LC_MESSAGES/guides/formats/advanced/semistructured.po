@@ -105,7 +105,7 @@ msgstr "Nomi di algoritmo tuoi"
 #: ../../source/guides/formats/advanced/semistructured.md:53
 msgid "An algorithm name may be implemented natively or by you, in your repository's Python."
 msgstr ""
-"Il nome di un algoritmo può essere realizzato nativamente oppure da te, nel Python "
+"Il nome di un algoritmo può essere implementato nativamente oppure da te, nel Python "
 "del tuo repository."
 
 #: ../../source/guides/formats/advanced/semistructured.md:55

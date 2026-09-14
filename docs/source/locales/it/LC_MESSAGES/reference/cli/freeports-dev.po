@@ -127,7 +127,7 @@ msgstr ""
 
 #: ../../source/reference/cli/freeports-dev.md:31
 msgid "The README, the report and the hook"
-msgstr "Il README, il rapporto e il hook"
+msgstr "Il README, il rapporto e l'hook"
 
 #: ../../source/reference/cli/freeports-dev.md:33
 msgid ""
@@ -157,7 +157,7 @@ msgid ""
 "and links to the pages below"
 msgstr ""
 "la prima pagina del repository: i badge, entrambe le tabelle di riassunto fra i loro "
-"marcatori, e i rimandi alle pagine sottostanti"
+"marker, e i rimandi alle pagine sottostanti"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`validation/report/<table>.md`"
@@ -205,7 +205,7 @@ msgstr "`Makefile`, `make.bat`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "the single entry point — every target, and the Windows shim that calls it"
-msgstr "l'unico punto d'ingresso — ogni target, e lo strato sottile per Windows che lo chiama"
+msgstr "l'unico punto d'ingresso — ogni target, e lo shim di Windows che lo chiama"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`.gitignore`"
@@ -213,7 +213,7 @@ msgstr "`.gitignore`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "what a run leaves behind: `reports/`, the caches, a stray log"
-msgstr "ciò che un'esecuzione lascia dietro di sé: `reports/`, le cache, un registro randagio"
+msgstr "ciò che un'esecuzione lascia dietro di sé: `reports/`, le cache, un log randagio"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`.githooks/pre-commit`"
@@ -235,12 +235,11 @@ msgid ""
 msgstr ""
 "Tutti e nove sono poi **riempiti subito**, eseguendo una volta il comando — così che "
 "un repository non cominci mai la propria vita con dentro tre immagini rotte e sei "
-"tabelle vuote. Quel passo è al meglio delle possibilità: se `freeports-validate` non "
-"è installato, o se da questa macchina le pagine di metodologia non si possono "
-"risolvere, l'inizializzazione lo dice, nomina il comando da eseguire più tardi, e "
-"riesce comunque. Uno scheletro che non si potesse creare senza un server di "
-"documentazione raggiungibile sarebbe uno strumento peggiore di uno che lascia nove "
-"file da riempire."
+"tabelle vuote. Quel passo fa quel che può: se `freeports-validate` non è installato, "
+"o se da questa macchina le pagine di metodologia non si possono risolvere, "
+"l'inizializzazione lo dice, nomina il comando da eseguire più tardi, e riesce "
+"comunque. Uno scheletro che non si potesse creare senza un server di documentazione "
+"raggiungibile sarebbe uno strumento peggiore di uno che lascia nove file da riempire."
 
 #: ../../source/reference/cli/freeports-dev.md:55
 msgid ""
@@ -252,13 +251,13 @@ msgid ""
 "environment check, the branch class, the non-ASCII filename check, the staging of "
 "what the run rewrote, and the verdict."
 msgstr ""
-"**Il hook esegue una cosa sola**: `make pre-commit` su un ramo `dev`, `make ci-full` "
+"**L'hook esegue una cosa sola**: `make pre-commit` su un ramo `dev`, `make ci-full` "
 "su uno `prod`. In che cosa consista il gate si decide nel `Makefile`, quindi può "
-"crescere senza che il hook venga modificato — e ogni suo passo è un target che puoi "
-"anche eseguire a mano, che è la proprietà che rende un commit rifiutato qualcosa che "
-"puoi riprodurre anziché qualcosa che ti è capitato. Ciò che resta nel hook è il "
-"controllo dell'ambiente, la classe del ramo, il controllo sui nomi di file non ASCII,"
-" la messa in stage di ciò che l'esecuzione ha riscritto, e il verdetto."
+"crescere senza che si metta mano all'hook — ed è proprio il fatto che ogni suo passo "
+"sia un target eseguibile anche a mano a rendere un commit rifiutato qualcosa che puoi"
+" riprodurre, e non qualcosa che ti è capitato. Nell'hook restano il controllo "
+"dell'ambiente, la classe del ramo, il controllo sui nomi di file non ASCII, la messa "
+"in stage di ciò che l'esecuzione ha riscritto, e il verdetto."
 
 #: ../../source/reference/cli/freeports-dev.md:62
 msgid ""
@@ -271,13 +270,13 @@ msgid ""
 "train still has to be able to commit."
 msgstr ""
 "**Nessun rapporto può rifiutare un commit**, su nessun ramo. Il gate raccoglie una "
-"volta, rende gli artefatti, e il hook fa `git add` di quelli che ha davvero "
+"volta, produce gli artefatti, e l'hook fa `git add` di quelli che ha davvero "
 "riscritto, così che l'aggiornamento faccia parte dello stesso commit della modifica "
-"che l'ha causato. Tutto ciò è condizionale: nessun `freeports-validate` nel percorso,"
-" nessuna metodologia che riesca a risolvere, o una pagina a cui qualcuno ha tolto la "
-"coppia di marcatori, e il target lo dice sullo standard error e lascia stare il file."
-" I numeri dipendono da una rete, e chi fa commit su un treno deve comunque poter fare"
-" commit."
+"che l'ha causato. Tutto ciò è condizionale: `freeports-validate` non è nel PATH, non "
+"c'è metodologia che riesca a risolvere, oppure a una pagina qualcuno ha tolto la "
+"coppia di marker — e il target lo dice sullo standard error e lascia stare il file. I"
+" numeri dipendono da una rete, e chi fa commit su un treno deve comunque poter fare "
+"commit."
 
 #: ../../source/reference/cli/freeports-dev.md:69
 #, python-brace-format
@@ -481,7 +480,7 @@ msgstr "i blocchi dopo `pdf_extract`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "see whether the *layout* predicate found anything"
-msgstr "vedere se il predicato di *impaginazione* ha trovato qualcosa"
+msgstr "vedere se il predicato di *layout* ha trovato qualcosa"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`txt_blks`"
@@ -531,7 +530,7 @@ msgstr ""
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "learn what font, size and band a value is actually set in"
-msgstr "scoprire in quale carattere, corpo e banda sia composto davvero un valore"
+msgstr "scoprire con quale font, corpo e banda sia composto davvero un valore"
 
 #: ../../source/reference/cli/freeports-dev.md:136
 msgid ""
@@ -633,7 +632,7 @@ msgstr ""
 "in JSON sotto `tests/formats/<FORMATO>/pages/`, dopo averti mostrato ciò che sta per "
 "registrare e aver chiesto. Leggi ciò che stampa prima di rispondere: `make-tests` "
 "registra *ciò che il codice fa adesso*, quindi confermare un risultato sbagliato "
-"promuove un difetto a specifica, e da lì in poi sarà il test a difenderlo."
+"promuove un bug a specifica, e da lì in poi sarà il test a difenderlo."
 
 #: ../../source/reference/cli/freeports-dev.md:169
 msgid ""
@@ -707,7 +706,7 @@ msgid ""
 " whose formats have no whole-document test, has nothing there to fail."
 msgstr ""
 "Un'esecuzione che lascia fuori metà della suite **lo dice nella propria ultima "
-"riga**. E una selezione che non ha corrisposto a niente non è un guasto: un "
+"riga**. E una selezione che non ha corrisposto a niente non è un fallimento: un "
 "repository che non ha ancora formati dentro, o uno i cui formati non hanno un test "
 "sull'intero documento, lì non ha niente che possa fallire."
 
@@ -721,8 +720,8 @@ msgstr ""
 "È pytest, con il plugin `freeports_dev` che fa la raccolta: una cartella che porta il"
 " nome di un formato in `metadata/formats.csv` diventa un nodo di test, e le fixture "
 "per pagina e il riferimento in `out/` diventano i test che vi stanno sotto. "
-"`--rootdir` è impostato al repository, quindi lo stato d'uscita è quello di pytest e "
-"un job di CI non ha bisogno di altro."
+"`--rootdir` è impostato al repository, quindi lo stato di uscita è quello di pytest e"
+" un job di CI non ha bisogno di altro."
 
 #: ../../source/reference/cli/freeports-dev.md:209
 msgid ""
@@ -734,13 +733,13 @@ msgid ""
 "`--slow` select on, and the flag is the one spelling of it — the marker string itself"
 " never needs to be written out by hand."
 msgstr ""
-"Lì vivono due tipi di test e costano cifre molto diverse. I test per pagina sono "
+"Lì vivono due tipi di test, e costano in modo molto diverso. I test per pagina sono "
 "rapidi, e sono quelli che esegui ogni pochi minuti mentre lavori. Il test sull'intero"
 " documento riesegue tutta la relazione e confronta le tabelle di risultato con "
 "`tests/formats/<FORMATO>/out/`; è lento, è marcato `integration_tests`, ed è quello "
-"che dice davvero se il formato funziona. È su quel marcatore che `--fast` e `--slow` "
-"selezionano, e l'opzione è l'unica sua grafia — la stringa del marcatore non ha mai "
-"bisogno di essere scritta a mano."
+"che dice davvero se il formato funziona. È su quel marker che `--fast` e `--slow` "
+"selezionano, e l'opzione ne è l'unica grafia — la stringa del marker non serve mai "
+"scriverla a mano."
 
 #: ../../source/reference/cli/freeports-dev.md:217
 msgid ""
@@ -750,7 +749,7 @@ msgid ""
 "reason written down — never a way to turn a red test green — and it is also what the "
 "grants of the next section are *about*."
 msgstr ""
-"`tests/formats/<FORMATO>/out/**` è la specifica del repository, non un'istantanea. "
+"`tests/formats/<FORMATO>/out/**` è la specifica del repository, non uno snapshot. "
 "Quando un'esecuzione se ne discosta, si presume che sia cambiato il motore, non che "
 "l'aspettativa fosse sbagliata. Rigenerare uno di quei file è un atto deliberato con "
 "una motivazione messa per iscritto — mai un modo di far diventare verde un test rosso"

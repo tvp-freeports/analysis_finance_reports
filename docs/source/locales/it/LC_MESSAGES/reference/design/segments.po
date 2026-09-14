@@ -165,7 +165,7 @@ msgstr "Il quarto segmento previsto"
 
 #: ../../source/reference/design/segments.md:54
 msgid "Planned, not implemented"
-msgstr "Previsto, non realizzato"
+msgstr "Previsto, non implementato"
 
 #: ../../source/reference/design/segments.md:57
 msgid ""
@@ -200,8 +200,8 @@ msgid ""
 "to the standard constructor for that kind of value — ideally by deserializing the "
 "metadata coming out of the filter, since the outgoing classes are already typed."
 msgstr ""
-"**anche `deserialize` acquisisce una realizzazione standard**, che smista in base al "
-"tipo del blocco verso il costruttore standard per quel tipo di valore — idealmente "
+"**anche `deserialize` acquisisce un'implementazione standard**, che smista in base al"
+" tipo del blocco verso il costruttore standard per quel tipo di valore — idealmente "
 "deserializzando i metadati che escono dal filtro, dato che le classi in uscita sono "
 "già tipizzate."
 
@@ -219,5 +219,5 @@ msgstr ""
 
 #: ../../source/reference/design/segments.md:73
 msgid "Nothing in the engine implements this yet, and no format can use it."
-msgstr "Niente nel motore lo realizza ancora, e nessun formato può usarlo."
+msgstr "Niente nel motore lo implementa ancora, e nessun formato può usarlo."
 

@@ -21,7 +21,7 @@ msgstr ""
 
 #: ../../source/guides/devops/fingerprints.rst:3
 msgid "Fingerprints and version discipline"
-msgstr "Impronte e disciplina delle versioni"
+msgstr "I fingerprint e la disciplina delle versioni"
 
 #: ../../source/guides/devops/fingerprints.rst:5
 msgid ""
@@ -30,8 +30,8 @@ msgid ""
 "that looks like one."
 msgstr ""
 "Tre repository dichiarano un hash del proprio contenuto. Fino a questo lavoro, **non "
-"lo calcolava niente** — e un campo che nessuno verifica non è un'impronta, è un "
-"commento che le somiglia."
+"lo calcolava niente** — e un campo che nessuno verifica non è un fingerprint, è un "
+"commento che gli somiglia."
 
 #: ../../source/guides/devops/fingerprints.rst:9
 msgid "The recipe, once"
@@ -55,11 +55,11 @@ msgid ""
 " must never do is differ between two people looking at the same tree."
 msgstr ""
 "**Il percorso sta dentro le righe sottoposte a hash apposta**: spostare un file "
-"cambia l'impronta tanto quanto modificarlo. Un'attestazione che nomina "
+"cambia il fingerprint tanto quanto modificarlo. Un'attestazione che nomina "
 "``tests/a.json`` non copre lo stesso repository una volta che quel file si chiama "
 "``tests/b.json``. L'ordinamento è ``LC_ALL=C`` così che la risposta non dipenda dal "
-"locale di chi fa commit — l'unica cosa che un'impronta non deve mai fare è differire "
-"fra due persone che guardano lo stesso albero."
+"locale di chi fa commit — l'unica cosa che un fingerprint non deve mai fare è "
+"differire fra due persone che guardano lo stesso albero."
 
 #: ../../source/guides/devops/fingerprints.rst:24
 msgid ""
@@ -68,8 +68,9 @@ msgid ""
 "to handle a case nobody can currently create."
 msgstr ""
 "Nomi di file non ASCII richiederebbero di fissare le regole di escape di "
-"``sha256sum`` per restare riproducibili. Entrambi i hook già li rifiutano, quindi qui"
-" lo si dice anziché far finta di gestire un caso che al momento nessuno può creare."
+"``sha256sum`` per restare riproducibili. Entrambi gli hook già li rifiutano, quindi "
+"qui lo si dice anziché far finta di gestire un caso che al momento nessuno può "
+"creare."
 
 #: ../../source/guides/devops/fingerprints.rst:29
 msgid "A formats repository"
@@ -85,8 +86,8 @@ msgstr ""
 "``info.validation_sha256`` in ``package.yaml`` copre **ogni file che copre "
 "un'attestazione**, letti dai ``validation/*.yaml`` del repository stesso — non da "
 "``freeports-validate collect``, perché la raccolta risolve le pagine di metodologia "
-"attraverso la rete e un'impronta che non si può calcolare in treno è un'impronta che "
-"il hook deve saltare."
+"attraverso la rete e un fingerprint che non si può calcolare in treno è un "
+"fingerprint che l'hook deve saltare."
 
 #: ../../source/guides/devops/fingerprints.rst:36
 msgid ""
@@ -94,9 +95,9 @@ msgid ""
 "choice: the change may be a correction or a whole new format, and only they know "
 "which."
 msgstr ""
-"Quando si muove, deve muoversi anche ``info.version``. Quale componente è scelta "
-"dell'autore: la modifica può essere una correzione o un formato del tutto nuovo, e "
-"solo lui sa quale."
+"Quando si muove, deve muoversi anche ``info.version``. Quale componente è scelta di "
+"chi scrive il formato: la modifica può essere una correzione o un formato del tutto "
+"nuovo, e solo chi l'ha fatta sa quale delle due sia."
 
 #: ../../source/guides/devops/fingerprints.rst:39
 msgid ""
@@ -104,9 +105,9 @@ msgid ""
 "would leave the manifest claiming that version X covers content Y, which is a false "
 "statement — and the entire point of the field is that it is not one."
 msgstr ""
-"Su ``dev`` il hook avvisa e **non scrive la nuova impronta**. Scriverla lascerebbe il"
-" manifesto ad affermare che la versione X copre il contenuto Y, che è un'affermazione"
-" falsa — e tutto il senso del campo è che non lo sia."
+"Su ``dev`` l'hook avvisa e **non scrive il nuovo fingerprint**. Scriverlo lascerebbe "
+"il manifesto ad affermare che la versione X copre il contenuto Y, che è "
+"un'affermazione falsa — e tutto il senso del campo è che non lo sia."
 
 #: ../../source/guides/devops/fingerprints.rst:44
 msgid "An input database"
@@ -118,8 +119,7 @@ msgid ""
 "directories, same recipe. Here the bump is **mechanical**, so the hook proposes it:"
 msgstr ""
 "``sha256.companies`` e ``sha256.lists`` in ``metadata.yaml``, sulle rispettive due "
-"cartelle, stessa ricetta. Qui l'incremento è **meccanico**, quindi il hook lo "
-"propone:"
+"cartelle, stessa ricetta. Qui il bump è **meccanico**, quindi l'hook lo propone:"
 
 #: ../../source/guides/devops/fingerprints.rst:53
 msgid "What moved"
@@ -165,8 +165,8 @@ msgid ""
 " gets — a description, a README — and only a person knows they made one."
 msgstr ""
 "La componente di patch non è mai proposta: è ciò che tocca a una modifica che non "
-"muove nessuna delle due impronte — una descrizione, un README — e solo una persona sa"
-" di averne fatta una."
+"muove nessuno dei due fingerprint — una descrizione, un README — e solo una persona "
+"sa di averne fatta una."
 
 #: ../../source/guides/devops/fingerprints.rst:66
 msgid ""
@@ -176,7 +176,7 @@ msgid ""
 "in each of those the person who would have said yes is not there. A prompt nobody can"
 " answer must never be read as a yes."
 msgstr ""
-"Interattivo vuol dire interattivo: il hook riapre il terminale e chiede, mostrando "
+"Interattivo vuol dire interattivo: l'hook riapre il terminale e chiede, mostrando "
 "entrambi gli hash e la versione proposta. **Rifiutato, o senza risposta possibile, è "
 "un no.** Un rebase, uno script, il pulsante di commit di un editor e un runner di CI "
 "ci arrivano tutti senza terminale, e in ciascuno di quei casi la persona che avrebbe "
@@ -311,7 +311,7 @@ msgstr "rustdoc"
 
 #: ../../source/guides/devops/fingerprints.rst:119
 msgid "the docstring walker"
-msgstr "il camminatore sulle docstring"
+msgstr "il walker delle docstring"
 
 #: ../../source/guides/devops/fingerprints.rst:122
 msgid "And the aggregates:"

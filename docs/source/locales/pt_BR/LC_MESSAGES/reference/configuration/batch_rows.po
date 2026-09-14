@@ -21,138 +21,160 @@ msgstr ""
 
 #: ../../source/reference/configuration/batch_rows.md:1
 msgid "Batch rows"
-msgstr ""
+msgstr "As linhas de lote"
 
 #: ../../source/reference/configuration/batch_rows.md:3
 #, python-brace-format
 msgid ""
-"The **strongest** source of all: a row overrides the command line, "
-"because in batch mode the command line describes the run and the row "
-"describes this job. {doc}`../../guides/user/advanced/batch` is how batch "
-"mode works; this page is its configuration view."
+"The **strongest** source of all: a row overrides the command line, because in batch "
+"mode the command line describes the run and the row describes this job. "
+"{doc}`../../guides/user/advanced/batch` is how batch mode works; this page is its "
+"configuration view."
 msgstr ""
+"A via **mais forte** de todas: uma linha se sobrepõe à linha de comando, porque no "
+"modo em lote a linha de comando descreve a execução e a linha descreve este job. "
+"{doc}`../../guides/user/advanced/batch` é como o modo em lote funciona; esta página é"
+" a visão dele pelo lado da configuração."
 
 #: ../../source/reference/configuration/batch_rows.md:7
 msgid "Column to option"
-msgstr ""
+msgstr "De coluna a ajuste"
 
 #: ../../source/reference/configuration/batch_rows.md:9
 msgid ""
-"Columns are matched case-insensitively, with spaces and underscores "
-"equivalent — `save pdf`, `Save_PDF` and `SAVE PDF` are one column."
+"Columns are matched case-insensitively, with spaces and underscores equivalent — "
+"`save pdf`, `Save_PDF` and `SAVE PDF` are one column."
 msgstr ""
+"As colunas são reconhecidas sem distinguir maiúsculas de minúsculas, com espaços e "
+"underscores equivalentes — `save pdf`, `Save_PDF` e `SAVE PDF` são uma coluna só."
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "Column"
-msgstr ""
+msgstr "Coluna"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "Option"
-msgstr ""
+msgstr "Ajuste"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`url`"
-msgstr ""
+msgstr "`url`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`reports`, contributing the URL"
-msgstr ""
+msgstr "`reports`, fornecendo a URL"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`pdf`"
-msgstr ""
+msgstr "`pdf`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`reports`, one or more specifiers separated by `|`"
-msgstr ""
+msgstr "`reports`, um ou mais especificadores separados por `|`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`format`"
-msgstr ""
+msgstr "`format`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`save pdf`"
-msgstr ""
+msgstr "`save pdf`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`save_pdf`"
-msgstr ""
+msgstr "`save_pdf`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`target list`"
-msgstr ""
+msgstr "`target list`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`target_lists` — one element, taken whole"
-msgstr ""
+msgstr "`target_lists` — um elemento só, tomado por inteiro"
 
 #: ../../source/reference/configuration/batch_rows.md:20
 msgid ""
-"Five columns, against sixteen options. That is the design, not an "
-"omission: a batch row says what makes **this job** different, and "
-"everything about the run as a whole — where the output goes, which "
-"repository and database to use, how much parallelism, the output shape — "
-"is said once on the command line or in a file rather than repeated on "
-"every row."
+"Five columns, against sixteen options. That is the design, not an omission: a batch "
+"row says what makes **this job** different, and everything about the run as a whole —"
+" where the output goes, which repository and database to use, how much parallelism, "
+"the output shape — is said once on the command line or in a file rather than repeated"
+" on every row."
 msgstr ""
+"Cinco colunas, contra dezesseis ajustes. Isso é escolha de projeto, não esquecimento:"
+" uma linha de lote diz o que torna **este job** diferente, e tudo o que diz respeito "
+"à execução como um todo — para onde vai a saída, que repositório e que banco usar, "
+"quanto paralelismo, o formato da saída — se diz uma vez só na linha de comando ou num"
+" arquivo, em vez de repetido em cada linha."
 
 #: ../../source/reference/configuration/batch_rows.md:25
 msgid "Rules of a batch row"
-msgstr ""
+msgstr "Regras de uma linha de lote"
 
 #: ../../source/reference/configuration/batch_rows.md:26
 msgid ""
-"**An unknown column is an error**, not something ignored, and the message"
-" names the column. Same principle as the file's unknown keys."
+"**An unknown column is an error**, not something ignored, and the message names the "
+"column. Same principle as the file's unknown keys."
 msgstr ""
+"**Uma coluna desconhecida é erro**, não coisa a ignorar, e a mensagem nomeia a "
+"coluna. Mesmo princípio das chaves desconhecidas do arquivo."
 
 #: ../../source/reference/configuration/batch_rows.md:29
 msgid ""
-"**Rows are numbered from one**, the header not counting, and every error "
-"names its row. These files are edited in spreadsheets by people who will "
-"never see a stack trace, and an error that cannot say which row is nearly"
-" useless."
+"**Rows are numbered from one**, the header not counting, and every error names its "
+"row. These files are edited in spreadsheets by people who will never see a stack "
+"trace, and an error that cannot say which row is nearly useless."
 msgstr ""
+"**As linhas contam-se a partir de um**, sem contar o cabeçalho, e todo erro nomeia a "
+"sua linha. Estes arquivos são editados em planilhas por pessoas que nunca vão ver um "
+"stack trace, e um erro que não sabe dizer qual linha é quase inútil."
 
 #: ../../source/reference/configuration/batch_rows.md:33
 msgid "**A header with no data rows produces no jobs**, which is not an error."
-msgstr ""
+msgstr "**Um cabeçalho sem linhas de dados não produz job nenhum**, e isso não é erro."
 
 #: ../../source/reference/configuration/batch_rows.md:35
 msgid ""
-"**`save pdf` is stricter here** than in the environment: literally `true`"
-" or `false`, case-insensitively, and nothing else. A batch file is "
-"written once and read by a program, not typed at a shell prompt, so the "
-"permissiveness that helps a shell script buys nothing here."
+"**`save pdf` is stricter here** than in the environment: literally `true` or `false`,"
+" case-insensitively, and nothing else. A batch file is written once and read by a "
+"program, not typed at a shell prompt, so the permissiveness that helps a shell script"
+" buys nothing here."
 msgstr ""
+"**O `save pdf` é mais rígido aqui** do que no ambiente: literalmente `true` ou "
+"`false`, sem distinguir maiúsculas de minúsculas, e mais nada. Um arquivo de lote é "
+"escrito uma vez e lido por um programa, não digitado num prompt de shell, então a "
+"permissividade que ajuda um script de shell aqui não rende nada."
 
 #: ../../source/reference/configuration/batch_rows.md:39
 msgid "How `url` and `pdf` combine in a row"
-msgstr ""
+msgstr "Como `url` e `pdf` se combinam numa linha"
 
 #: ../../source/reference/configuration/batch_rows.md:40
-msgid ""
-"The `pdf` cell is always split on the pipe, even when it holds one "
-"element:"
-msgstr ""
+msgid "The `pdf` cell is always split on the pipe, even when it holds one element:"
+msgstr "A célula `pdf` é sempre partida na barra vertical, mesmo quando tem um elemento só:"
 
 #: ../../source/reference/configuration/batch_rows.md:42
 msgid ""
-"**one element** is treated as the *singular* specifier, and a `url` in "
-"the same row overrides its URL field. The two therefore can never "
-"conflict — the common row is a URL in one column and a destination path "
-"in the other;"
+"**one element** is treated as the *singular* specifier, and a `url` in the same row "
+"overrides its URL field. The two therefore can never conflict — the common row is a "
+"URL in one column and a destination path in the other;"
 msgstr ""
+"**um elemento** é tratado como o especificador *singular*, e um `url` na mesma linha "
+"sobrescreve o campo de URL dele. Os dois nunca podem, portanto, entrar em conflito — "
+"a linha comum é uma URL numa coluna e um caminho de destino na outra;"
 
 #: ../../source/reference/configuration/batch_rows.md:45
 msgid ""
-"**several elements** are a genuine plural, and a `url` alongside them "
-"**is a conflict**, exactly as in the file and the environment."
+"**several elements** are a genuine plural, and a `url` alongside them **is a "
+"conflict**, exactly as in the file and the environment."
 msgstr ""
+"**vários elementos** são um plural de verdade, e um `url` ao lado deles **é "
+"conflito**, exatamente como no arquivo e no ambiente."
 
 #: ../../source/reference/configuration/batch_rows.md:54
 msgid ""
-"The first row downloads to `local.pdf`; the second runs two named "
-"documents as one job."
+"The first row downloads to `local.pdf`; the second runs two named documents as one "
+"job."
 msgstr ""
+"A primeira linha baixa para `local.pdf`; a segunda manda num job só dois documentos, "
+"cada um com o seu nome."
 

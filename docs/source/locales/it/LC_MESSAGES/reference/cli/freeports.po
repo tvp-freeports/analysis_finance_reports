@@ -140,7 +140,7 @@ msgstr "`--archive`, `-z`"
 
 #: ../../source/reference/cli/freeports.md
 msgid "write a compressed sibling"
-msgstr "scrivi un gemello compresso"
+msgstr "scrivi accanto una copia compressa"
 
 #: ../../source/reference/cli/freeports.md
 msgid "*nothing said* — a lower tier may still set it"
@@ -380,8 +380,8 @@ msgid ""
 "A path ending in `.tar.gz` switches the archive flag on and the suffix is stripped, "
 "so `-o results.tar.gz` and `-o results -z` mean the same thing."
 msgstr ""
-"Un percorso che finisce in `.tar.gz` accende l'opzione di archivio e si vede togliere"
-" il suffisso, quindi `-o results.tar.gz` e `-o results -z` vogliono dire la stessa "
+"Un percorso che finisce in `.tar.gz` accende l'opzione di archivio e il suffisso "
+"viene tolto, quindi `-o results.tar.gz` e `-o results -z` vogliono dire la stessa "
 "cosa."
 
 #: ../../source/reference/cli/freeports.md:93
@@ -406,8 +406,8 @@ msgid ""
 "Two independent flags: a compressed sibling of the output, and one CSV per `(report, "
 "format)` pair for the two tables that carry them."
 msgstr ""
-"Due opzioni indipendenti: un gemello compresso dei risultati, e un CSV per ciascuna "
-"coppia `(relazione, formato)` per le due tabelle che le portano."
+"Due opzioni indipendenti: una copia compressa accanto ai risultati, e un CSV per "
+"ciascuna coppia `(relazione, formato)` per le due tabelle che le portano."
 
 #: ../../source/reference/cli/freeports.md:104
 msgid ""
@@ -430,7 +430,7 @@ msgid ""
 msgstr ""
 "Imposta `save_pdf` a falso. Nonostante il nome **non** impedisce lo scaricamento — "
 "impedisce di *conservare* sul disco il file scaricato. Assente lascia il campo non "
-"impostato; il valore predefinito, dal livello dei valori predefiniti, è conservarlo."
+"impostato, e il livello dei valori predefiniti dice di conservarlo."
 
 #: ../../source/reference/cli/freeports.md:116
 msgid "Batch and configuration"
@@ -492,8 +492,9 @@ msgid ""
 "error and `-vv -q` is legal."
 msgstr ""
 "`-v` e `-q` sono **contate** e sono **due manopole indipendenti**, non opzioni "
-"contrapposte: il saldo netto dei due conteggi è sommato al valore predefinito e "
-"limitato agli estremi, quindi nessuna combinazione è un errore e `-vv -q` è lecito."
+"contrapposte: il saldo netto dei due conteggi si somma al valore predefinito e viene "
+"poi riportato dentro i limiti, quindi nessuna combinazione è un errore e `-vv -q` è "
+"lecito."
 
 #: ../../source/reference/cli/freeports.md:103
 msgid "Flags"
@@ -561,8 +562,8 @@ msgid ""
 msgstr ""
 "`FREEPORTS_VERBOSITY` e la chiave `verbosity` del file di configurazione agiscono "
 "sulla stessa manopola, e funzionano entrambe — ma stanno dentro una configurazione "
-"che non si può leggere finché la registrazione non è già in funzione, quindi entrano "
-"in vigore nel momento in cui essa si risolve anziché dalla prima riga. Vedi "
+"che non si può leggere finché il logging non è già in piedi, quindi entrano in vigore"
+" nel momento in cui essa si risolve anziché dalla prima riga. Vedi "
 "{doc}`../configuration/index` per l'unica conseguenza."
 
 #: ../../source/reference/cli/freeports.md:157

@@ -142,7 +142,7 @@ msgstr "{doc}`coverage-report`"
 
 #: ../../source/reference/cli/index.md:19
 msgid "`freeports-validate report`, and the shapes it renders"
-msgstr "`freeports-validate report`, e le forme in cui rende"
+msgstr "`freeports-validate report`, e le forme in cui restituisce i risultati"
 
 #: ../../source/reference/cli/index.md:39
 #, python-brace-format
@@ -214,7 +214,7 @@ msgid ""
 msgstr ""
 "`freeports-dev` controlla in più che la cartella lo sia davvero — "
 "`metadata/formats.csv` deve esistere — e rifiuta con un messaggio che nomina il "
-"percorso anziché fallire più tardi e oscuramente."
+"percorso, anziché fallire più tardi e in modo oscuro."
 
 #: ../../source/reference/cli/index.md:63
 msgid ""

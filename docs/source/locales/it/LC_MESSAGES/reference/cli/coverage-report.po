@@ -52,7 +52,7 @@ msgstr ""
 
 #: ../../source/reference/cli/coverage-report.md:11
 msgid "It is two subcommands, and the split is the design:"
-msgstr "Sono due sottocomandi, e la divisione è il progetto:"
+msgstr "Sono due sottocomandi, e la divisione in due è la scelta di fondo:"
 
 #: ../../source/reference/cli/coverage-report.md:22
 msgid ""
@@ -111,7 +111,7 @@ msgid ""
 "name, resolution state, resolved URI and hash, the patterns it declares, one "
 "`adoptions` entry per document that adopted it, and its coverage"
 msgstr ""
-"nome, stato di risoluzione, URI e hash risolti, gli schemi che dichiara, una voce "
+"nome, stato di risoluzione, URI e hash risolti, i pattern che dichiara, una voce "
 "`adoptions` per ciascun documento che l'ha adottata, e la sua copertura"
 
 #: ../../source/reference/cli/coverage-report.md
@@ -184,10 +184,10 @@ msgid ""
 "match in the working tree — the files it *could* cover — and the numerator is how "
 "many of those somebody has granted under it."
 msgstr ""
-"**Una metodologia che non dichiara alcun percorso non contribuisce ad alcun "
+"**Una metodologia che non dichiara alcun percorso non porta con sé alcun "
 "denominatore.** Non c'è niente rispetto a cui possa essere completa, e inventarlo "
 "metterebbe una percentuale priva di senso su un badge. Per una che i percorsi li "
-"dichiara, il denominatore è ciò a cui i suoi schemi corrispondono nell'albero di "
+"dichiara, il denominatore è ciò a cui i suoi pattern corrispondono nell'albero di "
 "lavoro — i file che *potrebbe* coprire — e il numeratore è quanti di quelli qualcuno "
 "ha attestato sotto di essa."
 
@@ -255,8 +255,8 @@ msgid ""
 "three viewpoints as tabs, matching `who-grants` / `granted-by` / `granted-with`, a "
 "filter box, and every methodology name linking to the text it resolved from"
 msgstr ""
-"una pagina autosufficiente — stile e script in linea, nessuno scaricamento di alcun "
-"tipo — con i tre punti di vista come schede, corrispondenti a `who-grants` / "
+"una pagina autosufficiente — stile e script inline, nessuna richiesta di rete di "
+"alcun tipo — con i tre punti di vista come schede, corrispondenti a `who-grants` / "
 "`granted-by` / `granted-with`, una casella di filtro, e ogni nome di metodologia che "
 "rimanda al testo da cui si è risolta"
 
@@ -275,8 +275,8 @@ msgid ""
 "fetch"
 msgstr ""
 "`grants-total`, `grants-coverage` e `check-grants`, ciascuno come SVG disegnato in "
-"locale nello stile di shields e come JSON *endpoint* di shields.io per chi preferisca"
-" scaricare"
+"locale nello stile di shields e come JSON *endpoint* di shields.io, per chi "
+"preferisca prenderselo dalla rete"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`markdown`, `rst`"
@@ -284,7 +284,7 @@ msgstr "`markdown`, `rst`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "one of seven tables, rewritten in place between two markers"
-msgstr "una di sette tabelle, riscritta sul posto fra due marcatori"
+msgstr "una di sette tabelle, riscritta sul posto fra due marker"
 
 #: ../../source/reference/cli/coverage-report.md:77
 msgid ""
@@ -292,7 +292,7 @@ msgid ""
 "wrote, between markers you paste where the table should go:"
 msgstr ""
 "Le rese in Markdown e in reStructuredText scrivono **dentro** un file che ha scritto "
-"qualcun altro, fra marcatori che incolli dove la tabella deve andare:"
+"qualcun altro, fra i marker che incolli dove la tabella deve andare:"
 
 #: ../../source/reference/cli/coverage-report.md:90
 msgid ""
@@ -301,11 +301,11 @@ msgid ""
 " in a README is a judgement about that README, and a command that guessed would put "
 "one under a licence notice and then keep it there for ever."
 msgstr ""
-"La riscrittura è idempotente: eseguirla due volte non cambia niente. Un file senza "
-"una coppia di marcatori è un **errore** che nomina i marcatori, mai un'aggiunta in "
-"coda — dove una tabella di copertura vada in un README è un giudizio su quel README, "
-"e un comando che tirasse a indovinare ne metterebbe una sotto a un avviso di licenza "
-"per poi tenercela per sempre."
+"La riscrittura è idempotente: eseguirla due volte non cambia niente. Un file senza la"
+" coppia di marker è un **errore** che nomina i marker, mai un'aggiunta in coda — dove"
+" una tabella di copertura vada in un README è un giudizio su quel README, e un "
+"comando che tirasse a indovinare ne metterebbe una sotto a un avviso di licenza per "
+"poi tenercela per sempre."
 
 #: ../../source/reference/cli/coverage-report.md:95
 msgid ""
@@ -314,10 +314,10 @@ msgid ""
 "regenerated. What a reader wants to know is what the repository says now, which "
 "running the command again tells them."
 msgstr ""
-"Niente di ciò che il rapporto produce porta una marca temporale. Una data farebbe di "
-"ogni rigenerazione un diff che dice che non è cambiato niente, che è il modo in cui "
-"un blocco generato smette di essere rigenerato. Ciò che un lettore vuole sapere è che"
-" cosa dice il repository adesso, e a dirglielo è il rieseguire il comando."
+"Niente di ciò che il rapporto produce porta un timestamp. Una data farebbe di ogni "
+"rigenerazione un diff che dice che non è cambiato niente, ed è così che un blocco "
+"generato smette di essere rigenerato. Ciò che un lettore vuole sapere è che cosa dice"
+" il repository adesso, e per saperlo basta rieseguire il comando."
 
 #: ../../source/reference/cli/coverage-report.md:99
 msgid "The seven tables"
@@ -457,7 +457,7 @@ msgstr ""
 
 #: ../../source/reference/cli/coverage-report.md:135
 msgid "Rendering several things out of one walk"
-msgstr "Rendere più cose con una sola passata"
+msgstr "Produrre più cose con una sola passata"
 
 #: ../../source/reference/cli/coverage-report.md:137
 msgid ""
@@ -479,10 +479,10 @@ msgid ""
 " the one asked is the failure this whole command exists to prevent."
 msgstr ""
 "`--model -` legge il modello da una pipe, quindi funziona anche `collect | report "
-"--model -`. Un `--model` che nomini un file che non c'è è un **errore**, "
+"--model -`. Un `--model` che nomini un file che non c'è è un **errore**, e "
 "deliberatamente non un motivo per ripercorrere il repository: un'esecuzione che "
-"rispondesse in sordina a una domanda diversa da quella posta è il guasto che tutto "
-"questo comando esiste per prevenire."
+"rispondesse in sordina a una domanda diversa da quella posta è proprio ciò che tutto "
+"questo comando esiste per impedire."
 
 #: ../../source/reference/cli/coverage-report.md:154
 msgid "What a repository gets for free"
@@ -495,7 +495,7 @@ msgid ""
 "hook that keeps them current — see {ref}`what-init-format-repo-writes`. So the usual "
 "answer to \"how do I set this up\" is that it is already set up."
 msgstr ""
-"`freeports-dev init-format-repo` crea tutti e nove, già riempiti, più il hook che li "
+"`freeports-dev init-format-repo` crea tutti e nove, già riempiti, più l'hook che li "
 "tiene aggiornati — vedi {ref}`what-init-format-repo-writes`. La risposta abituale a "
 "\"come lo configuro\" è quindi che è già configurato."
 

@@ -21,635 +21,785 @@ msgstr ""
 
 #: ../../source/guides/grants/writing-a-methodology.md:1
 msgid "Writing a methodology"
-msgstr ""
+msgstr "Escrever uma metodologia"
 
 #: ../../source/guides/grants/writing-a-methodology.md:3
 msgid ""
-"A methodology is a page of prose. Nothing about it is executable, nothing"
-" about it is checked by a program, and the tool that uses it never reads "
-"a word of it except to find one optional section."
+"A methodology is a page of prose. Nothing about it is executable, nothing about it is"
+" checked by a program, and the tool that uses it never reads a word of it except to "
+"find one optional section."
 msgstr ""
+"Uma metodologia é uma página de prosa. Nada nela é executável, nada nela é conferido "
+"por um programa, e a ferramenta que a usa não lê uma palavra sequer do texto, a não "
+"ser para achar uma única seção opcional."
 
 #: ../../source/guides/grants/writing-a-methodology.md:6
 msgid ""
-"That is not a limitation to work around. It is the whole idea, and this "
-"chapter is about writing one well."
+"That is not a limitation to work around. It is the whole idea, and this chapter is "
+"about writing one well."
 msgstr ""
+"Isso não é uma limitação a contornar. É justamente essa a ideia, e este capítulo "
+"trata de como escrever uma boa."
 
 #: ../../source/guides/grants/writing-a-methodology.md:9
 msgid "What a methodology is for"
-msgstr ""
+msgstr "Para que serve uma metodologia"
 
 #: ../../source/guides/grants/writing-a-methodology.md:11
 msgid ""
-"When somebody grants a file, what they sign is roughly: *I applied the "
-"protocol described in this text to this file, and I stand behind the "
-"result.* The methodology is that text. So the question a methodology page"
-" has to answer is not \"what should the tool check?\" — the tool checks "
-"hashes and signatures and nothing else — but:"
+"When somebody grants a file, what they sign is roughly: *I applied the protocol "
+"described in this text to this file, and I stand behind the result.* The methodology "
+"is that text. So the question a methodology page has to answer is not \"what should "
+"the tool check?\" — the tool checks hashes and signatures and nothing else — but:"
 msgstr ""
+"Quando alguém avaliza um arquivo, o que assina é mais ou menos isto: *apliquei a este"
+" arquivo o protocolo descrito neste texto, e respondo pelo resultado.* A metodologia "
+"é esse texto. Logo, a pergunta que uma página de metodologia tem de responder não é "
+"\"o que a ferramenta deve conferir?\" — a ferramenta confere hashes e assinaturas e "
+"mais nada — e sim:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:16
 msgid ""
-"**What is the person who grants a file under this methodology claiming, "
-"and what are they not claiming?**"
+"**What is the person who grants a file under this methodology claiming, and what are "
+"they not claiming?**"
 msgstr ""
+"**O que está afirmando, e o que não está afirmando, quem avaliza um arquivo segundo "
+"esta metodologia?**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:19
 msgid ""
-"A reader downstream will one day look at a `.csv` in a formats "
-"repository, see that three people vouched for it under *basic check*, and"
-" decide how much that is worth. What decides that is your page. If it "
-"says something a careful person can honestly do and honestly report, the "
-"grant means something. If it is a checklist nobody could truthfully "
-"complete, the grant is theatre, and the mechanism around it — hashes, "
+"A reader downstream will one day look at a `.csv` in a formats repository, see that "
+"three people vouched for it under *basic check*, and decide how much that is worth. "
+"What decides that is your page. If it says something a careful person can honestly do"
+" and honestly report, the grant means something. If it is a checklist nobody could "
+"truthfully complete, the grant is theatre, and the mechanism around it — hashes, "
 "signatures, sources — is theatre too."
 msgstr ""
+"Um dia, mais adiante, alguém vai olhar um `.csv` num repositório de formatos, ver que"
+" três pessoas o respaldaram sob *basic check* e decidir quanto isso vale. Quem decide"
+" isso é a sua página. Se ela diz algo que uma pessoa cuidadosa consegue fazer "
+"honestamente e relatar honestamente, o aval quer dizer alguma coisa. Se é uma lista "
+"de verificação que ninguém conseguiria cumprir dizendo a verdade, o aval é teatro — e"
+" o maquinário em volta dele, hashes, assinaturas, fontes, é teatro também."
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "The one test that matters"
-msgstr ""
+msgstr "A única prova que importa"
 
 #: ../../source/guides/grants/writing-a-methodology.md:28
 msgid ""
-"Read your protocol steps and ask: *could a competent, honest person do "
-"exactly this, in an afternoon, and know whether they had done it?* A step"
-" that cannot be honestly completed does not raise the trust level of the "
-"methodology. It lowers it, because the grants made under it were made by "
-"people who ticked it anyway."
+"Read your protocol steps and ask: *could a competent, honest person do exactly this, "
+"in an afternoon, and know whether they had done it?* A step that cannot be honestly "
+"completed does not raise the trust level of the methodology. It lowers it, because "
+"the grants made under it were made by people who ticked it anyway."
 msgstr ""
+"Releia os passos do seu protocolo e pergunte: *uma pessoa competente e honesta "
+"conseguiria fazer exatamente isto, numa tarde, e saber se fez?* Um passo que não dá "
+"para cumprir honestamente não eleva o nível de confiança da metodologia. Rebaixa, "
+"porque os avais dados sob ela foram dados por gente que marcou o passo assim mesmo."
 
 #: ../../source/guides/grants/writing-a-methodology.md:34
-msgid ""
-"Two consequences follow, and both are worth saying out loud on the page "
-"itself:"
+msgid "Two consequences follow, and both are worth saying out loud on the page itself:"
 msgstr ""
+"Daí decorrem duas consequências, e vale a pena dizer as duas em voz alta na própria "
+"página:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:36
 msgid ""
-"**A methodology is not a quality gate.** It does not say the data is "
-"right. It says what a person did and what they concluded. `basic check` "
-"says somebody ran the thing and looked at the output; `golden standard` "
-"says somebody checked every value against the source document. Neither "
-"says the extraction is correct, because no human procedure says that."
+"**A methodology is not a quality gate.** It does not say the data is right. It says "
+"what a person did and what they concluded. `basic check` says somebody ran the thing "
+"and looked at the output; `golden standard` says somebody checked every value against"
+" the source document. Neither says the extraction is correct, because no human "
+"procedure says that."
 msgstr ""
+"**Uma metodologia não é um controle de qualidade.** Ela não diz que os dados estão "
+"certos. Diz o que uma pessoa fez e a que conclusão chegou. `basic check` diz que "
+"alguém rodou a coisa e olhou a saída; `golden standard` diz que alguém conferiu cada "
+"valor contra o documento de origem. Nenhuma das duas diz que a extração está correta,"
+" porque nenhum procedimento humano diz isso."
 
 #: ../../source/guides/grants/writing-a-methodology.md:41
 msgid ""
-"**Weak methodologies are useful.** The temptation, writing a first "
-"methodology, is to make it demanding so that the grant sounds impressive."
-" Resist it. A weak claim that is true is worth more than a strong claim "
-"that is aspirational, and a repository is far better served by a hundred "
-"honest `basic check` grants than by three `golden standard` grants nobody"
-" could really have earned."
+"**Weak methodologies are useful.** The temptation, writing a first methodology, is to"
+" make it demanding so that the grant sounds impressive. Resist it. A weak claim that "
+"is true is worth more than a strong claim that is aspirational, and a repository is "
+"far better served by a hundred honest `basic check` grants than by three `golden "
+"standard` grants nobody could really have earned."
 msgstr ""
+"**Metodologias fracas são úteis.** Ao escrever a primeira, a tentação é torná-la "
+"exigente para que o aval soe imponente. Resista. Uma afirmação fraca e verdadeira "
+"vale mais do que uma forte e pretensiosa, e um repositório se serve muito melhor de "
+"cem avais `basic check` honestos do que de três avais `golden standard` que ninguém "
+"poderia de fato ter merecido."
 
 #: ../../source/guides/grants/writing-a-methodology.md:46
 msgid "The anatomy of a page"
-msgstr ""
+msgstr "A anatomia de uma página"
 
 #: ../../source/guides/grants/writing-a-methodology.md:48
 msgid ""
-"The three published methodologies share a shape, and a new one should "
-"follow it. Only the last row is read by a program; every other section "
-"exists for the person deciding whether to grant, and for the person "
-"downstream deciding what the grant is worth."
+"The three published methodologies share a shape, and a new one should follow it. Only"
+" the last row is read by a program; every other section exists for the person "
+"deciding whether to grant, and for the person downstream deciding what the grant is "
+"worth."
 msgstr ""
+"As três metodologias publicadas compartilham um formato, e uma nova deveria segui-lo."
+" Só a última linha é lida por um programa; toda outra seção existe para quem está "
+"decidindo se avaliza, e para quem, mais adiante, está decidindo quanto o aval vale."
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "Section"
-msgstr ""
+msgstr "Seção"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "Answers"
-msgstr ""
+msgstr "Responde a"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Purpose**"
-msgstr ""
+msgstr "**Purpose**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "in one or two sentences, what a grant under this methodology asserts"
-msgstr ""
+msgstr "em uma ou duas frases, o que um aval sob esta metodologia afirma"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Scope**"
-msgstr ""
+msgstr "**Scope**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "what kinds of thing it applies to, in prose"
-msgstr ""
+msgstr "a que tipos de coisa ela se aplica, em prosa"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Protocol steps**"
-msgstr ""
+msgstr "**Protocol steps**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "what the granter actually does, in order, concretely enough to follow"
-msgstr ""
+msgstr "o que quem avaliza de fato faz, em ordem, concreto o bastante para se poder seguir"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Trust level**"
-msgstr ""
+msgstr "**Trust level**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "how strong the resulting claim is, said plainly and without flattering it"
-msgstr ""
+msgstr "quão forte é a afirmação que daí resulta, dito com clareza e sem embelezar"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Applicable context**"
-msgstr ""
+msgstr "**Applicable context**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "when to reach for this one rather than another"
-msgstr ""
+msgstr "quando recorrer a esta e não a outra"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Limitations**"
-msgstr ""
+msgstr "**Limitations**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "what a grant under it does **not** establish"
-msgstr ""
+msgstr "o que um aval sob ela **não** estabelece"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "**Supported paths**"
-msgstr ""
+msgstr "**Supported paths**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
-msgid ""
-"*optional, and machine-read* — the repository paths it covers, each with "
-"a gloss"
+msgid "*optional, and machine-read* — the repository paths it covers, each with a gloss"
 msgstr ""
+"*opcional, e lida por máquina* — os caminhos do repositório que ela cobre, cada um "
+"com uma glosa"
 
 #: ../../source/guides/grants/writing-a-methodology.md:62
 msgid ""
-"The order is a reading order, not a rule. What matters is that "
-"**Limitations** is there and is honest: it is the section a downstream "
-"reader trusts you for, and a page without one reads like marketing."
+"The order is a reading order, not a rule. What matters is that **Limitations** is "
+"there and is honest: it is the section a downstream reader trusts you for, and a page"
+" without one reads like marketing."
 msgstr ""
+"A ordem é uma ordem de leitura, não uma regra. O que importa é que **Limitations** "
+"esteja lá e seja honesta: é a seção pela qual quem lê mais adiante confia em você, e "
+"uma página sem ela se lê como propaganda."
 
 #: ../../source/guides/grants/writing-a-methodology.md:66
 msgid ""
-"Here is the skeleton, in reStructuredText, which is the format a "
-"methodology page is written in:"
+"Here is the skeleton, in reStructuredText, which is the format a methodology page is "
+"written in:"
 msgstr ""
+"Eis o esqueleto, em reStructuredText, que é o formato em que se escreve uma página de"
+" metodologia:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:96
 msgid "Declaring the paths it covers"
-msgstr ""
+msgstr "Declarar os caminhos que ela cobre"
 
 #: ../../source/guides/grants/writing-a-methodology.md:98
 msgid ""
-"Everything above is prose for people. `Supported paths` is the one "
-"section a program reads — and even there, what it reads is only the "
-"patterns; the prose under each of them is shown to the reader untouched, "
-"never interpreted."
+"Everything above is prose for people. `Supported paths` is the one section a program "
+"reads — and even there, what it reads is only the patterns; the prose under each of "
+"them is shown to the reader untouched, never interpreted."
 msgstr ""
+"Tudo o que vem acima é prosa para pessoas. `Supported paths` é a única seção que um "
+"programa lê — e mesmo ali o que ele lê são só os patterns; a prosa sob cada um deles "
+"é mostrada ao leitor intacta, nunca interpretada."
 
 #: ../../source/guides/grants/writing-a-methodology.md:119
 msgid ""
-"It is an ordinary, **visible** section, and each entry is a definition-"
-"list term that is a single inline literal with an indented gloss under "
-"it. Anything else in the section is prose and is ignored. Two deliberate "
-"non-choices are worth knowing: it is not a hidden comment block, because "
-"that would put the declaration where a reader of the published page could"
-" not see it; and it is not a custom Sphinx directive, because that would "
-"break every plain-reStructuredText consumer — including the tool itself, "
+"It is an ordinary, **visible** section, and each entry is a definition-list term that"
+" is a single inline literal with an indented gloss under it. Anything else in the "
+"section is prose and is ignored. Two deliberate non-choices are worth knowing: it is "
+"not a hidden comment block, because that would put the declaration where a reader of "
+"the published page could not see it; and it is not a custom Sphinx directive, because"
+" that would break every plain-reStructuredText consumer — including the tool itself, "
 "which fetches the page as text from wherever you published it."
 msgstr ""
+"É uma seção comum e **visível**, e cada entrada é o termo de uma lista de definições "
+"formado por um único literal inline, com uma glosa indentada embaixo. Qualquer outra "
+"coisa na seção é prosa e é ignorada. Vale conhecer duas não-escolhas deliberadas: não"
+" é um bloco de comentário oculto, porque isso poria a declaração onde quem lê a "
+"página publicada não conseguiria vê-la; e não é uma diretiva Sphinx feita sob medida,"
+" porque isso quebraria todo consumidor de reStructuredText puro — inclusive a própria"
+" ferramenta, que baixa a página como texto de onde quer que você a tenha publicado."
 
 #: ../../source/guides/grants/writing-a-methodology.md:126
 msgid "The grammar"
-msgstr ""
+msgstr "A gramática"
 
 #: ../../source/guides/grants/writing-a-methodology.md:128
 msgid "Four tokens, and everything else is literal:"
-msgstr ""
+msgstr "Quatro tokens, e todo o resto é literal:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "Token"
-msgstr ""
+msgstr "Token"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "Matches"
-msgstr ""
+msgstr "Corresponde a"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "`*`"
-msgstr ""
+msgstr "`*`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "any part of **one** path segment; never crosses a `/`"
-msgstr ""
+msgstr "qualquer parte de **um só** segmento de caminho; nunca atravessa uma `/`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "`**`"
-msgstr ""
+msgstr "`**`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "zero or more whole segments"
-msgstr ""
+msgstr "zero ou mais segmentos inteiros"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "a trailing `/`"
-msgstr ""
+msgstr "uma `/` no final"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "the directory and everything under it — the same as appending `**`"
-msgstr ""
+msgstr "o diretório e tudo o que está sob ele — o mesmo que acrescentar `**`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "anything else"
-msgstr ""
+msgstr "qualquer outra coisa"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "itself"
-msgstr ""
+msgstr "si mesma"
 
 #: ../../source/guides/grants/writing-a-methodology.md:137
 msgid ""
-"No character classes, no braces, no negation, no `?`. Patterns are always"
-" relative to the repository root, and a leading `/` is ignored rather "
-"than refused."
+"No character classes, no braces, no negation, no `?`. Patterns are always relative to"
+" the repository root, and a leading `/` is ignored rather than refused."
 msgstr ""
+"Sem classes de caracteres, sem chaves, sem negação, sem `?`. Os patterns são sempre "
+"relativos à raiz do repositório, e uma `/` no início é ignorada em vez de recusada."
 
 #: ../../source/guides/grants/writing-a-methodology.md:140
 msgid ""
-"The grammar is this small on purpose. These patterns are read by people "
-"deciding whether to trust a grant, and a pattern language that *looked* "
-"like a shell glob without being one would be worse than having none: the "
-"reader would believe something the tool does not do."
+"The grammar is this small on purpose. These patterns are read by people deciding "
+"whether to trust a grant, and a pattern language that *looked* like a shell glob "
+"without being one would be worse than having none: the reader would believe something"
+" the tool does not do."
 msgstr ""
+"A gramática é pequena assim de propósito. Esses patterns são lidos por pessoas que "
+"estão decidindo se confiam num aval, e uma linguagem de patterns que *parecesse* um "
+"glob de shell sem ser um seria pior do que não ter nenhuma: o leitor acreditaria em "
+"algo que a ferramenta não faz."
 
 #: ../../source/guides/grants/writing-a-methodology.md:144
 msgid ""
-"`**` is not decoration, and the commonest mistake is reaching for `*` "
-"where the real tree needs it. A formats repository may nest a **variant**"
-" between the format and its outputs, and may equally not — both layouts "
-"are ordinary, and a real repository contains a mixture:"
+"`**` is not decoration, and the commonest mistake is reaching for `*` where the real "
+"tree needs it. A formats repository may nest a **variant** between the format and its"
+" outputs, and may equally not — both layouts are ordinary, and a real repository "
+"contains a mixture:"
 msgstr ""
+"`**` não é enfeite, e o erro mais comum é recorrer a `*` onde a árvore de verdade "
+"exige `**`. Um repositório de formatos pode aninhar uma **variante** entre o formato "
+"e suas saídas, e pode igualmente não aninhar — os dois layouts são comuns, e um "
+"repositório de verdade tem uma mistura:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:155
 msgid ""
-"`*` matches exactly one segment, so `tests/formats/*/out/*.csv` covers "
-"the first and misses the second, and `tests/formats/*/*/out/*.csv` does "
-"precisely the reverse. Neither is what you meant. "
-"`tests/formats/**/out/*.csv` covers both, because `**` is *zero or more* "
-"segments — which is the whole reason the grammar has a token for that and"
-" not merely for \"one\"."
+"`*` matches exactly one segment, so `tests/formats/*/out/*.csv` covers the first and "
+"misses the second, and `tests/formats/*/*/out/*.csv` does precisely the reverse. "
+"Neither is what you meant. `tests/formats/**/out/*.csv` covers both, because `**` is "
+"*zero or more* segments — which is the whole reason the grammar has a token for that "
+"and not merely for \"one\"."
 msgstr ""
+"`*` corresponde a exatamente um segmento, então `tests/formats/*/out/*.csv` cobre o "
+"primeiro e perde o segundo, e `tests/formats/*/*/out/*.csv` faz precisamente o "
+"contrário. Nenhum dos dois é o que você queria dizer. `tests/formats/**/out/*.csv` "
+"cobre os dois, porque `**` é *zero ou mais* segmentos — e é toda essa a razão de a "
+"gramática ter um token para isso e não só para \"um\"."
 
 #: ../../source/guides/grants/writing-a-methodology.md:160
 msgid ""
-"Check yours against real paths before publishing, from the repository the"
-" patterns are about:"
+"Check yours against real paths before publishing, from the repository the patterns "
+"are about:"
 msgstr ""
+"Teste os seus contra caminhos de verdade antes de publicar, a partir do repositório "
+"de que os patterns falam:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:169
 msgid ""
-"It prints nothing and answers in its exit status, like `test`. To see "
-"everything a pattern would cover in a repository as it stands — which is "
-"also the denominator of its coverage figure:"
+"It prints nothing and answers in its exit status, like `test`. To see everything a "
+"pattern would cover in a repository as it stands — which is also the denominator of "
+"its coverage figure:"
 msgstr ""
+"Ele não imprime nada e responde pelo status de saída, como o `test`. Para ver tudo o "
+"que um pattern cobriria num repositório do jeito que ele está — que é também o "
+"denominador do número de cobertura dele:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:176
 msgid "What follows from declaring, and from not declaring"
-msgstr ""
+msgstr "O que decorre de declarar, e de não declarar"
 
 #: ../../source/guides/grants/writing-a-methodology.md:178
 msgid ""
-"**A page with no `Supported paths` section supports any path.** That is "
-"the behaviour from before the section existed, and it is the honest "
-"answer for a methodology whose scope genuinely cannot be written as a set"
-" of paths. Leaving the section out is a legitimate choice, not an "
-"omission."
+"**A page with no `Supported paths` section supports any path.** That is the behaviour"
+" from before the section existed, and it is the honest answer for a methodology whose"
+" scope genuinely cannot be written as a set of paths. Leaving the section out is a "
+"legitimate choice, not an omission."
 msgstr ""
+"**Uma página sem a seção `Supported paths` suporta qualquer caminho.** É o "
+"comportamento de quando a seção não existia, e é a resposta honesta para uma "
+"metodologia cujo escopo realmente não se deixa escrever como um conjunto de caminhos."
+" Deixar a seção de fora é uma escolha legítima, não um esquecimento."
 
 #: ../../source/guides/grants/writing-a-methodology.md:182
 msgid ""
-"A section that exists and declares *nothing* is read the other way — as a"
-" page whose author opened the subject in order to constrain it and then "
-"named none — and `grant` says so, because that is almost certainly a "
-"mistake in the page rather than a methodology that covers nothing."
+"A section that exists and declares *nothing* is read the other way — as a page whose "
+"author opened the subject in order to constrain it and then named none — and `grant` "
+"says so, because that is almost certainly a mistake in the page rather than a "
+"methodology that covers nothing."
 msgstr ""
+"Uma seção que exista e não declare *nada* se lê ao contrário — como uma página cujo "
+"autor abriu o assunto para pôr um limite e depois não nomeou nenhum — e o `grant` diz"
+" isso, porque aí quase certamente há um erro na página, e não uma metodologia que não"
+" cobre nada."
 
 #: ../../source/guides/grants/writing-a-methodology.md:186
 msgid ""
-"Where a grant names a path outside the declared set, the three moments "
-"behave differently on purpose:"
+"Where a grant names a path outside the declared set, the three moments behave "
+"differently on purpose:"
 msgstr ""
+"Quando um aval nomeia um caminho fora do conjunto declarado, os três momentos se "
+"comportam de maneira diferente, e de propósito:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "Moment"
-msgstr ""
+msgstr "Momento"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "What happens"
-msgstr ""
+msgstr "O que acontece"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "`grant`"
-msgstr ""
+msgstr "`grant`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid ""
-"**refused**, printing every pattern with its gloss. Overridable with "
-"`--force`, or by answering the question it asks at a terminal"
+"**refused**, printing every pattern with its gloss. Overridable with `--force`, or by"
+" answering the question it asks at a terminal"
 msgstr ""
+"**recusado**, imprimindo cada pattern com sua glosa. Dá para passar por cima com "
+"`--force`, ou respondendo à pergunta que ele faz num terminal"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "`check-grants`"
-msgstr ""
+msgstr "`check-grants`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "a **warning**, never a failure"
-msgstr ""
+msgstr "um **aviso**, nunca um erro"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "the three lookups"
-msgstr ""
+msgstr "as três buscas"
 
 #: ../../source/guides/grants/writing-a-methodology.md:25
 msgid "listed, and marked `(!)`"
-msgstr ""
+msgstr "listado, e marcado com `(!)`"
 
 #: ../../source/guides/grants/writing-a-methodology.md:195
 msgid ""
-"Refusing at grant time is cheap and catches the mistake while its author "
-"is standing there. Failing at check time would break somebody's "
-"repository because *you* edited your page, which is not a power a "
-"methodology author should have."
+"Refusing at grant time is cheap and catches the mistake while its author is standing "
+"there. Failing at check time would break somebody's repository because *you* edited "
+"your page, which is not a power a methodology author should have."
 msgstr ""
+"Recusar na hora do aval custa pouco e pega o erro enquanto o autor dele ainda está "
+"ali. Falhar na hora da conferência quebraria o repositório de outra pessoa porque "
+"*você* editou a sua página, e esse não é um poder que o autor de uma metodologia deva"
+" ter."
 
 #: ../../source/guides/grants/writing-a-methodology.md:199
 msgid "The same path in two repositories"
-msgstr ""
+msgstr "O mesmo caminho em dois repositórios"
 
 #: ../../source/guides/grants/writing-a-methodology.md:201
 msgid ""
-"`tests/formats/` exists in a formats repository and in the engine's own "
-"repository, and it means different things in the two. A pattern cannot "
-"tell them apart, and the tool does not try."
+"`tests/formats/` exists in a formats repository and in the engine's own repository, "
+"and it means different things in the two. A pattern cannot tell them apart, and the "
+"tool does not try."
 msgstr ""
+"`tests/formats/` existe num repositório de formatos e no repositório do próprio "
+"motor, e nos dois quer dizer coisas diferentes. Um pattern não sabe distingui-los, e "
+"a ferramenta nem tenta."
 
 #: ../../source/guides/grants/writing-a-methodology.md:204
 msgid ""
-"**Resolve it in the gloss.** This is the reason the prose under each "
-"pattern is required reading rather than decoration:"
+"**Resolve it in the gloss.** This is the reason the prose under each pattern is "
+"required reading rather than decoration:"
 msgstr ""
+"**Resolva isso na glosa.** É por isso que a prosa sob cada pattern é leitura "
+"obrigatória e não enfeite:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:215
 msgid ""
-"A reader who is about to grant sees that sentence in the refusal message "
-"if their path does not match, and sees it on the published page if it "
-"does. That is where the ambiguity gets resolved: by a person having "
-"written down which one they meant."
+"A reader who is about to grant sees that sentence in the refusal message if their "
+"path does not match, and sees it on the published page if it does. That is where the "
+"ambiguity gets resolved: by a person having written down which one they meant."
 msgstr ""
+"Quem está prestes a avalizar vê essa frase na mensagem de recusa se o seu caminho não"
+" corresponder, e a vê na página publicada se corresponder. É ali que a ambiguidade se"
+" desfaz: porque uma pessoa deixou escrito qual dos dois queria dizer."
 
 #: ../../source/guides/grants/writing-a-methodology.md:219
 msgid "A worked example: a methodology for assertions"
-msgstr ""
+msgstr "Um exemplo resolvido: uma metodologia para asserções"
 
 #: ../../source/guides/grants/writing-a-methodology.md:221
 msgid ""
-"The three published methodologies do not all look alike, and the "
-"interesting one is **`agreement and good faith`**, because what it grants"
-" is not a test output at all."
+"The three published methodologies do not all look alike, and the interesting one is "
+"**`agreement and good faith`**, because what it grants is not a test output at all."
 msgstr ""
+"As três metodologias publicadas não são todas parecidas, e a interessante é "
+"**`agreement and good faith`**, porque o que ela avaliza não é saída de teste "
+"nenhuma."
 
 #: ../../source/guides/grants/writing-a-methodology.md:224
 msgid ""
-"Its subject is an **assertion**: a statement in the documentation. "
-"Something like *\"the extraction algorithm does not silently drop rows it"
-" cannot parse\"* — a claim about the software, written as prose, which "
-"somebody can read, understand and agree with. Granting it does not mean "
-"you ran anything. It means you read the statement, you understood it "
-"within your own technical competence, and you are willing to put your "
-"name to agreeing with it."
+"Its subject is an **assertion**: a statement in the documentation. Something like "
+"*\"the extraction algorithm does not silently drop rows it cannot parse\"* — a claim "
+"about the software, written as prose, which somebody can read, understand and agree "
+"with. Granting it does not mean you ran anything. It means you read the statement, "
+"you understood it within your own technical competence, and you are willing to put "
+"your name to agreeing with it."
 msgstr ""
+"Seu objeto é uma **asserção**: uma afirmação na documentação. Algo como *\"o "
+"algoritmo de extração não descarta em silêncio as linhas de que não consegue fazer o "
+"parsing\"* — uma afirmação sobre o software, escrita em prosa, que alguém pode ler, "
+"entender e subscrever. Avalizá-la não quer dizer que você rodou coisa alguma. Quer "
+"dizer que você leu a afirmação, entendeu-a dentro da sua competência técnica, e está "
+"disposto a assinar a sua concordância."
 
 #: ../../source/guides/grants/writing-a-methodology.md:230
 msgid "Read its trust level as its author wrote it:"
-msgstr ""
+msgstr "Leia o nível de confiança dela como o autor o escreveu:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:232
 msgid ""
-"This methodology provides **personal certification** — it represents an "
-"individual's good-faith agreement based on their current technical "
-"understanding, but does not guarantee objective truth or comprehensive "
-"verification."
+"This methodology provides **personal certification** — it represents an individual's "
+"good-faith agreement based on their current technical understanding, but does not "
+"guarantee objective truth or comprehensive verification."
 msgstr ""
+"This methodology provides **personal certification** — it represents an individual's "
+"good-faith agreement based on their current technical understanding, but does not "
+"guarantee objective truth or comprehensive verification."
 
 #: ../../source/guides/grants/writing-a-methodology.md:236
 msgid ""
-"That sentence is the whole methodology in miniature, and it is a model of"
-" the kind of honesty the section asks for. It does not say the assertion "
-"is true. It says a named person, with stated limitations, agreed with it."
+"That sentence is the whole methodology in miniature, and it is a model of the kind of"
+" honesty the section asks for. It does not say the assertion is true. It says a named"
+" person, with stated limitations, agreed with it."
 msgstr ""
+"Essa frase é a metodologia inteira em miniatura, e é um modelo do tipo de honestidade"
+" que a seção pede. Ela não diz que a asserção é verdadeira. Diz que uma pessoa com "
+"nome, com limites declarados, concordou com ela."
 
 #: ../../source/guides/grants/writing-a-methodology.md:240
 msgid ""
-"Its `Supported paths` therefore look nothing like the other two. There "
-"are no test outputs to name:"
+"Its `Supported paths` therefore look nothing like the other two. There are no test "
+"outputs to name:"
 msgstr ""
+"Por isso o `Supported paths` dela não se parece em nada com o das outras duas. Não há"
+" saídas de teste a nomear:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:253
 msgid "Three things in that gloss are worth copying:"
-msgstr ""
+msgstr "Naquela glosa há três coisas que vale a pena copiar:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:255
 msgid ""
-"it says which repository the path is in, because the same path elsewhere "
-"is not the same thing;"
+"it says which repository the path is in, because the same path elsewhere is not the "
+"same thing;"
 msgstr ""
+"ela diz em que repositório o caminho está, porque o mesmo caminho em outro lugar não "
+"é a mesma coisa;"
 
 #: ../../source/guides/grants/writing-a-methodology.md:256
 msgid ""
-"it says what the grant is a claim **about** — the statement, not an "
-"output — which is the distinction that makes this methodology different "
-"from the other two;"
+"it says what the grant is a claim **about** — the statement, not an output — which is"
+" the distinction that makes this methodology different from the other two;"
 msgstr ""
+"ela diz **sobre o quê** o aval é uma afirmação — a afirmação, não uma saída —, que é "
+"a distinção que torna esta metodologia diferente das outras duas;"
 
 #: ../../source/guides/grants/writing-a-methodology.md:258
 msgid ""
-"it says what it does **not** reach, so a reader who came looking for "
-"their own assertions is told why they are not covered rather than left to"
-" guess."
+"it says what it does **not** reach, so a reader who came looking for their own "
+"assertions is told why they are not covered rather than left to guess."
 msgstr ""
+"ela diz até onde **não** chega, de modo que quem veio procurar as próprias asserções "
+"fica sabendo por que não estão cobertas, em vez de ter de adivinhar."
 
 #: ../../source/guides/grants/writing-a-methodology.md:261
 msgid ""
-"Compare with `basic check`, whose patterns name test outputs and whose "
-"gloss talks about a program having run. Same section, same grammar, and "
-"two completely different kinds of claim — which is exactly what a "
-"methodology is for."
+"Compare with `basic check`, whose patterns name test outputs and whose gloss talks "
+"about a program having run. Same section, same grammar, and two completely different "
+"kinds of claim — which is exactly what a methodology is for."
 msgstr ""
+"Compare com `basic check`, cujos patterns nomeiam saídas de teste e cuja glosa fala "
+"de um programa que foi rodado. Mesma seção, mesma gramática, e dois tipos de "
+"afirmação completamente diferentes — e é exatamente para isso que uma metodologia "
+"serve."
 
 #: ../../source/guides/grants/writing-a-methodology.md:265
 msgid "Pinning what the page cites"
-msgstr ""
+msgstr "Fixar o que a página cita"
 
 #: ../../source/guides/grants/writing-a-methodology.md:267
 msgid ""
-"A methodology page is prose, and prose cites things: a diagram, a "
-"specification, another document. A grant made under the page is in part a"
-" claim about what those things said. So the page can pin each of them by "
-"hash, in an ordinary reStructuredText comment:"
+"A methodology page is prose, and prose cites things: a diagram, a specification, "
+"another document. A grant made under the page is in part a claim about what those "
+"things said. So the page can pin each of them by hash, in an ordinary "
+"reStructuredText comment:"
 msgstr ""
+"Uma página de metodologia é prosa, e prosa cita coisas: um diagrama, uma "
+"especificação, outro documento. Um aval dado sob essa página é, em parte, uma "
+"afirmação sobre o que aquelas coisas diziam. Por isso a página pode fixar cada uma "
+"delas por hash, num comentário reStructuredText comum:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:281
 msgid ""
-"`..` followed by text that is not a directive is a comment in every "
-"reStructuredText parser: it renders as nothing, breaks no build, and "
-"reads plainly in the source. The target is either an absolute URI or a "
-"path relative to the page itself."
+"`..` followed by text that is not a directive is a comment in every reStructuredText "
+"parser: it renders as nothing, breaks no build, and reads plainly in the source. The "
+"target is either an absolute URI or a path relative to the page itself."
 msgstr ""
+"`..` seguido de texto que não seja uma diretiva é um comentário em todo parser de "
+"reStructuredText: não produz saída nenhuma, não quebra build nenhuma, e se lê sem "
+"esforço no fonte. O destino é um URI absoluto ou um caminho relativo à própria "
+"página."
 
 #: ../../source/guides/grants/writing-a-methodology.md:285
 msgid ""
-"**These are not a second thing to trust.** They are lines of the page, so"
-" the page's own `sha256` — the one every validation document records — "
-"already commits to every one of them. Following them is a deepening, and "
-"it happens by default:"
+"**These are not a second thing to trust.** They are lines of the page, so the page's "
+"own `sha256` — the one every validation document records — already commits to every "
+"one of them. Following them is a deepening, and it happens by default:"
 msgstr ""
+"**Isso não é uma segunda coisa em que confiar.** São linhas da página, então o "
+"`sha256` da própria página — aquele que todo documento de validação registra — já se "
+"compromete com todas elas. Segui-las é um aprofundamento, e acontece por padrão:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:294
 msgid ""
-"You do not write those lines by hand. Let the tool fetch and hash "
-"everything the page cites:"
+"You do not write those lines by hand. Let the tool fetch and hash everything the page"
+" cites:"
 msgstr ""
+"Essas linhas você não escreve à mão. Deixe que a ferramenta baixe tudo o que a página"
+" cita e calcule o hash de cada coisa:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:300
 msgid ""
-"It is idempotent, it refuses to touch a page it did not fetch from your "
-"own filesystem, and when it does write it tells you loudly that the "
-"page's hash has changed — which is the next section."
+"It is idempotent, it refuses to touch a page it did not fetch from your own "
+"filesystem, and when it does write it tells you loudly that the page's hash has "
+"changed — which is the next section."
 msgstr ""
+"É idempotente, recusa-se a mexer numa página que não tenha buscado no seu próprio "
+"filesystem, e quando escreve avisa em alto e bom som que o hash da página mudou — que"
+" é a seção seguinte."
 
 #: ../../source/guides/grants/writing-a-methodology.md:303
 msgid "Publishing it, and what publishing commits you to"
-msgstr ""
+msgstr "Publicá-la, e a que a publicação compromete você"
 
 #: ../../source/guides/grants/writing-a-methodology.md:305
 msgid ""
-"A methodology becomes usable the moment somebody's `validate.sources` can"
-" resolve it. A source is a pattern with exactly one `*`, standing for the"
-" methodology's relative name:"
+"A methodology becomes usable the moment somebody's `validate.sources` can resolve it."
+" A source is a pattern with exactly one `*`, standing for the methodology's relative "
+"name:"
 msgstr ""
+"Uma metodologia fica utilizável no momento em que o `validate.sources` de alguém "
+"consegue resolvê-la. Uma fonte é um pattern com exatamente um `*`, que está pelo nome"
+" relativo da metodologia:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:315
 msgid ""
-"The name `my methodology` is looked for at `methodologies/my_methodology`"
-" under each source in turn, so a published tree looks like this:"
+"The name `my methodology` is looked for at `methodologies/my_methodology` under each "
+"source in turn, so a published tree looks like this:"
 msgstr ""
+"O nome `my methodology` é procurado em `methodologies/my_methodology` sob cada fonte,"
+" uma de cada vez, então uma árvore publicada tem esta cara:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:324
 msgid ""
-"Order is priority, and the arrangement above is the common one: the "
-"published documentation for the methodologies everybody shares, plus your"
-" own for the ones you wrote. `freeports-validate sources` shows what each"
-" name resolves to and warns where one source shadows another."
+"Order is priority, and the arrangement above is the common one: the published "
+"documentation for the methodologies everybody shares, plus your own for the ones you "
+"wrote. `freeports-validate sources` shows what each name resolves to and warns where "
+"one source shadows another."
 msgstr ""
+"A ordem é a prioridade, e o arranjo acima é o comum: a documentação publicada para as"
+" metodologias que todo mundo compartilha, mais a sua própria para as que você "
+"escreveu. O `freeports-validate sources` mostra em que cada nome resolve e avisa onde"
+" uma fonte encobre outra."
 
 #: ../../source/guides/grants/writing-a-methodology.md:328
 #, python-brace-format
 msgid ""
-"{doc}`../../reference/cli/index` has the mechanics — the grammar in full,"
-" the GitHub rewrite, the cache, offline behaviour. What belongs here is "
-"the obligation that publishing creates:"
+"{doc}`../../reference/cli/index` has the mechanics — the grammar in full, the GitHub "
+"rewrite, the cache, offline behaviour. What belongs here is the obligation that "
+"publishing creates:"
 msgstr ""
+"{doc}`../../reference/cli/index` tem a mecânica — a gramática inteira, a reescrita "
+"para o GitHub, o cache, o comportamento fora da rede. O que cabe aqui é a obrigação "
+"que a publicação cria:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:332
 msgid ""
-"**Editing a published methodology invalidates every grant made under it —"
-" everywhere.**"
-msgstr ""
+"**Editing a published methodology invalidates every grant made under it — "
+"everywhere.**"
+msgstr "**Editar uma metodologia publicada invalida todo aval dado sob ela — em toda parte.**"
 
 #: ../../source/guides/grants/writing-a-methodology.md:334
 msgid ""
-"A validation document records the `sha256` of the text its grants were "
-"made under. Change one character of the page and that hash changes, so "
-"every document that adopted it now points at a text that no longer "
-"exists, in every repository you have never heard of. `check-grants` "
-"reports it, and the only honest remedies are `update methodology` — which"
-" **drops** every file granted under it, because those claims were about "
-"the old text — or reverting your edit."
+"A validation document records the `sha256` of the text its grants were made under. "
+"Change one character of the page and that hash changes, so every document that "
+"adopted it now points at a text that no longer exists, in every repository you have "
+"never heard of. `check-grants` reports it, and the only honest remedies are `update "
+"methodology` — which **drops** every file granted under it, because those claims were"
+" about the old text — or reverting your edit."
 msgstr ""
+"Um documento de validação registra o `sha256` do texto sob o qual seus avais foram "
+"dados. Mude um caractere da página e esse hash muda, de modo que todo documento que a"
+" adotou passa a apontar para um texto que não existe mais, em repositórios de que "
+"você nunca ouviu falar. O `check-grants` acusa isso, e os únicos remédios honestos "
+"são `update methodology` — que **descarta** todo arquivo avalizado sob ela, porque "
+"aquelas afirmações eram sobre o texto antigo — ou desfazer a sua edição."
 
 #: ../../source/guides/grants/writing-a-methodology.md:340
 msgid ""
-"That is the mechanism working, not breaking. But it means a published "
-"methodology is a commitment, and the time to get the wording right is "
-"before anybody adopts it."
+"That is the mechanism working, not breaking. But it means a published methodology is "
+"a commitment, and the time to get the wording right is before anybody adopts it."
 msgstr ""
+"Isso é o mecanismo funcionando, não quebrando. Mas quer dizer que uma metodologia "
+"publicada é um compromisso, e a hora de acertar a redação é antes de alguém adotá-la."
 
 #: ../../source/guides/grants/writing-a-methodology.md:344
 msgid "Two practical consequences:"
-msgstr ""
+msgstr "Duas consequências práticas:"
 
 #: ../../source/guides/grants/writing-a-methodology.md:346
 msgid ""
-"**Version by name, not by edit.** If a methodology needs to change "
-"substantively, publish `my_methodology_2` beside the first and let people"
-" adopt it deliberately. Editing in place asks everyone who trusted you to"
-" re-do work they already did."
+"**Version by name, not by edit.** If a methodology needs to change substantively, "
+"publish `my_methodology_2` beside the first and let people adopt it deliberately. "
+"Editing in place asks everyone who trusted you to re-do work they already did."
 msgstr ""
+"**Versione pelo nome, não pela edição.** Se uma metodologia precisa mudar no "
+"essencial, publique `my_methodology_2` ao lado da primeira e deixe que as pessoas a "
+"adotem de propósito. Editar no lugar pede a todo mundo que confiou em você que refaça"
+" um trabalho que já fez."
 
 #: ../../source/guides/grants/writing-a-methodology.md:350
 msgid ""
-"**Typos are not free.** There is no such thing as a cosmetic change to a "
-"hashed artefact. Proof-read before publishing, and expect to fix mistakes"
-" by publishing a new name rather than by correcting the old one."
+"**Typos are not free.** There is no such thing as a cosmetic change to a hashed "
+"artefact. Proof-read before publishing, and expect to fix mistakes by publishing a "
+"new name rather than by correcting the old one."
 msgstr ""
+"**Erro de digitação não sai de graça.** Num artefato cujo hash conta não existe "
+"mudança meramente cosmética. Revise antes de publicar, e conte com corrigir enganos "
+"publicando um nome novo, e não consertando o antigo."
 
 #: ../../source/guides/grants/writing-a-methodology.md:354
 msgid "A checklist"
-msgstr ""
+msgstr "Uma lista de verificação"
 
 #: ../../source/guides/grants/writing-a-methodology.md:356
 msgid ""
-"Write **Purpose**, **Scope**, **Protocol steps**, **Trust level**, "
-"**Applicable context** and **Limitations**, in prose, for a person."
+"Write **Purpose**, **Scope**, **Protocol steps**, **Trust level**, **Applicable "
+"context** and **Limitations**, in prose, for a person."
 msgstr ""
+"Escreva **Purpose**, **Scope**, **Protocol steps**, **Trust level**, **Applicable "
+"context** e **Limitations**, em prosa, para uma pessoa."
 
 #: ../../source/guides/grants/writing-a-methodology.md:358
 msgid ""
-"Read the protocol steps back and ask whether an honest person could "
-"complete them and know they had."
+"Read the protocol steps back and ask whether an honest person could complete them and"
+" know they had."
 msgstr ""
+"Releia os passos do protocolo e pergunte se uma pessoa honesta conseguiria cumpri-los"
+" e saber que cumpriu."
 
 #: ../../source/guides/grants/writing-a-methodology.md:360
-msgid ""
-"Decide whether the scope is a set of paths. If it is not, leave "
-"`Supported paths` out."
+msgid "Decide whether the scope is a set of paths. If it is not, leave `Supported paths` out."
 msgstr ""
+"Decida se o escopo é um conjunto de caminhos. Se não for, deixe `Supported paths` de "
+"fora."
 
 #: ../../source/guides/grants/writing-a-methodology.md:361
 msgid ""
-"If it is, write each pattern with a gloss that says which repository it "
-"means and what vouching for such a file claims."
+"If it is, write each pattern with a gloss that says which repository it means and "
+"what vouching for such a file claims."
 msgstr ""
+"Se for, escreva cada pattern com uma glosa que diga a que repositório ele se refere e"
+" o que se afirma ao respaldar um arquivo desses."
 
 #: ../../source/guides/grants/writing-a-methodology.md:363
 msgid "Check every pattern against a real path with `pathmatch.py match`."
-msgstr ""
+msgstr "Confira cada pattern contra um caminho de verdade com `pathmatch.py match`."
 
 #: ../../source/guides/grants/writing-a-methodology.md:364
 msgid "Run `refresh-links` if the page cites anything."
-msgstr ""
+msgstr "Rode `refresh-links` se a página citar qualquer coisa."
 
 #: ../../source/guides/grants/writing-a-methodology.md:365
 msgid "Publish it, and point a source at it."
-msgstr ""
+msgstr "Publique-a, e aponte uma fonte para ela."
 
 #: ../../source/guides/grants/writing-a-methodology.md:366
 msgid ""
-"Check it resolves, before telling anyone: `freeports-validate check-"
-"methodology \"my methodology\"`."
+"Check it resolves, before telling anyone: `freeports-validate check-methodology \"my "
+"methodology\"`."
 msgstr ""
+"Confira que ela resolve, antes de contar a alguém: `freeports-validate check-"
+"methodology \"my methodology\"`."
 
 #: ../../source/guides/grants/writing-a-methodology.md:367
 msgid "Treat it as frozen from the first grant made under it."
-msgstr ""
+msgstr "Trate-a como congelada a partir do primeiro aval dado sob ela."
 

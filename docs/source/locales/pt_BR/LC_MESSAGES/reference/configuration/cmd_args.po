@@ -21,266 +21,285 @@ msgstr ""
 
 #: ../../source/reference/configuration/cmd_args.md:1
 msgid "The command line"
-msgstr ""
+msgstr "A linha de comando"
 
 #: ../../source/reference/configuration/cmd_args.md:3
 #, python-brace-format
 msgid ""
-"The strongest source except in batch mode, where a row overrides it. Per-"
-"option detail is in {doc}`options`; this page is the mapping and the "
-"rules specific to this source."
+"The strongest source except in batch mode, where a row overrides it. Per-option "
+"detail is in {doc}`options`; this page is the mapping and the rules specific to this "
+"source."
 msgstr ""
+"A via mais forte, salvo no modo em lote, onde uma linha se sobrepõe a ela. O detalhe "
+"opção por opção está em {doc}`options`; esta página é a correspondência e as regras "
+"próprias desta via."
 
 #: ../../source/reference/configuration/cmd_args.md:6
 msgid "Flag to option"
-msgstr ""
+msgstr "De flag a ajuste"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "Flag"
-msgstr ""
+msgstr "Flag"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "Option"
-msgstr ""
+msgstr "Ajuste"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "Note"
-msgstr ""
+msgstr "Nota"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--input`, `--report`, `-i`"
-msgstr ""
+msgstr "`--input`, `--report`, `-i`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`reports`"
-msgstr ""
+msgstr "`reports`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "repeatable, several values after one occurrence"
-msgstr ""
+msgstr "repetível, vários valores depois de uma só ocorrência"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--target-list`, `-T`"
-msgstr ""
+msgstr "`--target-list`, `-T`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`target_lists`"
-msgstr ""
+msgstr "`target_lists`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "likewise"
-msgstr ""
+msgstr "idem"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--format`, `-f`"
-msgstr ""
+msgstr "`--format`, `-f`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`format`"
-msgstr ""
+msgstr "`format`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--formats-directory`, `--repo`, `-F`, `-r`"
-msgstr ""
+msgstr "`--formats-directory`, `--repo`, `-F`, `-r`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`formats_repo_path`"
-msgstr ""
+msgstr "`formats_repo_path`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--db-directory`, `-I`"
-msgstr ""
+msgstr "`--db-directory`, `-I`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`input_db_path`"
-msgstr ""
+msgstr "`input_db_path`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--out`, `-o`"
-msgstr ""
+msgstr "`--out`, `-o`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`out_path`"
-msgstr ""
+msgstr "`out_path`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--out-profile`, `-P`"
-msgstr ""
+msgstr "`--out-profile`, `-P`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`out_profile`"
-msgstr ""
+msgstr "`out_profile`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "one of the three names, case-insensitively"
-msgstr ""
+msgstr "um dos três nomes, sem distinguir maiúsculas de minúsculas"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--separate-out`"
-msgstr ""
+msgstr "`--separate-out`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`separate_out`"
-msgstr ""
+msgstr "`separate_out`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "present = true"
-msgstr ""
+msgstr "presente = verdadeiro"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--archive`, `-z`"
-msgstr ""
+msgstr "`--archive`, `-z`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`compressed`"
-msgstr ""
+msgstr "`compressed`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--no-download`"
-msgstr ""
+msgstr "`--no-download`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`save_pdf`"
-msgstr ""
+msgstr "`save_pdf`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "present = **false**"
-msgstr ""
+msgstr "presente = **falso**"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--batch`, `-b`"
-msgstr ""
+msgstr "`--batch`, `-b`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`batch_file`"
-msgstr ""
+msgstr "`batch_file`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--config`"
-msgstr ""
+msgstr "`--config`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`config_file`"
-msgstr ""
+msgstr "`config_file`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--workers`, `-j`"
-msgstr ""
+msgstr "`--workers`, `-j`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`n_workers`"
-msgstr ""
+msgstr "`n_workers`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "positive integer or `auto`"
-msgstr ""
+msgstr "inteiro positivo ou `auto`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--jobs`"
-msgstr ""
+msgstr "`--jobs`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`parallelism_jobs`"
-msgstr ""
+msgstr "`parallelism_jobs`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "long form only"
-msgstr ""
+msgstr "só na forma longa"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--pages`"
-msgstr ""
+msgstr "`--pages`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`parallelism_pages`"
-msgstr ""
+msgstr "`parallelism_pages`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`-v`, `-q`"
-msgstr ""
+msgstr "`-v`, `-q`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`verbosity`"
-msgstr ""
+msgstr "`verbosity`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "counted; only when at least one is given"
-msgstr ""
+msgstr "contadas; só quando ao menos uma é dada"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "`--internal-worker`"
-msgstr ""
+msgstr "`--internal-worker`"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "—"
-msgstr ""
+msgstr "—"
 
 #: ../../source/reference/configuration/cmd_args.md
 msgid "hidden; the channel between two copies of the binary, not a setting"
-msgstr ""
+msgstr "escondida; o canal entre duas cópias do binário, não um ajuste"
 
 #: ../../source/reference/configuration/cmd_args.md:28
 msgid "Rules of the command line"
-msgstr ""
+msgstr "Regras da linha de comando"
 
 #: ../../source/reference/configuration/cmd_args.md:29
 msgid ""
-"**An absent flag leaves its option unset, never set to a default.** "
-"Defaults belong to the defaults tier, and a command line that set "
-"everything would make every other source unreachable — a configuration "
-"file could then never contribute anything."
+"**An absent flag leaves its option unset, never set to a default.** Defaults belong "
+"to the defaults tier, and a command line that set everything would make every other "
+"source unreachable — a configuration file could then never contribute anything."
 msgstr ""
+"**Uma flag ausente deixa o ajuste dela não definido, nunca definido num padrão.** Os "
+"padrões pertencem ao nível dos padrões, e uma linha de comando que definisse tudo "
+"tornaria inalcançável toda outra via — um arquivo de configuração nunca mais poderia "
+"contribuir com nada."
 
 #: ../../source/reference/configuration/cmd_args.md:33
 msgid ""
-"The visible consequence is that the three boolean flags can only be "
-"switched **on** here. `--archive` absent means *nothing said*, not false."
-" To say false, use a source that can spell it: `FREEPORTS_ARCHIVE=false`,"
-" or `archive: false`."
+"The visible consequence is that the three boolean flags can only be switched **on** "
+"here. `--archive` absent means *nothing said*, not false. To say false, use a source "
+"that can spell it: `FREEPORTS_ARCHIVE=false`, or `archive: false`."
 msgstr ""
+"A consequência visível é que aqui as três flags booleanas só podem ser **ligadas**. "
+"`--archive` ausente quer dizer *nada dito*, não falso. Para dizer falso, use uma via "
+"que saiba escrevê-lo: `FREEPORTS_ARCHIVE=false`, ou `archive: false`."
 
 #: ../../source/reference/configuration/cmd_args.md:37
 msgid ""
-"**`-v` and `-q` are independent dials**, not opposed flags. Both are "
-"counted, the net offset `verbose - quiet` is added to the default and "
-"clamped, and using them together is never an error. The option is left "
-"unset unless at least one of the two appears."
+"**`-v` and `-q` are independent dials**, not opposed flags. Both are counted, the net"
+" offset `verbose - quiet` is added to the default and clamped, and using them "
+"together is never an error. The option is left unset unless at least one of the two "
+"appears."
 msgstr ""
+"**`-v` e `-q` são dois botões independentes**, não flags opostas. As duas são "
+"contadas, o saldo `verbose - quiet` é somado ao padrão e trazido de volta para dentro"
+" dos limites, e usá-las juntas nunca é erro. O ajuste fica não definido a menos que "
+"apareça pelo menos uma das duas."
 
 #: ../../source/reference/configuration/cmd_args.md:41
 msgid ""
-"**Repeatable flags leave the option unset when absent**, not empty. `-i` "
-"given zero times is not \"no documents\", it is \"this source says "
-"nothing about documents\"."
+"**Repeatable flags leave the option unset when absent**, not empty. `-i` given zero "
+"times is not \"no documents\", it is \"this source says nothing about documents\"."
 msgstr ""
+"**As flags repetíveis deixam o ajuste não definido quando estão ausentes**, e não "
+"vazio. `-i` dado zero vezes não é \"nenhum documento\", é \"esta via não diz nada "
+"sobre documentos\"."
 
 #: ../../source/reference/configuration/cmd_args.md:44
 msgid "What the command line rejects outright"
-msgstr ""
+msgstr "O que a linha de comando recusa de saída"
 
 #: ../../source/reference/configuration/cmd_args.md:45
 msgid ""
-"Three things are rejected here rather than later, each with the flag's "
-"own name in the message so that someone who mistyped `--pages` reads "
-"`--pages` and not a generic sentence about parallelism:"
+"Three things are rejected here rather than later, each with the flag's own name in "
+"the message so that someone who mistyped `--pages` reads `--pages` and not a generic "
+"sentence about parallelism:"
 msgstr ""
+"Três coisas são recusadas aqui, e não mais tarde, cada uma com o nome da própria flag"
+" na mensagem, para que quem digitou `--pages` errado leia `--pages` e não uma frase "
+"genérica sobre paralelismo:"
 
 #: ../../source/reference/configuration/cmd_args.md:48
 #, python-brace-format
-msgid ""
-"a document specifier that does not parse "
-"({doc}`../../guides/user/documents`);"
+msgid "a document specifier that does not parse ({doc}`../../guides/user/documents`);"
 msgstr ""
+"um especificador de documento de que não se consegue fazer o parsing "
+"({doc}`../../guides/user/documents`);"
 
 #: ../../source/reference/configuration/cmd_args.md:49
 msgid ""
-"a parallelism value that is not a positive integer or `auto` — including "
-"zero and negatives, which is why hyphen values have to be accepted at "
-"all: without that, `-1` would be taken for an unknown option and the "
-"typed error could never be reached;"
+"a parallelism value that is not a positive integer or `auto` — including zero and "
+"negatives, which is why hyphen values have to be accepted at all: without that, `-1` "
+"would be taken for an unknown option and the typed error could never be reached;"
 msgstr ""
+"um valor de paralelismo que não seja inteiro positivo nem `auto` — inclusive zero e "
+"negativos, e é por isso que valores com hífen precisam ser aceitos: sem isso, `-1` "
+"seria tomado por uma opção desconhecida e o erro tipado jamais seria alcançado;"
 
 #: ../../source/reference/configuration/cmd_args.md:52
 msgid "an output profile that is not one of the three names."
-msgstr ""
+msgstr "um perfil de saída que não seja um dos três nomes."
 

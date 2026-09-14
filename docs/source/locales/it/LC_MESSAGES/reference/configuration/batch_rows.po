@@ -63,7 +63,7 @@ msgstr "`url`"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`reports`, contributing the URL"
-msgstr "`reports`, contribuendo l'URL"
+msgstr "`reports`, di cui fornisce l'URL"
 
 #: ../../source/reference/configuration/batch_rows.md
 msgid "`pdf`"
@@ -101,11 +101,12 @@ msgid ""
 "the output shape — is said once on the command line or in a file rather than repeated"
 " on every row."
 msgstr ""
-"Cinque colonne, contro sedici impostazioni. È il progetto, non una dimenticanza: una "
-"riga di lotto dice ciò che rende diverso **questo job**, e tutto ciò che riguarda "
-"l'esecuzione nel suo complesso — dove vanno i risultati, quale repository e quale "
-"database usare, quanto parallelismo, la forma dei risultati — si dice una volta sola "
-"sulla riga di comando o in un file anziché ripeterlo su ogni riga."
+"Cinque colonne, contro sedici impostazioni. È una scelta di progetto, non una "
+"dimenticanza: una riga di lotto dice ciò che rende diverso **questo job**, e tutto "
+"ciò che riguarda l'esecuzione nel suo complesso — dove vanno i risultati, quale "
+"repository e quale database usare, quanto parallelismo, la forma dei risultati — si "
+"dice una volta sola sulla riga di comando o in un file anziché ripeterlo su ogni "
+"riga."
 
 #: ../../source/reference/configuration/batch_rows.md:25
 msgid "Rules of a batch row"
@@ -178,6 +179,6 @@ msgid ""
 "The first row downloads to `local.pdf`; the second runs two named documents as one "
 "job."
 msgstr ""
-"La prima riga scarica in `local.pdf`; la seconda esegue due documenti con un nome "
-"come un solo job."
+"La prima riga scarica in `local.pdf`; la seconda manda in un solo job due documenti, "
+"ciascuno con il proprio nome."
 

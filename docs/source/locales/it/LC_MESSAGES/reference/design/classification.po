@@ -112,7 +112,7 @@ msgid ""
 "not an implementation detail — see {doc}`multidocument`."
 msgstr ""
 "La classificazione gira **una volta per documento**, anche in un'esecuzione "
-"multidocumento, e non è un dettaglio di realizzazione — vedi {doc}`multidocument`."
+"multidocumento, e non è un dettaglio di implementazione — vedi {doc}`multidocument`."
 
 #: ../../source/reference/design/classification.md:35
 msgid ""

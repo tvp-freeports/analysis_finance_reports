@@ -426,8 +426,8 @@ msgstr "**Validazione**"
 #: ../../source/reference/configuration/options.md
 msgid "each specifier parsed by the grammar; then paths and URLs checked against `save_pdf`"
 msgstr ""
-"ogni specificatore analizzato dalla grammatica; poi percorsi e URL controllati "
-"rispetto a `save_pdf`"
+"ogni specificatore passa per il parsing della grammatica; poi percorsi e URL "
+"controllati rispetto a `save_pdf`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
@@ -643,8 +643,8 @@ msgid ""
 " stripped. Under the `single_file` profile a path not ending in `.csv` gets `out.csv`"
 " appended."
 msgstr ""
-"Un percorso che finisce in `.tar.gz` accende [`compressed`](#compressed) e si vede "
-"togliere il suffisso. Sotto il profilo `single_file` a un percorso che non finisca in"
+"Un percorso che finisce in `.tar.gz` accende [`compressed`](#compressed) e il "
+"suffisso viene tolto. Sotto il profilo `single_file` a un percorso che non finisca in"
 " `.csv` viene aggiunto `out.csv`."
 
 #: ../../source/reference/configuration/options.md:114
@@ -677,8 +677,8 @@ msgid ""
 " writes."
 msgstr ""
 "Gli stessi tre nomi su ogni sorgente, così che un'esecuzione non cambi significato "
-"quando il suo profilo passa da un'opzione di comando a un file. "
-"{doc}`../../guides/user/output` dice che cosa scrive ciascuno."
+"quando il suo profilo passa da un flag a un file. {doc}`../../guides/user/output` "
+"dice che cosa scrive ciascuno."
 
 #: ../../source/reference/configuration/options.md:181
 msgid "`separate_out`"
@@ -788,8 +788,8 @@ msgid ""
 "misleads: `--no-download` does not suppress the download, it suppresses **keeping** "
 "the downloaded file."
 msgstr ""
-"L'unica opzione la cui grafia sulla riga di comando è negativa, ed è il motivo per "
-"cui il nome dell'opzione inganna: `--no-download` non impedisce lo scaricamento, "
+"L'unica impostazione la cui grafia sulla riga di comando è negativa, ed è il motivo "
+"per cui il nome del flag inganna: `--no-download` non impedisce lo scaricamento, "
 "impedisce di **conservare** il file scaricato."
 
 #: ../../source/reference/configuration/options.md:114
@@ -896,7 +896,7 @@ msgstr "nessuno — si cercano invece i tre livelli"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the file is parsed; unknown keys are errors"
-msgstr "il file è analizzato; le chiavi sconosciute sono errori"
+msgstr "si fa il parsing del file; le chiavi sconosciute sono errori"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--config ./ci-freeports.yaml`"
@@ -938,7 +938,7 @@ msgstr "`warn`"
 #: ../../source/reference/configuration/options.md:114
 msgid "the name; the counts are clamped and can never be out of range"
 msgstr ""
-"il nome; i conteggi sono limitati agli estremi e non possono mai uscire "
+"il nome; i conteggi sono riportati dentro i limiti e non possono mai uscire "
 "dall'intervallo"
 
 #: ../../source/reference/configuration/options.md:114
@@ -953,8 +953,8 @@ msgid ""
 "configuration resolves. See {doc}`index` for the one consequence."
 msgstr ""
 "Tutte e tre le forme sono applicate, ma non nello stesso istante: `-v`/`-q` governano"
-" dalla prima riga registrata, mentre le forme d'ambiente e YAML entrano in vigore nel"
-" momento in cui la configurazione si risolve. Vedi {doc}`index` per l'unica "
+" dalla prima riga di log, mentre le forme d'ambiente e YAML entrano in vigore nel "
+"momento in cui la configurazione si risolve. Vedi {doc}`index` per l'unica "
 "conseguenza."
 
 #~ msgid ""

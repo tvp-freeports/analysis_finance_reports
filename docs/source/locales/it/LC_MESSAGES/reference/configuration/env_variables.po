@@ -255,7 +255,7 @@ msgstr "Regole dell'ambiente"
 #: ../../source/reference/configuration/env_variables.md:46
 msgid "**An absent variable leaves its option unset**, and is never an error."
 msgstr ""
-"**Una variabile assente lascia non impostata la propria impostazione**, e non è mai "
+"**Una variabile assente lascia non impostata l'opzione corrispondente**, e non è mai "
 "un errore."
 
 #: ../../source/reference/configuration/env_variables.md:48

@@ -84,7 +84,7 @@ msgid ""
 "the algorithm, chapter by chapter, with each claim marked implemented, planned or "
 "accepted limit"
 msgstr ""
-"l'algoritmo, capitolo per capitolo, con ogni affermazione marcata come realizzata, "
+"l'algoritmo, capitolo per capitolo, con ogni affermazione marcata come implementata, "
 "prevista o limite accettato"
 
 #: ../../source/reference/index.md:10

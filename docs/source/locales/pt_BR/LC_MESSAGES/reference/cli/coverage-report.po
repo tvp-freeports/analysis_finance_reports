@@ -21,404 +21,473 @@ msgstr ""
 
 #: ../../source/reference/cli/coverage-report.md:1
 msgid "The validation coverage report"
-msgstr ""
+msgstr "O relatório de cobertura da validação"
 
 #: ../../source/reference/cli/coverage-report.md:3
 #, python-brace-format
 msgid ""
-"`freeports-validate report` walks a repository's grants once and renders "
-"what it found in several shapes at a time. This page is that command; "
-"what the resulting figures are worth is {doc}`../../guides/grants/index`,"
-" and this site's own rendering of them is "
-"{doc}`../../validation/report/index`."
+"`freeports-validate report` walks a repository's grants once and renders what it "
+"found in several shapes at a time. This page is that command; what the resulting "
+"figures are worth is {doc}`../../guides/grants/index`, and this site's own rendering "
+"of them is {doc}`../../validation/report/index`."
 msgstr ""
+"O `freeports-validate report` percorre uma vez os avais de um repositório e renderiza"
+" o que encontrou em vários formatos de uma vez. Esta página é esse comando; quanto "
+"valem os números que daí saem está em {doc}`../../guides/grants/index`, e a "
+"renderização que este site faz deles é {doc}`../../validation/report/index`."
 
 #: ../../source/reference/cli/coverage-report.md:5
 msgid "What the command does"
-msgstr ""
+msgstr "O que o comando faz"
 
 #: ../../source/reference/cli/coverage-report.md:7
 msgid ""
-"Everything above answers a question about one thing — this file, this "
-"person, this methodology. The report answers the question about the "
-"repository: **what has been vouched for here, by whom, under what, and "
-"does it still hold?**"
+"Everything above answers a question about one thing — this file, this person, this "
+"methodology. The report answers the question about the repository: **what has been "
+"vouched for here, by whom, under what, and does it still hold?**"
 msgstr ""
+"Tudo o que vem acima responde a uma pergunta sobre uma coisa só — este arquivo, esta "
+"pessoa, esta metodologia. O relatório responde à pergunta sobre o repositório: **o "
+"que foi respaldado aqui, por quem, sob o quê, e isso ainda vale?**"
 
 #: ../../source/reference/cli/coverage-report.md:11
 msgid "It is two subcommands, and the split is the design:"
-msgstr ""
+msgstr "São dois subcomandos, e a divisão em dois é a escolha de fundo:"
 
 #: ../../source/reference/cli/coverage-report.md:22
 msgid ""
-"`collect` walks `validation/*.yaml` once and establishes the facts; every"
-" rendering is a **pure function of that JSON**. So a question none of the"
-" renderings anticipated is a `jq` expression away rather than a feature "
-"request:"
+"`collect` walks `validation/*.yaml` once and establishes the facts; every rendering "
+"is a **pure function of that JSON**. So a question none of the renderings anticipated"
+" is a `jq` expression away rather than a feature request:"
 msgstr ""
+"O `collect` percorre uma vez os `validation/*.yaml` e estabelece os fatos; toda "
+"renderização é uma **função pura desse JSON**. Assim, uma pergunta que nenhuma das "
+"renderizações previu está a uma expressão `jq` de distância, e não a um pedido de "
+"funcionalidade:"
 
 #: ../../source/reference/cli/coverage-report.md:31
 msgid ""
-"Neither needs a key. A report is most often wanted by somebody who did "
-"not write the repository."
+"Neither needs a key. A report is most often wanted by somebody who did not write the "
+"repository."
 msgstr ""
+"Nenhum dos dois precisa de chave. Um relatório costuma ser querido justamente por "
+"quem não escreveu o repositório."
 
 #: ../../source/reference/cli/coverage-report.md:33
 msgid "What the model holds"
-msgstr ""
+msgstr "O que o modelo guarda"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "Key"
-msgstr ""
+msgstr "Chave"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`sources`, `general_methodology`"
-msgstr ""
+msgstr "`sources`, `general_methodology`"
 
 #: ../../source/reference/cli/coverage-report.md
-msgid ""
-"what this run resolved from, and the text every document's `version` is a"
-" claim about"
+msgid "what this run resolved from, and the text every document's `version` is a claim about"
 msgstr ""
+"de onde esta execução resolveu, e o texto sobre o qual o `version` de cada documento "
+"é uma afirmação"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`contributors`"
-msgstr ""
+msgstr "`contributors`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid ""
-"one per document: identity, `schema`, `signature`, `version`, how many "
-"grants, and whether it is `counted`"
+"one per document: identity, `schema`, `signature`, `version`, how many grants, and "
+"whether it is `counted`"
 msgstr ""
+"um por documento: identidade, `schema`, `signature`, `version`, quantos avais, e se "
+"está `counted`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`methodologies`"
-msgstr ""
+msgstr "`methodologies`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid ""
-"name, resolution state, resolved URI and hash, the patterns it declares, "
-"one `adoptions` entry per document that adopted it, and its coverage"
+"name, resolution state, resolved URI and hash, the patterns it declares, one "
+"`adoptions` entry per document that adopted it, and its coverage"
 msgstr ""
+"nome, estado de resolução, URI e hash resolvidos, os patterns que declara, uma "
+"entrada `adoptions` por documento que a adotou, e a cobertura dela"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`grants`"
-msgstr ""
+msgstr "`grants`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "one per granted file: path, recorded hash, `state`, and `in_scope`"
-msgstr ""
+msgstr "um por arquivo avalizado: caminho, hash registrado, `state` e `in_scope`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`coverage`, `totals`, `status`"
-msgstr ""
+msgstr "`coverage`, `totals`, `status`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "the repository-wide figures, and one word for the run"
-msgstr ""
+msgstr "os números do repositório inteiro, e uma palavra para a execução"
 
 #: ../../source/reference/cli/coverage-report.md:43
 msgid ""
-"Three of those fields are three-valued rather than two, for the same "
-"reason each time — a question that could not be *asked* must not be "
-"answered:"
+"Three of those fields are three-valued rather than two, for the same reason each time"
+" — a question that could not be *asked* must not be answered:"
 msgstr ""
+"Três desses campos têm três valores em vez de dois, e sempre pela mesma razão — uma "
+"pergunta que não se conseguiu *fazer* não deve ser respondida:"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "Field"
-msgstr ""
+msgstr "Campo"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`grants[].state`"
-msgstr ""
+msgstr "`grants[].state`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`current`, `changed`, `missing`"
-msgstr ""
+msgstr "`current`, `changed`, `missing`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`grants[].in_scope`"
-msgstr ""
+msgstr "`grants[].in_scope`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`true`, `false`, or `null` when the methodology page could not be resolved"
-msgstr ""
+msgstr "`true`, `false`, ou `null` quando não se conseguiu resolver a página de metodologia"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`status`"
-msgstr ""
+msgstr "`status`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid ""
-"`passing`, `failing`, or `inconclusive` — something could not be reached,"
-" and nothing was disproved"
+"`passing`, `failing`, or `inconclusive` — something could not be reached, and nothing"
+" was disproved"
 msgstr ""
+"`passing`, `failing`, ou `inconclusive` — algo não pôde ser alcançado, e nada foi "
+"desmentido"
 
 #: ../../source/reference/cli/coverage-report.md:52
 msgid "How the percentage is arrived at"
-msgstr ""
+msgstr "Como se chega à porcentagem"
 
 #: ../../source/reference/cli/coverage-report.md:54
 msgid ""
-"**A methodology that declares no paths contributes no denominator.** "
-"There is nothing it could be complete against, and inventing one would "
-"put a meaningless percentage on a badge. For one that does declare paths,"
-" the denominator is what its patterns match in the working tree — the "
-"files it *could* cover — and the numerator is how many of those somebody "
-"has granted under it."
+"**A methodology that declares no paths contributes no denominator.** There is nothing"
+" it could be complete against, and inventing one would put a meaningless percentage "
+"on a badge. For one that does declare paths, the denominator is what its patterns "
+"match in the working tree — the files it *could* cover — and the numerator is how "
+"many of those somebody has granted under it."
 msgstr ""
+"**Uma metodologia que não declara caminho nenhum não traz denominador nenhum.** Não "
+"há nada em relação a que ela pudesse estar completa, e inventar um poria uma "
+"porcentagem sem sentido num badge. Para uma que declara caminhos, o denominador é o "
+"que seus patterns casam na árvore de trabalho — os arquivos que ela *poderia* cobrir "
+"— e o numerador é quantos desses alguém avalizou sob ela."
 
 #: ../../source/reference/cli/coverage-report.md:59
 msgid ""
-"**A document that is not intact counts toward nothing.** Coverage is a "
-"statement about assurance, and a document whose signature is missing or "
-"wrong, or whose `version` is stale, asserts nothing. Its grants are still"
-" listed, with the state of the document they came from: an uncounted "
-"grant that were also invisible would be a report quietly disagreeing with"
-" the repository it describes."
+"**A document that is not intact counts toward nothing.** Coverage is a statement "
+"about assurance, and a document whose signature is missing or wrong, or whose "
+"`version` is stale, asserts nothing. Its grants are still listed, with the state of "
+"the document they came from: an uncounted grant that were also invisible would be a "
+"report quietly disagreeing with the repository it describes."
 msgstr ""
+"**Um documento que não está íntegro não conta para nada.** Cobertura é uma afirmação "
+"sobre garantia, e um documento cuja assinatura falta ou está errada, ou cujo "
+"`version` está defasado, não afirma nada. Os avais dele continuam listados, com o "
+"estado do documento de onde vieram: um aval que não conta e que fosse também "
+"invisível seria um relatório discordando, sem alarde, do repositório que descreve."
 
 #: ../../source/reference/cli/coverage-report.md:64
 #, python-format
 msgid ""
-"**The repository-wide figure is a union, not a sum.** Adding the per-"
-"methodology fractions together would count a file twice as soon as two "
-"methodologies declared it, and a badge reading 150% is worse than no "
-"badge."
+"**The repository-wide figure is a union, not a sum.** Adding the per-methodology "
+"fractions together would count a file twice as soon as two methodologies declared it,"
+" and a badge reading 150% is worse than no badge."
 msgstr ""
+"**O número do repositório inteiro é uma união, não uma soma.** Somar as frações por "
+"metodologia contaria um arquivo duas vezes assim que duas metodologias o declarassem,"
+" e um badge marcando 150% é pior do que badge nenhum."
 
 #: ../../source/reference/cli/coverage-report.md:68
 msgid "The renderings"
-msgstr ""
+msgstr "As renderizações"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`--format`"
-msgstr ""
+msgstr "`--format`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`--out`"
-msgstr ""
+msgstr "`--out`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`json`"
-msgstr ""
+msgstr "`json`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "optional"
-msgstr ""
+msgstr "opcional"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "the model. The default"
-msgstr ""
+msgstr "o modelo. O padrão"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`html`"
-msgstr ""
+msgstr "`html`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "a file"
-msgstr ""
+msgstr "um arquivo"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid ""
-"one self-contained page — inline style and script, no fetch of any kind —"
-" with the three viewpoints as tabs, matching `who-grants` / `granted-by` "
-"/ `granted-with`, a filter box, and every methodology name linking to the"
-" text it resolved from"
+"one self-contained page — inline style and script, no fetch of any kind — with the "
+"three viewpoints as tabs, matching `who-grants` / `granted-by` / `granted-with`, a "
+"filter box, and every methodology name linking to the text it resolved from"
 msgstr ""
+"uma página autossuficiente — estilo e script inline, nenhuma requisição de rede de "
+"espécie alguma — com os três pontos de vista como abas, correspondendo a `who-grants`"
+" / `granted-by` / `granted-with`, uma caixa de filtro, e cada nome de metodologia "
+"levando ao texto de que ela resolveu"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`badges`"
-msgstr ""
+msgstr "`badges`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "a **directory**"
-msgstr ""
+msgstr "um **diretório**"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid ""
-"`grants-total`, `grants-coverage` and `check-grants`, each as an SVG "
-"drawn locally in the shields style and as the shields.io *endpoint* JSON "
-"for anyone who would rather fetch"
+"`grants-total`, `grants-coverage` and `check-grants`, each as an SVG drawn locally in"
+" the shields style and as the shields.io *endpoint* JSON for anyone who would rather "
+"fetch"
 msgstr ""
+"`grants-total`, `grants-coverage` e `check-grants`, cada um como um SVG desenhado "
+"localmente no estilo do shields e como o JSON *endpoint* do shields.io, para quem "
+"preferir buscar pela rede"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`markdown`, `rst`"
-msgstr ""
+msgstr "`markdown`, `rst`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "one of seven tables, rewritten in place between two markers"
-msgstr ""
+msgstr "uma de sete tabelas, reescrita no lugar entre dois marcadores"
 
 #: ../../source/reference/cli/coverage-report.md:77
 msgid ""
-"The Markdown and reStructuredText renderings write **into** a file "
-"somebody else wrote, between markers you paste where the table should go:"
+"The Markdown and reStructuredText renderings write **into** a file somebody else "
+"wrote, between markers you paste where the table should go:"
 msgstr ""
+"As renderizações em Markdown e em reStructuredText escrevem **dentro** de um arquivo "
+"que outra pessoa escreveu, entre marcadores que você cola onde a tabela deve ficar:"
 
 #: ../../source/reference/cli/coverage-report.md:90
 msgid ""
-"Rewriting is idempotent: running it twice changes nothing. A file with no"
-" marker pair is an **error** naming the markers, never an append — where "
-"a coverage table belongs in a README is a judgement about that README, "
-"and a command that guessed would put one under a licence notice and then "
-"keep it there for ever."
+"Rewriting is idempotent: running it twice changes nothing. A file with no marker pair"
+" is an **error** naming the markers, never an append — where a coverage table belongs"
+" in a README is a judgement about that README, and a command that guessed would put "
+"one under a licence notice and then keep it there for ever."
 msgstr ""
+"A reescrita é idempotente: rodar duas vezes não muda nada. Um arquivo sem o par de "
+"marcadores é um **erro** que nomeia os marcadores, nunca um acréscimo no fim — onde "
+"uma tabela de cobertura cabe num README é um juízo sobre aquele README, e um comando "
+"que chutasse poria uma debaixo de um aviso de licença e depois a manteria ali para "
+"sempre."
 
 #: ../../source/reference/cli/coverage-report.md:95
 msgid ""
-"Nothing the report produces carries a timestamp. A date would make every "
-"regeneration a diff saying nothing had changed, which is how a generated "
-"block stops being regenerated. What a reader wants to know is what the "
-"repository says now, which running the command again tells them."
+"Nothing the report produces carries a timestamp. A date would make every regeneration"
+" a diff saying nothing had changed, which is how a generated block stops being "
+"regenerated. What a reader wants to know is what the repository says now, which "
+"running the command again tells them."
 msgstr ""
+"Nada do que o relatório produz carrega timestamp. Uma data faria de cada regeneração "
+"um diff dizendo que nada mudou, que é justamente como um bloco gerado deixa de ser "
+"regerado. O que um leitor quer saber é o que o repositório diz agora, e para isso "
+"basta rodar o comando de novo."
 
 #: ../../source/reference/cli/coverage-report.md:99
 msgid "The seven tables"
-msgstr ""
+msgstr "As sete tabelas"
 
 #: ../../source/reference/cli/coverage-report.md:101
 msgid ""
-"The HTML page shows three viewpoints as tabs. A Markdown or "
-"reStructuredText file cannot have tabs, so it holds **one** table, chosen"
-" with `--table`."
+"The HTML page shows three viewpoints as tabs. A Markdown or reStructuredText file "
+"cannot have tabs, so it holds **one** table, chosen with `--table`."
 msgstr ""
+"A página HTML mostra três pontos de vista como abas. Um arquivo Markdown ou "
+"reStructuredText não tem abas, então leva **uma** tabela só, escolhida com `--table`."
 
 #: ../../source/reference/cli/coverage-report.md:104
 msgid ""
-"There are seven. The repository has three dimensions — file, contributor,"
-" methodology — and a lookup is a choice of two of them: group by the "
-"first, list the second. Taken in every order that is six, which is "
-"exactly what the three lookup subcommands are with and without their "
-"flag. The seventh is the summary, and it is the default, so every "
-"invocation written before `--table` existed still means what it meant."
+"There are seven. The repository has three dimensions — file, contributor, methodology"
+" — and a lookup is a choice of two of them: group by the first, list the second. "
+"Taken in every order that is six, which is exactly what the three lookup subcommands "
+"are with and without their flag. The seventh is the summary, and it is the default, "
+"so every invocation written before `--table` existed still means what it meant."
 msgstr ""
+"São sete. O repositório tem três dimensões — arquivo, contribuidor, metodologia — e "
+"uma busca é a escolha de duas delas: agrupe pela primeira, liste a segunda. Tomadas "
+"em todas as ordens dá seis, que é exatamente o que são os três subcomandos de busca "
+"com e sem a flag deles. A sétima é o resumo, e é o padrão, de modo que toda invocação"
+" escrita antes de `--table` existir continua querendo dizer o que queria."
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`--table`"
-msgstr ""
+msgstr "`--table`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "The same view as"
-msgstr ""
+msgstr "A mesma visão de"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`summary` *(default)*"
-msgstr ""
+msgstr "`summary` *(padrão)*"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "one line per methodology: its grants, its coverage, who adopted it"
-msgstr ""
+msgstr "uma linha por metodologia: seus avais, sua cobertura, quem a adotou"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`file-contributor`"
-msgstr ""
+msgstr "`file-contributor`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`who-grants <file>`"
-msgstr ""
+msgstr "`who-grants <arquivo>`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`file-methodology`"
-msgstr ""
+msgstr "`file-methodology`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`who-grants -m <file>`"
-msgstr ""
+msgstr "`who-grants -m <arquivo>`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`contributor-methodology`"
-msgstr ""
+msgstr "`contributor-methodology`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`granted-by <contributor>`"
-msgstr ""
+msgstr "`granted-by <contribuidor>`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`contributor-file`"
-msgstr ""
+msgstr "`contributor-file`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`granted-by -f <contributor>`"
-msgstr ""
+msgstr "`granted-by -f <contribuidor>`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`methodology-file`"
-msgstr ""
+msgstr "`methodology-file`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`granted-with <methodology>`"
-msgstr ""
+msgstr "`granted-with <metodologia>`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`methodology-contributor`"
-msgstr ""
+msgstr "`methodology-contributor`"
 
 #: ../../source/reference/cli/coverage-report.md
 msgid "`granted-with -c <methodology>`"
-msgstr ""
+msgstr "`granted-with -c <metodologia>`"
 
 #: ../../source/reference/cli/coverage-report.md:120
 msgid ""
-"The name reads as *grouped by the first, listing the second*, and each "
-"table says in its own heading which invocation it is the written-down "
-"form of — so a reader who has learned the lookups does not have to learn "
-"a second vocabulary for the same repository."
+"The name reads as *grouped by the first, listing the second*, and each table says in "
+"its own heading which invocation it is the written-down form of — so a reader who has"
+" learned the lookups does not have to learn a second vocabulary for the same "
+"repository."
 msgstr ""
+"O nome se lê como *agrupada pela primeira, listando a segunda*, e cada tabela diz no "
+"próprio título de qual invocação ela é a forma escrita — assim quem já aprendeu as "
+"buscas não precisa aprender um segundo vocabulário para o mesmo repositório."
 
 #: ../../source/reference/cli/coverage-report.md:124
 msgid ""
-"Each is three columns, one row per distinct pair, with the group key "
-"repeated down the first column rather than blanked. Joining the other "
-"dimension into one cell is what the lookup subcommands print on a "
-"terminal, and it stops being readable the moment a methodology covers "
-"several hundred files. The third column is the state of the grants that "
-"pair stands for — almost always one word, and two when two documents "
+"Each is three columns, one row per distinct pair, with the group key repeated down "
+"the first column rather than blanked. Joining the other dimension into one cell is "
+"what the lookup subcommands print on a terminal, and it stops being readable the "
+"moment a methodology covers several hundred files. The third column is the state of "
+"the grants that pair stands for — almost always one word, and two when two documents "
 "disagree about the same file."
 msgstr ""
+"Cada uma tem três colunas, uma linha por par distinto, com a chave de agrupamento "
+"repetida coluna abaixo em vez de deixada em branco. Juntar a outra dimensão numa "
+"célula só é o que os subcomandos de busca imprimem num terminal, e isso deixa de ser "
+"legível no instante em que uma metodologia cobre umas centenas de arquivos. A "
+"terceira coluna é o estado dos avais que aquele par representa — quase sempre uma "
+"palavra, e duas quando dois documentos discordam sobre o mesmo arquivo."
 
 #: ../../source/reference/cli/coverage-report.md:130
 msgid ""
-"The `(!)` and `(?)` marks are the ones `granted-by` and its two siblings "
-"already print, and they go on the **listed** item, never on the group "
-"key: what is out of scope is the *pair*, so marking a heading would split"
-" one methodology into two the moment one of its grants left scope. A "
-"legend line appears under the table only when a mark actually appears on "
-"it."
+"The `(!)` and `(?)` marks are the ones `granted-by` and its two siblings already "
+"print, and they go on the **listed** item, never on the group key: what is out of "
+"scope is the *pair*, so marking a heading would split one methodology into two the "
+"moment one of its grants left scope. A legend line appears under the table only when "
+"a mark actually appears on it."
 msgstr ""
+"As marcas `(!)` e `(?)` são as mesmas que `granted-by` e seus dois irmãos já "
+"imprimem, e vão no item **listado**, nunca na chave de agrupamento: o que está fora "
+"de escopo é o *par*, então marcar um título partiria uma metodologia em duas no "
+"instante em que um dos seus avais saísse do escopo. Uma linha de legenda aparece sob "
+"a tabela só quando alguma marca de fato aparece nela."
 
 #: ../../source/reference/cli/coverage-report.md:135
 msgid "Rendering several things out of one walk"
-msgstr ""
+msgstr "Várias renderizações de uma só varredura"
 
 #: ../../source/reference/cli/coverage-report.md:137
 msgid ""
-"A repository that keeps a README, six tables and three badges current has"
-" nine artefacts to write, and collecting nine times would resolve every "
-"methodology page nine times for an answer that cannot have changed in "
-"between. `--model` renders a model gathered earlier instead of walking "
-"again:"
+"A repository that keeps a README, six tables and three badges current has nine "
+"artefacts to write, and collecting nine times would resolve every methodology page "
+"nine times for an answer that cannot have changed in between. `--model` renders a "
+"model gathered earlier instead of walking again:"
 msgstr ""
+"Um repositório que mantenha em dia um README, seis tabelas e três badges tem nove "
+"artefatos a escrever, e coletar nove vezes resolveria cada página de metodologia nove"
+" vezes para uma resposta que nesse meio-tempo não pode ter mudado. O `--model` "
+"renderiza um modelo coletado antes, em vez de percorrer tudo de novo:"
 
 #: ../../source/reference/cli/coverage-report.md:149
 msgid ""
-"`--model -` reads the model from a pipe, so `collect | report --model -` "
-"works as well. A `--model` naming a file that is not there is an "
-"**error**, deliberately not a reason to walk the repository: a run that "
-"quietly answered a different question from the one asked is the failure "
-"this whole command exists to prevent."
+"`--model -` reads the model from a pipe, so `collect | report --model -` works as "
+"well. A `--model` naming a file that is not there is an **error**, deliberately not a"
+" reason to walk the repository: a run that quietly answered a different question from"
+" the one asked is the failure this whole command exists to prevent."
 msgstr ""
+"`--model -` lê o modelo de um pipe, então `collect | report --model -` também "
+"funciona. Um `--model` que nomeie um arquivo inexistente é um **erro**, e de "
+"propósito não é motivo para percorrer o repositório: uma execução que respondesse em "
+"silêncio a uma pergunta diferente da que foi feita é justamente o que este comando "
+"inteiro existe para impedir."
 
 #: ../../source/reference/cli/coverage-report.md:154
 msgid "What a repository gets for free"
-msgstr ""
+msgstr "O que um repositório ganha de graça"
 
 #: ../../source/reference/cli/coverage-report.md:156
 #, python-brace-format
 msgid ""
-"`freeports-dev init-format-repo` creates all nine of those, already "
-"filled, plus the hook that keeps them current — see {ref}`what-init-"
-"format-repo-writes`. So the usual answer to \"how do I set this up\" is "
-"that it is already set up."
+"`freeports-dev init-format-repo` creates all nine of those, already filled, plus the "
+"hook that keeps them current — see {ref}`what-init-format-repo-writes`. So the usual "
+"answer to \"how do I set this up\" is that it is already set up."
 msgstr ""
+"O `freeports-dev init-format-repo` cria todos os nove, já preenchidos, mais o hook "
+"que os mantém em dia — veja {ref}`what-init-format-repo-writes`. Por isso a resposta "
+"habitual para \"como eu configuro isso\" é que já está configurado."
 

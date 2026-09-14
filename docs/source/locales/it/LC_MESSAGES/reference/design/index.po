@@ -33,7 +33,7 @@ msgid ""
 msgstr ""
 "Perché il motore abbia la forma che ha. Non *come eseguirlo* — quello è "
 "{doc}`../../guides/user/index` — e non da quali librerie sia costruito, che è una "
-"domanda per chi contribuisce e sta nelle {doc}`note di realizzazione "
+"domanda per chi contribuisce e sta nelle {doc}`note di implementazione "
 "<../../guides/engine/advanced/implementation-notes>`."
 
 #: ../../source/reference/design/index.md:7
@@ -42,7 +42,7 @@ msgstr "Ogni pagina qui dichiara che cosa descrive e se quella cosa **esiste**:"
 
 #: ../../source/reference/design/index.md
 msgid "Marker"
-msgstr "Marcatura"
+msgstr "Marker"
 
 #: ../../source/reference/design/index.md
 msgid "Means"
@@ -50,7 +50,7 @@ msgstr "Significa"
 
 #: ../../source/reference/design/index.md
 msgid "*implemented*"
-msgstr "*realizzato*"
+msgstr "*implementato*"
 
 #: ../../source/reference/design/index.md
 msgid "it is in the engine today, and the tests defend it"

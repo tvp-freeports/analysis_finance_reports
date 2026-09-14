@@ -21,396 +21,438 @@ msgstr ""
 
 #: ../../source/guides/devops/the-gate.rst:5
 msgid "The commit gate"
-msgstr ""
+msgstr "O gate de commit"
 
 #: ../../source/guides/devops/the-gate.rst:8
 msgid "What runs at every commit, and why that set"
-msgstr ""
+msgstr "O que roda a cada commit, e por que justamente esse conjunto"
 
 #: ../../source/guides/devops/the-gate.rst:10
-msgid ""
-"On a ``dev`` branch the hook runs ``make pre-commit``, an alias of ``make"
-" ci-fast``:"
-msgstr ""
+msgid "On a ``dev`` branch the hook runs ``make pre-commit``, an alias of ``make ci-fast``:"
+msgstr "Num branch ``dev`` o hook roda ``make pre-commit``, um apelido de ``make ci-fast``:"
 
 #: ../../source/guides/devops/the-gate.rst:17
 msgid ""
-"On a ``prod`` branch it runs ``make ci-full`` instead — everything gated,"
-" measured at this commit. Same three layers, same report, same verdict; "
-"only the set of measurements differs, and it differs by exactly the line "
-"drawn above."
+"On a ``prod`` branch it runs ``make ci-full`` instead — everything gated, measured at"
+" this commit. Same three layers, same report, same verdict; only the set of "
+"measurements differs, and it differs by exactly the line drawn above."
 msgstr ""
+"Num branch ``prod`` ele roda ``make ci-full`` — tudo o que passa pelo gate, medido "
+"neste commit. As mesmas três camadas, o mesmo relatório, o mesmo veredito; muda só o "
+"conjunto de medições, e muda exatamente ao longo da linha traçada acima."
 
-#: ../../source/guides/devops/the-gate.rst:26
-#: ../../source/guides/devops/the-gate.rst:82
+#: ../../source/guides/devops/the-gate.rst:26 ../../source/guides/devops/the-gate.rst:82
 msgid "``make ci-fast`` (dev)"
-msgstr ""
+msgstr "``make ci-fast`` (dev)"
 
-#: ../../source/guides/devops/the-gate.rst:27
-#: ../../source/guides/devops/the-gate.rst:83
+#: ../../source/guides/devops/the-gate.rst:27 ../../source/guides/devops/the-gate.rst:83
 msgid "``make ci-full`` (prod)"
-msgstr ""
+msgstr "``make ci-full`` (prod)"
 
 #: ../../source/guides/devops/the-gate.rst:28
 msgid "Linters"
-msgstr ""
+msgstr "Linters"
 
-#: ../../source/guides/devops/the-gate.rst:29
-#: ../../source/guides/devops/the-gate.rst:30
+#: ../../source/guides/devops/the-gate.rst:29 ../../source/guides/devops/the-gate.rst:30
 msgid "clippy, ruff"
-msgstr ""
+msgstr "clippy, ruff"
 
-#: ../../source/guides/devops/the-gate.rst:31
-#: ../../source/guides/devops/the-gate.rst:87
+#: ../../source/guides/devops/the-gate.rst:31 ../../source/guides/devops/the-gate.rst:87
 #: ../../source/guides/devops/the-gate.rst:148
 msgid "Test suites"
-msgstr ""
+msgstr "Suítes de teste"
 
 #: ../../source/guides/devops/the-gate.rst:32
 msgid "``rust.unit``, ``python.fast``"
-msgstr ""
+msgstr "``rust.unit``, ``python.fast``"
 
 #: ../../source/guides/devops/the-gate.rst:33
 msgid "all of them, online included"
-msgstr ""
+msgstr "todas, inclusive as de rede"
 
-#: ../../source/guides/devops/the-gate.rst:34
-#: ../../source/guides/devops/the-gate.rst:90
+#: ../../source/guides/devops/the-gate.rst:34 ../../source/guides/devops/the-gate.rst:90
 msgid "Coverage"
-msgstr ""
+msgstr "Cobertura"
 
-#: ../../source/guides/devops/the-gate.rst:35
-#: ../../source/guides/devops/the-gate.rst:41
-#: ../../source/guides/devops/the-gate.rst:97
-#: ../../source/guides/devops/the-gate.rst:161
+#: ../../source/guides/devops/the-gate.rst:35 ../../source/guides/devops/the-gate.rst:41
+#: ../../source/guides/devops/the-gate.rst:97 ../../source/guides/devops/the-gate.rst:161
 #: ../../source/guides/devops/the-gate.rst:162
 msgid "—"
-msgstr ""
+msgstr "—"
 
 #: ../../source/guides/devops/the-gate.rst:36
 msgid "``cargo llvm-cov``, ``pytest --cov``"
-msgstr ""
+msgstr "``cargo llvm-cov``, ``pytest --cov``"
 
-#: ../../source/guides/devops/the-gate.rst:37
-#: ../../source/guides/devops/the-gate.rst:93
+#: ../../source/guides/devops/the-gate.rst:37 ../../source/guides/devops/the-gate.rst:93
 msgid "Documentation"
-msgstr ""
+msgstr "Documentação"
 
-#: ../../source/guides/devops/the-gate.rst:38
-#: ../../source/guides/devops/the-gate.rst:94
+#: ../../source/guides/devops/the-gate.rst:38 ../../source/guides/devops/the-gate.rst:94
 #: ../../source/guides/devops/the-gate.rst:95
 msgid "the docstring walk"
-msgstr ""
+msgstr "a varredura das docstrings"
 
 #: ../../source/guides/devops/the-gate.rst:39
 msgid "the docstring walk, and rustdoc on nightly"
-msgstr ""
+msgstr "a varredura das docstrings, e o rustdoc no nightly"
 
-#: ../../source/guides/devops/the-gate.rst:40
-#: ../../source/guides/devops/the-gate.rst:96
+#: ../../source/guides/devops/the-gate.rst:40 ../../source/guides/devops/the-gate.rst:96
 msgid "Grants"
-msgstr ""
+msgstr "Avais"
 
-#: ../../source/guides/devops/the-gate.rst:42
-#: ../../source/guides/devops/the-gate.rst:98
+#: ../../source/guides/devops/the-gate.rst:42 ../../source/guides/devops/the-gate.rst:98
 msgid "the report, ``check-grants``, ``check-keys``"
-msgstr ""
+msgstr "o relatório, ``check-grants``, ``check-keys``"
 
 #: ../../source/guides/devops/the-gate.rst:43
 msgid "Cost here"
-msgstr ""
+msgstr "Custo aqui"
 
 #: ../../source/guides/devops/the-gate.rst:44
 msgid "**3.8 s** with ``make -j``, 5.5 s without"
-msgstr ""
+msgstr "**3,8 s** com ``make -j``, 5,5 s sem"
 
-#: ../../source/guides/devops/the-gate.rst:45
-#: ../../source/guides/devops/the-gate.rst:104
+#: ../../source/guides/devops/the-gate.rst:45 ../../source/guides/devops/the-gate.rst:104
 msgid "minutes"
-msgstr ""
+msgstr "minutos"
 
-#: ../../source/guides/devops/the-gate.rst:46
-#: ../../source/guides/devops/the-gate.rst:105
+#: ../../source/guides/devops/the-gate.rst:46 ../../source/guides/devops/the-gate.rst:105
 msgid "What may be stale"
-msgstr ""
+msgstr "O que pode estar defasado"
 
-#: ../../source/guides/devops/the-gate.rst:47
-#: ../../source/guides/devops/the-gate.rst:106
+#: ../../source/guides/devops/the-gate.rst:47 ../../source/guides/devops/the-gate.rst:106
 msgid "anything slow, and it says which"
-msgstr ""
+msgstr "tudo o que é lento, e ele diz o quê"
 
-#: ../../source/guides/devops/the-gate.rst:48
-#: ../../source/guides/devops/the-gate.rst:107
+#: ../../source/guides/devops/the-gate.rst:48 ../../source/guides/devops/the-gate.rst:107
 msgid "**nothing**"
-msgstr ""
+msgstr "**nada**"
 
 #: ../../source/guides/devops/the-gate.rst:50
 msgid ""
-"The figures are from this repository on 2026-09-09, with warm caches. "
-"What keeps them there is what the fast gate refuses to do: it does not "
-"run the whole crate suite, nor both Python suites twice over — once as "
-"tests, once again under coverage — nor a second rustdoc toolchain, nor "
-"any command that fetches a methodology page over the network. Every one "
-"of those is in ``ci-full``, where a wait is something you chose."
+"The figures are from this repository on 2026-09-09, with warm caches. What keeps them"
+" there is what the fast gate refuses to do: it does not run the whole crate suite, "
+"nor both Python suites twice over — once as tests, once again under coverage — nor a "
+"second rustdoc toolchain, nor any command that fetches a methodology page over the "
+"network. Every one of those is in ``ci-full``, where a wait is something you chose."
 msgstr ""
+"Os números são deste repositório em 2026-09-09, com os caches quentes. O que os "
+"mantém ali é aquilo que o gate rápido se recusa a fazer: não roda a suíte inteira da "
+"crate, nem as duas suítes Python duas vezes — uma como testes, outra de novo sob "
+"cobertura — nem uma segunda toolchain de rustdoc, nem comando algum que baixe uma "
+"página de metodologia pela rede. Cada uma dessas coisas está no ``ci-full``, onde a "
+"espera é algo que você escolheu."
 
 #: ../../source/guides/devops/the-gate.rst:56
 msgid ""
-"The gate is a **name, not a list**. What ``ci-fast`` and ``ci-full`` "
-"consist of is decided in ``mk/ci.mk``, so either can grow without a hook "
-"being edited again."
+"The gate is a **name, not a list**. What ``ci-fast`` and ``ci-full`` consist of is "
+"decided in ``mk/ci.mk``, so either can grow without a hook being edited again."
 msgstr ""
+"O gate é um **nome, não uma lista**. Em que consistem ``ci-fast`` e ``ci-full`` se "
+"decide em ``mk/ci.mk``, então qualquer um dos dois pode crescer sem que se mexa de "
+"novo num hook."
 
 #: ../../source/guides/devops/the-gate.rst:61
 msgid ""
-"**Both gates use** ``.WAIT``. Their measurements are independent of one "
-"another, the report may only be rendered once all of them have landed, "
-"and the verdict may only be read once the report is written — which is "
-"exactly what ``prerequisites .WAIT report .WAIT check`` says. Under "
-"``make -j`` the first group runs at once, which is where the 5.5 seconds "
-"above becomes 3.8; without ``-j`` the same line still runs them in that "
-"order. ``MAKEFLAGS += -Otarget`` in the ``Makefile`` keeps each recipe's "
-"output whole rather than interleaved."
+"**Both gates use** ``.WAIT``. Their measurements are independent of one another, the "
+"report may only be rendered once all of them have landed, and the verdict may only be"
+" read once the report is written — which is exactly what ``prerequisites .WAIT report"
+" .WAIT check`` says. Under ``make -j`` the first group runs at once, which is where "
+"the 5.5 seconds above becomes 3.8; without ``-j`` the same line still runs them in "
+"that order. ``MAKEFLAGS += -Otarget`` in the ``Makefile`` keeps each recipe's output "
+"whole rather than interleaved."
 msgstr ""
+"**Os dois gates usam** ``.WAIT``. As medições são independentes umas das outras, o "
+"relatório só pode ser composto depois que todas chegaram, e o veredito só pode ser "
+"lido depois que o relatório está escrito — que é exatamente o que diz ``prerequisites"
+" .WAIT report .WAIT check``. Sob ``make -j`` o primeiro grupo roda de uma vez, e é aí"
+" que os 5,5 segundos acima viram 3,8; sem ``-j`` a mesma linha ainda assim os executa"
+" nessa ordem. O ``MAKEFLAGS += -Otarget`` no ``Makefile`` mantém inteira a saída de "
+"cada receita, em vez de intercalá-la."
 
 #: ../../source/guides/devops/the-gate.rst:70
 msgid "The same gate in a format repository"
-msgstr ""
+msgstr "O mesmo gate num repositório de formatos"
 
 #: ../../source/guides/devops/the-gate.rst:72
 msgid ""
-"**Every freeports repository has a** ``Makefile`` **and a hook that names"
-" a target in it.** The arrangement above is not the engine's arrangement;"
-" it is the workspace's, and a format repository runs the same three "
-"layers under the same names — measure, report, judge — with a smaller "
-"surface because it has a smaller thing to measure."
+"**Every freeports repository has a** ``Makefile`` **and a hook that names a target in"
+" it.** The arrangement above is not the engine's arrangement; it is the workspace's, "
+"and a format repository runs the same three layers under the same names — measure, "
+"report, judge — with a smaller surface because it has a smaller thing to measure."
 msgstr ""
+"**Todo repositório freeports tem um** ``Makefile`` **e um hook que nomeia um target "
+"dentro dele.** O arranjo acima não é do motor; é do workspace, e um repositório de "
+"formatos roda as mesmas três camadas com os mesmos nomes — medir, relatar, julgar — "
+"com uma superfície menor porque tem menos coisa a medir."
 
 #: ../../source/guides/devops/the-gate.rst:84
 msgid "Linter"
-msgstr ""
+msgstr "Linter"
 
-#: ../../source/guides/devops/the-gate.rst:85
-#: ../../source/guides/devops/the-gate.rst:86
+#: ../../source/guides/devops/the-gate.rst:85 ../../source/guides/devops/the-gate.rst:86
 msgid "ruff over ``content/``"
-msgstr ""
+msgstr "ruff sobre ``content/``"
 
 #: ../../source/guides/devops/the-gate.rst:88
 msgid "``formats.single_page``"
-msgstr ""
+msgstr "``formats.single_page``"
 
 #: ../../source/guides/devops/the-gate.rst:89
 msgid "both, whole documents included"
-msgstr ""
+msgstr "as duas, documentos inteiros inclusive"
 
-#: ../../source/guides/devops/the-gate.rst:91
-#: ../../source/guides/devops/the-gate.rst:92
+#: ../../source/guides/devops/the-gate.rst:91 ../../source/guides/devops/the-gate.rst:92
 msgid "the document inventory"
-msgstr ""
+msgstr "o inventário de documentos"
 
 #: ../../source/guides/devops/the-gate.rst:99
 msgid "Fingerprint"
-msgstr ""
+msgstr "Fingerprint"
 
 #: ../../source/guides/devops/the-gate.rst:100
 msgid "checked; warns"
-msgstr ""
+msgstr "conferido; avisa"
 
 #: ../../source/guides/devops/the-gate.rst:101
 msgid "checked; **refuses**"
-msgstr ""
+msgstr "conferido; **recusa**"
 
 #: ../../source/guides/devops/the-gate.rst:102
 msgid "Cost"
-msgstr ""
+msgstr "Custo"
 
 #: ../../source/guides/devops/the-gate.rst:103
 msgid "**6 s** in ``analysis_finance_reports_formats``"
-msgstr ""
+msgstr "**6 s** em ``analysis_finance_reports_formats``"
 
 #: ../../source/guides/devops/the-gate.rst:109
 msgid ""
-"The target names are the engine's names — ``test-fast``, ``test-slow``, "
-"``lint``, ``coverage``, ``ci-fast``, ``ci-full``, ``ci-check`` — and each"
-" is one ``freeports-dev`` or ``freeports-validate`` invocation you could "
-"type by hand. What is *missing* is the second axis: the engine's surface "
-"is laid out as ``test``/``lint``/``coverage`` × ``rust``/``python``, and "
-"a format repository has one test command whose two halves are told apart "
-"by a marker rather than by a language. So there are twenty-seven targets "
-"there against ninety-four here, in one file rather than eight."
+"The target names are the engine's names — ``test-fast``, ``test-slow``, ``lint``, "
+"``coverage``, ``ci-fast``, ``ci-full``, ``ci-check`` — and each is one ``freeports-"
+"dev`` or ``freeports-validate`` invocation you could type by hand. What is *missing* "
+"is the second axis: the engine's surface is laid out as "
+"``test``/``lint``/``coverage`` × ``rust``/``python``, and a format repository has one"
+" test command whose two halves are told apart by a marker rather than by a language. "
+"So there are twenty-seven targets there against ninety-four here, in one file rather "
+"than eight."
 msgstr ""
+"Os nomes dos targets são os do motor — ``test-fast``, ``test-slow``, ``lint``, "
+"``coverage``, ``ci-fast``, ``ci-full``, ``ci-check`` — e cada um é uma invocação de "
+"``freeports-dev`` ou de ``freeports-validate`` que você poderia digitar à mão. O que "
+"*falta* é o segundo eixo: a superfície do motor se dispõe como "
+"``test``/``lint``/``coverage`` × ``rust``/``python``, enquanto um repositório de "
+"formatos tem um comando de teste só, cujas duas metades se distinguem por um marker e"
+" não por uma linguagem. Por isso lá são vinte e sete targets contra os noventa e "
+"quatro daqui, num arquivo só em vez de oito."
 
 #: ../../source/guides/devops/the-gate.rst:118
 msgid ""
-"**Two command surfaces, and the division is what each one acts on.** "
-"``make`` changes the repository you are standing in — it writes the "
-"measurements, refreshes the committed reports, and rewrites the manifest "
-"when it is entitled to. ``freeports-dev`` answers questions *about* a "
-"repository, including one that is not yours, and writes only where you "
-"point it with ``--out``. ``make test-fast`` is ``freeports-dev test "
-"--fast`` with ``--repo`` pointed here; ``make ci-check`` is ``freeports-"
-"dev ci-check``. Someone who has learnt one can use the other."
+"**Two command surfaces, and the division is what each one acts on.** ``make`` changes"
+" the repository you are standing in — it writes the measurements, refreshes the "
+"committed reports, and rewrites the manifest when it is entitled to. ``freeports-"
+"dev`` answers questions *about* a repository, including one that is not yours, and "
+"writes only where you point it with ``--out``. ``make test-fast`` is ``freeports-dev "
+"test --fast`` with ``--repo`` pointed here; ``make ci-check`` is ``freeports-dev ci-"
+"check``. Someone who has learnt one can use the other."
 msgstr ""
+"**Duas superfícies de comando, e a divisão está no que cada uma mexe.** O ``make`` "
+"altera o repositório em que você está — escreve as medições, atualiza os relatórios "
+"commitados e reescreve o manifesto quando tem direito a isso. O ``freeports-dev`` "
+"responde perguntas *sobre* um repositório, inclusive um que não é seu, e só escreve "
+"onde você o apontar com ``--out``. ``make test-fast`` é ``freeports-dev test --fast``"
+" com ``--repo`` apontado para cá; ``make ci-check`` é ``freeports-dev ci-check``. "
+"Quem aprendeu um sabe usar o outro."
 
 #: ../../source/guides/devops/the-gate.rst:125
 msgid ""
-"**What may refuse there is narrower than here.** In a format repository "
-"only ``ci-check`` and the fingerprint rule refuse — the suites and the "
-"grant checks record their outcome and leave the verdict to the one step "
-"that can see which branch you are on. The Makefile expresses that with a "
-"target-specific variable the two gates set and every prerequisite "
-"inherits: reached from ``ci-fast`` a failing suite is recorded, and "
-"``make test-fast`` typed on its own still fails. Here the same narrowing "
-"is done by the branch class rather than by the target, which is a "
+"**What may refuse there is narrower than here.** In a format repository only ``ci-"
+"check`` and the fingerprint rule refuse — the suites and the grant checks record "
+"their outcome and leave the verdict to the one step that can see which branch you are"
+" on. The Makefile expresses that with a target-specific variable the two gates set "
+"and every prerequisite inherits: reached from ``ci-fast`` a failing suite is "
+"recorded, and ``make test-fast`` typed on its own still fails. Here the same "
+"narrowing is done by the branch class rather than by the target, which is a "
 "difference of mechanism between two repositories rather than of policy."
 msgstr ""
+"**O que pode recusar lá é mais estreito do que aqui.** Num repositório de formatos só"
+" recusam o ``ci-check`` e a regra do fingerprint — as suítes e as conferências dos "
+"avais registram seu desfecho e deixam o veredito para o único passo capaz de ver em "
+"que branch você está. O Makefile diz isso com uma variável específica de target que "
+"os dois gates definem e que todo prerequisito herda: alcançada a partir do ``ci-"
+"fast``, uma suíte que falha fica registrada; ``make test-fast`` digitado sozinho "
+"continua falhando. Aqui o mesmo estreitamento vem da classe do branch e não do "
+"target: uma diferença de mecanismo entre dois repositórios, não de política."
 
 #: ../../source/guides/devops/the-gate.rst:133
 msgid ""
-"``GATE`` exists here too, and one recipe reads it: ``check-grants``, so "
-"that grant integrity cannot refuse a commit through a failing ``make``. "
-"That is the note below, and it is the one thing on which the target has "
-"to do the narrowing in both repositories — a branch class cannot, because"
-" the narrowing is not \"on this branch\" but \"never\"."
+"``GATE`` exists here too, and one recipe reads it: ``check-grants``, so that grant "
+"integrity cannot refuse a commit through a failing ``make``. That is the note below, "
+"and it is the one thing on which the target has to do the narrowing in both "
+"repositories — a branch class cannot, because the narrowing is not \"on this branch\""
+" but \"never\"."
 msgstr ""
+"O ``GATE`` existe aqui também, e uma receita o lê: ``check-grants``, para que a "
+"integridade dos avais não possa recusar um commit por via de um ``make`` que falha. É"
+" a nota logo abaixo, e é a única coisa em que, nos dois repositórios, o estreitamento"
+" tem de ficar a cargo do target — uma classe de branch não dá conta, porque o "
+"estreitamento não é \"neste branch\" e sim \"nunca\"."
 
 #: ../../source/guides/devops/the-gate.rst:139
 msgid "The three branch classes"
-msgstr ""
+msgstr "As três classes de branch"
 
 #: ../../source/guides/devops/the-gate.rst:141
 msgid ""
-"``ci.yaml`` at the root of each repository puts every branch into one of "
-"three classes:"
-msgstr ""
+"``ci.yaml`` at the root of each repository puts every branch into one of three "
+"classes:"
+msgstr "O ``ci.yaml`` na raiz de cada repositório põe todo branch numa de três classes:"
 
 #: ../../source/guides/devops/the-gate.rst:147
 msgid "Class"
-msgstr ""
+msgstr "Classe"
 
 #: ../../source/guides/devops/the-gate.rst:149
 msgid "Thresholds"
-msgstr ""
+msgstr "Limiares"
 
 #: ../../source/guides/devops/the-gate.rst:150
 msgid "Fingerprint vs version"
-msgstr ""
+msgstr "Fingerprint contra versão"
 
 #: ../../source/guides/devops/the-gate.rst:151
 msgid "``prod``"
-msgstr ""
+msgstr "``prod``"
 
 #: ../../source/guides/devops/the-gate.rst:152
 msgid "must pass — **refuses**"
-msgstr ""
+msgstr "têm de passar — **recusa**"
 
 #: ../../source/guides/devops/the-gate.rst:153
 msgid "enforced — **refuses**"
-msgstr ""
+msgstr "impostos — **recusa**"
 
 #: ../../source/guides/devops/the-gate.rst:154
 msgid "**refuses**"
-msgstr ""
+msgstr "**recusa**"
 
 #: ../../source/guides/devops/the-gate.rst:155
 msgid "``dev``"
-msgstr ""
+msgstr "``dev``"
 
 #: ../../source/guides/devops/the-gate.rst:156
 msgid "run and reported"
-msgstr ""
+msgstr "rodadas e relatadas"
 
-#: ../../source/guides/devops/the-gate.rst:157
-#: ../../source/guides/devops/the-gate.rst:158
+#: ../../source/guides/devops/the-gate.rst:157 ../../source/guides/devops/the-gate.rst:158
 msgid "reported"
-msgstr ""
+msgstr "relatados"
 
 #: ../../source/guides/devops/the-gate.rst:159
 msgid "``off``"
-msgstr ""
+msgstr "``off``"
 
 #: ../../source/guides/devops/the-gate.rst:160
 msgid "the hook does nothing at all"
-msgstr ""
+msgstr "o hook não faz absolutamente nada"
 
 #: ../../source/guides/devops/the-gate.rst:164
 msgid ""
-"The class is derived at every run from the branch you have checked out, "
-"so switching branch sets nothing and forgets nothing. **The default is** "
-"``dev``: a branch nobody classified is not production, and the quiet "
-"answer — ``off`` — is never the default one."
+"The class is derived at every run from the branch you have checked out, so switching "
+"branch sets nothing and forgets nothing. **The default is** ``dev``: a branch nobody "
+"classified is not production, and the quiet answer — ``off`` — is never the default "
+"one."
 msgstr ""
+"A classe é deduzida a cada execução a partir do branch que você tem em checkout, "
+"então trocar de branch não define nada e não esquece nada. **O padrão é** ``dev``: um"
+" branch que ninguém classificou não é produção, e a resposta silenciosa — ``off`` — "
+"nunca é a padrão."
 
 #: ../../source/guides/devops/the-gate.rst:175
 msgid ""
-"Run that first whenever a hook does something you did not expect. It "
-"names the rule that produced the class, which is the whole answer; "
-"\"prod\" on its own is not."
+"Run that first whenever a hook does something you did not expect. It names the rule "
+"that produced the class, which is the whole answer; \"prod\" on its own is not."
 msgstr ""
+"Rode isso primeiro sempre que um hook fizer algo que você não esperava. Ele diz qual "
+"regra produziu a classe, e é essa a resposta inteira; \"prod\" sozinho não é."
 
 #: ../../source/guides/devops/the-gate.rst:180
 msgid ""
-"**The branch class is what decides whether a hook refuses.** A failing "
-"``make pre-commit`` refuses the commit on ``prod`` and only there; on a "
-"development branch the same failure is reported and the commit stands."
+"**The branch class is what decides whether a hook refuses.** A failing ``make pre-"
+"commit`` refuses the commit on ``prod`` and only there; on a development branch the "
+"same failure is reported and the commit stands."
 msgstr ""
+"**É a classe do branch que decide se um hook recusa.** Um ``make pre-commit`` que "
+"falha recusa o commit em ``prod`` e só ali; num branch de desenvolvimento a mesma "
+"falha é relatada e o commit fica de pé."
 
 #: ../../source/guides/devops/the-gate.rst:184
 msgid ""
-"Grant integrity is not subject to that rule at all: a broken, stale or "
-"unverifiable grant is reported loudly and **never refuses**, on any "
-"branch, **in any repository — this one included**. A granted reference "
-"output regenerated by ``make-tests`` is ordinary work, and a contributor "
-"who does not hold the granting key could not clear such a gate at all. "
-"This repository used to be the exception by accident: ``ci-full`` depends"
-" on ``validation``, a failing recipe fails the make, and a failing make "
-"refuses the commit — so a merge here *was* refused over a grant. ``check-"
-"grants`` now reports inside the gate and fails only when run on its own."
+"Grant integrity is not subject to that rule at all: a broken, stale or unverifiable "
+"grant is reported loudly and **never refuses**, on any branch, **in any repository — "
+"this one included**. A granted reference output regenerated by ``make-tests`` is "
+"ordinary work, and a contributor who does not hold the granting key could not clear "
+"such a gate at all. This repository used to be the exception by accident: ``ci-full``"
+" depends on ``validation``, a failing recipe fails the make, and a failing make "
+"refuses the commit — so a merge here *was* refused over a grant. ``check-grants`` now"
+" reports inside the gate and fails only when run on its own."
 msgstr ""
+"A integridade dos avais não está sujeita a essa regra: um aval quebrado, defasado ou "
+"não verificável é relatado em alto e bom som e **nunca recusa**, em branch nenhum, "
+"**em repositório nenhum — este inclusive**. Uma saída de referência avalizada e "
+"regerada pelo ``make-tests`` é trabalho comum, e quem contribui sem ter a chave com "
+"que o aval foi dado não teria como passar por um gate desses. Este repositório era a "
+"exceção por acidente: ``ci-full`` depende de ``validation``, uma receita que falha "
+"faz o make falhar, e um make que falha recusa o commit — então aqui um merge *chegou "
+"a ser* recusado por causa de um aval. Agora o ``check-grants`` relata dentro do gate "
+"e só falha quando rodado sozinho."
 
 #: ../../source/guides/devops/the-gate.rst:192
 msgid ""
-"What may refuse is a *threshold* and the *fingerprint rule*. For the "
-"grants that means two numbers and nothing else: ``grants.coverage``, so "
-"that enough of the repository is vouched for, and ``grants.keys_online``,"
-" so that a reader can actually fetch the keys those signatures name. "
-"Files being vouched for is not the gate; **enough** of them being vouched"
-" for, by keys somebody else can download, is — a signature nobody outside"
-" can check convinces nobody, which is the whole purpose of publishing "
-"one."
+"What may refuse is a *threshold* and the *fingerprint rule*. For the grants that "
+"means two numbers and nothing else: ``grants.coverage``, so that enough of the "
+"repository is vouched for, and ``grants.keys_online``, so that a reader can actually "
+"fetch the keys those signatures name. Files being vouched for is not the gate; "
+"**enough** of them being vouched for, by keys somebody else can download, is — a "
+"signature nobody outside can check convinces nobody, which is the whole purpose of "
+"publishing one."
 msgstr ""
+"O que pode recusar é um *limiar* e a *regra do fingerprint*. No caso dos avais isso "
+"quer dizer dois números e mais nada: ``grants.coverage``, para que parte suficiente "
+"do repositório esteja respaldada, e ``grants.keys_online``, para que um leitor "
+"consiga de fato baixar as chaves que essas assinaturas nomeiam. O gate não é haver "
+"arquivos respaldados; é haver **parte suficiente** deles respaldada, com chaves que "
+"outra pessoa possa baixar — uma assinatura que ninguém de fora pode conferir não "
+"convence ninguém, e é esse todo o sentido de publicá-la."
 
 #~ msgid ""
-#~ "The target names are the engine's "
-#~ "names — ``test-fast``, ``test-slow``,"
-#~ " ``lint``, ``coverage``, ``ci-fast``, "
-#~ "``ci-full``, ``ci-check`` — and each"
-#~ " is one ``freeports-dev`` or "
-#~ "``freeports-validate`` invocation you could "
-#~ "type by hand. What is *missing* is"
-#~ " the second axis: the engine's "
-#~ "surface is laid out as "
-#~ "``test``/``lint``/``coverage`` × ``rust``/``python``, "
-#~ "and a format repository has one "
-#~ "test command whose two halves are "
-#~ "told apart by a marker rather than"
-#~ " by a language. So there are "
-#~ "twenty-seven targets there against eighty"
-#~ " here, in one file rather than "
-#~ "eight."
+#~ "The target names are the engine's names "
+#~ "— ``test-fast``, ``test-slow``, ``lint``, "
+#~ "``coverage``, ``ci-fast``, ``ci-full``, ``ci-"
+#~ "check`` — and each is one ``freeports-"
+#~ "dev`` or ``freeports-validate`` invocation you "
+#~ "could type by hand. What is *missing* is"
+#~ " the second axis: the engine's surface is"
+#~ " laid out as ``test``/``lint``/``coverage`` × "
+#~ "``rust``/``python``, and a format repository has "
+#~ "one test command whose two halves are "
+#~ "told apart by a marker rather than by"
+#~ " a language. So there are twenty-seven "
+#~ "targets there against eighty here, in one "
+#~ "file rather than eight."
 #~ msgstr ""
 
 #~ msgid ""
-#~ "Grant integrity is not subject to "
-#~ "that rule at all: a broken, stale"
-#~ " or unverifiable grant is reported "
-#~ "loudly and **never refuses**, on any "
-#~ "branch. A granted reference output "
-#~ "regenerated by ``make-tests`` is "
-#~ "ordinary work, and a contributor who "
-#~ "does not hold the granting key "
-#~ "could not clear such a gate at "
-#~ "all. What may refuse is a "
-#~ "*threshold* and the *fingerprint rule*."
+#~ "Grant integrity is not subject to that "
+#~ "rule at all: a broken, stale or "
+#~ "unverifiable grant is reported loudly and "
+#~ "**never refuses**, on any branch. A granted"
+#~ " reference output regenerated by ``make-tests``"
+#~ " is ordinary work, and a contributor who"
+#~ " does not hold the granting key could "
+#~ "not clear such a gate at all. What "
+#~ "may refuse is a *threshold* and the "
+#~ "*fingerprint rule*."
 #~ msgstr ""
 
