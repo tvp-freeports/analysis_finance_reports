@@ -32,6 +32,19 @@ DEFAULT_PAGE_TYPE = "investments"
 #: search for unless the repository says otherwise.
 DEFAULT_TARGET_LISTS = ["TEST"]
 
+#: How much of a line's text the reading modes print. Wide enough for a table cell and a heading,
+#: narrow enough that a line of a full-width paragraph does not wrap the terminal and hide the
+#: geometry column that precedes it.
+DEFAULT_TEXT_WIDTH = 100
+
+#: How wide the ASCII preview of an image is. Twenty is where a 13-pixel tick mark stops being
+#: recognisable, measured on the SFDR forms this was built for.
+DEFAULT_PREVIEW_COLUMNS = 20
+
+#: How many hits a search prints before stopping. A search of six hundred documents that ran to
+#: the end would scroll past the answer.
+DEFAULT_MAX_HITS = 50
+
 
 def _env(name):
     value = os.environ.get(name)
@@ -48,6 +61,21 @@ def _env_bool(name):
     if lowered in ("false", "no", "0", "n", "f"):
         return False
     raise ValueError(f"invalid value for {name}: {value!r}")
+
+
+def _int_setting(from_args, env_name, from_file, default):
+    """A whole-number setting resolved across the three tiers, rejecting what is not a number.
+
+    An unreadable value is an error rather than a fallback to the default: a tier silently ignored
+    configures nothing and says nothing, and the user is left believing it took effect.
+    """
+    value = _first(from_args, _env(env_name), from_file, default)
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"{env_name} and its file and flag tiers take a whole number, got {value!r}"
+        ) from error
 
 
 def _first(*candidates):
@@ -209,6 +237,41 @@ class DevConfig:
             _env("FREEPORTS_DEV_PAGE_TYPE"),
             self._from_file("DEV_PAGE_TYPE"),
             DEFAULT_PAGE_TYPE,
+        )
+
+    @property
+    def text_width(self):
+        """How much of a line's text the reading modes and the search print.
+
+        A presentation setting rather than a flag, and so reachable from all three tiers: how wide
+        a terminal is is a property of the person, not of the command, and having to repeat
+        ``--text-width`` on every invocation is how a setting becomes a thing people work around.
+        """
+        return _int_setting(
+            self._arg("text_width"),
+            "FREEPORTS_DEV_TEXT_WIDTH",
+            self._from_file("DEV_TEXT_WIDTH"),
+            DEFAULT_TEXT_WIDTH,
+        )
+
+    @property
+    def preview_columns(self):
+        """How wide the ASCII preview of a page image is."""
+        return _int_setting(
+            self._arg("preview_columns"),
+            "FREEPORTS_DEV_PREVIEW_COLUMNS",
+            self._from_file("DEV_PREVIEW_COLUMNS"),
+            DEFAULT_PREVIEW_COLUMNS,
+        )
+
+    @property
+    def max_hits(self):
+        """How many hits ``find-text`` prints before stopping."""
+        return _int_setting(
+            self._arg("max_hits"),
+            "FREEPORTS_DEV_MAX_HITS",
+            self._from_file("DEV_MAX_HITS"),
+            DEFAULT_MAX_HITS,
         )
 
 

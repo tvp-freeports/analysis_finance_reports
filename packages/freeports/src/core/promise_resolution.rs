@@ -249,7 +249,34 @@ impl FlatPromiseMap {
             }
             return Ok(BlockValue::List(candidates.into_iter().cloned().collect()));
         }
+        // Several *different* values for one plain promise: the last wins and the rest are lost.
+        // Saying so is the whole point -- see `contributions_conflict`.
+        if contributions_conflict(&candidates) {
+            tracing::warn!(
+                id = promise.id(),
+                contributions = candidates.len(),
+                "a promise that is not 'multiple' was kept with several different values; the last one wins and the others are lost"
+            );
+        }
         candidates.last().map(|v| (*v).clone()).ok_or_else(|| promise.unresolved())
+    }
+}
+
+/// Whether the contributions kept for a promise that is not `multiple` disagree with one another.
+///
+/// Taking the last of several contributions is right when they agree: the same fund name written at
+/// the foot of forty pages is forty identical contributions and one answer, and that is the
+/// ordinary case. It is wrong when they disagree, because one of the values then vanishes with
+/// nothing to show for it.
+///
+/// This is not itself the fix for that -- the scope the promises are resolved in is
+/// ([`crate::output::routines::accumulate::accumulate_jobs`] resolves one **job** at a time). It is
+/// what makes the next occurrence visible: until it existed, three reports hung their ESG
+/// indicators on a fourth report's fund and not one line of output mentioned it.
+pub fn contributions_conflict(candidates: &[&BlockValue]) -> bool {
+    match candidates.split_first() {
+        None => false,
+        Some((first, rest)) => rest.iter().any(|value| value != first),
     }
 }
 
@@ -969,6 +996,55 @@ mod tests {
     }
 
     /// Properties that must hold over generated input, not only over hand-written cases.
+    /// Several contributions for a promise that is not `multiple`: the last one wins, and whether
+    /// that is a choice or an accident is worth being able to tell apart.
+    mod conflicting_contributions {
+        use super::*;
+
+        #[test]
+        fn one_contribution_is_never_a_conflict() {
+            assert!(!contributions_conflict(&[&BlockValue::from("Alpha")]));
+        }
+
+        #[test]
+        fn identical_contributions_are_not_a_conflict() {
+            let alpha = BlockValue::from("Alpha");
+            assert!(!contributions_conflict(&[&alpha, &alpha, &alpha]));
+        }
+
+        #[test]
+        fn contributions_that_disagree_are_a_conflict() {
+            let (alpha, beta) = (BlockValue::from("Alpha"), BlockValue::from("Beta"));
+            assert!(contributions_conflict(&[&alpha, &beta]));
+        }
+
+        #[test]
+        fn a_disagreement_anywhere_counts() {
+            let (a, b) = (BlockValue::from("Alpha"), BlockValue::from("Beta"));
+            assert!(contributions_conflict(&[&a, &a, &b, &a]));
+        }
+
+        #[test]
+        fn no_contributions_is_not_a_conflict() {
+            assert!(!contributions_conflict(&[]));
+        }
+
+        #[test]
+        fn the_last_contribution_is_still_the_one_returned() {
+            let map = FlatPromiseMap::from_pairs([("x", BlockValue::from("first"))]);
+            assert_eq!(map.fulfill(&Promise::new("x")).unwrap(), BlockValue::from("first"));
+        }
+
+        #[test]
+        fn a_multiple_promise_is_not_a_conflict_because_every_value_is_kept() {
+            let mut map = PromiseMap::new();
+            map.merge([("x", BlockValue::from("a")), ("x", BlockValue::from("b"))]);
+            let flat = map.flatten().unwrap();
+            let all = flat.fulfill(&Promise::new("x[]")).unwrap();
+            assert_eq!(all, BlockValue::List(vec![BlockValue::from("a"), BlockValue::from("b")]));
+        }
+    }
+
     mod invariants {
         use super::*;
         use pretty_assertions::assert_eq;

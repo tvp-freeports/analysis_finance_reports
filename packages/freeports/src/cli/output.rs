@@ -6,7 +6,7 @@
 
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::DocumentOutcome;
-use crate::output::routines::accumulate::{AccumulateError, accumulate};
+use crate::output::routines::accumulate::{AccumulateError, accumulate_jobs};
 use crate::output::routines::write::{OutStructureMode, WriteFilesError, write_files};
 use crate::core::tracing_setup::log_error;
 
@@ -34,22 +34,29 @@ pub fn log_csv_dir(config: &FreeportsConfig) -> std::path::PathBuf {
 
 /// Opens the output span around the write and logs the outcome exactly once. The output path is the
 /// coordinate identifying this write, so it goes on the span rather than on the individual events.
-pub fn write_results(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) -> Result<(), OutputError> {
+pub fn write_results(config: &FreeportsConfig, jobs: &[Vec<DocumentOutcome>]) -> Result<(), OutputError> {
     let span = tracing::info_span!("output", out_path = %config.out_path.display());
     let _guard = span.enter();
 
-    let result = write_results_impl(config, outcomes);
+    let result = write_results_impl(config, jobs);
     match &result {
-        Ok(()) => tracing::info!(document_count = outcomes.len(), "wrote results to disk"),
+        Ok(()) => tracing::info!(
+            job_count = jobs.len(),
+            document_count = jobs.iter().map(Vec::len).sum::<usize>(),
+            "wrote results to disk"
+        ),
         Err(e) => tracing::error!(error = log_error(e), "failed to write results: {e}"),
     }
     result
 }
 
-/// `accumulate(outcomes)` poi `write_files(&tables, &config.out_path, config.out_profile,
+/// `accumulate_jobs(jobs)` poi `write_files(&tables, &config.out_path, config.out_profile,
 /// config.out_flags)` -- nessun'altra logica.
-fn write_results_impl(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) -> Result<(), OutputError> {
-    let tables = accumulate(outcomes)?;
+///
+/// **`accumulate_jobs` e non `accumulate`**: le promesse si risolvono per job, le tabelle restano
+/// condivise. La sua documentazione dice perche'.
+fn write_results_impl(config: &FreeportsConfig, jobs: &[Vec<DocumentOutcome>]) -> Result<(), OutputError> {
+    let tables = accumulate_jobs(jobs)?;
     write_files(&tables, &config.out_path, config.out_profile, config.out_flags)?;
     Ok(())
 }
@@ -109,7 +116,7 @@ mod tests {
                     results: vec![Extracted::Fund(Fund::new("Alpha Fund"))],
                 }],
             }];
-            write_results(&config, &outcomes).unwrap();
+            write_results(&config, std::slice::from_ref(&outcomes)).unwrap();
             let content = std::fs::read_to_string(dir.path().join("funds.csv")).unwrap();
             assert!(content.contains("ALPHA FUND"), "expected the fund's normalized name in funds.csv, got:\n{content}");
         }

@@ -85,7 +85,7 @@ Metric                                     Item                                 
 ``docs.rust``                              ``src/output/files_schema.rs``                                      13.8 %
 ``docs.rust``                              ``src/commons/sets/ast_simple.rs``                                  14.3 %
 ``docs.rust``                              ``src/formats_utils/pdf_extract/tabularizer/collapse.rs``           14.3 %
-``docs.python``                            ``docs.python.freeports_dev``                                       55.2 %
+``docs.python``                            ``docs.python.freeports_dev``                                       59.8 %
 ``docs.python``                            ``docs.python.freeports_validate``                                  64.0 %
 ``lint.rust``                              ``clippy::redundant_closure``                                       4
 ``lint.rust``                              ``clippy::ptr_arg``                                                 1
@@ -132,6 +132,6 @@ Metric                                     Item                                 
 ``docs.python.freeports_validate``         ``freeports_validate``                                              100.0 %
 =========================================  ==================================================================  =======
 
-Only the worst 15 lines of each metric are shown: tests.rust.lines (87 more), tests.python.lines (10 more), docs.rust (104 more), tests.python.freeports_dev.lines (8 more), docs.python.freeports_dev (41 more). `freeports-dev ci-report --format json` carries every one of them.
+Only the worst 15 lines of each metric are shown: tests.rust.lines (87 more), tests.python.lines (10 more), docs.rust (104 more), tests.python.freeports_dev.lines (8 more), docs.python.freeports_dev (43 more). `freeports-dev ci-report --format json` carries every one of them.
 
 .. freeports-dev:end

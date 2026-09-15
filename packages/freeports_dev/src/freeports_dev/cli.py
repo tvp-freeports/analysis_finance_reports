@@ -170,15 +170,23 @@ def _cmd_inspect_page(args):
 
     from freeports.formats_repo import get_formats
 
-    a = Algorithm.load(repo, args.format, get_formats(repo))
     page = get_page_dict(str(report_file), args.page)
 
+    # The reading modes come before the algorithm is loaded, and that ordering is the point: they
+    # are what one uses on a document whose format does not exist yet, or does not load. Loading
+    # first would make the tool refuse exactly the page one is trying to understand.
     if args.mode in ("structured", "semistructured", "unstructured"):
         if not args.strings:
             print("Error: --strings is required for line-set mode")
             sys.exit(1)
         print_pdf_line_sets(page, args.strings, mode=args.mode)
         return
+
+    if args.mode in ("lines", "images"):
+        _inspect_page_view(args, config, page, report_file)
+        return
+
+    a = Algorithm.load(repo, args.format, get_formats(repo))
 
     filter_data = args.filter_data
     if filter_data is None:
@@ -203,6 +211,99 @@ def _cmd_inspect_page(args):
     elif args.mode == "table_ascii":
         pdf_blks = a.apply_pdf_extract(page, page_type)
         print_pdf_blks_table_ASCII(pdf_blks)
+
+
+def _inspect_page_view(args, config, page, report_file):
+    """The two reading modes: the page's lines as a table, or its raster images as pictures.
+
+    Both take the page as the engine reads it, so that what is shown is what a pipe would see.
+    """
+    import pymupdf
+
+    from freeports.utils.pdf_extract import pdflines_from_pagedict
+    from freeports_dev import page_view
+
+    lines = pdflines_from_pagedict(page)
+
+    if args.mode == "lines":
+        shown = _selected(lines, args.select) if args.select else lines
+        print(
+            "\n".join(
+                page_view.render_lines(
+                    shown,
+                    order=args.order,
+                    columns=args.columns,
+                    page_width=page.get("width"),
+                    text_width=config.text_width,
+                    codepoints=args.codepoints,
+                )
+            )
+        )
+        return
+
+    document = pymupdf.Document(str(report_file))
+    counts = page_view.document_image_counts(document) if args.scan_document else None
+    rows = page_view.render_images(
+        document[args.page - 1],
+        page,
+        lines,
+        cols=config.preview_columns,
+        dpi=args.dpi,
+        document_counts=counts,
+        save_dir=args.save_images,
+        page_number=args.page,
+    )
+    print("\n".join(rows))
+
+
+def _selected(lines, expression):
+    """The lines a compact selection expression picks, in the syntax the CSV files already use."""
+    from freeports.utils.pdf_extract import pdfline_selection_from_str
+
+    return pdfline_selection_from_str(expression).select(lines)
+
+
+def _cmd_find_text(args):
+    """Where in a document a text occurs — the question ``inspect-page`` cannot be asked."""
+    config = DevConfig(args)
+
+    from freeports_dev import find_text
+
+    try:
+        documents = find_text.documents_to_search(
+            [Path(p) for p in (args.paths or [])],
+            repo=config.formats_repo,
+            format_name=args.format,
+        )
+        match_text = find_text.text_predicate(
+            text=args.text, regex=args.regex, ignore_case=not args.case_sensitive
+        )
+        pages = find_text.parse_pages(args.pages)
+    except find_text.SearchError as error:
+        print(f"Error: {error}")
+        sys.exit(1)
+
+    match_font = find_text.font_predicate(args.font)
+    found = 0
+    # Printed as they arrive rather than collected: a directory of six hundred reports is minutes
+    # of reading, and the first hit is usually the one wanted.
+    for hit in find_text.search(
+        documents,
+        match_text,
+        match_font=match_font,
+        pages=pages,
+        max_hits=config.max_hits,
+    ):
+        found += 1
+        if args.pages_only:
+            print(f"{find_text.display_path(hit.document)}:{hit.page}")
+        else:
+            print(find_text.format_hit(hit, text_width=config.text_width))
+
+    if not found:
+        # Not an error: "it is not there" is a legitimate and frequent answer, and the search said
+        # which documents it opened to find that out.
+        print(f"no match in {len(documents)} document(s)")
 
 
 def _cmd_inspect_document(args):
@@ -1240,6 +1341,8 @@ def main():
             "structured",
             "semistructured",
             "unstructured",
+            "lines",
+            "images",
             "pdf_blks",
             "txt_blks",
             "results",
@@ -1250,6 +1353,10 @@ def main():
             "Inspection mode. "
             "Line-set modes (structured|semistructured|unstructured): "
             "search --strings on the page and print PdfLineSelection matching lines. "
+            "Reading modes (lines|images): print every line of the page as a table with a font "
+            "legend, or its raster images with their digests and an ASCII preview of the "
+            "rendered region. Neither loads the format, so both work on a format that does not "
+            "exist yet. "
             "Pipeline modes (pdf_blks|txt_blks|results): "
             "print output from the pdf_extract, text_filter, or full pipeline stage. "
             "Table modes (table_md|table_ascii): "
@@ -1265,6 +1372,111 @@ def main():
     p_page.add_argument(
         "--filter-data",
         help="Path to filter data .pkl file (for txt_blks and results modes)",
+    )
+    p_page.add_argument(
+        "--order",
+        choices=["y", "x"],
+        default="y",
+        help=(
+            "lines mode: reading order — 'y' top to bottom then left to right, 'x' down each "
+            "column then right [default: y]"
+        ),
+    )
+    p_page.add_argument(
+        "--columns",
+        type=int,
+        default=1,
+        help=(
+            "lines mode: split the page into this many vertical bands and finish each before "
+            "the next — what a page carrying two tables side by side needs [default: 1]"
+        ),
+    )
+    p_page.add_argument(
+        "--select",
+        help="lines mode: restrict to a compact line selection, e.g. 'Arial-BoldMT \"Total\"'",
+    )
+    p_page.add_argument(
+        "--codepoints",
+        action="store_true",
+        help="lines mode: show non-ASCII characters as <U+XXXX>, which is what tells a box glyph from a letter",
+    )
+    p_page.add_argument(
+        "--scan-document",
+        action="store_true",
+        help="images mode: also count each image digest across the whole document",
+    )
+    p_page.add_argument(
+        "--save-images",
+        metavar="DIR",
+        help="images mode: write both the stored bytes and the rendered region of each image into DIR",
+    )
+    p_page.add_argument(
+        "--dpi",
+        type=int,
+        default=150,
+        help="images mode: resolution the page region is rendered at [default: 150]",
+    )
+
+    p_page.add_argument(
+        "--text-width",
+        type=int,
+        help="lines mode: truncate the text column to this many characters [setting: dev.text_width]",
+    )
+    p_page.add_argument(
+        "--preview-columns",
+        type=int,
+        help="images mode: width of the ASCII preview, in characters [setting: dev.preview_columns]",
+    )
+
+    p_find = sub.add_parser(
+        "find-text",
+        parents=[common],
+        help="Find which pages of a document contain a text",
+    )
+    p_find.add_argument(
+        "paths",
+        nargs="*",
+        help="PDFs or directories to search; a directory is walked to the bottom",
+    )
+    p_find.add_argument(
+        "--format",
+        "-f",
+        help="Search the reports this format's tests already pin, instead of naming paths",
+    )
+    p_find.add_argument(
+        "--text", help="Substring to look for (not a regular expression)"
+    )
+    p_find.add_argument(
+        "--regex",
+        help=(
+            "Regular expression to look for. Allowed here and not in a PdfLineSelection: a search "
+            "combines with nothing, a selection has to be comparable with other selections"
+        ),
+    )
+    p_find.add_argument(
+        "--case-sensitive",
+        action="store_true",
+        help="Match case, which is off by default",
+    )
+    p_find.add_argument("--font", help="Only lines whose font name contains this")
+    p_find.add_argument(
+        "--pages",
+        help="Restrict to a one-based inclusive range: '7', '10-20', '900-', '-40'",
+    )
+    p_find.add_argument(
+        "--pages-only",
+        action="store_true",
+        help="Print only 'document:page', which is what the other commands take",
+    )
+    p_find.add_argument(
+        "--max-hits",
+        type=int,
+        help="Stop after this many hits [setting: dev.max_hits, default 50]",
+    )
+    p_find.add_argument(
+        "--text-width",
+        type=int,
+        help="Truncate the printed text to this many characters [setting: dev.text_width]",
     )
 
     p_doc = sub.add_parser(
@@ -1600,6 +1812,8 @@ def main():
         _cmd_inspect_page(args)
     elif args.command == "inspect-document":
         _cmd_inspect_document(args)
+    elif args.command == "find-text":
+        _cmd_find_text(args)
     elif args.command == "init-format-repo":
         _cmd_init_repo(args)
     elif args.command == "init-input-db":

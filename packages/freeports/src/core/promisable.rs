@@ -38,8 +38,8 @@ use crate::core::tracing_setup::log_error;
 /// promise's id and a legitimate name are both just text.
 ///
 /// This is not a theoretical tidiness. A worker process serialises its results and the parent reads
-/// them back **before** the promises are fulfilled, since fulfilment happens once, in the parent,
-/// over every job. Every pending field of every entity therefore crosses that boundary. Untagged,
+/// them back **before** the promises are fulfilled: fulfilment happens in the parent, once per job.
+/// Every pending field of every entity therefore crosses that boundary. Untagged,
 /// the crossing either failed loudly — a promise id landing where an `SfdrArticle` was expected,
 /// which aborted whole batches — or, worse, succeeded quietly, giving a fund the name of the
 /// promise that should have filled it in.

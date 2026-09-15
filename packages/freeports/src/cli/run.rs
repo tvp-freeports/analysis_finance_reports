@@ -177,22 +177,22 @@ pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<RunCompleteness,
         log_handle.settle_verbosity(first.verbosity).map_err(CliError::from)?;
         log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
     }
-    let (outcomes, failures) = run_jobs(&configs, log_handle)?;
+    let (jobs, failures) = run_jobs(&configs, log_handle)?;
     report_failures(&configs, &failures);
 
     // Nothing came out of any job: there is no partial result to save, and saying so is the only
     // honest thing left. The failure reported is the **first in job order**, which is the one the
     // sequential path would have propagated.
-    if outcomes.is_empty()
+    if jobs.is_empty()
         && let Some(first) = failures.into_iter().next()
     {
         return Err(CliError::Worker(first));
     }
 
     if let Some(first) = configs.first() {
-        output::write_results(first, &outcomes)?;
+        output::write_results(first, &jobs)?;
     }
-    Ok(completeness(&configs, &outcomes))
+    Ok(completeness(&configs, &jobs))
 }
 
 /// One summary event and one event per failed job, in job order.
@@ -230,9 +230,10 @@ fn report_failures(configs: &[FreeportsConfig], failures: &[JobFailure]) {
 /// process or in children: every document named in a configuration produces exactly one outcome
 /// when it is read, a skipped document produces none, and a failed job produces none for any of
 /// its documents. So *documents named* against *outcomes produced* is the whole question.
-fn completeness(configs: &[FreeportsConfig], outcomes: &[DocumentOutcome]) -> RunCompleteness {
+fn completeness(configs: &[FreeportsConfig], jobs: &[Vec<DocumentOutcome>]) -> RunCompleteness {
     let named: usize = configs.iter().map(|config| config.reports.len()).sum();
-    if outcomes.len() < named {
+    let produced: usize = jobs.iter().map(Vec::len).sum();
+    if produced < named {
         RunCompleteness::NotEverything
     } else {
         RunCompleteness::Everything
@@ -294,17 +295,21 @@ fn resolve_parallelism(configs: &[FreeportsConfig]) -> (usize, Parallelism) {
 /// The `Err` of the return type is for what belongs to the **run** rather than to a job: the worker
 /// infrastructure that would not start, a request that could not be written. No job ran, so there is
 /// nothing partial to keep.
+/// The outcomes **grouped one group per job**, and the failures.
+///
+/// The grouping is the point: a promise means "of this job", and `accumulate_jobs` resolves one job
+/// at a time. Concatenating here is what used to erase the boundary before anything could use it.
 fn run_jobs(
     configs: &[FreeportsConfig],
     log_handle: &LogHandle,
-) -> Result<(Vec<DocumentOutcome>, Vec<JobFailure>), CliError> {
+) -> Result<(Vec<Vec<DocumentOutcome>>, Vec<JobFailure>), CliError> {
     let (jobs, pages) = resolve_parallelism(configs);
     if jobs <= 1 {
-        let mut outcomes = Vec::new();
+        let mut outcomes: Vec<Vec<DocumentOutcome>> = Vec::new();
         let mut failures = Vec::new();
         for (index, config) in configs.iter().enumerate() {
             match job::run(config, pages) {
-                Ok(documents) => outcomes.extend(documents),
+                Ok(documents) => outcomes.push(documents),
                 // Already logged with its full chain by `job::run` itself; here it is only packed,
                 // in the same shape a child's failure comes back in.
                 Err(error) => failures.push(JobFailure::Job {
@@ -333,7 +338,7 @@ fn run_jobs_in_processes(
     parallelism: usize,
     page_workers: Parallelism,
     log_handle: &LogHandle,
-) -> Result<(Vec<DocumentOutcome>, Vec<JobFailure>), CliError> {
+) -> Result<(Vec<Vec<DocumentOutcome>>, Vec<JobFailure>), CliError> {
     let executable = std::env::current_exe().map_err(|source| CliError::WorkerSetup { source })?;
     // One work area per run, which cleans itself up: the children's private files do not outlive
     // the parent and never appear beside the results.
@@ -605,14 +610,28 @@ mod tests {
             }
         }
 
-        fn outcomes(count: usize) -> Vec<DocumentOutcome> {
+        /// `count` documents, **one per job** -- the shape a batch of single-report rows produces.
+        fn outcomes(count: usize) -> Vec<Vec<DocumentOutcome>> {
             (0..count)
-                .map(|i| DocumentOutcome {
-                    id: DocumentId::new(format!("doc-{i}")),
-                    format: FormatName::new("FMT"),
-                    pages: vec![],
+                .map(|i| {
+                    vec![DocumentOutcome {
+                        id: DocumentId::new(format!("doc-{i}")),
+                        format: FormatName::new("FMT"),
+                        pages: vec![],
+                    }]
                 })
                 .collect()
+        }
+
+        #[test]
+        fn documents_are_counted_across_the_groups_not_by_group() {
+            let configs = vec![config_naming(3)];
+            let one_job_three_documents = vec![outcomes(3).into_iter().flatten().collect::<Vec<_>>()];
+            assert_eq!(
+                completeness(&configs, &one_job_three_documents),
+                RunCompleteness::Everything,
+                "three named and three read, whether they came in one group or three"
+            );
         }
 
         #[test]

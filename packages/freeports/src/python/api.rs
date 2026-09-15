@@ -365,7 +365,9 @@ pub fn py_run_job(
     let result = tracing::subscriber::with_default(subscriber, || {
         let outcomes = job::run(&config, Parallelism::SEQUENTIAL)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        output::write_results(&config, &outcomes).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        // One invocation is one job, hence one group; promises resolve per job.
+        output::write_results(&config, std::slice::from_ref(&outcomes))
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         Ok(())
     });
     // Always attempted, whatever the outcome. The pipeline's real outcome takes precedence over a

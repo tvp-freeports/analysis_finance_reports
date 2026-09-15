@@ -327,7 +327,7 @@ pub fn run_in_processes(
         .collect()
 }
 
-/// Concatenates the results of the successful jobs and **collects** the failures of the others.
+/// Groups the results of the successful jobs **one group per job**, and collects the failures.
 ///
 /// It does not stop at the first failure. One job that failed is one job's worth of results lost,
 /// and throwing away the hundreds that succeeded alongside it would make a failure cost the run —
@@ -336,17 +336,23 @@ pub fn run_in_processes(
 /// Both lists come out **in job order**, not in order of arrival: that is what makes what is
 /// reported the same as what the sequential loop would have reported, whichever child happened to
 /// finish or die first.
-pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<DocumentOutcome>, Vec<JobFailure>) {
-    let mut documents = Vec::new();
+/// **The grouping is not decoration.** It used to concatenate, and the job boundary was gone by the
+/// time anything downstream could use it -- which is how `output::routines::accumulate` came to
+/// resolve every job's promises against one map, and three reports came to hang their ESG
+/// indicators on a fourth one's fund. A promise means "of this job", so the job has to survive the
+/// trip. A job that failed contributes **no group**, not an empty one: it produced nothing, and an
+/// empty group would claim it produced nothing *successfully*.
+pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<Vec<DocumentOutcome>>, Vec<JobFailure>) {
+    let mut jobs = Vec::new();
     let mut failures = Vec::new();
     for (index, report) in reports.into_iter().enumerate() {
         match report {
-            Ok(WorkerReport::Succeeded { documents: mut d }) => documents.append(&mut d),
+            Ok(WorkerReport::Succeeded { documents }) => jobs.push(documents),
             Ok(WorkerReport::Failed { error }) => failures.push(JobFailure::Job { index, error }),
             Err(source) => failures.push(JobFailure::Protocol { index, source }),
         }
     }
-    (documents, failures)
+    (jobs, failures)
 }
 
 /// The exit code of a child whose **protocol** broke: an unreadable request, logs that will not
@@ -753,9 +759,43 @@ mod tests {
         }
 
         /// The two lists `collect` returns, named so the assertions below read as sentences.
+        ///
+        /// The documents are flattened **here, in the test**, so the assertions below keep saying
+        /// what they said about order and containment. That the groups survive is what
+        /// `job_grouping` is for.
         fn ids_and_failures(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<String>, Vec<JobFailure>) {
-            let (documents, failures) = collect(reports);
-            (documents.iter().map(|d| d.id.as_str().to_string()).collect(), failures)
+            let (jobs, failures) = collect(reports);
+            (jobs.iter().flatten().map(|d| d.id.as_str().to_string()).collect(), failures)
+        }
+
+        /// One group per successful job, because a promise means "of this job" and the boundary has
+        /// to reach `accumulate` intact.
+        mod job_grouping {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn each_successful_job_is_its_own_group() {
+                let (jobs, _) = collect(vec![succeeded("a"), succeeded("b")]);
+                assert_eq!(jobs.len(), 2);
+                assert_eq!(jobs[0][0].id.as_str(), "a");
+                assert_eq!(jobs[1][0].id.as_str(), "b");
+            }
+
+            #[test]
+            fn a_failed_job_contributes_no_group_at_all() {
+                let (jobs, failures) = collect(vec![succeeded("a"), failed("boom"), succeeded("c")]);
+                assert_eq!(jobs.len(), 2, "a job that produced nothing must not leave an empty group");
+                assert_eq!(jobs[1][0].id.as_str(), "c");
+                assert_eq!(failures.len(), 1);
+            }
+
+            #[test]
+            fn no_reports_at_all_is_no_groups() {
+                let (jobs, failures) = collect(vec![]);
+                assert!(jobs.is_empty());
+                assert!(failures.is_empty());
+            }
         }
 
         #[test]

@@ -322,7 +322,9 @@ fn main() {
     let d_apply = t.elapsed();
 
     let t = Instant::now();
-    cli_output::write_results(&config, &outcomes).expect("the results must be written");
+    // One profiling invocation is one job, hence one group; promises resolve per job.
+    cli_output::write_results(&config, std::slice::from_ref(&outcomes))
+        .expect("the results must be written");
     let d_output = t.elapsed();
 
     let d_total = t_total.elapsed();

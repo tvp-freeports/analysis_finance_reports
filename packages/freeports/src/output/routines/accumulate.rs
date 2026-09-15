@@ -3,8 +3,13 @@
 //!
 //! Two phases, in this order:
 //!
-//! 1. **collect the promises**. Every promise deposited by every page of every document flows into one global map, which is then flattened. It has to be global: a promise chain can cross pages and even documents, so resolving per page would leave references dangling that the whole run could have answered;
+//! 1. **collect the promises of one job**. Every promise deposited by every page of every document *of that job* flows into one map, which is then flattened. It spans the job's documents and not the run: a chain can cross pages, and can cross the documents named together in one invocation, but it never means "some other row of the batch file";
 //! 2. **resolve and pour**. Each entity is resolved against that map and appended to its table. Resolution may drop an entity, keep it, or expand it into several — a value that turned out to be a list means the entity really was several.
+//!
+//! The first phase is **per job** and the second pours into **shared** tables. That asymmetry is
+//! the design: a promise means "of this job", while the identifiers the tables hand out have to be
+//! unique over the whole run. Resolving every job against one map is what made three EURIZON-IT24
+//! reports hang their ESG indicators on a fourth report's fund, silently -- see [`accumulate_jobs`].
 //!
 //! Funds get a row the first time they are seen, whether directly or as another entity's fund, and
 //! every source agrees on one canonical key, so the two never produce two rows for one fund. The
@@ -202,13 +207,58 @@ fn resolve<T: PromisableFields + Clone>(mut entity: T, flat: &FlatPromiseMap) ->
     }
 }
 
-/// Assembles the outcomes into the typed output tables, resolving every promise before building any
-/// row.
+/// Assembles **one job's** outcomes into the typed output tables, resolving its promises first.
 ///
-/// See the module documentation for the two phases and why the promise map is global.
+/// The single-job entry point, mirroring [`crate::core::algorithm::Algorithm::apply`] beside
+/// `apply_multidocument`: it delegates, so there is one implementation and not two.
 pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, AccumulateError> {
-    // Phase 1: every promise of every page of every document flows into one global map — chains can
-    // cross pages and documents.
+    accumulate_jobs(std::slice::from_ref(&outcomes))
+}
+
+/// Assembles several jobs into one set of tables: **promises resolved per job, tables shared**.
+///
+/// # Why the two scopes differ
+///
+/// A promise means "of this job". A job is one row of the batch file, and an id like
+/// `esg-indicator-fund`, written by a format, means *the fund of the report being read* — nothing
+/// in it refers to another row. Resolving every job against one map made three EURIZON-IT24 reports
+/// hang their ESG indicators on a fourth report's fund, silently, because a plain promise keeps the
+/// **last** contribution and that report happened to be last.
+///
+/// Several documents inside one job do share a map, and must: that is the case where one report
+/// completes another — one about the investments, one about the funds — and a promise crossing
+/// between them is why they were named together. A conflict there is possible in principle and
+/// close to impossible in practice, since such documents are of different kinds; where it happens,
+/// [`crate::core::promise_resolution::contributions_conflict`] says so.
+///
+/// The **tables** stay shared across jobs, because the identifiers they hand out have to be unique
+/// and deduplicated over the whole run: a fund read in two jobs is one row with one id.
+pub fn accumulate_jobs<J: AsRef<[DocumentOutcome]>>(
+    jobs: &[J],
+) -> Result<TransformedTables, AccumulateError> {
+    let mut acc = Accumulator::default();
+    for job in jobs {
+        let outcomes = job.as_ref();
+        let flat = flatten_promises(outcomes)?;
+        pour_job(&mut acc, outcomes, &flat)?;
+    }
+
+    tracing::debug!(
+        investments = acc.investments.len(),
+        funds = acc.funds.len(),
+        funds_change_name = acc.funds_change_name.len(),
+        funds_assets = acc.funds_assets.len(),
+        funds_sfdr_classification = acc.funds_sfdr_classification.len(),
+        funds_esg_indicators = acc.funds_esg_indicators.len(),
+        assets_managers = acc.assets_managers.len(),
+        investments_managers = acc.investments_managers_to_funds.len(),
+        "accumulated tables"
+    );
+    Ok(acc.finalize()?)
+}
+
+/// Phase 1 for one job: every promise its pages deposited, flattened.
+fn flatten_promises(outcomes: &[DocumentOutcome]) -> Result<FlatPromiseMap, AccumulateError> {
     let mut promise_map = PromiseMap::new();
     for doc in outcomes {
         for page in &doc.pages {
@@ -221,9 +271,15 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
     }
     let flat = promise_map.flatten()?;
     tracing::debug!(documents = outcomes.len(), promise_ids = flat.len(), "promise map flattened");
+    Ok(flat)
+}
 
-    // Phase 2: each entity is resolved and poured into the right table.
-    let mut acc = Accumulator::default();
+/// Phase 2 for one job: each entity resolved against `flat` and poured into the shared tables.
+fn pour_job(
+    acc: &mut Accumulator,
+    outcomes: &[DocumentOutcome],
+    flat: &FlatPromiseMap,
+) -> Result<(), AccumulateError> {
     for doc in outcomes {
         let report = doc.id.as_str().to_string();
         // The same two spans, with the same field names, that `Algorithm::apply_each_page` and
@@ -234,8 +290,8 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
         // warns that the entity was dropped), and without these two spans that warning is the one
         // event of a run that says neither which document nor which page it came from — which makes
         // it undiagnosable, since a lost entity is only actionable against the format that produced
-        // it. Phase 1 above stays deliberately without them: the promise map is global by
-        // construction, a chain crosses pages and documents, and a document there would be a lie.
+        // it. Phase 1 stays deliberately without them: within a job a chain crosses pages and can
+        // cross documents, so naming one document there would be a lie.
         let document_span = tracing::info_span!("document", report = %doc.id);
         let _document_guard = document_span.enter();
         for page in &doc.pages {
@@ -247,7 +303,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     Extracted::Promises(_) | Extracted::PageClass(_) => {}
 
                     Extracted::Fund(fund) => {
-                        for fund in resolve(fund.clone(), &flat)? {
+                        for fund in resolve(fund.clone(), flat)? {
                             let key = fund.name().expect("resolved after fulfill_promises");
                             let idx = acc.get_or_create_fund(&key);
                             if acc.funds[idx].report_page.is_none() {
@@ -258,15 +314,15 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     }
 
                     Extracted::Equity(equity) => {
-                        for equity in resolve(equity.clone(), &flat)? {
-                            push_investment(&mut acc, &equity.data, FinancialInstrument::EQUITY, None, None, page_n, &report)?;
+                        for equity in resolve(equity.clone(), flat)? {
+                            push_investment(acc, &equity.data, FinancialInstrument::EQUITY, None, None, page_n, &report)?;
                         }
                     }
 
                     Extracted::Bond(bond) => {
-                        for bond in resolve(bond.clone(), &flat)? {
+                        for bond in resolve(bond.clone(), flat)? {
                             push_investment(
-                                &mut acc,
+                                acc,
                                 &bond.data,
                                 FinancialInstrument::BOND,
                                 bond.maturity,
@@ -278,7 +334,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     }
 
                     Extracted::FundAssets(assets) => {
-                        for assets in resolve(assets.clone(), &flat)? {
+                        for assets in resolve(assets.clone(), flat)? {
                             let idx = acc.get_or_create_fund(&canonical_fund_key(&assets.fund));
                             let fund_id = acc.funds[idx].id;
                             let date = assets.date.and_then(|d| d.resolved().copied());
@@ -299,7 +355,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     }
 
                     Extracted::FundSfdrClassification(fsc) => {
-                        for fsc in resolve(fsc.clone(), &flat)? {
+                        for fsc in resolve(fsc.clone(), flat)? {
                             let idx = acc.get_or_create_fund(&canonical_fund_key(&fsc.fund));
                             let fund_id = acc.funds[idx].id;
                             let article = *fsc.article.resolved().expect("resolved after fulfill_promises");
@@ -313,7 +369,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     }
 
                     Extracted::FundEsgIndicator(fei) => {
-                        for fei in resolve(fei.clone(), &flat)? {
+                        for fei in resolve(fei.clone(), flat)? {
                             let fund_raw = fei.fund.resolved().expect("resolved after fulfill_promises");
                             let idx = acc.get_or_create_fund(&canonical_fund_key(fund_raw));
                             let fund_id = acc.funds[idx].id;
@@ -328,20 +384,20 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     }
 
                     Extracted::FundRename(rename) => {
-                        for rename in resolve(rename.clone(), &flat)? {
-                            push_fund_change_name(&mut acc, &rename.data, ChangeNameEventType::Renaming, page_n, &report)?;
+                        for rename in resolve(rename.clone(), flat)? {
+                            push_fund_change_name(acc, &rename.data, ChangeNameEventType::Renaming, page_n, &report)?;
                         }
                     }
 
                     Extracted::FundMerge(merge) => {
-                        for merge in resolve(merge.clone(), &flat)? {
-                            push_fund_change_name(&mut acc, &merge.data, ChangeNameEventType::Merging, page_n, &report)?;
+                        for merge in resolve(merge.clone(), flat)? {
+                            push_fund_change_name(acc, &merge.data, ChangeNameEventType::Merging, page_n, &report)?;
                         }
                     }
 
                     Extracted::ManagementCompany(mc) => {
-                        for mc in resolve(mc.clone(), &flat)? {
-                            let am_id = get_or_create_manager(&mut acc, &mc.data.name, page_n, &report)?;
+                        for mc in resolve(mc.clone(), flat)? {
+                            let am_id = get_or_create_manager(acc, &mc.data.name, page_n, &report)?;
                             for fund_name in &mc.data.managed_funds {
                                 let fund_idx = acc.get_or_create_fund(&canonical_fund_key(fund_name));
                                 acc.funds[fund_idx].management_company_id = Some(am_id);
@@ -350,8 +406,8 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                     }
 
                     Extracted::InvestmentsManager(im) => {
-                        for im in resolve(im.clone(), &flat)? {
-                            let am_id = get_or_create_manager(&mut acc, &im.data.name, page_n, &report)?;
+                        for im in resolve(im.clone(), flat)? {
+                            let am_id = get_or_create_manager(acc, &im.data.name, page_n, &report)?;
                             for fund_name in &im.data.managed_funds {
                                 let fund_idx = acc.get_or_create_fund(&canonical_fund_key(fund_name));
                                 let fund_id = acc.funds[fund_idx].id;
@@ -365,18 +421,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
         }
     }
 
-    tracing::debug!(
-        investments = acc.investments.len(),
-        funds = acc.funds.len(),
-        funds_change_name = acc.funds_change_name.len(),
-        funds_assets = acc.funds_assets.len(),
-        funds_sfdr_classification = acc.funds_sfdr_classification.len(),
-        funds_esg_indicators = acc.funds_esg_indicators.len(),
-        assets_managers = acc.assets_managers.len(),
-        investments_managers = acc.investments_managers_to_funds.len(),
-        "accumulated tables"
-    );
-    Ok(acc.finalize()?)
+    Ok(())
 }
 
 /// The fields an equity and a bond have in common, with each one's specifics passed separately.
@@ -1030,6 +1075,98 @@ mod tests {
         fn a_document_with_no_pages_contributes_nothing() {
             let tables = accumulate(&[doc("R", "FMT", vec![])]).unwrap();
             assert!(tables.investments.is_empty());
+        }
+    }
+
+    /// One job is one row of the batch file, and a promise means "of *this* job".
+    ///
+    /// Resolving every job against one map is what made three EURIZON-IT24 reports hang their ESG
+    /// indicators on a fourth report's fund: the id `esg-indicator-fund` is correct -- it means "the
+    /// fund of this job" -- and it was the scope that was wrong.
+    ///
+    /// Several documents inside **one** job still share a map, and must: that is the case where one
+    /// report completes another, and a promise crossing between them is why they were named
+    /// together.
+    mod job_scope {
+        use super::*;
+
+        fn deposit(id: &str, value: &str) -> Extracted {
+            Extracted::Promises(PromiseEntries::from_iter([(id, BlockValue::from(value))]))
+        }
+
+        #[test]
+        fn a_promise_kept_in_one_job_does_not_resolve_an_entity_of_another() {
+            let depositing = vec![doc("A", "FMT", vec![page(1, "c", vec![deposit("fund", "Alpha")])])];
+            let consuming = vec![doc("B", "FMT", vec![page(1, "c", vec![equity_with_promised_fund("fund")])])];
+            let tables = accumulate_jobs(&[depositing, consuming]).unwrap();
+            assert!(
+                tables.investments.is_empty(),
+                "job B has no contribution of its own: its entity must be dropped, not borrow job A's"
+            );
+        }
+
+        #[test]
+        fn two_jobs_keeping_the_same_promise_each_resolve_to_their_own_value() {
+            let first = vec![doc(
+                "A",
+                "FMT",
+                vec![page(1, "c", vec![deposit("fund", "Alpha"), equity_with_promised_fund("fund")])],
+            )];
+            let second = vec![doc(
+                "B",
+                "FMT",
+                vec![page(1, "c", vec![deposit("fund", "Beta"), equity_with_promised_fund("fund")])],
+            )];
+            let tables = accumulate_jobs(&[first, second]).unwrap();
+            let mut names: Vec<&str> = tables.funds.iter().map(|f| f.name.as_str()).collect();
+            names.sort_unstable();
+            assert_eq!(names, vec!["ALPHA", "BETA"], "each job resolves against its own contribution");
+        }
+
+        #[test]
+        fn documents_of_one_job_still_share_a_map() {
+            let job = vec![
+                doc("A", "FMT", vec![page(1, "c", vec![deposit("fund", "Alpha")])]),
+                doc("B", "FMT", vec![page(1, "c", vec![equity_with_promised_fund("fund")])]),
+            ];
+            let tables = accumulate_jobs(&[job]).unwrap();
+            assert_eq!(tables.investments.len(), 1, "one report completing another is the intended case");
+        }
+
+        #[test]
+        fn one_job_yields_what_the_single_job_entry_point_yields() {
+            let outcomes = vec![doc(
+                "A",
+                "FMT",
+                vec![page(1, "c", vec![deposit("fund", "Alpha"), equity_with_promised_fund("fund")])],
+            )];
+            let grouped = accumulate_jobs(std::slice::from_ref(&outcomes)).unwrap();
+            let single = accumulate(&outcomes).unwrap();
+            assert_eq!(grouped.investments.len(), single.investments.len());
+            assert_eq!(
+                grouped.funds.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
+                single.funds.iter().map(|f| f.name.clone()).collect::<Vec<_>>()
+            );
+        }
+
+        #[test]
+        fn a_fund_seen_in_two_jobs_still_gets_one_row() {
+            let first = vec![doc("A", "FMT", vec![page(1, "c", vec![equity("Alpha", 10.0)])])];
+            let second = vec![doc("B", "FMT", vec![page(1, "c", vec![equity("Alpha", 20.0)])])];
+            let tables = accumulate_jobs(&[first, second]).unwrap();
+            assert_eq!(
+                tables.funds.len(),
+                1,
+                "resolution is per job, but the output tables stay deduplicated across the run"
+            );
+            assert_eq!(tables.investments.len(), 2);
+        }
+
+        #[test]
+        fn no_jobs_at_all_is_empty_rather_than_an_error() {
+            let tables = accumulate_jobs::<Vec<DocumentOutcome>>(&[]).unwrap();
+            assert!(tables.investments.is_empty());
+            assert!(tables.funds.is_empty());
         }
     }
 }
