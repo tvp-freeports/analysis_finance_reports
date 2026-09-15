@@ -234,9 +234,9 @@ msgid ""
 msgstr ""
 "**Nenhuma renderização traz timestamp, e nenhuma nomeia um commit a menos que um "
 "número esteja velho.** Estes artefatos são comitados — badges num ``README.md``, "
-"tabelas nesta árvore — e uma data, ou o ``HEAD`` registrado ao lado de cada número, "
-"poria em todo commit um diff dizendo que nada tinha mudado. O commit é nomeado no "
-"único lugar em que ele é a notícia: ao lado de um número medido em outro."
+"tabelas nesta árvore — e uma data, ou o commit de topo registrado ao lado de cada "
+"número, poria em todo commit um diff dizendo que nada tinha mudado. O commit é "
+"nomeado no único lugar em que ele é a notícia: ao lado de um número medido em outro."
 
 #: ../../source/guides/devops/reporting.rst:82
 msgid "What Jenkins will add"

@@ -192,10 +192,10 @@ msgid ""
 "rather than to widen this pattern until it means nothing."
 msgstr ""
 "Un altro progetto che adottasse questa metodologia terrebbe le proprie asserzioni in "
-"un posto suo, e questo schema non ci arriverebbe. È voluto anziché una svista: un "
+"un posto suo, e questo pattern non ci arriverebbe. È voluto anziché una svista: un "
 "percorso significa qualcosa solo dentro un repository, e il modo onesto di estendere "
 "questa metodologia a una disposizione diversa è dirlo in una pagina tua anziché "
-"allargare questo schema finché non significa più niente."
+"allargare questo pattern finché non significa più niente."
 
 #: ../../source/validation/methodologies/agreement_and_good_faith.rst:86
 msgid ""

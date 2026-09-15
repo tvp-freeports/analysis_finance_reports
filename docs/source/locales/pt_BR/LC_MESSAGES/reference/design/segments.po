@@ -21,157 +21,201 @@ msgstr ""
 
 #: ../../source/reference/design/segments.md:1
 msgid "The three segments"
-msgstr ""
+msgstr "Os três segmentos"
 
 #: ../../source/reference/design/segments.md:3
 msgid "*Implemented — with a fourth that is designed and not built.*"
-msgstr ""
+msgstr "*Implementados — com um quarto que está projetado e não construído.*"
 
 #: ../../source/reference/design/segments.md:5
 msgid ""
-"Each page class maps to a **bundle**: the pipelines applied to a page of "
-"that class. A pipeline is three segments, in a fixed order."
+"Each page class maps to a **bundle**: the pipelines applied to a page of that class. "
+"A pipeline is three segments, in a fixed order."
 msgstr ""
+"Cada classe de página corresponde a um **feixe**: os pipelines aplicados a uma página"
+" daquela classe. Um pipeline são três segmentos, numa ordem fixa."
 
 #: ../../source/reference/design/segments.md:8
 msgid ""
-"One page through a pipeline: pdf_extract, text_filter, deserialize, and "
-"the promise map"
+"One page through a pipeline: pdf_extract, text_filter, deserialize, and the promise "
+"map"
 msgstr ""
+"Uma página atravessando um pipeline: pdf_extract, text_filter, deserialize, e o mapa "
+"de promessas"
 
 #: ../../source/reference/design/segments.md:12
 #, python-brace-format
 msgid ""
-"**One page through one pipeline.** The page is cut into `PdfBlock`s; the "
-"blocks that concern the funds being looked for become `TextBlock`s; each "
-"of those is deserialized independently into an entity or into promise "
-"entries. This diagram covers the pipeline only — what decides *which* "
-"pipeline a page gets is {doc}`classification` and {doc}`schedule`."
+"**One page through one pipeline.** The page is cut into `PdfBlock`s; the blocks that "
+"concern the funds being looked for become `TextBlock`s; each of those is deserialized"
+" independently into an entity or into promise entries. This diagram covers the "
+"pipeline only — what decides *which* pipeline a page gets is {doc}`classification` "
+"and {doc}`schedule`."
 msgstr ""
+"**Uma página atravessando um pipeline.** A página é cortada em `PdfBlock`s; os blocos"
+" que dizem respeito aos fundos procurados viram `TextBlock`s; cada um deles é "
+"desserializado de forma independente numa entidade ou em entradas de promessa. Este "
+"diagrama cobre só o pipeline — quem decide *qual* pipeline cabe a uma página são "
+"{doc}`classification` e {doc}`schedule`."
 
 #: ../../source/reference/design/segments.md:18
 msgid "The three questions the segments answer"
-msgstr ""
+msgstr "As três perguntas a que os segmentos respondem"
 
 #: ../../source/reference/design/segments.md:19
 msgid ""
-"**`pdf_extract` — what is on this page.** Takes the page, returns "
-"`PdfBlock`s. By convention it looks only at **graphical** evidence: font,"
-" size, position, and text that is part of the layout rather than of the "
-"content. Keeping it away from meaning is what makes it reusable — a table"
-" is a table regardless of what the numbers in it are about."
+"**`pdf_extract` — what is on this page.** Takes the page, returns `PdfBlock`s. By "
+"convention it looks only at **graphical** evidence: font, size, position, and text "
+"that is part of the layout rather than of the content. Keeping it away from meaning "
+"is what makes it reusable — a table is a table regardless of what the numbers in it "
+"are about."
 msgstr ""
+"**`pdf_extract` — o que há nesta página.** Recebe a página, devolve `PdfBlock`s. Por "
+"convenção ele olha só a evidência **gráfica**: font, corpo, posição, e o texto que "
+"faz parte do layout e não do conteúdo. Mantê-lo longe do sentido é o que o torna "
+"reutilizável — uma tabela é uma tabela, independentemente do que os números nela "
+"tratem."
 
 #: ../../source/reference/design/segments.md:24
 #, python-format
 msgid ""
-"**`text_filter` — does any of this concern us.** Takes the blocks — *all*"
-" of them, because interpreting one may depend on another — and returns "
-"`TextBlock`s, each keeping a reference back to the PDF block it came "
-"from. This is where the target companies enter, and where most of a run's"
-" time is spent: measured, 85–96% of the engine's work, and a single "
-"standard pipe inside it accounts for 30–54% of a whole job."
+"**`text_filter` — does any of this concern us.** Takes the blocks — *all* of them, "
+"because interpreting one may depend on another — and returns `TextBlock`s, each "
+"keeping a reference back to the PDF block it came from. This is where the target "
+"companies enter, and where most of a run's time is spent: measured, 85–96% of the "
+"engine's work, and a single standard pipe inside it accounts for 30–54% of a whole "
+"job."
 msgstr ""
+"**`text_filter` — algo disto nos diz respeito.** Recebe os blocos — *todos*, porque "
+"interpretar um pode depender de outro — e devolve `TextBlock`s, cada um guardando uma"
+" referência de volta ao bloco de PDF de onde veio. É aqui que entram as empresas-"
+"alvo, e é aqui que se gasta quase todo o tempo de uma execução: medido, 85–96% do "
+"trabalho do motor, e um único pipe padrão dentro dele responde por 30–54% de um job "
+"inteiro."
 
 #: ../../source/reference/design/segments.md:30
 #, python-format
 msgid ""
 "**`deserialize` — what do the survivors mean.** Takes each text block "
-"**independently** and produces a typed entity. No filtering happens here:"
-" once meaning is settled the transformation is per block, so the segment "
-"is *defined* to be per block. Measured at under 0.2% of a run."
+"**independently** and produces a typed entity. No filtering happens here: once "
+"meaning is settled the transformation is per block, so the segment is *defined* to be"
+" per block. Measured at under 0.2% of a run."
 msgstr ""
+"**`deserialize` — o que significa o que sobreviveu.** Recebe cada bloco de texto **de"
+" forma independente** e produz uma entidade tipada. Aqui não acontece filtragem "
+"nenhuma: uma vez assentado o sentido, a transformação é por bloco, então o segmento é"
+" *definido* como sendo por bloco. Medido em menos de 0,2% de uma execução."
 
 #: ../../source/reference/design/segments.md:34
 msgid "Why three segments, and not a graph"
-msgstr ""
+msgstr "Por que três segmentos, e não um grafo"
 
 #: ../../source/reference/design/segments.md:35
 msgid ""
-"**Rejected: a general graph of transformations**, which is more "
-"expressive and would let a format do anything."
+"**Rejected: a general graph of transformations**, which is more expressive and would "
+"let a format do anything."
 msgstr ""
+"**Rejeitado: um grafo geral de transformações**, que é mais expressivo e deixaria um "
+"formato fazer qualquer coisa."
 
 #: ../../source/reference/design/segments.md:38
 #, python-brace-format
 msgid ""
-"The three segments answer three **separable** questions, and separability"
-" is the entire benefit: an author replaces one segment and inherits the "
-"other two. That is what keeps a hard format from costing three times a "
-"simple one, and it is what the merge across the three levels operates on "
-"({doc}`formats-as-plugins`)."
+"The three segments answer three **separable** questions, and separability is the "
+"entire benefit: an author replaces one segment and inherits the other two. That is "
+"what keeps a hard format from costing three times a simple one, and it is what the "
+"merge across the three levels operates on ({doc}`formats-as-plugins`)."
 msgstr ""
+"Os três segmentos respondem a três perguntas **separáveis**, e a separabilidade é "
+"todo o benefício: quem escreve substitui um segmento e herda os outros dois. É isso "
+"que impede um formato difícil de custar o triplo de um simples, e é sobre isso que "
+"opera a fusão entre os três níveis ({doc}`formats-as-plugins`)."
 
 #: ../../source/reference/design/segments.md:43
 msgid ""
-"A general graph gives up exactly that. Nothing then says which node an "
-"author may replace in isolation, and \"inherit the rest\" stops having a "
-"meaning."
+"A general graph gives up exactly that. Nothing then says which node an author may "
+"replace in isolation, and \"inherit the rest\" stops having a meaning."
 msgstr ""
+"Um grafo geral abre mão exatamente disso. Nada mais diz que nó quem escreve pode "
+"substituir isoladamente, e \"herdar o resto\" deixa de querer dizer alguma coisa."
 
 #: ../../source/reference/design/segments.md:46
 msgid "Why there is no fourth segment yet"
-msgstr ""
+msgstr "Por que ainda não há um quarto segmento"
 
 #: ../../source/reference/design/segments.md:47
 msgid ""
-"A fourth was considered and not added, and the machinery is **generic in "
-"the number of segments**, so adding one is cheap if a fourth separable "
-"question ever appears."
+"A fourth was considered and not added, and the machinery is **generic in the number "
+"of segments**, so adding one is cheap if a fourth separable question ever appears."
 msgstr ""
+"Um quarto foi cogitado e não acrescentado, e o maquinário é **genérico no número de "
+"segmentos**, então acrescentar um sai barato se algum dia aparecer uma quarta "
+"pergunta separável."
 
 #: ../../source/reference/design/segments.md:50
-msgid ""
-"None had — until one was proposed. It is described below, marked as what "
-"it is."
+msgid "None had — until one was proposed. It is described below, marked as what it is."
 msgstr ""
+"Nenhuma tinha aparecido — até uma ser proposta. Ela está descrita abaixo, marcada "
+"pelo que é."
 
 #: ../../source/reference/design/segments.md:52
 msgid "The planned fourth segment"
-msgstr ""
+msgstr "O quarto segmento previsto"
 
 #: ../../source/reference/design/segments.md:54
 msgid "Planned, not implemented"
-msgstr ""
+msgstr "Previsto, não implementado"
 
 #: ../../source/reference/design/segments.md:57
 msgid ""
-"Today `text_filter` does two jobs: it **filters** (does this concern the "
-"companies we are looking for) and it **interprets semantically** (what do"
-" these blocks mean as a unit). Those are separable, and the design to "
-"separate them exists:"
+"Today `text_filter` does two jobs: it **filters** (does this concern the companies we"
+" are looking for) and it **interprets semantically** (what do these blocks mean as a "
+"unit). Those are separable, and the design to separate them exists:"
 msgstr ""
+"Hoje o `text_filter` faz dois trabalhos: ele **filtra** (isto diz respeito às "
+"empresas que estamos procurando) e **interpreta semanticamente** (o que estes blocos "
+"querem dizer tomados juntos). Isso é separável, e o projeto para separar existe:"
 
 #: ../../source/reference/design/segments.md:61
 msgid ""
-"one segment for **layout interpretation** and one for **semantic "
-"interpretation**, both of which an author must specify, because they are "
-"what a format actually is;"
+"one segment for **layout interpretation** and one for **semantic interpretation**, "
+"both of which an author must specify, because they are what a format actually is;"
 msgstr ""
+"um segmento para a **interpretação do layout** e um para a **interpretação "
+"semântica**, os dois de especificação obrigatória para quem escreve, porque são o que"
+" um formato de fato é;"
 
 #: ../../source/reference/design/segments.md:63
 msgid ""
-"**filtering becomes its own segment with a default that filters "
-"nothing**, so a format that does not need it never writes it;"
+"**filtering becomes its own segment with a default that filters nothing**, so a "
+"format that does not need it never writes it;"
 msgstr ""
+"**a filtragem vira um segmento próprio, com um padrão que não filtra nada**, de modo "
+"que um formato que não precise dela nunca a escreva;"
 
 #: ../../source/reference/design/segments.md:65
 msgid ""
-"**`deserialize` gains a standard implementation too**, dispatching on the"
-" block type to the standard constructor for that kind of value — ideally "
-"by deserializing the metadata coming out of the filter, since the "
-"outgoing classes are already typed."
+"**`deserialize` gains a standard implementation too**, dispatching on the block type "
+"to the standard constructor for that kind of value — ideally by deserializing the "
+"metadata coming out of the filter, since the outgoing classes are already typed."
 msgstr ""
+"**o `deserialize` também ganha uma implementação padrão**, despachando pelo tipo do "
+"bloco para o construtor padrão daquele tipo de valor — idealmente desserializando os "
+"metadados que saem do filtro, já que as classes de saída já são tipadas."
 
 #: ../../source/reference/design/segments.md:69
 msgid ""
-"The shape of the win is that the two segments a format *must* describe "
-"are the two that are genuinely format-specific, and the two that are "
-"usually boilerplate get defaults. It is why the segment count was kept "
-"generic rather than hard-coded at three."
+"The shape of the win is that the two segments a format *must* describe are the two "
+"that are genuinely format-specific, and the two that are usually boilerplate get "
+"defaults. It is why the segment count was kept generic rather than hard-coded at "
+"three."
 msgstr ""
+"O formato do ganho é que os dois segmentos que um formato *precisa* descrever são os "
+"dois genuinamente específicos daquele formato, e os dois que costumam ser boilerplate"
+" ganham padrões. É por isso que a contagem de segmentos foi mantida genérica, em vez "
+"de fixada em três."
 
 #: ../../source/reference/design/segments.md:73
 msgid "Nothing in the engine implements this yet, and no format can use it."
-msgstr ""
+msgstr "Nada no motor implementa isso ainda, e formato nenhum pode usá-lo."
 

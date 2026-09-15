@@ -67,7 +67,7 @@ msgstr "[freeports.org](https://www.freeports.org), con repository e toolchain p
 
 #: ../../source/reference/misc.md
 msgid "the demo API and dashboard"
-msgstr "l'API dimostrativa e il cruscotto"
+msgstr "l'API dimostrativa e la dashboard"
 
 #: ../../source/reference/misc.md
 msgid "`freeports-backend` and `freeports-frontend`, unrelated to the extraction side"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-09-15 08:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pt_BR\n"
@@ -145,7 +145,7 @@ msgid "Default"
 msgstr "Padrão"
 
 #: ../../source/guides/formats/advanced/structured.md
-#: ../../source/guides/formats/advanced/structured.md:62
+#: ../../source/guides/formats/advanced/structured.md:69
 msgid "`Algorithm flags`"
 msgstr "`Algorithm flags`"
 
@@ -162,8 +162,8 @@ msgid "no flags"
 msgstr "nenhum flag"
 
 #: ../../source/guides/formats/advanced/structured.md
-msgid "`Tolerance`"
-msgstr "`Tolerance`"
+msgid "`Column tolerance`"
+msgstr "`Column tolerance`"
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "number"
@@ -172,6 +172,10 @@ msgstr "número"
 #: ../../source/guides/formats/advanced/structured.md
 msgid "`0`"
 msgstr "`0`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Row tolerance`"
+msgstr "`Row tolerance`"
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "`Geometrical indexing`"
@@ -198,7 +202,7 @@ msgid "`FALSE`"
 msgstr "`FALSE`"
 
 #: ../../source/guides/formats/advanced/structured.md
-#: ../../source/guides/formats/advanced/structured.md:77
+#: ../../source/guides/formats/advanced/structured.md:84
 msgid "`Interpret dash as zero`"
 msgstr "`Interpret dash as zero`"
 
@@ -218,7 +222,24 @@ msgstr "`deserialize`"
 msgid "`Interpret cost and value as int`"
 msgstr "`Interpret cost and value as int`"
 
-#: ../../source/guides/formats/advanced/structured.md:58
+#: ../../source/guides/formats/advanced/structured.md:59
+msgid ""
+"The two tolerances say how far apart two cells may sit and still count as the same "
+"column, or the same row. They are **independent**: leaving one empty means zero for "
+"that axis, never the other one's value. A table whose column of names breaks up "
+"because the names differ in length wants a wide column tolerance and a row tolerance "
+"of zero — one number for both would weld consecutive holdings into a single row while"
+" it was busy reuniting the names."
+msgstr ""
+"As duas tolerâncias dizem o quanto duas células podem estar distantes e ainda contar "
+"como a mesma coluna, ou como a mesma linha. Elas são **independentes**: deixar uma "
+"vazia quer dizer zero para aquele eixo, nunca o valor da outra. Uma tabela cuja "
+"coluna de nomes se quebra porque os nomes têm comprimentos diferentes quer uma "
+"tolerância de coluna larga e uma tolerância de linha igual a zero — um número só para"
+" as duas soldaria posições consecutivas numa linha única bem enquanto estivesse "
+"ocupado reunindo os nomes."
+
+#: ../../source/guides/formats/advanced/structured.md:65
 msgid ""
 "Each column belongs to one segment, and that matters: a pipe that switches a segment "
 "**off** in `partial_pipes.csv` and then fills in one of that segment's columns is "
@@ -230,7 +251,7 @@ msgstr ""
 "rejeitado quando o repositório carrega. Declarar um segmento desligado e configurá-lo"
 " é uma contradição, não algo sobre o que chutar."
 
-#: ../../source/guides/formats/advanced/structured.md:64
+#: ../../source/guides/formats/advanced/structured.md:71
 msgid ""
 "How the table-coordinates algorithm finds the grid, when its default choices do not "
 "suit a layout: `RETURN_ROWS`, `BIG_CELL_RULE`, `USE_RULER_AREA`, `USE_TEST_POS`."
@@ -239,11 +260,11 @@ msgstr ""
 " dele não servem para um layout: `RETURN_ROWS`, `BIG_CELL_RULE`, `USE_RULER_AREA`, "
 "`USE_TEST_POS`."
 
-#: ../../source/guides/formats/advanced/structured.md:67
+#: ../../source/guides/formats/advanced/structured.md:74
 msgid "`Geometrical indexing` and `Merge previous`"
 msgstr "`Geometrical indexing` e `Merge previous`"
 
-#: ../../source/guides/formats/advanced/structured.md:69
+#: ../../source/guides/formats/advanced/structured.md:76
 msgid ""
 "`Geometrical indexing` decides what the numeric columns of `args.csv` mean. `TRUE`, "
 "the default, makes them **linear distances on the grid**, wrapping into the next row "
@@ -257,7 +278,7 @@ msgstr ""
 "lista plana de blocos — o que desloca todo campo de qualquer linha cujo nome de "
 "empresa tenha quebrado em duas linhas, e por isso raramente é o que você quer."
 
-#: ../../source/guides/formats/advanced/structured.md:74
+#: ../../source/guides/formats/advanced/structured.md:81
 msgid ""
 "`Merge previous` says which way a cell split across two blocks is put back together: "
 "into the **preceding** block (`TRUE`) or the following one."
@@ -265,7 +286,7 @@ msgstr ""
 "O `Merge previous` diz para que lado uma célula partida entre dois blocos é "
 "recomposta: para o bloco **anterior** (`TRUE`) ou para o seguinte."
 
-#: ../../source/guides/formats/advanced/structured.md:79
+#: ../../source/guides/formats/advanced/structured.md:86
 msgid ""
 "Several reports print `-` where a number belongs — a frozen holding, a position too "
 "small to round to a visible percentage. That dash is not a number, so by default the "
@@ -277,7 +298,7 @@ msgstr ""
 "não é um número, então por padrão a linha é descartada (no caso do valor de mercado) "
 "ou o campo fica vazio (nos demais), e o `.log.csv` avisa."
 
-#: ../../source/guides/formats/advanced/structured.md:83
+#: ../../source/guides/formats/advanced/structured.md:90
 msgid ""
 "Where you have checked the report and the dash really does mean zero, this column "
 "says so, **one field at a time**:"
@@ -333,7 +354,7 @@ msgstr "`ALL`"
 msgid "the four together"
 msgstr "os quatro juntos"
 
-#: ../../source/guides/formats/advanced/structured.md:101
+#: ../../source/guides/formats/advanced/structured.md:108
 msgid ""
 "The expression is the same little language `Algorithm flags` uses — `|`, `&`, `^`, "
 "`~` and parentheses — so `ALL & ~QUANTITY` is the three fields other than the "
@@ -343,7 +364,7 @@ msgstr ""
 " e parênteses — de modo que `ALL & ~QUANTITY` são os três campos que não a "
 "quantidade."
 
-#: ../../source/guides/formats/advanced/structured.md:104
+#: ../../source/guides/formats/advanced/structured.md:111
 msgid ""
 "**Per field, and not one switch,** because the need really is per field: a report "
 "that prints `-` for a percentage it cannot show may print nothing of the sort in the "
@@ -354,7 +375,7 @@ msgstr ""
 " nada parecido na coluna da quantidade, e uma chave única inventaria ali uma "
 "quantidade igual a zero."
 
-#: ../../source/guides/formats/advanced/structured.md:108
+#: ../../source/guides/formats/advanced/structured.md:115
 msgid ""
 "**Only a dash.** The substitution recognises the dash family and nothing else — `-`, "
 "`–`, `—` and their kin, alone or repeated, with any surrounding space. Not an empty "
@@ -373,7 +394,7 @@ msgstr ""
 "distância de onde deveria. Esses têm de continuar falhando alto, e uma regra que "
 "transformasse em zero qualquer célula ilegível os enterraria."
 
-#: ../../source/guides/formats/advanced/structured.md:115
+#: ../../source/guides/formats/advanced/structured.md:122
 msgid ""
 "There is no flag for the acquisition **currency**: a dash there says \"no currency\","
 " and zero is not a currency. `ALL` does not touch it."
@@ -381,23 +402,26 @@ msgstr ""
 "Não há flag para a **moeda** de aquisição: ali um travessão diz \"nenhuma moeda\", e "
 "zero não é moeda. O `ALL` não mexe nela."
 
-#: ../../source/guides/formats/advanced/structured.md:118
+#: ../../source/guides/formats/advanced/structured.md:125
 #, python-brace-format
 msgid ""
-"The zero that results is a real value and behaves like one — including the `warn` in "
-"the `.log.csv` saying it sits on the edge of its domain ({doc}`../../user/logging`). "
-"That is the point: the holding is in the output, where it was being dropped before."
+"The zero that results is a real value and behaves like one. It is on the lower edge "
+"of its domain, which the engine notes at `debug` and not in the `.log.csv` "
+"({doc}`../../user/logging`) — zero is ordinary, and a file that said so on every "
+"written-off holding would say nothing else. That is the point: the holding is in the "
+"output, where it was being dropped before."
 msgstr ""
-"O zero que sai dali é um valor de verdade e se comporta como tal — inclusive com o "
-"`warn` no `.log.csv` dizendo que ele está na borda do próprio domínio "
-"({doc}`../../user/logging`). É esse o ponto: a posição está no resultado, onde antes "
-"vinha sendo descartada."
+"O zero que sai dali é um valor de verdade e se comporta como tal. Ele fica na borda "
+"inferior do próprio domínio, o que o motor anota em `debug` e não no `.log.csv` "
+"({doc}`../../user/logging`) — zero é coisa comum, e um arquivo que dissesse isso em "
+"cada posição zerada não diria mais nada além. É esse o ponto: a posição está no "
+"resultado, onde antes vinha sendo descartada."
 
-#: ../../source/guides/formats/advanced/structured.md:122
+#: ../../source/guides/formats/advanced/structured.md:130
 msgid "Classification rows"
 msgstr "Linhas de classificação"
 
-#: ../../source/guides/formats/advanced/structured.md:124
+#: ../../source/guides/formats/advanced/structured.md:132
 msgid ""
 "A classification row declares a page class and **one** header to look for. Rows "
 "sharing an id describe one pipe, and the page belongs to that class if it contains "
@@ -407,7 +431,7 @@ msgstr ""
 "procurar. Linhas que compartilham um id descrevem um só pipe, e a página pertence "
 "àquela classe se contiver **todos** eles:"
 
-#: ../../source/guides/formats/advanced/structured.md:133
+#: ../../source/guides/formats/advanced/structured.md:141
 msgid ""
 "Two rows, one id, both required. Splitting a conjunction across rows rather than "
 "packing it into one cell is what keeps these files editable in a spreadsheet."
@@ -415,11 +439,11 @@ msgstr ""
 "Duas linhas, um id, as duas obrigatórias. Repartir uma conjunção entre linhas em vez "
 "de enfiá-la numa célula só é o que mantém estes arquivos editáveis numa planilha."
 
-#: ../../source/guides/formats/advanced/structured.md:136
+#: ../../source/guides/formats/advanced/structured.md:144
 msgid "Partial pipelines"
 msgstr "Pipelines parciais"
 
-#: ../../source/guides/formats/advanced/structured.md:138
+#: ../../source/guides/formats/advanced/structured.md:146
 #, python-brace-format
 msgid ""
 "Each of the three segments can be switched off **individually**. That is what a "
@@ -434,11 +458,11 @@ msgstr ""
 "Python, deixando o segundo sem especificação neste nível "
 "({doc}`../../../reference/design/formats-as-plugins`)."
 
-#: ../../source/guides/formats/advanced/structured.md:143
+#: ../../source/guides/formats/advanced/structured.md:151
 msgid "Two conventions of the structured tables"
 msgstr "Duas convenções das tabelas structured"
 
-#: ../../source/guides/formats/advanced/structured.md:144
+#: ../../source/guides/formats/advanced/structured.md:152
 msgid ""
 "**An empty cell means *absent*, everywhere.** Not zero, not the default — absent. It "
 "is the same rule the output files follow."
@@ -446,7 +470,7 @@ msgstr ""
 "**Uma célula vazia significa *ausente*, em toda parte.** Não zero, não o padrão — "
 "ausente. É a mesma regra que os arquivos de resultado seguem."
 
-#: ../../source/guides/formats/advanced/structured.md:147
+#: ../../source/guides/formats/advanced/structured.md:155
 msgid ""
 "**Every validation error names the row number.** These files are edited in a "
 "spreadsheet by people who are not reading Rust backtraces, and an error that cannot "

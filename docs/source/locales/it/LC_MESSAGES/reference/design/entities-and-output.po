@@ -28,7 +28,7 @@ msgid ""
 "*Implemented.* What the project models, and why the shape of the output is treated as"
 " an invariant rather than as a formatting choice."
 msgstr ""
-"*Realizzato.* Che cosa il progetto modella, e perché la forma dei risultati sia "
+"*Implementato.* Che cosa il progetto modella, e perché la forma dei risultati sia "
 "trattata come un invariante anziché come una scelta di formattazione."
 
 #: ../../source/reference/design/entities-and-output.md:6
@@ -115,8 +115,8 @@ msgid ""
 msgstr ""
 "La ragione è un'affermazione su *che tipo di fatto* si tratti. Un file di risultato "
 "che ne viola uno è **sbagliato anche se ogni passo che l'ha prodotto era giusto** — "
-"non è un difetto di chi scrive, è un'affermazione sul mondo che non può essere vera. "
-"Una validazione attaccata alla scrittura controllerebbe chi scrive; una validazione "
+"non è un bug di chi scrive, è un'affermazione sul mondo che non può essere vera. Una "
+"validazione attaccata alla scrittura controllerebbe chi scrive; una validazione "
 "attaccata allo schema controlla l'affermazione."
 
 #: ../../source/reference/design/entities-and-output.md:38

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-09-15 08:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -74,17 +74,17 @@ msgid "Usually"
 msgstr ""
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
-msgid "`… sits on the edge of the admissible range - kept`"
+msgid "`… sits on the upper edge of the admissible range - kept`"
 msgstr ""
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
 msgid ""
-"a value landed exactly on a boundary of its domain — a holding worth "
-"zero, a position that is the whole fund"
+"a value landed exactly on the top of its domain — a position that is the "
+"whole fund"
 msgstr ""
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
-msgid "fine, and kept on purpose"
+msgid "usually fine, but it is also what a column read one cell off looks like"
 msgstr ""
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
@@ -132,46 +132,55 @@ msgid "Two habits follow from that table."
 msgstr ""
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:44
-#, python-format
 msgid ""
-"**A warning is not automatically a bug.** The engine warns about zero-"
-"valued holdings because zero is on the edge of what is admissible, not "
-"because zero is wrong — a security written off is worth exactly nothing, "
-"and discarding it would throw away the very fact worth reporting. In the "
-"run above, 116 of the 188 rows were holdings rounding to 0.00% of net "
-"assets. All correct."
+"Only the **upper** edge reaches this file. The lower one — a holding "
+"worth zero, a zero-coupon bond, a position that rounds away to 0,00% — is"
+" the ordinary case and is a `debug` event, visible with `-vv` in "
+"`freeports.log.jsonl` and nowhere else. It used to be a warning, and on "
+"one 903-report run it was 121 of the 344 rows, every one of them correct:"
+" a file that says so on every written-off holding says nothing else."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:49
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:50
+msgid ""
+"**A warning is not automatically a bug.** The engine warns about a "
+"position worth the whole fund because it is on the edge of what is "
+"admissible, not because it is wrong — a fund really can hold a single "
+"position worth all its net assets, and discarding it would throw away the"
+" very fact worth reporting. What earns it a warning rather than silence "
+"is that the same value is also what a column read one cell off produces."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:56
 msgid ""
 "**And silence is not automatically correctness.** The events you get are "
 "the ones the engine knew how to doubt. Nothing warns you that a column "
 "mapping is off by one and every market value belongs to the row above."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:53
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:60
 msgid "Two examples of the same message meaning opposite things"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:55
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:62
 msgid ""
 "Both of these produced `forced \"-X\" to \"X\" to read it as a number`. "
 "One was noise, the other was a real defect. Telling them apart is the "
 "whole skill."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:58
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:65
 msgid "The false positive"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:60
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:67
 msgid ""
 "A fund's Statement of Net Assets is laid out so that assets plus "
 "liabilities equal net assets, so `Total Liabilities` is printed with a "
 "minus:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:69
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:76
 msgid ""
 "The output schema wants a magnitude — it checks that `liabilities + "
 "net_assets == tot_assets` — so the extracted value was right all along. "
@@ -180,29 +189,29 @@ msgid ""
 "guessing."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:73
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:80
 msgid ""
 "The check that settled it took one command: compare the same field across"
 " every format that does *not* warn, and see what value they carry. They "
 "were all positive magnitudes."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:76
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:83
 msgid "The real defect"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:78
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:85
 msgid "The same message, on a different report, was hiding this in the output:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:84
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:91
 msgid ""
 "A **written put option** — a short position — recorded as a long holding "
 "of 30,900 USD in Exxon Mobil, and classified as a bond. The minus sign "
 "that said \"short\" had been stripped."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:87
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:94
 msgid ""
 "Nothing about the message distinguished the two cases. What distinguished"
 " them was asking, in each case, **what the sign meant in that field**: a "
@@ -210,11 +219,11 @@ msgid ""
 "something and owing it."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:91
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:98
 msgid "Reproducing it on one page"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:93
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:100
 msgid ""
 "Once you have a suspect page, the modes of `inspect-page` are a decision "
 "procedure rather than a menu."
@@ -268,39 +277,39 @@ msgstr ""
 msgid "`results`"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:104
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:111
 msgid ""
 "The table modes are the ones people forget, and they are the fastest "
 "route to a class of bug that is otherwise invisible. Here is the page "
 "that held the Exxon put, rendered as a table:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:115
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:122
 msgid ""
 "Eight columns, because **the page holds two tables side by side**. That "
 "single observation explains a whole family of confusing results, and it "
 "is worth internalising:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:118
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:125
 msgid ""
 "reading order is **column-major** — down the left table, then down the "
 "right one;"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:119
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:126
 msgid ""
 "a section of the report can therefore open partway down one column and "
 "continue in the *other* column, or on the *next page*;"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:121
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:128
 msgid ""
 "so a rule of the form *\"everything below y on this page\"* is wrong "
 "twice over."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:123
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:130
 msgid ""
 "In the report above, the heading that opens the short-positions section "
 "sits in the right-hand column of page 316, and the section runs on "
@@ -308,11 +317,11 @@ msgid ""
 "up two pages away from the heading that explained it."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:127
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:134
 msgid "Choosing the layer: is this the format's problem or the engine's?"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:129
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:136
 msgid ""
 "The same symptom lives in different places, and putting the fix in the "
 "wrong one is how a repository accumulates workarounds."
@@ -350,7 +359,7 @@ msgstr ""
 msgid "is the engine producing a value the report does not contain?"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:139
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:146
 msgid ""
 "The Exxon case answers the last one: the report said `-200`, the output "
 "said `200`. No format configuration should have to compensate for that, "
@@ -358,7 +367,7 @@ msgid ""
 "as *stop warning*."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:144
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:151
 msgid ""
 "Never silence a diagnostic at the point where it is the only thing "
 "standing between a wrong value and the output. If a coercion is what "
@@ -368,11 +377,11 @@ msgid ""
 "the four combinations."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:150
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:157
 msgid "Proving that a fix loses nothing"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:152
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:159
 msgid ""
 "This is the part that is easy to skip and expensive to skip. A change "
 "that removes bad rows can remove good ones, and *\"I checked and it looks"
@@ -380,17 +389,17 @@ msgid ""
 "increasing strength:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:156
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:163
 msgid "**1. The suite you already have.**"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:163
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:170
 msgid ""
 "Every format's whole-document output is pinned, so anything you disturbed"
 " anywhere shows up. Do this before you believe anything else."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:166
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:173
 msgid ""
 "**2. A real run, diffed.** The suite searches a small built-in company "
 "list, so a change that only affects companies outside it passes "
@@ -398,7 +407,7 @@ msgid ""
 "about, before and after, and diff the outputs."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:170
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:177
 msgid ""
 "**3. A run that emits everything.** Even a real database only surfaces "
 "rows that matched a company. To see *every* row your change touches, "
@@ -406,7 +415,7 @@ msgid ""
 "matches anything:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:179
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:186
 msgid ""
 "Every row of the report is now emitted, and the diff covers rows a "
 "realistic database would never have reached. Expect noise — bare numbers "
@@ -414,7 +423,7 @@ msgid ""
 " *\"nothing else seems to have changed\"* into a count."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:183
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:190
 msgid ""
 "In the investigation this page is drawn from, those three steps produced:"
 " 259 tests passing, exactly four rows removed from the real run and "
@@ -423,59 +432,87 @@ msgid ""
 "sign."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:187
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:194
 msgid "When the reference outputs must change"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:189
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:196
 msgid ""
 "Sometimes a genuine improvement makes tests fail, because `out/**` is the"
 " repository's specification and the specification was written against the"
 " old behaviour."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:192
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:199
 msgid ""
 "Regenerating is a deliberate act, and the rule is simple: **classify "
 "every single difference before you touch anything.** Not \"29 tests fail,"
 " let me regenerate\" — but a list, of the shape:"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:195
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:202
 msgid "13 coupon values, all corrected: `10.25%` was being read as `0.25%`;"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:196
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:203
 msgid "14 per-page fixtures carrying those same coupons;"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:197
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:204
 msgid ""
 "2 cells where `Intesa Sanpaolo SpA 7% / perpetual` moved from equity to "
 "**bond** — a perpetual has no maturity date, so it was only recognised "
 "once the coupon could be read;"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:199
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:206
 msgid "no rows lost, no row counts moved anywhere."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:201
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:208
 msgid ""
 "Once every difference has a reason, regenerate, and write the reasons "
 "down. If you cannot explain a difference, you have found a second bug "
 "rather than finished with the first."
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:204
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:211
 msgid "The shape of the whole thing"
 msgstr ""
 
-#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:215
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:222
 msgid ""
 "The payoff, in the run this page follows: 188 log rows became 175, the "
 "twenty-one misleading warnings became four accurate errors that name the "
 "security and the field, and coupon correctness went from 2695 of 2758 to "
 "2817 of 2817."
 msgstr ""
+
+#~ msgid "`… sits on the edge of the admissible range - kept`"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "a value landed exactly on a "
+#~ "boundary of its domain — a holding"
+#~ " worth zero, a position that is "
+#~ "the whole fund"
+#~ msgstr ""
+
+#~ msgid "fine, and kept on purpose"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "**A warning is not automatically a "
+#~ "bug.** The engine warns about zero-"
+#~ "valued holdings because zero is on "
+#~ "the edge of what is admissible, "
+#~ "not because zero is wrong — a "
+#~ "security written off is worth exactly"
+#~ " nothing, and discarding it would "
+#~ "throw away the very fact worth "
+#~ "reporting. In the run above, 116 "
+#~ "of the 188 rows were holdings "
+#~ "rounding to 0.00% of net assets. "
+#~ "All correct."
+#~ msgstr ""
 

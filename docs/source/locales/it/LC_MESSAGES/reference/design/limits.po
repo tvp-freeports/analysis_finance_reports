@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"POT-Creation-Date: 2026-09-15 08:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -29,8 +29,8 @@ msgid ""
 "know about is a constraint and a limit you do not is a bug report waiting to happen."
 msgstr ""
 "Ogni progetto ha i suoi bordi. Questi sono registrati anziché nascosti, perché un "
-"limite che conosci è un vincolo e un limite che non conosci è una segnalazione di "
-"difetto in attesa di accadere."
+"limite che conosci è un vincolo e un limite che non conosci è una segnalazione di bug"
+" in attesa di accadere."
 
 #: ../../source/reference/design/limits.md:6
 msgid "Accepted limits"
@@ -72,17 +72,33 @@ msgstr ""
 
 #: ../../source/reference/design/limits.md:19
 msgid ""
-"**Two inherited panics.** Carried over from the Python original, on paths whose input"
-" genuinely cannot come from outside. They are documented where they are rather than "
-"converted into errors that would never fire, because a recorded known edge is more "
-"honest than a pretence of handling."
+"**Panics on paths whose input cannot come from outside.** Carried over from the "
+"Python original, and left as they are rather than converted into errors that would "
+"never fire: a recorded known edge is more honest than a pretence of handling. Where a"
+" value *can* come from outside — a page's own coordinates, a format's configuration, "
+"a Python pipe's arguments — the construction is fallible and the failure is handled "
+"where it happens."
 msgstr ""
-"**Due panici ereditati.** Portati dall'originale in Python, su percorsi il cui "
-"ingresso davvero non può venire da fuori. Sono documentati dove sono anziché "
-"convertiti in errori che non scatterebbero mai, perché un caso limite noto e "
-"registrato è più onesto di una finzione di gestione."
+"**Panic su percorsi il cui ingresso non può venire da fuori.** Portati dall'originale"
+" in Python, e lasciati come sono anziché convertiti in errori che non scatterebbero "
+"mai: un caso limite noto e registrato è più onesto di una finzione di gestione. Dove "
+"un valore da fuori *può* venire — le coordinate di una pagina, la configurazione di "
+"un formato, gli argomenti di una pipe Python — la costruzione è fallibile e il "
+"fallimento è gestito dove accade."
 
-#: ../../source/reference/design/limits.md:24
+#: ../../source/reference/design/limits.md:25
+msgid ""
+"A panic is nonetheless **contained at the page**, so that one this reasoning got "
+"wrong costs a page and not a run of 904 jobs. The net does not replace the rule; it "
+"makes being wrong about the rule survivable, and says so in `.log.csv` with the "
+"document and the page."
+msgstr ""
+"Un panic è comunque **contenuto alla pagina**, così che uno su cui questo "
+"ragionamento ha sbagliato costi una pagina e non un'esecuzione da 904 job. La rete "
+"non sostituisce la regola: rende sopravvivibile l'aver sbagliato sulla regola, e lo "
+"dice nel `.log.csv` con il documento e la pagina."
+
+#: ../../source/reference/design/limits.md:29
 msgid ""
 "**The PDF line model, the line selections and the tabularizer were not redesigned.** "
 "Ported essentially as they were, and improvements noticed during the port were "
@@ -93,13 +109,13 @@ msgid ""
 msgstr ""
 "**Il modello delle righe di PDF, le selezioni di riga e il tabularizzatore non sono "
 "stati riprogettati.** Portati sostanzialmente com'erano, e i miglioramenti notati "
-"durante il travaso sono stati **segnalati anziché applicati**. Quel codice è in uso "
+"durante il porting sono stati **segnalati anziché applicati**. Quel codice è in uso "
 "da molto tempo, i formati esistenti dipendono dal suo comportamento esatto, e una "
 "riscrittura sarebbe stata rischio senza che nessun utente l'avesse chiesta. Il posto "
 "in cui registrare un miglioramento che non sai giustificare è una nota, non un "
 "commit."
 
-#: ../../source/reference/design/limits.md:30
+#: ../../source/reference/design/limits.md:35
 msgid ""
 "**PyMuPDF is a hard dependency.** There is no mature Rust equivalent that reads a "
 "page's text with its layout, and writing one is not this project. It is called once "
@@ -107,17 +123,17 @@ msgid ""
 " call rather than a per-block round trip — but it is a boundary that cannot be "
 "removed today."
 msgstr ""
-"**PyMuPDF è una dipendenza inevitabile.** Non esiste un equivalente Rust maturo che "
-"legga il testo di una pagina insieme alla sua impaginazione, e scriverne uno non è "
-"questo progetto. È chiamato una volta per documento e ciò che produce diventa "
-"immediatamente una pagina nativa, quindi il confine è una chiamata anziché un andata "
-"e ritorno per blocco — ma è un confine che oggi non si può togliere."
+"**PyMuPDF è una dipendenza obbligatoria.** Non esiste un equivalente Rust maturo che "
+"legga il testo di una pagina insieme al suo layout, e scriverne uno non è questo "
+"progetto. È chiamato una volta per documento e ciò che produce diventa immediatamente"
+" una pagina nativa, quindi il confine è una chiamata sola anziché un viaggio di "
+"andata e ritorno per ogni blocco — ma è un confine che oggi non si può togliere."
 
-#: ../../source/reference/design/limits.md:36
+#: ../../source/reference/design/limits.md:41
 msgid "Known defects, not yet decided"
 msgstr "Difetti noti, non ancora decisi"
 
-#: ../../source/reference/design/limits.md:38
+#: ../../source/reference/design/limits.md:43
 msgid ""
 "*These are wrong, not merely limited. They are listed so that nobody rediscovers "
 "them.*"
@@ -125,7 +141,7 @@ msgstr ""
 "*Sono sbagliati, non semplicemente limitati. Sono elencati perché nessuno li "
 "riscopra.*"
 
-#: ../../source/reference/design/limits.md:40
+#: ../../source/reference/design/limits.md:45
 #, python-brace-format
 msgid ""
 "**`--separate-out` on an unnamed document produces an invalid path.** The file name "
@@ -138,7 +154,7 @@ msgstr ""
 "nome è il suo intero percorso assoluto, che contiene separatori. Dare un nome al "
 "documento lo aggira ({doc}`../../guides/user/documents`)."
 
-#: ../../source/reference/design/limits.md:45
+#: ../../source/reference/design/limits.md:50
 msgid ""
 "**`freeports.log.jsonl` is written in the working directory** while `.log.csv` sits "
 "next to the output on the grounds that it is a product of the run. Two files of one "
@@ -152,11 +168,11 @@ msgstr ""
 "solo `trace` scrive il primo, quindi la cartella di lavoro di un'esecuzione ordinaria"
 " resta vuota."
 
-#: ../../source/reference/design/limits.md:50
+#: ../../source/reference/design/limits.md:55
 msgid "Deliberately not built"
 msgstr "Deliberatamente non costruito"
 
-#: ../../source/reference/design/limits.md:52
+#: ../../source/reference/design/limits.md:57
 #, python-brace-format
 msgid ""
 "**The fourth segment.** Separating filtering from semantic interpretation, with "
@@ -164,10 +180,10 @@ msgid ""
 " implemented — see {doc}`segments`."
 msgstr ""
 "**Il quarto segmento.** Separare il filtraggio dall'interpretazione semantica, con "
-"valori predefiniti per i due segmenti che di solito sono routine. Progettato, "
+"valori predefiniti per i due segmenti che di solito sono boilerplate. Progettato, "
 "argomentato, non implementato — vedi {doc}`segments`."
 
-#: ../../source/reference/design/limits.md:55
+#: ../../source/reference/design/limits.md:60
 #, python-brace-format
 msgid ""
 "**Parallelism of page classes and of deserialization blocks.** Cancelled by "
@@ -177,7 +193,7 @@ msgstr ""
 "Cancellato da una misura, non dimenticato. {doc}`parallelism` dice quali fossero le "
 "misure."
 
-#: ../../source/reference/design/limits.md:58
+#: ../../source/reference/design/limits.md:63
 #, python-format
 msgid ""
 "**Internal optimisation of the hottest pipe.** 30–54% of a job, single-threaded and "
@@ -216,4 +232,21 @@ msgstr ""
 #~ "first one at all, so the working "
 #~ "directory of an ordinary run stays empty."
 #~ msgstr ""
+
+#~ msgid ""
+#~ "**Two inherited panics.** Carried over from "
+#~ "the Python original, on paths whose input "
+#~ "genuinely cannot come from outside. They are"
+#~ " documented where they are rather than "
+#~ "converted into errors that would never fire,"
+#~ " because a recorded known edge is more "
+#~ "honest than a pretence of handling."
+#~ msgstr ""
+#~ "**Due panic ereditati.** Portati dall'originale in"
+#~ " Python, su percorsi il cui ingresso "
+#~ "davvero non può venire da fuori. Sono "
+#~ "documentati dove sono anziché convertiti in "
+#~ "errori che non scatterebbero mai, perché un"
+#~ " caso limite noto e registrato è più "
+#~ "onesto di una finzione di gestione."
 

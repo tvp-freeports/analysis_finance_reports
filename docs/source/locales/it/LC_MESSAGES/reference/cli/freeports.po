@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-12 09:06+0200\n"
+"POT-Creation-Date: 2026-09-15 08:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -567,10 +567,117 @@ msgstr ""
 "{doc}`../configuration/index` per l'unica conseguenza."
 
 #: ../../source/reference/cli/freeports.md:157
+msgid "What the exit status says"
+msgstr "Che cosa dice lo stato di uscita"
+
+#: ../../source/reference/cli/freeports.md:159
+#, python-brace-format
+msgid ""
+"A run ends in one of **three** states, and the exit status distinguishes all three. "
+"Two would not be enough, for the same reason `freeports-validate check-grants` needs "
+"three ({doc}`freeports-validate`): *everything I read was fine* and *I read "
+"everything and it was fine* are different sentences."
+msgstr ""
+"Un'esecuzione finisce in uno di **tre** stati, e lo stato di uscita li distingue "
+"tutti e tre. Due non basterebbero, per lo stesso motivo per cui a `freeports-validate"
+" check-grants` ne servono tre ({doc}`freeports-validate`): *tutto ciò che ho letto "
+"andava bene* e *ho letto tutto e andava bene* sono frasi diverse."
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "Exit"
+msgstr "Uscita"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "What it means"
+msgstr "Che cosa significa"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "`0`"
+msgstr "`0`"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "every document of every job was read, and the results were written"
+msgstr "ogni documento di ogni job è stato letto, e i risultati sono stati scritti"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "`1`"
+msgstr "`1`"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "the run produced nothing: an illegal configuration, or no job succeeded"
+msgstr ""
+"l'esecuzione non ha prodotto niente: una configurazione illecita, oppure nessun job è"
+" riuscito"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid "`3`"
+msgstr "`3`"
+
+#: ../../source/reference/cli/freeports.md:150
+msgid ""
+"the results were written, and **not everything was read** — jobs or documents were "
+"skipped"
+msgstr ""
+"i risultati sono stati scritti, e **non è stato letto tutto** — sono stati saltati "
+"dei job o dei documenti"
+
+#: ../../source/reference/cli/freeports.md:170
+msgid ""
+"`3` is deliberately the same number `freeports-validate` uses for the same idea. Two "
+"commands of one suite must not ask you to remember two tables."
+msgstr ""
+"`3` è deliberatamente lo stesso numero che `freeports-validate` usa per la stessa "
+"idea. Due comandi della stessa suite non devono chiederti di ricordare due tabelle."
+
+#: ../../source/reference/cli/freeports.md:173
+msgid "What does *not* raise it"
+msgstr "Che cosa *non* lo alza"
+
+#: ../../source/reference/cli/freeports.md:175
+#, python-brace-format
+msgid ""
+"Rows and pages skipped do not. They are contained at their own level, they happen on "
+"ordinary runs by the dozen — a page whose layout a format does not cover, a row whose"
+" value will not parse — and they are already summarised in their own end-of-run event"
+" and listed one by one in `.log.csv` ({doc}`../../guides/user/logging`). A run that "
+"skipped four hundred rows and read every document it was given exits `0`."
+msgstr ""
+"Le righe e le pagine saltate no. Sono contenute al proprio livello, capitano a "
+"dozzine nelle esecuzioni ordinarie — una pagina il cui layout un formato non copre, "
+"una riga del cui valore non si riesce a fare il parsing — e sono già riassunte in un "
+"evento di fine esecuzione tutto loro ed elencate una per una nel `.log.csv` "
+"({doc}`../../guides/user/logging`). Un'esecuzione che ha saltato quattrocento righe e"
+" ha letto ogni documento che le è stato dato esce con `0`."
+
+#: ../../source/reference/cli/freeports.md:181
+msgid ""
+"The line is drawn at **what was not read at all**: a job that failed produced nothing"
+" for any of its documents, and a document that would not open produced nothing at "
+"all. Those are pieces of the batch that are simply absent from the output, and no "
+"amount of reading the results would reveal it."
+msgstr ""
+"La linea è tracciata su **ciò che non è stato letto affatto**: un job fallito non ha "
+"prodotto niente per nessuno dei propri documenti, e un documento che non si è aperto "
+"non ha prodotto proprio niente. Quelli sono pezzi del lotto semplicemente assenti dai"
+" risultati, e nessuna lettura dei risultati lo rivelerebbe."
+
+#: ../../source/reference/cli/freeports.md:186
+msgid ""
+"A failing job no longer costs the run. A batch of 904 jobs in which two fail writes "
+"the other 902 and exits `3`; only a run in which *nothing* was produced exits `1` "
+"without writing, because nine empty tables and nine tables nobody could fill look the"
+" same on disk."
+msgstr ""
+"Un job fallito non costa più l'esecuzione. Un lotto di 904 job in cui due falliscono "
+"scrive gli altri 902 ed esce con `3`; solo un'esecuzione in cui non è stato prodotto "
+"*niente* esce con `1` senza scrivere, perché sul disco nove tabelle vuote e nove "
+"tabelle che nessuno ha potuto riempire si assomigliano."
+
+#: ../../source/reference/cli/freeports.md:191
 msgid "`--internal-worker`, the one hidden option"
 msgstr "`--internal-worker`, l'unica opzione nascosta"
 
-#: ../../source/reference/cli/freeports.md:158
+#: ../../source/reference/cli/freeports.md:192
 msgid ""
 "`--internal-worker` exists and is hidden from `--help` on purpose. It is not a user "
 "interface but the channel between two copies of the same binary: a parent running the"

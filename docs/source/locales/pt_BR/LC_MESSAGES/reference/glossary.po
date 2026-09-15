@@ -21,254 +21,309 @@ msgstr ""
 
 #: ../../source/reference/glossary.md:1
 msgid "Glossary"
-msgstr ""
+msgstr "Glossário"
 
 #: ../../source/reference/glossary.md:3
 msgid ""
-"Words this project uses in a particular way. Each entry says where the "
-"idea is treated properly."
+"Words this project uses in a particular way. Each entry says where the idea is "
+"treated properly."
 msgstr ""
+"Palavras que este projeto usa de um jeito particular. Cada verbete diz onde a ideia é"
+" tratada a fundo."
 
 #: ../../source/reference/glossary.md
 msgid "run"
-msgstr ""
+msgstr "execução"
 
 #: ../../source/reference/glossary.md:7
 #, python-brace-format
 msgid ""
-"One invocation of `freeports`. A run is one or more {term}`jobs <job>`, "
-"and everything they produce is accumulated and written **once**, at the "
-"end, as one set of tables. Running two reports in one run is therefore "
-"not the same as running them twice — see {doc}`../overview/how-it-works`."
+"One invocation of `freeports`. A run is one or more {term}`jobs <job>`, and "
+"everything they produce is accumulated and written **once**, at the end, as one set "
+"of tables. Running two reports in one run is therefore not the same as running them "
+"twice — see {doc}`../overview/how-it-works`."
 msgstr ""
+"Uma invocação do `freeports`. Uma execução é um ou mais {term}`jobs <job>`, e tudo o "
+"que eles produzem é acumulado e escrito **uma vez só**, no fim, como um conjunto "
+"único de tabelas. Rodar dois relatórios numa execução não é, portanto, a mesma coisa "
+"que rodá-los duas vezes — veja {doc}`../overview/how-it-works`."
 
 #: ../../source/reference/glossary.md:5
 msgid "job"
-msgstr ""
+msgstr "job"
 
 #: ../../source/reference/glossary.md:12
 #, python-brace-format
 msgid ""
-"One report, read with one {term}`format`, against one set of target "
-"companies. Jobs come from repeated `--input` or from the rows of a batch "
-"CSV ({doc}`../guides/user/advanced/batch`)."
+"One report, read with one {term}`format`, against one set of target companies. Jobs "
+"come from repeated `--input` or from the rows of a batch CSV "
+"({doc}`../guides/user/advanced/batch`)."
 msgstr ""
+"Um relatório, lido com um {term}`formato <format>`, contra um conjunto de empresas-"
+"alvo. Os jobs vêm de `--input` repetidos ou das linhas de um CSV de lote "
+"({doc}`../guides/user/advanced/batch`)."
 
 #: ../../source/reference/glossary.md:9
 msgid "format"
-msgstr ""
+msgstr "formato"
 
 #: ../../source/reference/glossary.md:16
 #, python-brace-format
 msgid ""
-"The recipe for one report layout, named for the issuer and the "
-"publication year — `EURIZON-EN23`. A layout is a snapshot, so next year's"
-" report from the same issuer is a different format rather than a "
-"revision. {doc}`../guides/formats/index`."
+"The recipe for one report layout, named for the issuer and the publication year — "
+"`EURIZON-EN23`. A layout is a snapshot, so next year's report from the same issuer is"
+" a different format rather than a revision. {doc}`../guides/formats/index`."
 msgstr ""
+"A receita para o layout de um relatório, com o nome do emissor e o ano de publicação "
+"— `EURIZON-EN23`. Um layout é um snapshot, então o relatório do ano que vem do mesmo "
+"emissor é um formato diferente, e não uma revisão. {doc}`../guides/formats/index`."
 
 #: ../../source/reference/glossary.md:14
 msgid "formats repository"
-msgstr ""
+msgstr "repositório de formatos"
 
 #: ../../source/reference/glossary.md:21
 #, python-brace-format
 msgid ""
-"A repository holding formats, their tests and their validation documents,"
-" maintained independently of the engine. Created with `freeports-dev "
-"init-format-repo`. {doc}`../guides/formats/repository`."
+"A repository holding formats, their tests and their validation documents, maintained "
+"independently of the engine. Created with `freeports-dev init-format-repo`. "
+"{doc}`../guides/formats/repository`."
 msgstr ""
+"Um repositório que guarda formatos, os testes deles e os documentos de validação "
+"deles, mantido de forma independente do motor. Criado com `freeports-dev init-format-"
+"repo`. {doc}`../guides/formats/repository`."
 
 #: ../../source/reference/glossary.md:19
 msgid "input database"
-msgstr ""
+msgstr "banco de dados de entrada"
 
 #: ../../source/reference/glossary.md:26
 #, python-brace-format
 msgid ""
-"A directory of CSV files saying **which companies a run looks for** and "
-"how to recognise each one. Separate from the engine and from any formats "
-"repository, because which companies matter is a question about your work "
-"rather than about parsing PDFs. {doc}`../guides/input-db/index`."
+"A directory of CSV files saying **which companies a run looks for** and how to "
+"recognise each one. Separate from the engine and from any formats repository, because"
+" which companies matter is a question about your work rather than about parsing PDFs."
+" {doc}`../guides/input-db/index`."
 msgstr ""
+"Um diretório de arquivos CSV que diz **quais empresas uma execução procura** e como "
+"reconhecer cada uma. Separado do motor e de qualquer repositório de formatos, porque "
+"quais empresas importam é pergunta sobre o seu trabalho, não sobre fazer parsing de "
+"PDFs. {doc}`../guides/input-db/index`."
 
 #: ../../source/reference/glossary.md:24
 msgid "bud"
-msgstr ""
+msgstr "bud"
 
 #: ../../source/reference/glossary.md:31
 #, python-brace-format
 msgid ""
-"A fragment of a company name used to recognise it in a report — the part "
-"that survives the variations issuers introduce. {doc}`../guides/input-db"
-"/recognising-companies`."
+"A fragment of a company name used to recognise it in a report — the part that "
+"survives the variations issuers introduce. {doc}`../guides/input-db/recognising-"
+"companies`."
 msgstr ""
+"Um fragmento do nome de uma empresa usado para reconhecê-la num relatório — a parte "
+"que sobrevive às variações que os emissores introduzem. {doc}`../guides/input-db"
+"/recognising-companies`."
 
 #: ../../source/reference/glossary.md:28
 msgid "target list"
-msgstr ""
+msgstr "target list"
 
 #: ../../source/reference/glossary.md:35
 #, python-brace-format
 msgid ""
-"A named set of companies within an input database. A run needs at least "
-"one, and refuses immediately if none is given. {doc}`../guides/input-db"
-"/target-lists`."
+"A named set of companies within an input database. A run needs at least one, and "
+"refuses immediately if none is given. {doc}`../guides/input-db/target-lists`."
 msgstr ""
+"Um conjunto de empresas com nome, dentro de um banco de dados de entrada. Uma "
+"execução precisa de ao menos uma, e recusa na hora se nenhuma lhe for dada. "
+"{doc}`../guides/input-db/target-lists`."
 
 #: ../../source/reference/glossary.md:32
 msgid "page class"
-msgstr ""
+msgstr "classe de página"
 
 #: ../../source/reference/glossary.md:39
 #, python-brace-format
 msgid ""
-"What kind of page this is, decided per document before any extraction "
-"happens. Classification is itself a pipeline. "
-"{doc}`design/classification`."
+"What kind of page this is, decided per document before any extraction happens. "
+"Classification is itself a pipeline. {doc}`design/classification`."
 msgstr ""
+"Que tipo de página é esta, decidido documento a documento antes de qualquer extração "
+"acontecer. A classificação é, ela mesma, um pipeline. {doc}`design/classification`."
 
 #: ../../source/reference/glossary.md:36
 msgid "schedule"
-msgstr ""
+msgstr "escalonamento"
 
 #: ../../source/reference/glossary.md:43
 #, python-brace-format
 msgid ""
-"The ordered list of work for a run: the classified pages of every "
-"document, poured together and processed in steps, where each step's "
-"results filter the next. {doc}`design/schedule`."
+"The ordered list of work for a run: the classified pages of every document, poured "
+"together and processed in steps, where each step's results filter the next. "
+"{doc}`design/schedule`."
 msgstr ""
+"A lista ordenada do trabalho de uma execução: as páginas classificadas de todos os "
+"documentos, despejadas juntas e trabalhadas em passos, onde os resultados de cada "
+"passo filtram o seguinte. {doc}`design/schedule`."
 
 #: ../../source/reference/glossary.md:40
 msgid "pipeline"
-msgstr ""
+msgstr "pipeline"
 
 #: ../../source/reference/glossary.md:47
 #, python-brace-format
 msgid ""
-"What a page of a given class goes through: three {term}`segments "
-"<segment>` — `pdf_extract` → `text_filter` → `deserialize`. A class runs "
-"a *bundle* of them. {doc}`design/segments`."
+"What a page of a given class goes through: three {term}`segments <segment>` — "
+"`pdf_extract` → `text_filter` → `deserialize`. A class runs a *bundle* of them. "
+"{doc}`design/segments`."
 msgstr ""
+"Aquilo que uma página de determinada classe atravessa: três {term}`segmentos "
+"<segment>` — `pdf_extract` → `text_filter` → `deserialize`. Uma classe roda um "
+"*feixe* deles. {doc}`design/segments`."
 
 #: ../../source/reference/glossary.md:45
 msgid "segment"
-msgstr ""
+msgstr "segmento"
 
 #: ../../source/reference/glossary.md:52
 #, python-brace-format
 msgid ""
-"One of the three stages of a pipeline, answering one separable question: "
-"what is on this page, does any of it concern us, what do the survivors "
-"mean. {doc}`design/segments`."
+"One of the three stages of a pipeline, answering one separable question: what is on "
+"this page, does any of it concern us, what do the survivors mean. "
+"{doc}`design/segments`."
 msgstr ""
+"Um dos três estágios de um pipeline, que responde a uma pergunta separável: o que há "
+"nesta página, algo disto nos diz respeito, o que significa o que sobreviveu. "
+"{doc}`design/segments`."
 
 #: ../../source/reference/glossary.md:49
 msgid "promise"
-msgstr ""
+msgstr "promessa"
 
 #: ../../source/reference/glossary.md:56
 #, python-brace-format
 msgid ""
-"A placeholder for a value a page genuinely could not know, resolved at "
-"the end of the run against everything the run learned. "
-"{doc}`design/promises`."
+"A placeholder for a value a page genuinely could not know, resolved at the end of the"
+" run against everything the run learned. {doc}`design/promises`."
 msgstr ""
+"Um placeholder para um valor que uma página realmente não tinha como saber, resolvido"
+" no fim da execução contra tudo o que a execução aprendeu. {doc}`design/promises`."
 
 #: ../../source/reference/glossary.md:53
 msgid "entity"
-msgstr ""
+msgstr "entidade"
 
 #: ../../source/reference/glossary.md:60
 #, python-brace-format
 msgid ""
-"What the project models and ultimately writes out — the thing a resolved "
-"extraction becomes. {doc}`design/entities-and-output`."
+"What the project models and ultimately writes out — the thing a resolved extraction "
+"becomes. {doc}`design/entities-and-output`."
 msgstr ""
+"O que o projeto modela e no fim escreve — a coisa em que uma extração resolvida se "
+"transforma. {doc}`design/entities-and-output`."
 
 #: ../../source/reference/glossary.md:57
 msgid "profile"
-msgstr ""
+msgstr "perfil"
 
 #: ../../source/reference/glossary.md:64
 #, python-brace-format
 msgid ""
-"A choice of what shape the output takes: which tables are written and "
-"where. {doc}`../guides/user/output`."
+"A choice of what shape the output takes: which tables are written and where. "
+"{doc}`../guides/user/output`."
 msgstr ""
+"Uma escolha da forma que a saída toma: que tabelas são escritas e onde. "
+"{doc}`../guides/user/output`."
 
 #: ../../source/reference/glossary.md:61
 msgid "grant"
-msgstr ""
+msgstr "aval"
 
 #: ../../source/reference/glossary.md:68
 #, python-brace-format
 msgid ""
-"A signed statement that a named {term}`methodology` was applied to a "
-"specific file, recorded against that file's hash — and therefore "
-"invalidated by any change to the file, deliberately. "
-"{doc}`../guides/grants/index`."
+"A signed statement that a named {term}`methodology` was applied to a specific file, "
+"recorded against that file's hash — and therefore invalidated by any change to the "
+"file, deliberately. {doc}`../guides/grants/index`."
 msgstr ""
+"Uma declaração assinada de que uma {term}`metodologia <methodology>` com nome foi "
+"aplicada a um arquivo específico, registrada contra o hash daquele arquivo — e "
+"portanto invalidada por qualquer mudança no arquivo, de propósito. "
+"{doc}`../guides/grants/index`."
 
 #: ../../source/reference/glossary.md:66
 msgid "methodology"
-msgstr ""
+msgstr "metodologia"
 
 #: ../../source/reference/glossary.md:73
 #, python-brace-format
 msgid ""
-"A published document describing a protocol under which a grant may be "
-"made. It is a document at an address the granter chose to trust, not a "
-"value stored in the grant. {doc}`cli/methodology-sources`."
+"A published document describing a protocol under which a grant may be made. It is a "
+"document at an address the granter chose to trust, not a value stored in the grant. "
+"{doc}`cli/methodology-sources`."
 msgstr ""
+"Um documento publicado que descreve um protocolo sob o qual se pode dar um aval. É um"
+" documento num endereço em que quem avaliza escolheu confiar, não um valor guardado "
+"no aval. {doc}`cli/methodology-sources`."
 
 #: ../../source/reference/glossary.md:71
 msgid "validation document"
-msgstr ""
+msgstr "documento de validação"
 
 #: ../../source/reference/glossary.md:78
 #, python-brace-format
 msgid ""
-"One YAML file per contributor, at `<repo>/validation/<name>.yaml`, signed"
-" with their key, holding every grant that person has made in that "
-"repository. {doc}`cli/freeports-validate`."
+"One YAML file per contributor, at `<repo>/validation/<name>.yaml`, signed with their "
+"key, holding every grant that person has made in that repository. {doc}`cli"
+"/freeports-validate`."
 msgstr ""
+"Um arquivo YAML por contribuidor, em `<repo>/validation/<nome>.yaml`, assinado com a "
+"chave dessa pessoa, guardando todo aval que ela deu naquele repositório. {doc}`cli"
+"/freeports-validate`."
 
 #: ../../source/reference/glossary.md:76
 msgid "assertion"
-msgstr ""
+msgstr "asserção"
 
 #: ../../source/reference/glossary.md:83
 #, python-brace-format
 msgid ""
-"A statement about this software, written as prose, that a person can read"
-" and agree with. Grants over assertions are made under *agreement and "
-"good faith* rather than over bytes a program wrote. "
-"{doc}`../validation/index`."
+"A statement about this software, written as prose, that a person can read and agree "
+"with. Grants over assertions are made under *agreement and good faith* rather than "
+"over bytes a program wrote. {doc}`../validation/index`."
 msgstr ""
+"Uma afirmação sobre este software, escrita em prosa, que uma pessoa pode ler e "
+"subscrever. Avais sobre asserções se dão sob *agreement and good faith*, e não sobre "
+"bytes que um programa escreveu. {doc}`../validation/index`."
 
 #: ../../source/reference/glossary.md:81
 msgid "metric"
-msgstr ""
+msgstr "métrica"
 
 #: ../../source/reference/glossary.md:88
 #, python-brace-format
 msgid ""
-"A dotted name, a unit and a cost class, with a minimum in `ci.yaml`. "
-"Distinct from a **suite**, which has an outcome rather than a number. "
-"{doc}`../guides/devops/ci-yaml`."
+"A dotted name, a unit and a cost class, with a minimum in `ci.yaml`. Distinct from a "
+"**suite**, which has an outcome rather than a number. {doc}`../guides/devops/ci-"
+"yaml`."
 msgstr ""
+"Um nome pontuado, uma unidade e uma classe de custo, com um mínimo no `ci.yaml`. "
+"Distinta de uma **suíte**, que tem um desfecho em vez de um número. "
+"{doc}`../guides/devops/ci-yaml`."
 
 #: ../../source/reference/glossary.md:85
 msgid "branch class"
-msgstr ""
+msgstr "classe de branch"
 
 #: ../../source/reference/glossary.md:92
 #, python-brace-format
 msgid ""
-"Which of `dev`, `pre` or `prod` a branch belongs to, derived from its "
-"name at every run and never recorded. It decides what the gate refuses. "
-"{doc}`../guides/devops/the-gate`."
+"Which of `dev`, `pre` or `prod` a branch belongs to, derived from its name at every "
+"run and never recorded. It decides what the gate refuses. {doc}`../guides/devops/the-"
+"gate`."
 msgstr ""
+"A qual entre `dev`, `pre` e `prod` um branch pertence, deduzido do nome dele a cada "
+"execução e nunca registrado. É isso que decide o que o gate recusa. "
+"{doc}`../guides/devops/the-gate`."
 

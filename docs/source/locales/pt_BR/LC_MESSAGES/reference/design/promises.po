@@ -21,187 +21,227 @@ msgstr ""
 
 #: ../../source/reference/design/promises.md:1
 msgid "Promises"
-msgstr ""
+msgstr "Promessas"
 
 #: ../../source/reference/design/promises.md:3
 #, python-brace-format
 msgid ""
-"*Implemented.* The answer to the one thing {doc}`pages` cannot handle: a "
-"value the page needs but does not carry."
+"*Implemented.* The answer to the one thing {doc}`pages` cannot handle: a value the "
+"page needs but does not carry."
 msgstr ""
+"*Implementado.* A resposta à única coisa que {doc}`pages` não dá conta: um valor de "
+"que a página precisa mas não carrega."
 
 #: ../../source/reference/design/promises.md:6
 msgid "The idea: a named placeholder"
-msgstr ""
+msgstr "A ideia: um placeholder com nome"
 
 #: ../../source/reference/design/promises.md:7
 msgid ""
-"A value a page cannot resolve on its own becomes a **promise** — a named "
-"placeholder — and the run continues. Nothing waits, nothing is re-read, "
-"and the page stays the unit of work."
+"A value a page cannot resolve on its own becomes a **promise** — a named placeholder "
+"— and the run continues. Nothing waits, nothing is re-read, and the page stays the "
+"unit of work."
 msgstr ""
+"Um valor que uma página não consegue resolver sozinha vira uma **promessa** — um "
+"placeholder com nome — e a execução segue. Nada espera, nada é relido, e a página "
+"continua sendo a unidade de trabalho."
 
 #: ../../source/reference/design/promises.md:19
 msgid ""
-"Neither page knows about the other. Page 3 does not know anyone wants "
-"that name; page 412 does not know where it will come from. They agree "
-"only on an **id**."
+"Neither page knows about the other. Page 3 does not know anyone wants that name; page"
+" 412 does not know where it will come from. They agree only on an **id**."
 msgstr ""
+"Nenhuma das duas páginas sabe da outra. A página 3 não sabe que alguém quer aquele "
+"nome; a página 412 não sabe de onde ele virá. Elas concordam apenas num **id**."
 
 #: ../../source/reference/design/promises.md:22
 msgid "The three stages: collection, flattening, resolution"
-msgstr ""
+msgstr "Os três estágios: coleta, achatamento, resolução"
 
 #: ../../source/reference/design/promises.md:23
 msgid ""
-"**1. Collection.** As pages are deserialized, every pipe deposits `(id, "
-"value)` pairs into a **multimap**. A multimap, not a map, because several"
-" pages legitimately contribute to the same id: a fund name printed at the"
-" head of every page of its section, a total repeated at the foot of each "
-"table. The first contribution is not privileged and the last does not "
-"overwrite."
+"**1. Collection.** As pages are deserialized, every pipe deposits `(id, value)` pairs"
+" into a **multimap**. A multimap, not a map, because several pages legitimately "
+"contribute to the same id: a fund name printed at the head of every page of its "
+"section, a total repeated at the foot of each table. The first contribution is not "
+"privileged and the last does not overwrite."
 msgstr ""
+"**1. Coleta.** À medida que as páginas são desserializadas, cada pipe deposita pares "
+"`(id, valor)` num **multimapa**. Um multimapa, e não um mapa, porque várias páginas "
+"contribuem legitimamente para o mesmo id: o nome de um fundo impresso no alto de cada"
+" página da seção dele, um total repetido no pé de cada tabela. A primeira "
+"contribuição não é privilegiada e a última não sobrescreve."
 
 #: ../../source/reference/design/promises.md:28
 msgid ""
-"**2. Flattening.** When the document is finished, references between "
-"promises are followed and replaced, and every id keeps its own *sequence*"
-" of contributions."
+"**2. Flattening.** When the document is finished, references between promises are "
+"followed and replaced, and every id keeps its own *sequence* of contributions."
 msgstr ""
+"**2. Achatamento.** Quando o documento acaba, as referências entre promessas são "
+"seguidas e substituídas, e cada id guarda a própria *sequência* de contribuições."
 
 #: ../../source/reference/design/promises.md:31
 msgid ""
-"**3. Resolution.** Entities with pending fields are resolved against the "
-"flattened map."
+"**3. Resolution.** Entities with pending fields are resolved against the flattened "
+"map."
 msgstr ""
+"**3. Resolução.** As entidades com campos pendentes são resolvidas contra o mapa "
+"achatado."
 
 #: ../../source/reference/design/promises.md:33
 msgid "Three properties of promises that are not obvious"
-msgstr ""
+msgstr "Três propriedades das promessas que não são óbvias"
 
 #: ../../source/reference/design/promises.md:34
 msgid ""
-"These are the parts that bite people writing a pipe, and each was decided"
-" against a plausible alternative."
+"These are the parts that bite people writing a pipe, and each was decided against a "
+"plausible alternative."
 msgstr ""
+"São estas as partes que mordem quem escreve um pipe, e cada uma foi decidida contra "
+"uma alternativa plausível."
 
 #: ../../source/reference/design/promises.md:37
 msgid "A container is not a contribution"
-msgstr ""
+msgstr "Um contêiner não é uma contribuição"
 
 #: ../../source/reference/design/promises.md:44
 msgid ""
-"Flattening synthesises no lists, so the two stay distinguishable, and a "
-"pipe wanting to deposit two values must return two dicts."
+"Flattening synthesises no lists, so the two stay distinguishable, and a pipe wanting "
+"to deposit two values must return two dicts."
 msgstr ""
+"O achatamento não sintetiza lista nenhuma, então os dois continuam distinguíveis, e "
+"um pipe que queira depositar dois valores precisa devolver dois dicts."
 
 #: ../../source/reference/design/promises.md:47
 msgid ""
-"This distinction is the reason the module exists in its current form. An "
-"earlier design conflated them, and the conflation is **unrecoverable**: "
-"once you cannot tell \"two values\" from \"one list\", no later stage can"
-" work it out. It matters exactly when the value being promised *is "
-"itself* a list — rare, and silently wrong when it happens, which is the "
-"worst combination."
+"This distinction is the reason the module exists in its current form. An earlier "
+"design conflated them, and the conflation is **unrecoverable**: once you cannot tell "
+"\"two values\" from \"one list\", no later stage can work it out. It matters exactly "
+"when the value being promised *is itself* a list — rare, and silently wrong when it "
+"happens, which is the worst combination."
 msgstr ""
+"É essa distinção a razão de o módulo existir na forma atual. Um projeto anterior "
+"confundia as duas coisas, e a confusão é **irrecuperável**: uma vez que você não "
+"distingue \"dois valores\" de \"uma lista\", estágio nenhum posterior consegue "
+"deduzir. Isso importa exatamente quando o valor prometido *é ele mesmo* uma lista — "
+"coisa rara, e errada em silêncio quando acontece, que é a pior combinação."
 
 #: ../../source/reference/design/promises.md:52
 msgid ""
-"Changing it cost authors nothing, which was verified before the change: a"
-" pipe returning a list of dicts was already flattened, so the capability "
-"existed and only the ambiguity was removed."
+"Changing it cost authors nothing, which was verified before the change: a pipe "
+"returning a list of dicts was already flattened, so the capability existed and only "
+"the ambiguity was removed."
 msgstr ""
+"Mudar isso não custou nada a quem escreve formatos, o que foi verificado antes da "
+"mudança: um pipe que devolvia uma lista de dicts já era achatado, então a capacidade "
+"existia e só se removeu a ambiguidade."
 
 #: ../../source/reference/design/promises.md:55
 msgid "A null is a non-contribution"
-msgstr ""
+msgstr "Um nulo é uma não-contribuição"
 
 #: ../../source/reference/design/promises.md:57
 msgid ""
-"Discarded during flattening as if never deposited. An id whose "
-"contributions were **all** null vanishes exactly like an id that never "
-"had any — there is no third state of \"present but empty\" for a later "
-"stage to interpret differently from the first two."
+"Discarded during flattening as if never deposited. An id whose contributions were "
+"**all** null vanishes exactly like an id that never had any — there is no third state"
+" of \"present but empty\" for a later stage to interpret differently from the first "
+"two."
 msgstr ""
+"Descartado durante o achatamento como se nunca tivesse sido depositado. Um id cujas "
+"contribuições eram **todas** nulas some exatamente como um id que nunca teve nenhuma "
+"— não existe um terceiro estado de \"presente mas vazio\" para um estágio posterior "
+"interpretar diferente dos dois primeiros."
 
 #: ../../source/reference/design/promises.md:61
 msgid "A pending reference is not an error where it is noticed"
-msgstr ""
+msgstr "Uma referência pendente não é erro onde se percebe"
 
 #: ../../source/reference/design/promises.md:63
 msgid ""
-"A promise pointing at an unknown id **survives flattening**. The policy "
-"is decided later, at resolution: a non-strict promise makes its entity "
-"disappear, a strict one raises an error."
+"A promise pointing at an unknown id **survives flattening**. The policy is decided "
+"later, at resolution: a non-strict promise makes its entity disappear, a strict one "
+"raises an error."
 msgstr ""
+"Uma promessa que aponta para um id desconhecido **sobrevive ao achatamento**. A "
+"política se decide depois, na resolução: uma promessa não estrita faz a entidade dela"
+" sumir, uma estrita levanta um erro."
 
 #: ../../source/reference/design/promises.md:66
 msgid ""
-"The reason is a diagnostic one. If flattening failed on an unresolved "
-"reference, \"circular\" would become the message people see for every "
-"missing value, and would stop meaning anything. Deferring it keeps a "
-"**circular error always a real cycle**, never a missing-value report "
-"wearing the wrong name."
+"The reason is a diagnostic one. If flattening failed on an unresolved reference, "
+"\"circular\" would become the message people see for every missing value, and would "
+"stop meaning anything. Deferring it keeps a **circular error always a real cycle**, "
+"never a missing-value report wearing the wrong name."
 msgstr ""
+"A razão é de diagnóstico. Se o achatamento falhasse numa referência não resolvida, "
+"\"circular\" viraria a mensagem que as pessoas veem para todo valor faltando, e "
+"deixaria de querer dizer alguma coisa. Adiar isso mantém um **erro de circularidade "
+"sempre um ciclo de verdade**, nunca um relato de valor faltando usando o nome errado."
 
 #: ../../source/reference/design/promises.md:70
 msgid "Resolution has three outcomes, each with a name"
-msgstr ""
+msgstr "A resolução tem três desfechos, cada um com um nome"
 
 #: ../../source/reference/design/promises.md:72
 msgid "Not an `Option<Vec<_>>` for the caller to interpret:"
-msgstr ""
+msgstr "E não um `Option<Vec<_>>` para quem chama interpretar:"
 
 #: ../../source/reference/design/promises.md
 msgid "Outcome"
-msgstr ""
+msgstr "Desfecho"
 
 #: ../../source/reference/design/promises.md
 msgid "Means"
-msgstr ""
+msgstr "Quer dizer"
 
 #: ../../source/reference/design/promises.md
 msgid "resolved"
-msgstr ""
+msgstr "resolvida"
 
 #: ../../source/reference/design/promises.md
 msgid "the entity's pending fields are filled in place"
-msgstr ""
+msgstr "os campos pendentes da entidade são preenchidos no lugar"
 
 #: ../../source/reference/design/promises.md
 msgid "dropped"
-msgstr ""
+msgstr "descartada"
 
 #: ../../source/reference/design/promises.md
 msgid "a non-strict promise had nothing to resolve to; the entity disappears"
-msgstr ""
+msgstr "uma promessa não estrita não tinha a que se resolver; a entidade some"
 
 #: ../../source/reference/design/promises.md
 msgid "**multiplied**"
-msgstr ""
+msgstr "**multiplicada**"
 
 #: ../../source/reference/design/promises.md
 msgid "a field marked *multiple* expands its entity into one copy per value"
-msgstr ""
+msgstr "um campo marcado como *múltiplo* expande a entidade dele numa cópia por valor"
 
 #: ../../source/reference/design/promises.md:80
 msgid ""
-"Multiplication is a cartesian product when more than one field is "
-"multiple. Ordinary fields resolve **first** and multiple fields expand "
-"**second**, so the copies are made from an already-resolved entity rather"
-" than resolving the same fields once per copy — the same answer, computed"
-" once."
+"Multiplication is a cartesian product when more than one field is multiple. Ordinary "
+"fields resolve **first** and multiple fields expand **second**, so the copies are "
+"made from an already-resolved entity rather than resolving the same fields once per "
+"copy — the same answer, computed once."
 msgstr ""
+"A multiplicação é um produto cartesiano quando mais de um campo é múltiplo. Os campos"
+" comuns se resolvem **primeiro** e os campos múltiplos se expandem **depois**, de "
+"modo que as cópias saem de uma entidade já resolvida, em vez de resolver os mesmos "
+"campos uma vez por cópia — a mesma resposta, calculada uma vez só."
 
 #: ../../source/reference/design/promises.md:84
 msgid "Promise maps are ordered, never hashed"
-msgstr ""
+msgstr "Os mapas de promessas são ordenados, nunca baseados em hash"
 
 #: ../../source/reference/design/promises.md:85
 #, python-brace-format
 msgid ""
-"Insertion or key order, never hash order. For equal content the cycle a "
-"failure reports is always **the same** cycle, so an error message can be "
-"asserted in a test. See {doc}`determinism`."
+"Insertion or key order, never hash order. For equal content the cycle a failure "
+"reports is always **the same** cycle, so an error message can be asserted in a test. "
+"See {doc}`determinism`."
 msgstr ""
+"Ordem de inserção ou de chave, nunca ordem de hash. Para o mesmo conteúdo, o ciclo "
+"que uma falha relata é sempre **o mesmo** ciclo, então dá para afirmar uma mensagem "
+"de erro num teste. Veja {doc}`determinism`."
 

@@ -28,9 +28,9 @@ msgid ""
 "*Implemented.* A sequence of **steps**, each naming a set of page classes. It is what"
 " turns a pool of classified pages into an order of work."
 msgstr ""
-"*Realizzata.* Una sequenza di **passi**, ciascuno dei quali nomina un insieme di "
-"classi di pagina. È ciò che trasforma una riserva di pagine classificate in un ordine"
-" di lavoro."
+"*Implementata.* Una sequenza di **passi**, ciascuno dei quali nomina un insieme di "
+"classi di pagina. È ciò che trasforma un pool di pagine classificate in un ordine di "
+"lavoro."
 
 #: ../../source/reference/design/schedule.md:6
 msgid "Steps exist for one reason: feeding the next step"
@@ -58,8 +58,8 @@ msgid ""
 "and opens a new one ({doc}`../../guides/formats/repository`)."
 msgstr ""
 "Nel repository di formati è la colonna `Filter next iteration`: le classi si "
-"accumulano nel passo corrente finché una riga non alza il contrassegno, che chiude "
-"quel passo e ne apre uno nuovo ({doc}`../../guides/formats/repository`)."
+"accumulano nel passo corrente finché una riga non alza il flag, che chiude quel passo"
+" e ne apre uno nuovo ({doc}`../../guides/formats/repository`)."
 
 #: ../../source/reference/design/schedule.md:24
 #, python-brace-format

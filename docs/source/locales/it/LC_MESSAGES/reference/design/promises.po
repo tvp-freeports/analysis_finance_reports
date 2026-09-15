@@ -29,12 +29,12 @@ msgid ""
 "*Implemented.* The answer to the one thing {doc}`pages` cannot handle: a value the "
 "page needs but does not carry."
 msgstr ""
-"*Realizzate.* La risposta all'unica cosa che {doc}`pages` non sa gestire: un valore "
-"di cui la pagina ha bisogno ma che non porta con sé."
+"*Implementate.* La risposta all'unica cosa che {doc}`pages` non sa gestire: un valore"
+" di cui la pagina ha bisogno ma che non porta con sé."
 
 #: ../../source/reference/design/promises.md:6
 msgid "The idea: a named placeholder"
-msgstr "L'idea: un segnaposto con un nome"
+msgstr "L'idea: un placeholder con un nome"
 
 #: ../../source/reference/design/promises.md:7
 msgid ""
@@ -43,7 +43,7 @@ msgid ""
 "unit of work."
 msgstr ""
 "Un valore che una pagina non può risolvere da sola diventa una **promessa** — un "
-"segnaposto con un nome — e l'esecuzione continua. Niente aspetta, niente viene "
+"placeholder con un nome — e l'esecuzione continua. Niente aspetta, niente viene "
 "riletto, e la pagina resta l'unità di lavoro."
 
 #: ../../source/reference/design/promises.md:19
@@ -208,7 +208,7 @@ msgstr "i campi in sospeso dell'entità sono riempiti sul posto"
 
 #: ../../source/reference/design/promises.md
 msgid "dropped"
-msgstr "lasciata cadere"
+msgstr "scartata"
 
 #: ../../source/reference/design/promises.md
 msgid "a non-strict promise had nothing to resolve to; the entity disappears"
@@ -236,7 +236,7 @@ msgstr ""
 
 #: ../../source/reference/design/promises.md:84
 msgid "Promise maps are ordered, never hashed"
-msgstr "Le mappe delle promesse sono ordinate, mai sottoposte a hash"
+msgstr "Le mappe delle promesse sono ordinate, mai basate su hash"
 
 #: ../../source/reference/design/promises.md:85
 #, python-brace-format
@@ -246,6 +246,6 @@ msgid ""
 "See {doc}`determinism`."
 msgstr ""
 "Ordine di inserimento o di chiave, mai ordine di hash. A parità di contenuto il ciclo"
-" che un guasto riferisce è sempre lo **stesso** ciclo, così che un messaggio d'errore"
-" si possa asserire in un test. Vedi {doc}`determinism`."
+" che un fallimento riferisce è sempre lo **stesso** ciclo, così che un messaggio "
+"d'errore si possa asserire in un test. Vedi {doc}`determinism`."
 

@@ -30,7 +30,7 @@ msgid ""
 "{doc}`segments` mentions threads. That is the point: parallelism was **added without "
 "redesigning anything**, because the page had been the unit of work all along."
 msgstr ""
-"*Realizzato.* Niente in {doc}`pages`, {doc}`classification`, {doc}`schedule` o "
+"*Implementato.* Niente in {doc}`pages`, {doc}`classification`, {doc}`schedule` o "
 "{doc}`segments` nomina i thread. È tutto qui il punto: il parallelismo è stato "
 "**aggiunto senza riprogettare niente**, perché la pagina era stata l'unità di lavoro "
 "fin dall'inizio."
@@ -46,7 +46,7 @@ msgstr ""
 
 #: ../../source/reference/design/parallelism.md:9
 msgid "What the profiler found in four real reports"
-msgstr "Che cosa ha trovato il profilatore in quattro relazioni vere"
+msgstr "Che cosa ha trovato il profiler in quattro relazioni vere"
 
 #: ../../source/reference/design/parallelism.md:10
 msgid ""
@@ -150,8 +150,8 @@ msgid ""
 "Inside a job, the pages of a step run on a thread pool **the crate owns**, not "
 "rayon's global one."
 msgstr ""
-"Dentro un job, le pagine di un passo girano su una riserva di thread **che appartiene"
-" al crate**, non su quella globale di rayon."
+"Dentro un job, le pagine di un passo girano su un pool di thread **che appartiene al "
+"crate**, non su quello globale di rayon."
 
 #: ../../source/reference/design/parallelism.md:38
 msgid ""
@@ -159,9 +159,9 @@ msgid ""
 "Python extension module as well as a binary, so \"the embedding program\" is a real "
 "thing with its own plans."
 msgstr ""
-"Una libreria non deve impadronirsi della riserva di thread del programma che la "
-"incorpora. Questa è un modulo di estensione Python oltre che un binario, quindi \"il "
-"programma che la incorpora\" è una cosa vera con piani propri."
+"Una libreria non deve impadronirsi del pool di thread del programma che la incorpora."
+" Questa è un modulo di estensione Python oltre che un binario, quindi \"il programma "
+"che la incorpora\" è una cosa vera con piani propri."
 
 #: ../../source/reference/design/parallelism.md:41
 msgid ""
@@ -272,9 +272,9 @@ msgid ""
 msgstr ""
 "La singola pipe più calda — il 30–54% di un job, puro Rust, a thread singolo e "
 "deterministica — non è mai stata ottimizzata al proprio interno. Indicizzare le "
-"società bersaglio anziché scorrerle, e ridurre la compilazione delle espressioni "
-"regolari a ogni chiamata, potrebbe plausibilmente valere quanto l'intero sforzo sul "
-"parallelismo, **senza** alcun rischio per il determinismo."
+"società bersaglio anziché scorrerle, e ridurre la compilazione delle regex a ogni "
+"chiamata, potrebbe plausibilmente valere quanto l'intero sforzo sul parallelismo, "
+"**senza** alcun rischio per il determinismo."
 
 #: ../../source/reference/design/parallelism.md:78
 #, python-brace-format

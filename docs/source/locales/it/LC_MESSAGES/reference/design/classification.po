@@ -28,8 +28,8 @@ msgid ""
 "*Implemented.* Before any extraction, every page is assigned a **page class** — or "
 "nothing."
 msgstr ""
-"*Realizzata.* Prima di ogni estrazione, a ciascuna pagina è assegnata una **classe di"
-" pagina** — oppure niente."
+"*Implementata.* Prima di ogni estrazione, a ciascuna pagina è assegnata una **classe "
+"di pagina** — oppure niente."
 
 #: ../../source/reference/design/classification.md:5
 msgid "Classification is itself a pipeline"

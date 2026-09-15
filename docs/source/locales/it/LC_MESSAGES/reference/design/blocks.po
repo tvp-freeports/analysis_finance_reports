@@ -29,8 +29,8 @@ msgid ""
 "*Implemented.* `PdfBlock` and `TextBlock` are the two units that travel through a "
 "pipeline ({doc}`segments`). Both are the same three things:"
 msgstr ""
-"*Realizzato.* `PdfBlock` e `TextBlock` sono le due unità che viaggiano attraverso una"
-" pipeline ({doc}`segments`). Entrambi sono le stesse tre cose:"
+"*Implementato.* `PdfBlock` e `TextBlock` sono le due unità che viaggiano attraverso "
+"una pipeline ({doc}`segments`). Entrambi sono le stesse tre cose:"
 
 #: ../../source/reference/design/blocks.md
 msgid "Part"

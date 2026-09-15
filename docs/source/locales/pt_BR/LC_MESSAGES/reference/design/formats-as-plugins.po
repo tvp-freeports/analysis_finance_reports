@@ -21,183 +21,218 @@ msgstr ""
 
 #: ../../source/reference/design/formats-as-plugins.md:1
 msgid "Formats live outside the engine"
-msgstr ""
+msgstr "Os formatos moram fora do motor"
 
 #: ../../source/reference/design/formats-as-plugins.md:3
 msgid ""
-"*Implemented.* The project's main structural bet, and the reason there is"
-" an engine at all rather than a program per issuer."
+"*Implemented.* The project's main structural bet, and the reason there is an engine "
+"at all rather than a program per issuer."
 msgstr ""
+"*Implementado.* A principal aposta estrutural do projeto, e a razão de existir um "
+"motor, em vez de um programa por emissor."
 
 #: ../../source/reference/design/formats-as-plugins.md:6
 msgid "The bet: the engine knows no report"
-msgstr ""
+msgstr "A aposta: o motor não conhece relatório nenhum"
 
 #: ../../source/reference/design/formats-as-plugins.md:7
 msgid ""
-"The engine knows **nothing** about any particular report. What it knows "
-"is how to run a schedule of steps over classified pages, feed each page "
-"through pipelines, and resolve what comes out. Which pages, and what to "
-"do with them, comes from a **formats repository** — an ordinary "
-"directory, in its own version control, maintained by whoever cares about "
-"those reports."
+"The engine knows **nothing** about any particular report. What it knows is how to run"
+" a schedule of steps over classified pages, feed each page through pipelines, and "
+"resolve what comes out. Which pages, and what to do with them, comes from a **formats"
+" repository** — an ordinary directory, in its own version control, maintained by "
+"whoever cares about those reports."
 msgstr ""
+"O motor não sabe **nada** sobre nenhum relatório em particular. O que ele sabe é "
+"rodar um escalonamento de passos sobre páginas classificadas, fazer cada página "
+"atravessar pipelines, e resolver o que sai dali. Quais páginas, e o que fazer com "
+"elas, vem de um **repositório de formatos** — um diretório comum, no controle de "
+"versão dele, mantido por quem se importa com aqueles relatórios."
 
 #: ../../source/reference/design/formats-as-plugins.md:12
 msgid ""
-"The consequence is the point: **supporting a new report needs no release "
-"of the engine**, touches nothing anyone else maintains, and can be "
-"published independently. `analysis_finance_reports_formats` is one such "
-"repository, and there is nothing privileged about it."
+"The consequence is the point: **supporting a new report needs no release of the "
+"engine**, touches nothing anyone else maintains, and can be published independently. "
+"`analysis_finance_reports_formats` is one such repository, and there is nothing "
+"privileged about it."
 msgstr ""
+"A consequência é o ponto: **dar suporte a um relatório novo não exige release nenhuma"
+" do motor**, não toca em nada que outra pessoa mantenha, e pode ser publicado de "
+"forma independente. O `analysis_finance_reports_formats` é um repositório desses, e "
+"não tem nada de privilegiado."
 
 #: ../../source/reference/design/formats-as-plugins.md:16
 msgid "What keeping formats outside buys, and what it costs"
-msgstr ""
+msgstr "O que se ganha mantendo os formatos fora, e o que isso custa"
 
 #: ../../source/reference/design/formats-as-plugins.md:17
 msgid ""
-"**Buys:** the part that does not change and the part that grows "
-"constantly are versioned, tested and released separately. A layout that "
-"breaks costs one repository a fix, not a release of everything."
+"**Buys:** the part that does not change and the part that grows constantly are "
+"versioned, tested and released separately. A layout that breaks costs one repository "
+"a fix, not a release of everything."
 msgstr ""
+"**Ganha-se:** a parte que não muda e a parte que cresce o tempo todo são versionadas,"
+" testadas e lançadas em separado. Um layout que quebra custa a um repositório uma "
+"correção, não uma release de tudo."
 
 #: ../../source/reference/design/formats-as-plugins.md:20
 msgid ""
-"**Costs:** the engine cannot validate a format against a report it has "
-"never seen, so a misconfigured repository fails at run time rather than "
-"at build time. This is why so much of the engine's error handling is "
-"about **naming the row, the file and the format** — those errors are the "
-"only feedback a repository author gets."
+"**Costs:** the engine cannot validate a format against a report it has never seen, so"
+" a misconfigured repository fails at run time rather than at build time. This is why "
+"so much of the engine's error handling is about **naming the row, the file and the "
+"format** — those errors are the only feedback a repository author gets."
 msgstr ""
+"**Custa:** o motor não tem como validar um formato contra um relatório que nunca viu,"
+" então um repositório mal configurado falha em tempo de execução, e não em tempo de "
+"build. É por isso que tanto do tratamento de erros do motor consiste em **nomear a "
+"linha, o arquivo e o formato** — esses erros são o único retorno que quem cuida de um"
+" repositório recebe."
 
 #: ../../source/reference/design/formats-as-plugins.md:25
 msgid ""
-"It is also why an unknown key, an unknown column and a page class no step"
-" mentions are all **errors** rather than things ignored. In a plugin "
-"system, silence is the enemy."
+"It is also why an unknown key, an unknown column and a page class no step mentions "
+"are all **errors** rather than things ignored. In a plugin system, silence is the "
+"enemy."
 msgstr ""
+"É também por isso que uma chave desconhecida, uma coluna desconhecida e uma classe de"
+" página que passo nenhum menciona são todas **erros**, e não coisas ignoradas. Num "
+"sistema de plugins, o silêncio é o inimigo."
 
 #: ../../source/reference/design/formats-as-plugins.md:28
 msgid "Three levels of effort, merged by name"
-msgstr ""
+msgstr "Três níveis de esforço, fundidos por nome"
 
 #: ../../source/reference/design/formats-as-plugins.md:30
 msgid ""
-"A format can be specified at three levels, differing in how much of the "
-"algorithm the author supplies:"
+"A format can be specified at three levels, differing in how much of the algorithm the"
+" author supplies:"
 msgstr ""
+"Um formato pode ser especificado em três níveis, que diferem em quanto do algoritmo "
+"quem escreve fornece:"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "Level"
-msgstr ""
+msgstr "Nível"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "The algorithm"
-msgstr ""
+msgstr "O algoritmo"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "Its parameters"
-msgstr ""
+msgstr "Os parâmetros dele"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "You write"
-msgstr ""
+msgstr "Você escreve"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "**structured**"
-msgstr ""
+msgstr "**structured**"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "in the library, fixed"
-msgstr ""
+msgstr "na biblioteca, fixo"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "columns of a CSV"
-msgstr ""
+msgstr "colunas de um CSV"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "rows in a spreadsheet"
-msgstr ""
+msgstr "linhas numa planilha"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "**semistructured**"
-msgstr ""
+msgstr "**semistructured**"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "in the library *by name*, or your own module"
-msgstr ""
+msgstr "na biblioteca *pelo nome*, ou um módulo seu"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "YAML"
-msgstr ""
+msgstr "YAML"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "a name and a configuration"
-msgstr ""
+msgstr "um nome e uma configuração"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "**unstructured**"
-msgstr ""
+msgstr "**unstructured**"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "in the repository"
-msgstr ""
+msgstr "no repositório"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "in the code"
-msgstr ""
+msgstr "no código"
 
 #: ../../source/reference/design/formats-as-plugins.md
 msgid "Python"
-msgstr ""
+msgstr "Python"
 
 #: ../../source/reference/design/formats-as-plugins.md:39
 msgid ""
-"They **add up** rather than exclude one another. Merging happens by "
-"summing the **same-named** pipelines of the three levels, and that is the"
-" **only** place the three levels meet: no other part of the engine knows "
-"they exist."
+"They **add up** rather than exclude one another. Merging happens by summing the "
+"**same-named** pipelines of the three levels, and that is the **only** place the "
+"three levels meet: no other part of the engine knows they exist."
 msgstr ""
+"Eles **se somam**, em vez de se excluírem. A fusão acontece somando os pipelines **de"
+" mesmo nome** dos três níveis, e esse é o **único** lugar em que os três níveis se "
+"encontram: nenhuma outra parte do motor sabe que eles existem."
 
 #: ../../source/reference/design/formats-as-plugins.md:43
 msgid "Why the merge is the interesting part"
-msgstr ""
+msgstr "Por que a fusão é a parte interessante"
 
 #: ../../source/reference/design/formats-as-plugins.md:45
 #, python-brace-format
 msgid ""
-"Because irregularity is rarely uniform. A report whose investment table "
-"is perfectly ordinary may still name its funds in a way nothing can "
-"parameterise. Being able to inherit two segments and write the third is "
-"what keeps a hard format from costing three times a simple one — and it "
-"only works because the segments are separable ({doc}`segments`)."
+"Because irregularity is rarely uniform. A report whose investment table is perfectly "
+"ordinary may still name its funds in a way nothing can parameterise. Being able to "
+"inherit two segments and write the third is what keeps a hard format from costing "
+"three times a simple one — and it only works because the segments are separable "
+"({doc}`segments`)."
 msgstr ""
+"Porque a irregularidade raramente é uniforme. Um relatório cuja tabela de "
+"investimentos é perfeitamente comum ainda pode nomear os fundos dele de um jeito que "
+"nada consegue parametrizar. Poder herdar dois segmentos e escrever o terceiro é o que"
+" impede um formato difícil de custar o triplo de um simples — e isso só funciona "
+"porque os segmentos são separáveis ({doc}`segments`)."
 
 #: ../../source/reference/design/formats-as-plugins.md:50
 msgid ""
-"The design would fail if the levels were **alternatives**: an author "
-"hitting one irregular detail would have to drop to Python for the whole "
-"format, and the structured level would serve only the formats that need "
-"nothing at all."
+"The design would fail if the levels were **alternatives**: an author hitting one "
+"irregular detail would have to drop to Python for the whole format, and the "
+"structured level would serve only the formats that need nothing at all."
 msgstr ""
+"O projeto fracassaria se os níveis fossem **alternativas**: quem esbarrasse num único"
+" detalhe irregular teria de descer para Python no formato inteiro, e o nível "
+"structured serviria só aos formatos que não precisam de nada."
 
 #: ../../source/reference/design/formats-as-plugins.md:54
 msgid "Collisions are errors, not precedence"
-msgstr ""
+msgstr "Colisões são erros, não precedência"
 
 #: ../../source/reference/design/formats-as-plugins.md:56
 msgid ""
-"Defining the same semistructured algorithm name **both** natively and in "
-"your own module is an error rather than a precedence rule to be "
-"remembered. The check runs over every native name of the segment as soon "
-"as your module loads."
+"Defining the same semistructured algorithm name **both** natively and in your own "
+"module is an error rather than a precedence rule to be remembered. The check runs "
+"over every native name of the segment as soon as your module loads."
 msgstr ""
+"Definir o mesmo nome de algoritmo semistructured **tanto** nativamente **quanto** num"
+" módulo seu é erro, e não uma regra de precedência a decorar. A conferência passa por"
+" todo nome nativo do segmento assim que o seu módulo carrega."
 
 #: ../../source/reference/design/formats-as-plugins.md:60
 msgid ""
-"A collision is nearly always a typo, and letting one side win silently is"
-" what makes a typo expensive. The same reasoning as unknown keys, applied"
-" to names."
+"A collision is nearly always a typo, and letting one side win silently is what makes "
+"a typo expensive. The same reasoning as unknown keys, applied to names."
 msgstr ""
+"Uma colisão é quase sempre um erro de digitação, e deixar um dos lados vencer em "
+"silêncio é o que torna caro um erro de digitação. O mesmo raciocínio das chaves "
+"desconhecidas, aplicado a nomes."
 

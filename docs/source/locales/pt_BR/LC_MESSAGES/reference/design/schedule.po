@@ -21,129 +21,158 @@ msgstr ""
 
 #: ../../source/reference/design/schedule.md:1
 msgid "The schedule"
-msgstr ""
+msgstr "O escalonamento"
 
 #: ../../source/reference/design/schedule.md:3
 msgid ""
-"*Implemented.* A sequence of **steps**, each naming a set of page "
-"classes. It is what turns a pool of classified pages into an order of "
-"work."
+"*Implemented.* A sequence of **steps**, each naming a set of page classes. It is what"
+" turns a pool of classified pages into an order of work."
 msgstr ""
+"*Implementado.* Uma sequência de **passos**, cada um nomeando um conjunto de classes "
+"de página. É o que transforma um pool de páginas classificadas numa ordem de "
+"trabalho."
 
 #: ../../source/reference/design/schedule.md:6
 msgid "Steps exist for one reason: feeding the next step"
-msgstr ""
+msgstr "Os passos existem por um motivo: alimentar o passo seguinte"
 
 #: ../../source/reference/design/schedule.md:7
 msgid "**The results of one step are the input filter of the next.**"
-msgstr ""
+msgstr "**Os resultados de um passo são o filtro de entrada do seguinte.**"
 
 #: ../../source/reference/design/schedule.md:9
 msgid ""
-"That is what makes a two-stage extraction expressible. Step one finds the"
-" funds; step two finds the managers **of those funds**, because what step"
-" one found is what step two filters on."
+"That is what makes a two-stage extraction expressible. Step one finds the funds; step"
+" two finds the managers **of those funds**, because what step one found is what step "
+"two filters on."
 msgstr ""
+"É isso que torna exprimível uma extração em dois estágios. O passo um acha os fundos;"
+" o passo dois acha os gestores **daqueles fundos**, porque o que o passo um achou é "
+"aquilo sobre o que o passo dois filtra."
 
 #: ../../source/reference/design/schedule.md:20
 #, python-brace-format
 msgid ""
-"In the formats repository this is the `Filter next iteration` column: "
-"classes accumulate into the current step until a row raises the flag, "
-"which closes that step and opens a new one "
-"({doc}`../../guides/formats/repository`)."
+"In the formats repository this is the `Filter next iteration` column: classes "
+"accumulate into the current step until a row raises the flag, which closes that step "
+"and opens a new one ({doc}`../../guides/formats/repository`)."
 msgstr ""
+"No repositório de formatos isso é a coluna `Filter next iteration`: as classes se "
+"acumulam no passo atual até uma linha levantar a flag, que fecha aquele passo e abre "
+"um novo ({doc}`../../guides/formats/repository`)."
 
 #: ../../source/reference/design/schedule.md:24
 #, python-brace-format
 msgid ""
-"Without steps the same thing would have to be expressed as an ordering "
-"constraint between pages, which is precisely what {doc}`pages` exists to "
-"avoid. Steps put the dependency between *stages*, where it is real, "
-"instead of between *pages*, where it would be a lie."
+"Without steps the same thing would have to be expressed as an ordering constraint "
+"between pages, which is precisely what {doc}`pages` exists to avoid. Steps put the "
+"dependency between *stages*, where it is real, instead of between *pages*, where it "
+"would be a lie."
 msgstr ""
+"Sem os passos, a mesma coisa teria de ser expressa como uma restrição de ordem entre "
+"páginas, que é precisamente o que {doc}`pages` existe para evitar. Os passos põem a "
+"dependência entre *estágios*, onde ela é real, em vez de entre *páginas*, onde seria "
+"mentira."
 
 #: ../../source/reference/design/schedule.md:28
 msgid "`FilterData`: what a step hands the next one"
-msgstr ""
+msgstr "`FilterData`: o que um passo entrega ao seguinte"
 
 #: ../../source/reference/design/schedule.md:29
 msgid ""
-"`FilterData` — what a pipe is given besides the page — is an **enum**, "
-"not a struct with two fields:"
+"`FilterData` — what a pipe is given besides the page — is an **enum**, not a struct "
+"with two fields:"
 msgstr ""
+"`FilterData` — o que se dá a um pipe além da página — é um **enum**, não uma struct "
+"com dois campos:"
 
 #: ../../source/reference/design/schedule.md
 msgid "Variant"
-msgstr ""
+msgstr "Variante"
 
 #: ../../source/reference/design/schedule.md
 msgid "Available"
-msgstr ""
+msgstr "Disponível"
 
 #: ../../source/reference/design/schedule.md
 msgid "at the **first** step"
-msgstr ""
+msgstr "no **primeiro** passo"
 
 #: ../../source/reference/design/schedule.md
 msgid "the target companies, and only those"
-msgstr ""
+msgstr "as empresas-alvo, e só elas"
 
 #: ../../source/reference/design/schedule.md
 msgid "at **later** steps"
-msgstr ""
+msgstr "nos passos **seguintes**"
 
 #: ../../source/reference/design/schedule.md
 msgid "the accumulated results of all preceding steps, and only those"
-msgstr ""
+msgstr "os resultados acumulados de todos os passos anteriores, e só eles"
 
 #: ../../source/reference/design/schedule.md:36
 msgid ""
-"The two are never available at once. An enum says so; a struct with two "
-"optional fields would suggest they might both be there, and every pipe "
-"would have to handle a combination that cannot occur."
+"The two are never available at once. An enum says so; a struct with two optional "
+"fields would suggest they might both be there, and every pipe would have to handle a "
+"combination that cannot occur."
 msgstr ""
+"Os dois nunca estão disponíveis ao mesmo tempo. Um enum diz isso; uma struct com dois"
+" campos opcionais daria a entender que os dois poderiam estar lá, e todo pipe teria "
+"de tratar uma combinação que não pode ocorrer."
 
 #: ../../source/reference/design/schedule.md:41
 #, python-brace-format
 msgid ""
-"**Accepted consequence, stated rather than hidden**: a pipe that needs "
-"the *target companies* works only when scheduled in the first step. This "
-"is a real limit and it is recorded in {doc}`limits` rather than papered "
-"over — the alternative was carrying both kinds of filter data everywhere,"
-" which would make every pipe pay for a case almost none of them want."
+"**Accepted consequence, stated rather than hidden**: a pipe that needs the *target "
+"companies* works only when scheduled in the first step. This is a real limit and it "
+"is recorded in {doc}`limits` rather than papered over — the alternative was carrying "
+"both kinds of filter data everywhere, which would make every pipe pay for a case "
+"almost none of them want."
 msgstr ""
+"**Consequência aceita, declarada em vez de escondida**: um pipe que precisa das "
+"*empresas-alvo* só funciona quando escalonado no primeiro passo. É um limite real e "
+"está registrado em {doc}`limits`, e não encoberto — a alternativa era carregar os "
+"dois tipos de dado de filtro por toda parte, o que faria todo pipe pagar por um caso "
+"que quase nenhum deles quer."
 
 #: ../../source/reference/design/schedule.md:47
 msgid "Step order is insertion order"
-msgstr ""
+msgstr "A ordem dos passos é a ordem de inserção"
 
 #: ../../source/reference/design/schedule.md:48
 #, python-brace-format
 msgid ""
-"Steps preserve the order they were declared in and deduplicate. Iterating"
-" them in hash order would make the order of processing — and therefore "
-"the order of the output — unpredictable, and reproducible tests "
-"impossible. See {doc}`determinism`."
+"Steps preserve the order they were declared in and deduplicate. Iterating them in "
+"hash order would make the order of processing — and therefore the order of the output"
+" — unpredictable, and reproducible tests impossible. See {doc}`determinism`."
 msgstr ""
+"Os passos preservam a ordem em que foram declarados e se desduplicam. Percorrê-los em"
+" ordem de hash tornaria imprevisível a ordem de processamento — e portanto a ordem da"
+" saída — e impossíveis os testes reproduzíveis. Veja {doc}`determinism`."
 
 #: ../../source/reference/design/schedule.md:52
 msgid "A class in two steps accumulates"
-msgstr ""
+msgstr "Uma classe em dois passos se acumula"
 
 #: ../../source/reference/design/schedule.md:54
 msgid ""
-"If a page class appears in two steps, its pages are processed **twice** "
-"and the results **add up** rather than the later step overwriting the "
-"earlier one."
+"If a page class appears in two steps, its pages are processed **twice** and the "
+"results **add up** rather than the later step overwriting the earlier one."
 msgstr ""
+"Se uma classe de página aparece em dois passos, as páginas dela são trabalhadas "
+"**duas vezes** e os resultados **se somam**, em vez de o passo posterior sobrescrever"
+" o anterior."
 
 #: ../../source/reference/design/schedule.md:57
 msgid ""
 "In the ordinary case — one class, one step — the two behaviours are "
-"indistinguishable. They differ exactly where overwriting would discard "
-"data that a step had already produced *and already fed forward* to the "
-"step doing the overwriting. Accumulating is the only choice that cannot "
-"lose work that something else already depended on."
+"indistinguishable. They differ exactly where overwriting would discard data that a "
+"step had already produced *and already fed forward* to the step doing the "
+"overwriting. Accumulating is the only choice that cannot lose work that something "
+"else already depended on."
 msgstr ""
+"No caso comum — uma classe, um passo — os dois comportamentos são indistinguíveis. "
+"Eles diferem exatamente onde sobrescrever descartaria dados que um passo já tinha "
+"produzido *e já tinha passado adiante* ao passo que está sobrescrevendo. Acumular é a"
+" única escolha que não tem como perder trabalho de que outra coisa já dependia."
 

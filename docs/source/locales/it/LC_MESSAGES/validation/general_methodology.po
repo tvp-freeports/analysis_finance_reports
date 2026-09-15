@@ -30,8 +30,8 @@ msgid ""
 "second one contains, what the entries in it mean, and how a reader can reconstruct "
 "any claim made there."
 msgstr ""
-"Un repository ha una cartella dedicata ai test, chiamata ``tests``, e una dedicata "
-"alla rendicontabilità, chiamata ``validation``. Questa pagina descrive che cosa "
+"Un repository ha una cartella dedicata ai test, chiamata ``tests``, e una dedicata a "
+"chi risponde di che cosa, chiamata ``validation``. Questa pagina descrive che cosa "
 "contenga la seconda, che cosa significhino le voci che vi si trovano, e come un "
 "lettore possa ricostruire qualsiasi affermazione vi sia fatta."
 
@@ -128,7 +128,7 @@ msgid ""
 "A source is a pattern containing exactly one ``*``, which stands for the "
 "methodology's relative name::"
 msgstr ""
-"Una sorgente è uno schema che contiene esattamente un ``*``, che sta per il nome "
+"Una sorgente è un pattern che contiene esattamente un ``*``, che sta per il nome "
 "relativo della metodologia::"
 
 #: ../../source/validation/general_methodology.rst:63
@@ -259,7 +259,7 @@ msgstr ""
 
 #: ../../source/validation/general_methodology.rst:136
 msgid "``pubkey_id`` — the fingerprint of the key pair used to sign the document."
-msgstr "``pubkey_id`` — l'impronta della coppia di chiavi usata per firmare il documento."
+msgstr "``pubkey_id`` — il fingerprint della coppia di chiavi usata per firmare il documento."
 
 #: ../../source/validation/general_methodology.rst:138
 msgid "``methodologies``"
@@ -350,7 +350,7 @@ msgid ""
 "same name has its own expression language and does not emit identical bytes."
 msgstr ""
 "``-S`` è l'ordinamento ricorsivo delle chiavi proprio di **jq**. Questo progetto usa "
-"lo ``yq`` in Python (kislyuk), che è un sottile involucro attorno a ``jq``; il "
+"lo ``yq`` in Python (kislyuk), che è un sottile wrapper attorno a ``jq``; il "
 "programma in Go con lo stesso nome, che non c'entra niente, ha un proprio linguaggio "
 "di espressioni e non emette byte identici."
 
@@ -380,8 +380,8 @@ msgid ""
 msgstr ""
 "Una pagina di metodologia può portare una sezione ordinaria e visibile il cui titolo "
 "è ``Supported paths``, che dichiara i percorsi del repository a cui quella "
-"metodologia si applica. Ogni voce è un unico letterale in linea con sotto una glossa "
-"in prosa:"
+"metodologia si applica. Ogni voce è un unico letterale inline con sotto una glossa in"
+" prosa:"
 
 #: ../../source/validation/general_methodology.rst:202
 msgid ""
@@ -398,11 +398,11 @@ msgstr ""
 
 #: ../../source/validation/general_methodology.rst:207
 msgid "The pattern grammar is four tokens, and everything else is literal:"
-msgstr "La grammatica degli schemi è di quattro simboli, e tutto il resto è letterale:"
+msgstr "La grammatica dei pattern è di quattro token, e tutto il resto è letterale:"
 
 #: ../../source/validation/general_methodology.rst:213
 msgid "Token"
-msgstr "Simbolo"
+msgstr "Token"
 
 #: ../../source/validation/general_methodology.rst:214
 msgid "Matches"
@@ -445,8 +445,8 @@ msgid ""
 "There are no character classes, braces, negation or ``?``. Patterns are always "
 "relative to the repository root."
 msgstr ""
-"Non ci sono classi di caratteri, parentesi graffe, negazione o ``?``. Gli schemi sono"
-" sempre relativi alla radice del repository."
+"Non ci sono classi di caratteri, parentesi graffe, negazione o ``?``. I pattern sono "
+"sempre relativi alla radice del repository."
 
 #: ../../source/validation/general_methodology.rst:227
 msgid ""
@@ -483,7 +483,7 @@ msgid ""
 "refused, showing every declared pattern with its gloss; overridable by the person "
 "granting"
 msgstr ""
-"rifiutata, mostrando ogni schema dichiarato con la sua glossa; scavalcabile da chi "
+"rifiutata, mostrando ogni pattern dichiarato con la sua glossa; scavalcabile da chi "
 "attesta"
 
 #: ../../source/validation/general_methodology.rst:242
@@ -492,7 +492,7 @@ msgstr "controllo"
 
 #: ../../source/validation/general_methodology.rst:243
 msgid "a warning, never a failure"
-msgstr "un avviso, mai un guasto"
+msgstr "un avviso, mai un errore"
 
 #: ../../source/validation/general_methodology.rst:244
 msgid "the lookups"
@@ -536,9 +536,9 @@ msgid ""
 "reStructuredText parser: it renders as nothing and breaks no build. The target is "
 "either an absolute URI or a path relative to the page itself."
 msgstr ""
-"``..`` seguito da testo che non sia una direttiva è un commento in ogni analizzatore "
-"reStructuredText: non rende niente e non rompe alcuna compilazione. Il bersaglio è un"
-" URI assoluto oppure un percorso relativo alla pagina stessa."
+"``..`` seguito da testo che non sia una direttiva è un commento in ogni parser "
+"reStructuredText: non produce niente in uscita e non rompe nessuna build. La "
+"destinazione è un URI assoluto oppure un percorso relativo alla pagina stessa."
 
 #: ../../source/validation/general_methodology.rst:268
 msgid ""
@@ -572,8 +572,8 @@ msgid ""
 " by their complete name, their email or their key fingerprint"
 msgstr ""
 "``freeports-validate granted-by <contributore>`` — di che cosa risponde questa "
-"persona, nominata con il proprio nome completo, il proprio indirizzo di posta o "
-"l'impronta della propria chiave"
+"persona, nominata con il proprio nome completo, il proprio indirizzo di posta o il "
+"fingerprint della propria chiave"
 
 #: ../../source/validation/general_methodology.rst:282
 msgid ""
@@ -669,7 +669,7 @@ msgstr ""
 
 #: ../../source/validation/general_methodology.rst:316
 msgid "``grant <files> [with <methodology>]`` — vouch for files under a methodology"
-msgstr "``grant <file> [with <metodologia>]`` — rispondi di dei file sotto una metodologia"
+msgstr "``grant <file> [with <metodologia>]`` — rispondi di alcuni file sotto una metodologia"
 
 #: ../../source/validation/general_methodology.rst:317
 #, python-brace-format

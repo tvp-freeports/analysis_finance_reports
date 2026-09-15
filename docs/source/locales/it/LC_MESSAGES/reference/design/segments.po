@@ -25,7 +25,7 @@ msgstr "I tre segmenti"
 
 #: ../../source/reference/design/segments.md:3
 msgid "*Implemented — with a fourth that is designed and not built.*"
-msgstr "*Realizzati — con un quarto che è progettato e non costruito.*"
+msgstr "*Implementati — con un quarto che è progettato e non costruito.*"
 
 #: ../../source/reference/design/segments.md:5
 msgid ""
@@ -71,10 +71,10 @@ msgid ""
 "are about."
 msgstr ""
 "**`pdf_extract` — che cosa c'è in questa pagina.** Prende la pagina, restituisce dei "
-"`PdfBlock`. Per convenzione guarda solo l'evidenza **grafica**: carattere, corpo, "
-"posizione, e il testo che fa parte dell'impaginazione anziché del contenuto. Tenerlo "
-"lontano dal significato è ciò che lo rende riutilizzabile — una tabella è una tabella"
-" a prescindere da che cosa parlino i numeri che contiene."
+"`PdfBlock`. Per convenzione guarda solo l'evidenza **grafica**: font, corpo, "
+"posizione, e il testo che fa parte del layout anziché del contenuto. Tenerlo lontano "
+"dal significato è ciò che lo rende riutilizzabile — una tabella è una tabella a "
+"prescindere da che cosa parlino i numeri che contiene."
 
 #: ../../source/reference/design/segments.md:24
 #, python-format
@@ -182,9 +182,9 @@ msgid ""
 "one segment for **layout interpretation** and one for **semantic interpretation**, "
 "both of which an author must specify, because they are what a format actually is;"
 msgstr ""
-"un segmento per l'**interpretazione dell'impaginazione** e uno per "
-"l'**interpretazione semantica**, che un autore deve specificare entrambi, perché sono"
-" ciò che un formato è davvero;"
+"un segmento per l'**interpretazione del layout** e uno per l'**interpretazione "
+"semantica**, che un autore deve specificare entrambi, perché sono ciò che un formato "
+"è davvero;"
 
 #: ../../source/reference/design/segments.md:63
 msgid ""
@@ -213,7 +213,7 @@ msgid ""
 "three."
 msgstr ""
 "La forma del guadagno è che i due segmenti che un formato *deve* descrivere sono i "
-"due che sono davvero specifici del formato, e i due che di solito sono routine "
+"due che sono davvero specifici del formato, e i due che di solito sono boilerplate "
 "ricevono dei valori predefiniti. È il motivo per cui il numero dei segmenti è stato "
 "tenuto generico anziché inchiodato a tre."
 

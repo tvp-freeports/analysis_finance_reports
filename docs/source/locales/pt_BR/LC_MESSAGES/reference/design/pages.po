@@ -21,123 +21,159 @@ msgstr ""
 
 #: ../../source/reference/design/pages.md:1
 msgid "The page is the unit of work"
-msgstr ""
+msgstr "A página é a unidade de trabalho"
 
 #: ../../source/reference/design/pages.md:3
 msgid ""
-"*Implemented.* This is the assumption everything else in the engine rests"
-" on, and the one worth understanding before any other."
+"*Implemented.* This is the assumption everything else in the engine rests on, and the"
+" one worth understanding before any other."
 msgstr ""
+"*Implementado.* Esta é a suposição sobre a qual todo o resto do motor se apoia, e a "
+"que vale a pena entender antes de qualquer outra."
 
 #: ../../source/reference/design/pages.md:6
 msgid "The assumption: a page carries its own context"
-msgstr ""
+msgstr "A suposição: uma página carrega o próprio contexto"
 
 #: ../../source/reference/design/pages.md:7
 msgid "**A page carries the context needed to understand what is on it.**"
-msgstr ""
+msgstr "**Uma página carrega o contexto necessário para entender o que há nela.**"
 
 #: ../../source/reference/design/pages.md:9
 msgid ""
-"A document is opened once, through PyMuPDF, and immediately becomes a "
-"sequence of native pages. From that point nothing downstream knows a PDF "
-"reader was involved. Each page is then processed **on its own**, with no "
-"knowledge of the pages before or after it."
+"A document is opened once, through PyMuPDF, and immediately becomes a sequence of "
+"native pages. From that point nothing downstream knows a PDF reader was involved. "
+"Each page is then processed **on its own**, with no knowledge of the pages before or "
+"after it."
 msgstr ""
+"Um documento é aberto uma vez, pelo PyMuPDF, e vira imediatamente uma sequência de "
+"páginas nativas. Daí em diante nada a jusante sabe que houve um leitor de PDF no "
+"meio. Cada página é então trabalhada **sozinha**, sem conhecimento nenhum das páginas"
+" que vêm antes ou depois dela."
 
 #: ../../source/reference/design/pages.md:13
 #, python-brace-format
 msgid ""
-"The assumption is restrictive, and it is deliberately restrictive. It is "
-"false of some pages of some reports, and the engine does not pretend "
-"otherwise — see {doc}`promises` for what happens there."
+"The assumption is restrictive, and it is deliberately restrictive. It is false of "
+"some pages of some reports, and the engine does not pretend otherwise — see "
+"{doc}`promises` for what happens there."
 msgstr ""
+"A suposição é restritiva, e é restritiva de propósito. Ela é falsa para certas "
+"páginas de certos relatórios, e o motor não finge o contrário — veja {doc}`promises` "
+"para o que acontece ali."
 
 #: ../../source/reference/design/pages.md:16
 msgid "What the page assumption makes possible"
-msgstr ""
+msgstr "O que a suposição da página torna possível"
 
 #: ../../source/reference/design/pages.md:17
 msgid ""
-"Three good properties, and they are not independent benefits so much as "
-"three faces of the same one:"
+"Three good properties, and they are not independent benefits so much as three faces "
+"of the same one:"
 msgstr ""
+"Três boas propriedades, e elas não são tanto três benefícios independentes quanto "
+"três faces de um mesmo:"
 
 #: ../../source/reference/design/pages.md:19
 #, python-brace-format
 msgid ""
-"**Work divides.** Nothing in the description of the algorithm mentions "
-"threads or processes, and that is why parallelism could be added without "
-"redesigning anything: pages that do not depend on each other can be "
-"processed in any order, anywhere. See {doc}`parallelism`."
+"**Work divides.** Nothing in the description of the algorithm mentions threads or "
+"processes, and that is why parallelism could be added without redesigning anything: "
+"pages that do not depend on each other can be processed in any order, anywhere. See "
+"{doc}`parallelism`."
 msgstr ""
+"**O trabalho se divide.** Nada na descrição do algoritmo menciona threads ou "
+"processos, e é por isso que o paralelismo pôde ser acrescentado sem reprojetar nada: "
+"páginas que não dependem umas das outras podem ser trabalhadas em qualquer ordem, em "
+"qualquer lugar. Veja {doc}`parallelism`."
 
 #: ../../source/reference/design/pages.md:23
 msgid ""
-"**A page is a testable unit.** A format's behaviour on one page can be "
-"frozen as a fixture and checked in isolation — this is exactly what "
-"`freeports-dev make-tests` writes, three JSON files per page, one per "
-"segment. A regression tells you *which segment* of *which page* changed, "
-"rather than that a 1,800-page document now produces a different table."
+"**A page is a testable unit.** A format's behaviour on one page can be frozen as a "
+"fixture and checked in isolation — this is exactly what `freeports-dev make-tests` "
+"writes, three JSON files per page, one per segment. A regression tells you *which "
+"segment* of *which page* changed, rather than that a 1,800-page document now produces"
+" a different table."
 msgstr ""
+"**Uma página é uma unidade testável.** O comportamento de um formato numa página pode"
+" ser congelado como fixture e conferido isoladamente — é exatamente isso que o "
+"`freeports-dev make-tests` escreve, três arquivos JSON por página, um por segmento. "
+"Uma regressão lhe diz *qual segmento* de *qual página* mudou, em vez de dizer que um "
+"documento de 1.800 páginas agora produz uma tabela diferente."
 
 #: ../../source/reference/design/pages.md:28
 msgid ""
-"**A failure is local.** A page the engine cannot read is a page that is "
-"skipped, with a log row naming it and a coordinate inside it. It is not a"
-" run that dies, and it is not a silent hole either."
+"**A failure is local.** A page the engine cannot read is a page that is skipped, with"
+" a log row naming it and a coordinate inside it. It is not a run that dies, and it is"
+" not a silent hole either."
 msgstr ""
+"**Uma falha é local.** Uma página que o motor não consegue ler é uma página pulada, "
+"com uma linha de log que a nomeia e uma coordenada dentro dela. Não é uma execução "
+"que morre, e também não é um buraco silencioso."
 
 #: ../../source/reference/design/pages.md:31
 msgid "What the page assumption costs"
-msgstr ""
+msgstr "Quanto custa a suposição da página"
 
 #: ../../source/reference/design/pages.md:32
 msgid "The cost is real and is paid in two places."
-msgstr ""
+msgstr "O custo é real e se paga em dois pontos."
 
 #: ../../source/reference/design/pages.md:34
 #, python-brace-format
 msgid ""
-"**Some values genuinely are not on the page.** A fund name printed once "
-"on the section's cover, a currency declared in a heading forty pages "
-"earlier. The assumption says nothing about these, and the answer is not "
-"to weaken it — see {doc}`promises`."
+"**Some values genuinely are not on the page.** A fund name printed once on the "
+"section's cover, a currency declared in a heading forty pages earlier. The assumption"
+" says nothing about these, and the answer is not to weaken it — see {doc}`promises`."
 msgstr ""
+"**Alguns valores realmente não estão na página.** O nome de um fundo impresso uma "
+"única vez na capa da seção, uma moeda declarada num título quarenta páginas antes. A "
+"suposição nada diz sobre esses, e a resposta não é enfraquecê-la — veja "
+"{doc}`promises`."
 
 #: ../../source/reference/design/pages.md:38
 #, python-brace-format
 msgid ""
-"**Some layouts encode meaning in sequence.** \"This table continues from "
-"the previous page\" is a fact about a pair of pages, not about a page. "
-"The engine's answer is to confine that reasoning to **classification**, "
-"where a per-document finalizer may look at the whole sequence, and to "
-"keep it out of extraction entirely. See {doc}`classification`."
+"**Some layouts encode meaning in sequence.** \"This table continues from the previous"
+" page\" is a fact about a pair of pages, not about a page. The engine's answer is to "
+"confine that reasoning to **classification**, where a per-document finalizer may look"
+" at the whole sequence, and to keep it out of extraction entirely. See "
+"{doc}`classification`."
 msgstr ""
+"**Alguns layouts codificam sentido na sequência.** \"Esta tabela continua da página "
+"anterior\" é um fato sobre um par de páginas, não sobre uma página. A resposta do "
+"motor é confinar esse raciocínio à **classificação**, onde um finalizador por "
+"documento pode olhar a sequência inteira, e mantê-lo completamente fora da extração. "
+"Veja {doc}`classification`."
 
 #: ../../source/reference/design/pages.md:43
 msgid "The rejected alternative: a second pass over the document"
-msgstr ""
+msgstr "A alternativa rejeitada: uma segunda passada pelo documento"
 
 #: ../../source/reference/design/pages.md:44
-msgid ""
-"A second pass over the document: read it once to gather context, once "
-"more to use it."
+msgid "A second pass over the document: read it once to gather context, once more to use it."
 msgstr ""
+"Uma segunda passada pelo documento: lê-lo uma vez para juntar contexto, e mais uma "
+"para usá-lo."
 
 #: ../../source/reference/design/pages.md:46
 #, python-format
 msgid ""
-"It was rejected because it doubles the most expensive part of a run — PDF"
-" loading and page parsing are 35–75% of a job — to serve a minority of "
-"values, and because it reintroduces exactly the ordering dependency "
-"between pages that this assumption exists to remove. Once page 412 needs "
-"page 3 to have been read first, work no longer divides, a page is no "
-"longer a testable unit, and a failure is no longer local. All three "
-"properties go at once."
+"It was rejected because it doubles the most expensive part of a run — PDF loading and"
+" page parsing are 35–75% of a job — to serve a minority of values, and because it "
+"reintroduces exactly the ordering dependency between pages that this assumption "
+"exists to remove. Once page 412 needs page 3 to have been read first, work no longer "
+"divides, a page is no longer a testable unit, and a failure is no longer local. All "
+"three properties go at once."
 msgstr ""
+"Foi rejeitada porque dobra a parte mais cara de uma execução — carregar o PDF e fazer"
+" o parsing das páginas são 35–75% de um job — para servir uma minoria de valores, e "
+"porque reintroduz exatamente a dependência de ordem entre páginas que esta suposição "
+"existe para remover. Assim que a página 412 precisa que a página 3 tenha sido lida "
+"antes, o trabalho deixa de se dividir, a página deixa de ser unidade testável, e a "
+"falha deixa de ser local. As três propriedades vão embora de uma vez."
 
 #: ../../source/reference/design/pages.md:52
 msgid "Promises keep them. That is the whole argument for them."
-msgstr ""
+msgstr "As promessas as preservam. É todo esse o argumento a favor delas."
 

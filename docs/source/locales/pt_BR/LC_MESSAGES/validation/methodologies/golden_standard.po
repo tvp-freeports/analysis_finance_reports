@@ -21,173 +21,204 @@ msgstr ""
 
 #: ../../source/validation/methodologies/golden_standard.rst:10
 msgid "Golden Standard Methodology"
-msgstr ""
+msgstr "Metodologia Golden Standard"
 
 #: ../../source/validation/methodologies/golden_standard.rst:12
 msgid ""
-"**Purpose** The golden_standard methodology provides comprehensive "
-"validation through explicit, manual verification of all input data and "
-"output results."
+"**Purpose** The golden_standard methodology provides comprehensive validation through"
+" explicit, manual verification of all input data and output results."
 msgstr ""
+"**Finalidade** A metodologia golden_standard oferece uma validação exaustiva por meio"
+" da verificação manual e explícita de todos os dados de entrada e de todos os "
+"resultados."
 
 #: ../../source/validation/methodologies/golden_standard.rst:15
-msgid ""
-"**Scope** This methodology extends basic_check with rigorous manual "
-"verification of:"
+msgid "**Scope** This methodology extends basic_check with rigorous manual verification of:"
 msgstr ""
+"**Âmbito** Esta metodologia estende a basic_check com a verificação manual rigorosa "
+"de:"
 
 #: ../../source/validation/methodologies/golden_standard.rst:18
 msgid "All ``pdf_blks`` and ``txt_blks`` input files"
-msgstr ""
+msgstr "Todos os arquivos de entrada ``pdf_blks`` e ``txt_blks``"
 
 #: ../../source/validation/methodologies/golden_standard.rst:19
 msgid "Complete data extraction verification"
-msgstr ""
+msgstr "A verificação completa da extração dos dados"
 
 #: ../../source/validation/methodologies/golden_standard.rst:20
 msgid "Explicit confirmation that no data is missing from results"
-msgstr ""
+msgstr "A confirmação explícita de que não falta dado nenhum nos resultados"
 
 #: ../../source/validation/methodologies/golden_standard.rst:22
 msgid ""
-"**Covered File Types** - All files covered by basic_check methodology - "
-"Additional verification of input block files (``pdf_blks``, ``txt_blks``)"
+"**Covered File Types** - All files covered by basic_check methodology - Additional "
+"verification of input block files (``pdf_blks``, ``txt_blks``)"
 msgstr ""
+"**Tipos de arquivo cobertos** - Todos os arquivos cobertos pela metodologia "
+"basic_check - Além disso, a verificação dos arquivos de blocos de entrada "
+"(``pdf_blks``, ``txt_blks``)"
 
 #: ../../source/validation/methodologies/golden_standard.rst:26
 msgid "**Protocol Steps**"
-msgstr ""
+msgstr "**Passos do protocolo**"
 
 #: ../../source/validation/methodologies/golden_standard.rst:28
 msgid "**Complete basic_check protocol** (all steps)"
-msgstr ""
+msgstr "**Protocolo basic_check completo** (todos os passos)"
 
 #: ../../source/validation/methodologies/golden_standard.rst:29
 msgid "**Input Block Verification**:"
-msgstr ""
+msgstr "**Verificação dos blocos de entrada**:"
 
 #: ../../source/validation/methodologies/golden_standard.rst:31
 msgid "Manually review every ``pdf_blk`` and ``txt_blk`` file"
-msgstr ""
+msgstr "Revisar manualmente cada arquivo ``pdf_blk`` e ``txt_blk``"
 
 #: ../../source/validation/methodologies/golden_standard.rst:32
-msgid ""
-"Verify that all relevant data from input blocks is captured in "
-"``results.pkl``"
+msgid "Verify that all relevant data from input blocks is captured in ``results.pkl``"
 msgstr ""
+"Verificar que todos os dados relevantes dos blocos de entrada foram capturados em "
+"``results.pkl``"
 
 #: ../../source/validation/methodologies/golden_standard.rst:33
 msgid "Explicitly confirm no data is omitted or incorrectly parsed"
-msgstr ""
+msgstr "Confirmar explicitamente que nenhum dado foi omitido nem mal interpretado"
 
 #: ../../source/validation/methodologies/golden_standard.rst:35
 msgid "**Log Analysis**:"
-msgstr ""
+msgstr "**Análise do log**:"
 
 #: ../../source/validation/methodologies/golden_standard.rst:37
 msgid "Verify that ``.log.csv`` contains only true anomalies or is empty"
-msgstr ""
+msgstr "Verificar que ``.log.csv`` contém apenas anomalias verdadeiras, ou está vazio"
 
 #: ../../source/validation/methodologies/golden_standard.rst:38
 msgid "Each warning in the log must be reviewed and confirmed as legitimate"
-msgstr ""
+msgstr "Cada aviso no log precisa ser revisado e confirmado como legítimo"
 
 #: ../../source/validation/methodologies/golden_standard.rst:40
 msgid "**Comprehensive Data Validation**:"
-msgstr ""
+msgstr "**Validação exaustiva dos dados**:"
 
 #: ../../source/validation/methodologies/golden_standard.rst:42
 msgid "Cross-reference every data point in output files with source blocks"
-msgstr ""
+msgstr "Confrontar cada dado dos arquivos de saída com os blocos de origem"
 
 #: ../../source/validation/methodologies/golden_standard.rst:43
 msgid "Verify data consistency across all output formats (CSV, YAML, pickle)"
 msgstr ""
+"Verificar a consistência dos dados entre todos os formatos de saída (CSV, YAML, "
+"pickle)"
 
 #: ../../source/validation/methodologies/golden_standard.rst:45
 msgid "**Edge Case Verification**:"
-msgstr ""
+msgstr "**Verificação dos casos de borda**:"
 
 #: ../../source/validation/methodologies/golden_standard.rst:47
 msgid "Check handling of unusual data formats or structures"
-msgstr ""
+msgstr "Conferir como são tratados formatos ou estruturas de dados incomuns"
 
 #: ../../source/validation/methodologies/golden_standard.rst:48
 msgid "Verify error handling and logging for problematic inputs"
-msgstr ""
+msgstr "Verificar o tratamento de erros e o logging para entradas problemáticas"
 
 #: ../../source/validation/methodologies/golden_standard.rst:50
 msgid ""
-"**Trust Level** This methodology provides **strong certification** - it "
-"represents thorough manual verification that all data is correctly "
-"processed and no information is lost during extraction."
+"**Trust Level** This methodology provides **strong certification** - it represents "
+"thorough manual verification that all data is correctly processed and no information "
+"is lost during extraction."
 msgstr ""
+"**Nível de confiança** Esta metodologia oferece uma **certificação forte**: "
+"representa a verificação manual cuidadosa de que todos os dados são tratados "
+"corretamente e de que nenhuma informação se perde durante a extração."
 
 #: ../../source/validation/methodologies/golden_standard.rst:53
 msgid ""
-"**Applicable Context** Use this methodology for: - Release candidate "
-"validation - Critical data processing verification - Situations requiring"
-" high confidence in data accuracy - Validation of core algorithm "
-"functionality"
+"**Applicable Context** Use this methodology for: - Release candidate validation - "
+"Critical data processing verification - Situations requiring high confidence in data "
+"accuracy - Validation of core algorithm functionality"
 msgstr ""
+"**Contexto de aplicação** Use esta metodologia para: - A validação de uma release "
+"candidate - A verificação de processamentos de dados críticos - Situações que exigem "
+"confiança alta na exatidão dos dados - A validação do funcionamento do algoritmo "
+"central"
 
 #: ../../source/validation/methodologies/golden_standard.rst:60
 msgid ""
-"**Relationship to basic_check** The golden_standard methodology includes "
-"and extends all basic_check requirements, providing a superset of "
-"validation guarantees."
+"**Relationship to basic_check** The golden_standard methodology includes and extends "
+"all basic_check requirements, providing a superset of validation guarantees."
 msgstr ""
+"**Relação com a basic_check** A metodologia golden_standard inclui e estende todos os"
+" requisitos da basic_check, oferecendo um superconjunto das garantias de validação "
+"dela."
 
 #: ../../source/validation/methodologies/golden_standard.rst:64
 msgid "Supported paths"
-msgstr ""
+msgstr "Caminhos suportados"
 
 #: ../../source/validation/methodologies/golden_standard.rst:66
 msgid ""
-"This methodology covers the same files as ``basic check`` -- it is that "
-"protocol plus the manual verification described above, not a different "
-"subject -- so the patterns are the same, and what changes is what a grant"
-" on them claims. All patterns are relative to the root of the repository "
-"the granted file lives in."
+"This methodology covers the same files as ``basic check`` -- it is that protocol plus"
+" the manual verification described above, not a different subject -- so the patterns "
+"are the same, and what changes is what a grant on them claims. All patterns are "
+"relative to the root of the repository the granted file lives in."
 msgstr ""
+"Esta metodologia cobre os mesmos arquivos que ``basic check`` -- ela é aquele "
+"protocolo mais a verificação manual descrita acima, não um assunto diferente --, "
+"então os patterns são os mesmos, e o que muda é o que um aval sobre eles afirma. "
+"Todos os patterns são relativos à raiz do repositório em que mora o arquivo "
+"avalizado."
 
 #: ../../source/validation/methodologies/golden_standard.rst:71
 msgid "``tests/formats/**/out/*.csv``"
-msgstr ""
+msgstr "``tests/formats/**/out/*.csv``"
 
 #: ../../source/validation/methodologies/golden_standard.rst:72
 msgid ""
-"The tabular reference output of a format's test suite in a **formats "
-"repository**. A golden standard grant here claims more than that the "
-"values look reasonable: every one of them was cross-referenced against "
-"the blocks it was extracted from, and ``.log.csv`` was read line by line "
-"and found to contain only anomalies confirmed as genuine."
+"The tabular reference output of a format's test suite in a **formats repository**. A "
+"golden standard grant here claims more than that the values look reasonable: every "
+"one of them was cross-referenced against the blocks it was extracted from, and "
+"``.log.csv`` was read line by line and found to contain only anomalies confirmed as "
+"genuine."
 msgstr ""
+"A saída de referência em forma de tabela da suíte de testes de um formato, num "
+"**repositório de formatos**. Um aval golden standard aqui afirma mais do que que os "
+"valores parecem razoáveis: cada um deles foi confrontado com os blocos de que foi "
+"extraído, e o ``.log.csv`` foi lido linha a linha e se verificou conter apenas "
+"anomalias confirmadas como autênticas."
 
 #: ../../source/validation/methodologies/golden_standard.rst:77
 msgid "``tests/formats/**/out/*.yaml``"
-msgstr ""
+msgstr "``tests/formats/**/out/*.yaml``"
 
 #: ../../source/validation/methodologies/golden_standard.rst:78
 msgid "The non-tabular output of the same run, verified to the same standard."
-msgstr ""
+msgstr "A saída não tabular da mesma execução, verificada segundo o mesmo padrão."
 
 #: ../../source/validation/methodologies/golden_standard.rst:80
 msgid "``tests/formats/**/pages/**``"
-msgstr ""
+msgstr "``tests/formats/**/pages/**``"
 
 #: ../../source/validation/methodologies/golden_standard.rst:81
 msgid ""
-"The per-page fixtures: the blocks the extraction saw, and the result it "
-"reached. This is where the additional claim actually rests -- a golden "
-"standard grant says every block was reviewed and that nothing relevant "
-"present in the page is missing from the result."
+"The per-page fixtures: the blocks the extraction saw, and the result it reached. This"
+" is where the additional claim actually rests -- a golden standard grant says every "
+"block was reviewed and that nothing relevant present in the page is missing from the "
+"result."
 msgstr ""
+"As fixtures por página: os blocos que a extração viu, e o resultado a que ela chegou."
+" É aqui que a afirmação adicional de fato se apoia -- um aval golden standard diz que"
+" cada bloco foi revisado e que nada de relevante presente na página falta no "
+"resultado."
 
 #: ../../source/validation/methodologies/golden_standard.rst:87
 msgid ""
-"As with ``basic check``, these paths describe a **formats repository**, "
-"and the variant level between a format and its outputs is optional -- "
-"hence ``**`` rather than ``*``."
+"As with ``basic check``, these paths describe a **formats repository**, and the "
+"variant level between a format and its outputs is optional -- hence ``**`` rather "
+"than ``*``."
 msgstr ""
+"Como em ``basic check``, estes caminhos descrevem um **repositório de formatos**, e o"
+" nível de variante entre um formato e as saídas dele é opcional -- daí ``**`` em vez "
+"de ``*``."
 

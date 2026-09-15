@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"POT-Creation-Date: 2026-09-15 08:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -149,22 +149,35 @@ msgstr ""
 msgid ""
 "One error enum per module, built with ``thiserror``. Panics remain only "
 "where the input genuinely cannot come from outside, and where they do, "
-"the module says so. Two inherited panics are documented limits rather "
-"than pending fixes — a deliberate choice to record a known edge instead "
-"of pretending it was handled."
+"the module says so. The geometry primitives make the distinction explicit"
+" by offering both constructions: ``new`` panics and is for internal "
+"invariants, ``build`` returns a ``Result`` and is what a caller reading a"
+" page dict, a format's configuration or a Python pipe's arguments must "
+"use."
 msgstr ""
 
 #: ../../source/guides/engine/advanced/implementation-notes.rst:75
+msgid ""
+"The rule is nonetheless backed by a net. A panic raised anywhere inside a"
+" page's pipelines is caught and costs **that page** — an ``ERROR`` in "
+"``.log.csv`` naming the document, the page and the panic's own message, "
+"and the page skipped. It is not a substitute for using ``build`` where "
+"the value comes from outside: it is what keeps a mistake about *where* a "
+"value comes from from costing a batch of 904 jobs, which is exactly what "
+"it used to cost."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:82
 msgid "No pandas, no Pydantic, no Pandera"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:77
+#: ../../source/guides/engine/advanced/implementation-notes.rst:84
 msgid ""
 "**Rejected:** reading the formats repository's CSVs with pandas and "
 "validating with Pandera, as the Python original did."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:80
+#: ../../source/guides/engine/advanced/implementation-notes.rst:87
 msgid ""
 "The joins involved are lookups on a derived key — a hash map, ten lines. "
 "The validations are per-row checks that need to report **the row "
@@ -174,25 +187,25 @@ msgid ""
 "messages worse."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:85
+#: ../../source/guides/engine/advanced/implementation-notes.rst:92
 msgid ""
 "Dates are hand-written for the same reason: parse, format, compare, no "
 "calendar arithmetic. A date library would have been a dependency serving "
 "three functions."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:89
+#: ../../source/guides/engine/advanced/implementation-notes.rst:96
 msgid "Serialisation is derived, so fixtures are readable"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:91
+#: ../../source/guides/engine/advanced/implementation-notes.rst:98
 msgid ""
 "Everything crossing a segment derives serde's traits. The consequence "
 "that matters is not internal: the per-page test fixtures are **JSON**, "
 "produced and consumed by the same derivation, instead of Python pickles."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:95
+#: ../../source/guides/engine/advanced/implementation-notes.rst:102
 msgid ""
 "**Rejected:** keeping pickle compatibility with the existing fixtures. It"
 " would have frozen the data model to Python's object layout, and pickles "
@@ -200,17 +213,17 @@ msgid ""
 "can *see*."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:100
+#: ../../source/guides/engine/advanced/implementation-notes.rst:107
 msgid "One logging system, three destinations"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:102
+#: ../../source/guides/engine/advanced/implementation-notes.rst:109
 msgid ""
 "**Rejected:** one log stream with levels, which is the default answer "
 "everywhere."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:104
+#: ../../source/guides/engine/advanced/implementation-notes.rst:111
 msgid ""
 "What a person watches while a run happens and what a tool parses "
 "afterwards are different artefacts, and serving both from one stream "
@@ -219,7 +232,7 @@ msgid ""
 "coordinates. See :doc:`../../user/logging`."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:109
+#: ../../source/guides/engine/advanced/implementation-notes.rst:116
 msgid ""
 "Only two of the three are there on an ordinary run. The JSON-lines file "
 "exists at ``trace`` and nowhere below it: it answers *everything the "
@@ -229,7 +242,7 @@ msgid ""
 "directory the run was started from."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:114
+#: ../../source/guides/engine/advanced/implementation-notes.rst:121
 msgid ""
 "Which is also why neither log is created by ``tracing_setup::init``. "
 "Whether there is to be a JSON-lines file, and where ``.log.csv`` goes, "
@@ -243,7 +256,7 @@ msgid ""
 "a comparison."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:122
+#: ../../source/guides/engine/advanced/implementation-notes.rst:129
 msgid ""
 "That file is where the structured error record lands — its ``Debug`` "
 "form, its message and its whole ``source()`` chain, under the ``error`` "
@@ -251,7 +264,7 @@ msgid ""
 " sentence on stderr."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:126
+#: ../../source/guides/engine/advanced/implementation-notes.rst:133
 msgid ""
 "This whole area was tuned against a real complaint and measured. The "
 "first instrumentation pass made a 1,140-page job take **19 minutes** and "
@@ -260,11 +273,11 @@ msgid ""
 "on is instrumentation that does not exist."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:132
+#: ../../source/guides/engine/advanced/implementation-notes.rst:139
 msgid "Processes and threads"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:134
+#: ../../source/guides/engine/advanced/implementation-notes.rst:141
 msgid ""
 "The reasoning, the measurements and the two levels that the measurements "
 "cancelled are part of the algorithm's design and live in "
@@ -273,7 +286,7 @@ msgid ""
 "design:"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:138
+#: ../../source/guides/engine/advanced/implementation-notes.rst:145
 msgid ""
 "the page-level thread pool is **owned by the crate**, in a ``OnceLock``, "
 "and is not rayon's global pool. A library must not seize the thread pool "
@@ -281,7 +294,7 @@ msgid ""
 " module, so the embedding program is a real thing with its own plans;"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:142
+#: ../../source/guides/engine/advanced/implementation-notes.rst:149
 msgid ""
 "job-level parallelism is child **processes** of the same binary, driven "
 "through a hidden ``--internal-worker`` flag and a two-file JSON protocol "
@@ -289,17 +302,17 @@ msgid ""
 "interface but the channel between two copies of one program."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:147
+#: ../../source/guides/engine/advanced/implementation-notes.rst:154
 msgid "Documentation: one Sphinx site, rustdoc beside it"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:149
+#: ../../source/guides/engine/advanced/implementation-notes.rst:156
 msgid ""
 "**Rejected:** mdbook for the prose, which reads better and is pleasanter "
 "to write."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:151
+#: ../../source/guides/engine/advanced/implementation-notes.rst:158
 msgid ""
 "Three reasons survived scrutiny: the validation section already exists "
 "and is live content that cannot be rewritten for free; publishing is "
@@ -308,7 +321,7 @@ msgid ""
 "without a second toolchain."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:156
+#: ../../source/guides/engine/advanced/implementation-notes.rst:163
 msgid ""
 "A fourth reason was offered and turned out to be **false** on measurement"
 " — that four translations already existed. There is one partial "
@@ -317,24 +330,24 @@ msgid ""
 "repeated."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:160
+#: ../../source/guides/engine/advanced/implementation-notes.rst:167
 msgid ""
 "rustdoc is generated and published as a sub-path, not transcribed into "
 "``.rst``. A hand-written copy of the Rust API goes stale in a week."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:164
+#: ../../source/guides/engine/advanced/implementation-notes.rst:171
 msgid "Some things were deliberately not redesigned"
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:166
+#: ../../source/guides/engine/advanced/implementation-notes.rst:173
 msgid ""
 "The PDF line model, the line selections and the tabularizer were carried "
 "over essentially as they were, and improvements noticed during the port "
 "were **reported rather than applied**."
 msgstr ""
 
-#: ../../source/guides/engine/advanced/implementation-notes.rst:169
+#: ../../source/guides/engine/advanced/implementation-notes.rst:176
 msgid ""
 "This is a decision, not an omission. That code has been used for a long "
 "time, its behaviour is what the existing formats depend on, and a rewrite"
@@ -355,5 +368,17 @@ msgstr ""
 #~ "that even ``-q`` dropped a file "
 #~ "into the directory the run was "
 #~ "started from."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "One error enum per module, built "
+#~ "with ``thiserror``. Panics remain only "
+#~ "where the input genuinely cannot come"
+#~ " from outside, and where they do, "
+#~ "the module says so. Two inherited "
+#~ "panics are documented limits rather than"
+#~ " pending fixes — a deliberate choice"
+#~ " to record a known edge instead "
+#~ "of pretending it was handled."
 #~ msgstr ""
 

@@ -108,7 +108,7 @@ msgid ""
 msgstr ""
 "Tutto ciò che sta fra i due marcatori qui sopra è **generato**, ed è sostituito per "
 "intero ogni volta che il rapporto viene aggiornato — niente di scritto fra di essi "
-"sopravvive. Il hook ``pre-commit`` lo riscrive a ogni commit; a mano è"
+"sopravvive. L'hook ``pre-commit`` lo riscrive a ogni commit; a mano è"
 
 #: ../../source/validation/report/file-methodology.rst:39
 msgid ""

@@ -21,292 +21,353 @@ msgstr ""
 
 #: ../../source/reference/design/multidocument.md:1
 msgid "Several documents in one run"
-msgstr ""
+msgstr "Vários documentos numa execução"
 
 #: ../../source/reference/design/multidocument.md:3
 msgid ""
-"*Implemented.* Giving `-i` more than once, or naming a directory, is not "
-"a loop over single-document runs. It is **one run with more pages in it**"
-" — the documents are a *bundle*, and the engine treats the bundle the way"
-" it would treat one large document that happened to be bound in several "
-"volumes."
+"*Implemented.* Giving `-i` more than once, or naming a directory, is not a loop over "
+"single-document runs. It is **one run with more pages in it** — the documents are a "
+"*bundle*, and the engine treats the bundle the way it would treat one large document "
+"that happened to be bound in several volumes."
 msgstr ""
+"*Implementado.* Dar `-i` mais de uma vez, ou nomear um diretório, não é um laço sobre"
+" execuções de documento único. É **uma execução só, com mais páginas dentro** — os "
+"documentos são um *feixe*, e o motor trata o feixe como trataria um documento grande "
+"que por acaso foi encadernado em vários volumes."
 
 #: ../../source/reference/design/multidocument.md:7
 msgid "Why a report arrives as several files"
-msgstr ""
+msgstr "Por que um relatório chega em vários arquivos"
 
 #: ../../source/reference/design/multidocument.md:9
 msgid ""
-"The obvious reason to pass several documents is that you have many "
-"reports of the same layout and want them all extracted. That case works, "
-"but it is the uninteresting one: it would work just as well as several "
-"separate runs."
+"The obvious reason to pass several documents is that you have many reports of the "
+"same layout and want them all extracted. That case works, but it is the uninteresting"
+" one: it would work just as well as several separate runs."
 msgstr ""
+"O motivo óbvio para passar vários documentos é que você tem muitos relatórios do "
+"mesmo layout e quer extrair todos. Esse caso funciona, mas é o sem graça: funcionaria"
+" igualmente bem como várias execuções separadas."
 
 #: ../../source/reference/design/multidocument.md:13
 msgid ""
-"The reason the feature exists is the other one. **A single financial "
-"report is often published as several files**, because its sections are "
-"addressed to different audiences and are printed, dated and distributed "
-"separately — the holdings schedule for one readership, the management and"
-" governance sections for another, an annex for a regulator. Nothing about"
-" that split follows the structure of the information; it follows the "
-"structure of the publisher's obligations."
+"The reason the feature exists is the other one. **A single financial report is often "
+"published as several files**, because its sections are addressed to different "
+"audiences and are printed, dated and distributed separately — the holdings schedule "
+"for one readership, the management and governance sections for another, an annex for "
+"a regulator. Nothing about that split follows the structure of the information; it "
+"follows the structure of the publisher's obligations."
 msgstr ""
+"A razão de a funcionalidade existir é a outra. **Um único relatório financeiro "
+"costuma ser publicado em vários arquivos**, porque as seções dele se dirigem a "
+"públicos diferentes e são impressas, datadas e distribuídas em separado — o "
+"demonstrativo de posições para um público, as seções de gestão e governança para "
+"outro, um anexo para um regulador. Nada nessa divisão segue a estrutura da "
+"informação; ela segue a estrutura das obrigações de quem publica."
 
 #: ../../source/reference/design/multidocument.md:19
 msgid ""
-"The consequence is that **no one file contains what you need**. A "
-"concrete shape of it, and a common one:"
+"The consequence is that **no one file contains what you need**. A concrete shape of "
+"it, and a common one:"
 msgstr ""
+"A consequência é que **arquivo nenhum contém o que você precisa**. Uma forma concreta"
+" disso, e comum:"
 
 #: ../../source/reference/design/multidocument.md
 msgid "Wanted"
-msgstr ""
+msgstr "Queria"
 
 #: ../../source/reference/design/multidocument.md
 msgid "Where it is"
-msgstr ""
+msgstr "Onde está"
 
 #: ../../source/reference/design/multidocument.md
 msgid "the investments"
-msgstr ""
+msgstr "os investimentos"
 
 #: ../../source/reference/design/multidocument.md
 msgid "document A"
-msgstr ""
+msgstr "documento A"
 
 #: ../../source/reference/design/multidocument.md
 msgid "the investment managers of those funds"
-msgstr ""
+msgstr "os gestores de investimentos daqueles fundos"
 
 #: ../../source/reference/design/multidocument.md
 msgid "document B"
-msgstr ""
+msgstr "documento B"
 
 #: ../../source/reference/design/multidocument.md
 msgid "the asset managers"
-msgstr ""
+msgstr "as gestoras de ativos"
 
 #: ../../source/reference/design/multidocument.md
 msgid "back in document A"
-msgstr ""
+msgstr "de volta no documento A"
 
 #: ../../source/reference/design/multidocument.md:28
 msgid ""
-"Extracting the investments *with their managers attached* is then not "
-"possible from either file alone. Run separately, document A yields "
-"holdings whose manager column is empty and a manager table with nothing "
-"to attach it to; document B yields managers belonging to funds it never "
-"mentions. Joining the two afterwards means reimplementing, outside the "
-"engine and by hand, the matching the engine already does — on names that "
-"were normalised inside it and are no longer normalised in the CSV."
+"Extracting the investments *with their managers attached* is then not possible from "
+"either file alone. Run separately, document A yields holdings whose manager column is"
+" empty and a manager table with nothing to attach it to; document B yields managers "
+"belonging to funds it never mentions. Joining the two afterwards means "
+"reimplementing, outside the engine and by hand, the matching the engine already does "
+"— on names that were normalised inside it and are no longer normalised in the CSV."
 msgstr ""
+"Extrair os investimentos *com os gestores deles junto* não é, então, possível a "
+"partir de nenhum dos dois arquivos sozinho. Rodado à parte, o documento A dá posições"
+" cuja coluna de gestor está vazia e uma tabela de gestores sem nada a que prendê-la; "
+"o documento B dá gestores que pertencem a fundos que ele nunca menciona. Juntar os "
+"dois depois significa reimplementar, fora do motor e à mão, o casamento que o motor "
+"já faz — sobre nomes que lá dentro foram normalizados e no CSV já não estão."
 
 #: ../../source/reference/design/multidocument.md:35
 msgid "Passed together, the two files are one report:"
-msgstr ""
+msgstr "Passados juntos, os dois arquivos são um relatório só:"
 
 #: ../../source/reference/design/multidocument.md:41
 msgid "What \"as if it were one document\" means precisely"
-msgstr ""
+msgstr "O que \"como se fosse um documento só\" quer dizer exatamente"
 
 #: ../../source/reference/design/multidocument.md:43
 #, python-brace-format
 msgid ""
-"It means the **schedule** — the sequence of steps, where each step's "
-"results are the next step's input filter ({doc}`schedule`) — runs once, "
-"over the pages of the whole bundle:"
+"It means the **schedule** — the sequence of steps, where each step's results are the "
+"next step's input filter ({doc}`schedule`) — runs once, over the pages of the whole "
+"bundle:"
 msgstr ""
+"Quer dizer que o **escalonamento** — a sequência de passos, onde os resultados de "
+"cada passo são o filtro de entrada do seguinte ({doc}`schedule`) — roda uma vez, "
+"sobre as páginas do feixe inteiro:"
 
 #: ../../source/reference/design/multidocument.md:46
 msgid "every document is classified on its own, so each page gets a class;"
-msgstr ""
+msgstr "cada documento é classificado sozinho, de modo que cada página recebe uma classe;"
 
 #: ../../source/reference/design/multidocument.md:47
 msgid "the classified pages of all documents go into **one** pool;"
-msgstr ""
+msgstr "as páginas classificadas de todos os documentos vão para **um só** pool;"
 
 #: ../../source/reference/design/multidocument.md:48
 msgid ""
-"step 1 runs over every page of that pool, whichever file it came from, "
-"and its results become the filter data of step 2;"
+"step 1 runs over every page of that pool, whichever file it came from, and its "
+"results become the filter data of step 2;"
 msgstr ""
+"o passo 1 roda sobre toda página desse pool, venha ela do arquivo que vier, e os "
+"resultados dele viram o dado de filtro do passo 2;"
 
 #: ../../source/reference/design/multidocument.md:50
 msgid "step 2 runs over every page of the pool, again regardless of file."
-msgstr ""
+msgstr "o passo 2 roda sobre toda página do pool, de novo independentemente do arquivo."
 
 #: ../../source/reference/design/multidocument.md:52
 #, python-brace-format
 msgid ""
-"So in the example above, the step that reads the investment managers out "
-"of document B produces results that the later step over document A's "
-"holdings pages **receives as its input filter**. That is the whole "
-"mechanism, and it is why the bundle yields information neither file "
-"yields alone. The same applies to promises ({doc}`promises`): a value "
-"promised by a table in one document can be supplied by a page in another,"
-" because resolution happens once, over everything."
+"So in the example above, the step that reads the investment managers out of document "
+"B produces results that the later step over document A's holdings pages **receives as"
+" its input filter**. That is the whole mechanism, and it is why the bundle yields "
+"information neither file yields alone. The same applies to promises "
+"({doc}`promises`): a value promised by a table in one document can be supplied by a "
+"page in another, because resolution happens once, over everything."
 msgstr ""
+"Assim, no exemplo acima, o passo que lê os gestores de investimentos do documento B "
+"produz resultados que o passo posterior, sobre as páginas de posições do documento A,"
+" **recebe como filtro de entrada**. É todo esse o mecanismo, e é por isso que o feixe"
+" dá uma informação que nenhum dos dois arquivos dá sozinho. O mesmo vale para as "
+"promessas ({doc}`promises`): um valor prometido por uma tabela num documento pode ser"
+" fornecido por uma página em outro, porque a resolução acontece uma vez só, sobre "
+"tudo."
 
 #: ../../source/reference/design/multidocument.md:58
 msgid ""
-"Fund deduplication is also once, across the bundle — a fund named in both"
-" documents is one row, not two."
+"Fund deduplication is also once, across the bundle — a fund named in both documents "
+"is one row, not two."
 msgstr ""
+"A desduplicação de fundos também é uma só, sobre o feixe inteiro — um fundo nomeado "
+"nos dois documentos é uma linha, não duas."
 
 #: ../../source/reference/design/multidocument.md:61
 msgid "The rule: classify per document, schedule over the union"
-msgstr ""
+msgstr "A regra: classifique por documento, escalone sobre a união"
 
 #: ../../source/reference/design/multidocument.md:62
 msgid "**Classification is per document. The schedule is over the union.**"
-msgstr ""
+msgstr "**A classificação é por documento. O escalonamento é sobre a união.**"
 
 #: ../../source/reference/design/multidocument.md:64
 #, python-brace-format
 msgid ""
-"Each document is opened and classified on its own, so a format's "
-"finalizer sees one document's page sequence ({doc}`classification`). The "
-"classified pages of every document are then poured into **one** pool, and"
-" the schedule processes them together, caring only about the class each "
-"page was given."
+"Each document is opened and classified on its own, so a format's finalizer sees one "
+"document's page sequence ({doc}`classification`). The classified pages of every "
+"document are then poured into **one** pool, and the schedule processes them together,"
+" caring only about the class each page was given."
 msgstr ""
+"Cada documento é aberto e classificado sozinho, para que o finalizador de um formato "
+"veja a sequência de páginas de um documento só ({doc}`classification`). As páginas "
+"classificadas de todos os documentos são então despejadas num **único** pool, e o "
+"escalonamento as trabalha juntas, importando-se apenas com a classe que cada página "
+"recebeu."
 
 #: ../../source/reference/design/multidocument.md:68
 msgid ""
-"For everything downstream, having several documents changes **nothing** "
-"except that each page carries the information of which document it came "
-"from."
+"For everything downstream, having several documents changes **nothing** except that "
+"each page carries the information of which document it came from."
 msgstr ""
+"Para tudo o que vem a jusante, ter vários documentos não muda **nada**, exceto que "
+"cada página carrega a informação do documento de onde veio."
 
 #: ../../source/reference/design/multidocument.md:71
 msgid "Why that is the right shape"
-msgstr ""
+msgstr "Por que essa é a forma certa"
 
 #: ../../source/reference/design/multidocument.md:72
 msgid "The two halves of the rule are each forced, for opposite reasons."
-msgstr ""
+msgstr "As duas metades da regra são, cada uma, obrigatórias, por motivos opostos."
 
 #: ../../source/reference/design/multidocument.md:74
 msgid ""
-"**Classification must be per document** because a continuation rule is a "
-"fact about *adjacent pages of one file*. Over a union, page 1 of document"
-" B follows page 400 of document A, and \"this page continues the previous"
-" table\" would join tables that have nothing to do with each other."
+"**Classification must be per document** because a continuation rule is a fact about "
+"*adjacent pages of one file*. Over a union, page 1 of document B follows page 400 of "
+"document A, and \"this page continues the previous table\" would join tables that "
+"have nothing to do with each other."
 msgstr ""
+"**A classificação precisa ser por documento** porque uma regra de continuação é um "
+"fato sobre *páginas adjacentes de um mesmo arquivo*. Sobre uma união, a página 1 do "
+"documento B vem depois da página 400 do documento A, e \"esta página continua a "
+"tabela anterior\" juntaria tabelas que nada têm a ver uma com a outra."
 
 #: ../../source/reference/design/multidocument.md:78
 msgid ""
-"**The schedule must be over the union** because that is what makes "
-"several documents *one* extraction rather than several concatenated ones."
-" Promise resolution and fund deduplication happen once, across everything"
-" — so a fund named on the cover of document A can supply a value promised"
-" by a table in document B, and the same fund appearing in both is one "
-"row, not two."
+"**The schedule must be over the union** because that is what makes several documents "
+"*one* extraction rather than several concatenated ones. Promise resolution and fund "
+"deduplication happen once, across everything — so a fund named on the cover of "
+"document A can supply a value promised by a table in document B, and the same fund "
+"appearing in both is one row, not two."
 msgstr ""
+"**O escalonamento precisa ser sobre a união** porque é isso que faz de vários "
+"documentos *uma* extração, e não várias concatenadas. A resolução de promessas e a "
+"desduplicação de fundos acontecem uma vez só, sobre tudo — então um fundo nomeado na "
+"capa do documento A pode fornecer um valor prometido por uma tabela no documento B, e"
+" o mesmo fundo aparecendo nos dois é uma linha, não duas."
 
 #: ../../source/reference/design/multidocument.md:83
 msgid "This is the property that makes the two commands genuinely different:"
-msgstr ""
+msgstr "É esta a propriedade que torna os dois comandos genuinamente diferentes:"
 
 #: ../../source/reference/design/multidocument.md:90
 msgid "Identifying a document"
-msgstr ""
+msgstr "Identificar um documento"
 
 #: ../../source/reference/design/multidocument.md:92
 #, python-brace-format
 msgid ""
-"Every output row carries a **`Report`** column naming the document it "
-"came from, and the name comes from the document specifier "
-"({doc}`../../guides/user/documents`):"
+"Every output row carries a **`Report`** column naming the document it came from, and "
+"the name comes from the document specifier ({doc}`../../guides/user/documents`):"
 msgstr ""
+"Toda linha de saída carrega uma coluna **`Report`** que nomeia o documento de onde "
+"veio, e o nome vem do especificador de documento "
+"({doc}`../../guides/user/documents`):"
 
 #: ../../source/reference/design/multidocument.md
 msgid "Given"
-msgstr ""
+msgstr "Dado"
 
 #: ../../source/reference/design/multidocument.md
 msgid "Name"
-msgstr ""
+msgstr "Nome"
 
 #: ../../source/reference/design/multidocument.md
 msgid "`report.pdf`"
-msgstr ""
+msgstr "`report.pdf`"
 
 #: ../../source/reference/design/multidocument.md
 msgid "the absolute path"
-msgstr ""
+msgstr "o caminho absoluto"
 
 #: ../../source/reference/design/multidocument.md
 msgid "`report.pdf:EURIZON 2023`"
-msgstr ""
+msgstr "`report.pdf:EURIZON 2023`"
 
 #: ../../source/reference/design/multidocument.md
 msgid "`EURIZON 2023`"
-msgstr ""
+msgstr "`EURIZON 2023`"
 
 #: ../../source/reference/design/multidocument.md
 msgid "`https://…/r.pdf`"
-msgstr ""
+msgstr "`https://…/r.pdf`"
 
 #: ../../source/reference/design/multidocument.md
 msgid "the URL"
-msgstr ""
+msgstr "a URL"
 
 #: ../../source/reference/design/multidocument.md
 msgid "a directory named `2024`"
-msgstr ""
+msgstr "um diretório chamado `2024`"
 
 #: ../../source/reference/design/multidocument.md
 msgid "`2024/<file name>` per document in it"
-msgstr ""
+msgstr "`2024/<nome do arquivo>` para cada documento dentro dele"
 
 #: ../../source/reference/design/multidocument.md:102
 msgid "What the `Report` column replaced"
-msgstr ""
+msgstr "O que a coluna `Report` substituiu"
 
 #: ../../source/reference/design/multidocument.md:103
 msgid ""
-"The `Report` column exists in **every** run, batch or not, and that "
-"uniformity is the point of the design. Before it, batch mode had a "
-"`prefix out` column whose job was to give a document a name, and non-"
-"batch runs had no notion of naming at all — so the output schema depended"
-" on which mode produced it."
+"The `Report` column exists in **every** run, batch or not, and that uniformity is the"
+" point of the design. Before it, batch mode had a `prefix out` column whose job was "
+"to give a document a name, and non-batch runs had no notion of naming at all — so the"
+" output schema depended on which mode produced it."
 msgstr ""
+"A coluna `Report` existe em **toda** execução, em lote ou não, e essa uniformidade é "
+"o sentido da escolha. Antes dela, o modo em lote tinha uma coluna `prefix out` cuja "
+"função era dar nome a um documento, e as execuções fora do lote não tinham noção "
+"nenhuma de nome — então o schema de saída dependia de qual modo o tivesse produzido."
 
 #: ../../source/reference/design/multidocument.md:108
 msgid ""
-"Making the name a property of the *document specifier* rather than of "
-"*batch mode* removed the column, removed the special case, and made one "
-"schema serve both. A consumer of `investments.csv` no longer has to know "
-"how the run was invoked."
+"Making the name a property of the *document specifier* rather than of *batch mode* "
+"removed the column, removed the special case, and made one schema serve both. A "
+"consumer of `investments.csv` no longer has to know how the run was invoked."
 msgstr ""
+"Fazer do nome uma propriedade do *especificador de documento*, e não do *modo em "
+"lote*, tirou a coluna, tirou o caso especial, e fez um schema só servir aos dois. "
+"Quem consome `investments.csv` já não precisa saber como a execução foi invocada."
 
 #: ../../source/reference/design/multidocument.md:112
 msgid "How this differs from batch mode"
-msgstr ""
+msgstr "Em que isto difere do modo em lote"
 
 #: ../../source/reference/design/multidocument.md:113
 #, python-brace-format
 msgid ""
 "Several documents in one invocation is not the same as {doc}`batch mode "
-"<../../guides/user/advanced/batch>`, and the difference is exactly the "
-"one this page is about. Several `-i` is **one job** over several "
-"documents: one schedule, one pool of pages, shared filter data, shared "
-"promises, shared deduplication. Batch is **one job per row**, each with "
-"its own format and lists, each with its own schedule that sees nothing of"
-" the others — which is precisely what you do *not* want for a report "
+"<../../guides/user/advanced/batch>`, and the difference is exactly the one this page "
+"is about. Several `-i` is **one job** over several documents: one schedule, one pool "
+"of pages, shared filter data, shared promises, shared deduplication. Batch is **one "
+"job per row**, each with its own format and lists, each with its own schedule that "
+"sees nothing of the others — which is precisely what you do *not* want for a report "
 "split across files."
 msgstr ""
+"Vários documentos numa invocação não é a mesma coisa que o {doc}`modo em lote "
+"<../../guides/user/advanced/batch>`, e a diferença é exatamente aquela de que esta "
+"página trata. Vários `-i` são **um job só** sobre vários documentos: um "
+"escalonamento, um pool de páginas, dado de filtro compartilhado, promessas "
+"compartilhadas, desduplicação compartilhada. O lote é **um job por linha**, cada um "
+"com formato e listas próprios, cada um com um escalonamento próprio que nada vê dos "
+"outros — que é precisamente o que você *não* quer para um relatório dividido entre "
+"arquivos."
 
 #: ../../source/reference/design/multidocument.md:119
 msgid ""
-"A rule of thumb: if the files are pieces of one report, they belong to "
-"one job, several `-i`. If they are separate reports that merely happen to"
-" be extracted at the same time, they belong to separate rows of a batch. "
-"Batch rows can themselves name several documents, so a batch of bundles "
-"composes naturally."
+"A rule of thumb: if the files are pieces of one report, they belong to one job, "
+"several `-i`. If they are separate reports that merely happen to be extracted at the "
+"same time, they belong to separate rows of a batch. Batch rows can themselves name "
+"several documents, so a batch of bundles composes naturally."
 msgstr ""
+"Uma regra prática: se os arquivos são pedaços de um relatório só, eles pertencem a um"
+" job só, com vários `-i`. Se são relatórios distintos que apenas calham de ser "
+"extraídos ao mesmo tempo, pertencem a linhas distintas de um lote. Linhas de lote "
+"podem, elas próprias, nomear vários documentos, então um lote de feixes se compõe "
+"naturalmente."
 

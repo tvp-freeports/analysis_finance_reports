@@ -21,112 +21,124 @@ msgstr ""
 
 #: ../../source/reference/index.md:1
 msgid "Reference, by topic"
-msgstr ""
+msgstr "Referência, por assunto"
 
 #: ../../source/reference/index.md:3
 msgid ""
-"This is the **topic** axis of the documentation: audience-independent, "
-"complete, and the place every guide points at rather than repeating. A "
-"page here answers *what does this do*, for every option and every "
-"setting, without caring who is asking or what they are trying to achieve."
+"This is the **topic** axis of the documentation: audience-independent, complete, and "
+"the place every guide points at rather than repeating. A page here answers *what does"
+" this do*, for every option and every setting, without caring who is asking or what "
+"they are trying to achieve."
 msgstr ""
+"Este é o eixo por **assunto** da documentação: independente de quem lê, completo, e o"
+" lugar para onde todo guia aponta em vez de repetir. Uma página daqui responde a *o "
+"que isto faz*, para cada opção e cada ajuste, sem se importar com quem pergunta nem "
+"com o que essa pessoa quer conseguir."
 
 #: ../../source/reference/index.md:7
 #, python-brace-format
 msgid ""
-"If you want to know which of these you need, you are asking a guide's "
-"question: {doc}`../guides/index`."
+"If you want to know which of these you need, you are asking a guide's question: "
+"{doc}`../guides/index`."
 msgstr ""
+"Se você quer saber de qual delas precisa, está fazendo uma pergunta de guia: "
+"{doc}`../guides/index`."
 
 #: ../../source/reference/index.md:22
 msgid "What each part covers"
-msgstr ""
+msgstr "O que cada parte cobre"
 
 #: ../../source/reference/index.md:10
 msgid "Part"
-msgstr ""
+msgstr "Parte"
 
 #: ../../source/reference/index.md:10
 msgid "Covers"
-msgstr ""
+msgstr "Cobre"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
 msgid "{doc}`cli/index`"
-msgstr ""
+msgstr "{doc}`cli/index`"
 
 #: ../../source/reference/index.md:10
 msgid "every option of `freeports`, `freeports-dev` and `freeports-validate`"
-msgstr ""
+msgstr "toda opção do `freeports`, do `freeports-dev` e do `freeports-validate`"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
 msgid "{doc}`configuration/index`"
-msgstr ""
+msgstr "{doc}`configuration/index`"
 
 #: ../../source/reference/index.md:10
 msgid "the four places a setting can come from, and how they merge"
-msgstr ""
+msgstr "os quatro lugares de onde um ajuste pode vir, e como eles se fundem"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
 msgid "{doc}`design/index`"
-msgstr ""
+msgstr "{doc}`design/index`"
 
 #: ../../source/reference/index.md:10
 msgid ""
-"the algorithm, chapter by chapter, with each claim marked implemented, "
-"planned or accepted limit"
+"the algorithm, chapter by chapter, with each claim marked implemented, planned or "
+"accepted limit"
 msgstr ""
+"o algoritmo, capítulo a capítulo, com cada afirmação marcada como implementada, "
+"prevista ou limite aceito"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
 msgid "{doc}`../validation/index`"
-msgstr ""
+msgstr "{doc}`../validation/index`"
 
 #: ../../source/reference/index.md:10
-msgid ""
-"the published methodologies themselves — hashed artefacts, not ordinary "
-"prose"
-msgstr ""
+msgid "the published methodologies themselves — hashed artefacts, not ordinary prose"
+msgstr "as próprias metodologias publicadas — artefatos cujo hash conta, não prosa comum"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
 msgid "{doc}`glossary`"
-msgstr ""
+msgstr "{doc}`glossary`"
 
 #: ../../source/reference/index.md:10
 msgid "the words this project uses in a particular way"
-msgstr ""
+msgstr "as palavras que este projeto usa de um jeito particular"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
 msgid "{doc}`misc`"
-msgstr ""
+msgstr "{doc}`misc`"
 
 #: ../../source/reference/index.md:10
 msgid "whatever a section has not been written for yet"
-msgstr ""
+msgstr "tudo aquilo para o que ainda não se escreveu uma seção"
 
 #: ../../source/reference/index.md:32
 msgid "Two things to know about this column"
-msgstr ""
+msgstr "Duas coisas a saber sobre esta coluna"
 
 #: ../../source/reference/index.md:33
 msgid ""
-"**A reference page does not advise.** It says what an option does and "
-"stops. \"Which of these do I want\" is answered in the guide you came "
-"from — deliberately, because the answer differs by reader and the option "
-"does not."
+"**A reference page does not advise.** It says what an option does and stops. \"Which "
+"of these do I want\" is answered in the guide you came from — deliberately, because "
+"the answer differs by reader and the option does not."
 msgstr ""
+"**Uma página de referência não aconselha.** Ela diz o que uma opção faz e para por "
+"aí. \"Qual destas eu quero\" se responde no guia de onde você veio — de propósito, "
+"porque a resposta muda de leitor para leitor e a opção não."
 
 #: ../../source/reference/index.md:37
 #, python-brace-format
 msgid ""
-"**The validation pages are not editable prose.** They are content-"
-"addressed: their hashes are recorded in signed grants, here and in other "
-"repositories, and their published URLs are what those grants resolve. "
-"Correcting a typo in one invalidates every grant that cites it. See "
-"{doc}`../guides/institutional/why-trust-a-grant`."
+"**The validation pages are not editable prose.** They are content-addressed: their "
+"hashes are recorded in signed grants, here and in other repositories, and their "
+"published URLs are what those grants resolve. Correcting a typo in one invalidates "
+"every grant that cites it. See {doc}`../guides/institutional/why-trust-a-grant`."
 msgstr ""
+"**As páginas de validação não são prosa editável.** Elas são endereçadas pelo "
+"conteúdo: os hashes delas ficam registrados em avais assinados, aqui e em outros "
+"repositórios, e as URLs publicadas delas são o que esses avais resolvem. Corrigir um "
+"erro de digitação numa delas invalida todo aval que a cita. Veja "
+"{doc}`../guides/institutional/why-trust-a-grant`."
 

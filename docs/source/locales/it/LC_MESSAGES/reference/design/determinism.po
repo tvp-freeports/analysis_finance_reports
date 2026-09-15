@@ -28,8 +28,8 @@ msgid ""
 "*Implemented.* What the engine guarantees about order, what it does not, and why the "
 "guarantee was deliberately weakened in exactly one place."
 msgstr ""
-"*Realizzato.* Che cosa il motore garantisce sull'ordine, che cosa non garantisce, e "
-"perché la garanzia sia stata deliberatamente indebolita in un punto solo."
+"*Implementato.* Che cosa il motore garantisce sull'ordine, che cosa non garantisce, e"
+" perché la garanzia sia stata deliberatamente indebolita in un punto solo."
 
 #: ../../source/reference/design/determinism.md:6
 msgid "Ordered maps where order is observable"
@@ -67,7 +67,7 @@ msgstr "l'ordine in cui le pagine sono lavorate determina l'ordine delle righe d
 msgid "the order ids are visited in determines **which cycle** a promise failure reports."
 msgstr ""
 "l'ordine in cui gli identificatori sono visitati determina **quale ciclo** riferisce "
-"un guasto di promessa."
+"un fallimento di promessa."
 
 #: ../../source/reference/design/determinism.md:17
 msgid ""
@@ -160,10 +160,10 @@ msgid ""
 " they happened."
 msgstr ""
 "**La licenza di divergere è stata presa e poi non usata.** I risultati dei job sono "
-"raccolti in **caselle indicizzate**, cosa che non costa niente, quindi le tabelle "
+"raccolti in **slot indicizzati**, cosa che non costa niente, quindi le tabelle "
 "aggregate restano comunque identiche byte per byte. Il margine è stato speso solo "
-"nell'**unione dei file di registro**, dove le righe dei figli sono versate in quelle "
-"del padre nell'ordine dei job anziché nell'istante in cui sono accadute."
+"nell'**unione dei file di log**, dove le righe dei figli sono versate in quelle del "
+"padre nell'ordine dei job anziché nell'istante in cui sono accadute."
 
 #: ../../source/reference/design/determinism.md:46
 msgid ""
@@ -173,7 +173,7 @@ msgid ""
 msgstr ""
 "È l'esito ideale per un permesso del genere, ed è il motivo per cui i risultati di "
 "riferimento restano confrontabili per checksum benché il vincolo che li proteggeva "
-"sia stato formalmente lasciato cadere."
+"sia stato formalmente abbandonato."
 
 #: ../../source/reference/design/determinism.md:49
 msgid "What determinism does not guarantee"
@@ -185,13 +185,13 @@ msgid ""
 "produce lines in whatever order they happen; the merge restores job order at the end,"
 " not the original instants."
 msgstr ""
-"**L'intreccio delle righe di registro fra job contemporanei.** Due job che girano "
-"insieme producono righe nell'ordine in cui accadono; l'unione ristabilisce alla fine "
-"l'ordine dei job, non gli istanti originari."
+"**L'intreccio delle righe di log fra job contemporanei.** Due job che girano insieme "
+"producono righe nell'ordine in cui accadono; l'unione ristabilisce alla fine l'ordine"
+" dei job, non gli istanti originari."
 
 #: ../../source/reference/design/determinism.md:53
 msgid "**Wall-clock timing in the logs**, obviously."
-msgstr "**I tempi dell'orologio a muro nei registri**, ovviamente."
+msgstr "**I tempi presi sull'orologio di sistema nei log**, ovviamente."
 
 #: ../../source/reference/design/determinism.md:55
 #, python-brace-format

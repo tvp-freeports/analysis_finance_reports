@@ -79,11 +79,11 @@ msgstr ""
 
 #: ../../source/validation/methodologies/golden_standard.rst:33
 msgid "Explicitly confirm no data is omitted or incorrectly parsed"
-msgstr "Confermare esplicitamente che nessun dato sia omesso o analizzato male"
+msgstr "Confermare esplicitamente che nessun dato sia omesso o interpretato male"
 
 #: ../../source/validation/methodologies/golden_standard.rst:35
 msgid "**Log Analysis**:"
-msgstr "**Analisi del registro**:"
+msgstr "**Analisi del log**:"
 
 #: ../../source/validation/methodologies/golden_standard.rst:37
 msgid "Verify that ``.log.csv`` contains only true anomalies or is empty"
@@ -91,7 +91,7 @@ msgstr "Verificare che ``.log.csv`` contenga solo anomalie vere oppure sia vuoto
 
 #: ../../source/validation/methodologies/golden_standard.rst:38
 msgid "Each warning in the log must be reviewed and confirmed as legitimate"
-msgstr "Ogni avviso nel registro dev'essere riesaminato e confermato come legittimo"
+msgstr "Ogni avviso nel log dev'essere riesaminato e confermato come legittimo"
 
 #: ../../source/validation/methodologies/golden_standard.rst:40
 msgid "**Comprehensive Data Validation**:"
@@ -115,7 +115,7 @@ msgstr "Controllare come sono gestiti formati o strutture di dati insoliti"
 
 #: ../../source/validation/methodologies/golden_standard.rst:48
 msgid "Verify error handling and logging for problematic inputs"
-msgstr "Verificare la gestione degli errori e la registrazione per gli ingressi problematici"
+msgstr "Verificare la gestione degli errori e il logging per gli ingressi problematici"
 
 #: ../../source/validation/methodologies/golden_standard.rst:50
 msgid ""
@@ -134,8 +134,8 @@ msgid ""
 "accuracy - Validation of core algorithm functionality"
 msgstr ""
 "**Contesto di applicazione** Usa questa metodologia per: - La validazione di una "
-"candidata al rilascio - La verifica di elaborazioni di dati critiche - Situazioni che"
-" richiedono un'elevata fiducia nell'accuratezza dei dati - La validazione del "
+"release candidate - La verifica di elaborazioni di dati critiche - Situazioni che "
+"richiedono un'elevata fiducia nell'accuratezza dei dati - La validazione del "
 "funzionamento dell'algoritmo centrale"
 
 #: ../../source/validation/methodologies/golden_standard.rst:60
@@ -159,9 +159,9 @@ msgid ""
 "relative to the root of the repository the granted file lives in."
 msgstr ""
 "Questa metodologia copre gli stessi file di ``basic check`` -- è quel protocollo più "
-"la verifica manuale descritta sopra, non un argomento diverso -- quindi gli schemi "
+"la verifica manuale descritta sopra, non un argomento diverso -- quindi i pattern "
 "sono gli stessi, e ciò che cambia è ciò che un'attestazione su di essi afferma. Tutti"
-" gli schemi sono relativi alla radice del repository in cui vive il file attestato."
+" i pattern sono relativi alla radice del repository in cui vive il file attestato."
 
 #: ../../source/validation/methodologies/golden_standard.rst:71
 msgid "``tests/formats/**/out/*.csv``"

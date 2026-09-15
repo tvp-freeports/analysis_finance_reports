@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"POT-Creation-Date: 2026-09-15 08:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -61,13 +61,23 @@ msgstr ""
 
 #: ../../source/reference/design/limits.md:19
 msgid ""
-"**Two inherited panics.** Carried over from the Python original, on paths"
-" whose input genuinely cannot come from outside. They are documented "
-"where they are rather than converted into errors that would never fire, "
-"because a recorded known edge is more honest than a pretence of handling."
+"**Panics on paths whose input cannot come from outside.** Carried over "
+"from the Python original, and left as they are rather than converted into"
+" errors that would never fire: a recorded known edge is more honest than "
+"a pretence of handling. Where a value *can* come from outside — a page's "
+"own coordinates, a format's configuration, a Python pipe's arguments — "
+"the construction is fallible and the failure is handled where it happens."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:24
+#: ../../source/reference/design/limits.md:25
+msgid ""
+"A panic is nonetheless **contained at the page**, so that one this "
+"reasoning got wrong costs a page and not a run of 904 jobs. The net does "
+"not replace the rule; it makes being wrong about the rule survivable, and"
+" says so in `.log.csv` with the document and the page."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:29
 msgid ""
 "**The PDF line model, the line selections and the tabularizer were not "
 "redesigned.** Ported essentially as they were, and improvements noticed "
@@ -78,7 +88,7 @@ msgid ""
 "commit."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:30
+#: ../../source/reference/design/limits.md:35
 msgid ""
 "**PyMuPDF is a hard dependency.** There is no mature Rust equivalent that"
 " reads a page's text with its layout, and writing one is not this "
@@ -87,17 +97,17 @@ msgid ""
 "round trip — but it is a boundary that cannot be removed today."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:36
+#: ../../source/reference/design/limits.md:41
 msgid "Known defects, not yet decided"
 msgstr ""
 
-#: ../../source/reference/design/limits.md:38
+#: ../../source/reference/design/limits.md:43
 msgid ""
 "*These are wrong, not merely limited. They are listed so that nobody "
 "rediscovers them.*"
 msgstr ""
 
-#: ../../source/reference/design/limits.md:40
+#: ../../source/reference/design/limits.md:45
 #, python-brace-format
 msgid ""
 "**`--separate-out` on an unnamed document produces an invalid path.** The"
@@ -106,7 +116,7 @@ msgid ""
 "the document works around it ({doc}`../../guides/user/documents`)."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:45
+#: ../../source/reference/design/limits.md:50
 msgid ""
 "**`freeports.log.jsonl` is written in the working directory** while "
 "`.log.csv` sits next to the output on the grounds that it is a product of"
@@ -115,11 +125,11 @@ msgid ""
 "one at all, so the working directory of an ordinary run stays empty."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:50
+#: ../../source/reference/design/limits.md:55
 msgid "Deliberately not built"
 msgstr ""
 
-#: ../../source/reference/design/limits.md:52
+#: ../../source/reference/design/limits.md:57
 #, python-brace-format
 msgid ""
 "**The fourth segment.** Separating filtering from semantic "
@@ -127,7 +137,7 @@ msgid ""
 "boilerplate. Designed, argued for, not implemented — see {doc}`segments`."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:55
+#: ../../source/reference/design/limits.md:60
 #, python-brace-format
 msgid ""
 "**Parallelism of page classes and of deserialization blocks.** Cancelled "
@@ -135,7 +145,7 @@ msgid ""
 "measurements were."
 msgstr ""
 
-#: ../../source/reference/design/limits.md:58
+#: ../../source/reference/design/limits.md:63
 #, python-format
 msgid ""
 "**Internal optimisation of the hottest pipe.** 30–54% of a job, single-"
@@ -174,5 +184,16 @@ msgstr ""
 #~ "the first one at all, so the "
 #~ "working directory of an ordinary run "
 #~ "stays empty."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "**Two inherited panics.** Carried over "
+#~ "from the Python original, on paths "
+#~ "whose input genuinely cannot come from"
+#~ " outside. They are documented where "
+#~ "they are rather than converted into "
+#~ "errors that would never fire, because"
+#~ " a recorded known edge is more "
+#~ "honest than a pretence of handling."
 #~ msgstr ""
 

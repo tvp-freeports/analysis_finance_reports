@@ -94,7 +94,7 @@ msgstr "{doc}`../validation/index`"
 
 #: ../../source/reference/index.md:10
 msgid "the published methodologies themselves — hashed artefacts, not ordinary prose"
-msgstr "le metodologie pubblicate stesse — artefatti sottoposti a hash, non prosa ordinaria"
+msgstr "le metodologie pubblicate stesse — artefatti di cui conta l'hash, non prosa ordinaria"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
