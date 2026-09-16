@@ -9,6 +9,7 @@
 | `inspect-document` | classifies the pages of a report: which page is what |
 | `inspect-page` | shows what one page looks like at a chosen stage of the pipeline |
 | `make-tests` | freezes one page's current behaviour as JSON fixtures |
+| `probe list`, `probe run` | ready-made questions to ask a document before a format exists — see [below](probe-subcommand) |
 | `test` | runs the repository's tests through pytest |
 
 They are meant to be used in that order the first time and in the
@@ -143,6 +144,66 @@ $ freeports-dev inspect-page -f CARNE-EN23 -p 25 -m structured --strings "Total 
 
 `--page-type` matters even in the pipeline modes: it is what decides which pipeline the page is fed
 through, so inspecting a page as the wrong class shows you a correct answer to the wrong question.
+
+(probe-subcommand)=
+## `probe` — ready-made questions to ask a document
+
+Before a format exists there is nothing for `inspect-page` to run, and the first questions are about
+the documents themselves: *what kind of report is this*, *where are the totals*, *who manages the
+investments*. A **probe** is a small script that asks one such question of one or more PDFs and prints
+what it found, with pages, positions and fonts. A few ship with the tool.
+
+```console
+$ freeports-dev probe list
+$ freeports-dev probe run doc_kind ~/reports/                     # every PDF under a directory
+$ freeports-dev probe run assets en report-2023.pdf report-2024.pdf
+$ freeports-dev probe run sfdr_title --summary -f CARNE-EN23        # the reports a format's tests pin
+```
+
+| Probe | The question | Its own arguments |
+|---|---|---|
+| `doc_kind` | what kind of document is this, and does it carry the SFDR periodic disclosure? | — |
+| `assets` | where are the total assets, liabilities and net assets, and does the accounting equation hold? | `en` or `it`, the label profile |
+| `manco` | what is printed under or beside the management company label, with its period of office? | `--max-pages N` |
+| `inv_managers` | is an investment manager declared, and are there exceptions per sub-fund? | — |
+| `sfdr_title` | which SFDR article does each disclosure declare, by its title and by its tick mark? | `--summary` |
+
+`probe list` prints the same questions, read from each probe's docstring; `python <probe>.py` with no
+document prints the full description, including the **known limits** of that probe.
+
+| Option | Meaning |
+|---|---|
+| `NAME` | the probe, with or without its `probe_` prefix |
+| the probe's arguments, then `PDF-OR-DIR…` | the probe's own arguments **first**, then the documents; a directory is walked to the bottom |
+| `--format` / `-f` | also run on the reports under `tests/formats/<FORMAT>/` of the repository |
+| `--probes-dir` | a directory of probes of your own, searched before the shipped ones; repeatable. Also `dev.probes_dirs` |
+| `--repo` / `-r`, `--config`, `--db-directory` / `-I` | the shared options; see {doc}`../configuration/dev-and-validate` |
+
+**What a probe answers is a lead, not a result.** Probes are deliberately rough: they take the first
+match, and the first match in a financial report is often the table of contents. A probe that says
+`-` has not proven that something is absent, only that it did not find it the way it looks; and a
+probe that finds a value has found *a* value, which the page still has to confirm. Their use is to
+tell you, across several reports of the same format at once, whether an anchor holds — which is the
+question that decides whether a format can be written at all.
+
+**The tool's own options may appear anywhere**, before or after the probe's name; everything else
+after the name goes to the probe, in its order. The documents start at the first word that names an
+existing file or directory, and nothing may follow them.
+
+### Writing a probe of your own
+
+A probe is **one independent file** named `probe_<question>.py`. Put it in a directory and name the
+directory with `--probes-dir` or `dev.probes_dirs`; it then appears in `probe list`, and if it has
+the name of a shipped probe it stands in for it — `list` says so.
+
+| Rule | Why |
+|---|---|
+| no probe imports another; depend only on `pymupdf` and `freeports.utils.pdf_extract` | the tool runs each probe as its own process and never imports it, so a probe is a file you can add, copy or delete without touching anything else |
+| read lines with `pdflines_from_pagedict` | the lines have to be the ones the engine sees, with the same extraction flags |
+| the **first line of the docstring** is the question; a `Usage:` section and the known limits follow | it is what `probe list` shows, and what a person reads before trusting the output |
+| the probe's own options first, the documents last; do not use `-f`, `-r`, `-F`, `-I`, `--config` or `--probes-dir` | that order is how the tool tells them apart, and those options belong to the tool |
+| with no document, print the docstring and exit with 2 | `python probe_x.py` alone should explain itself |
+| one block of output per document, starting with the path; `-` for "not found" | several reports side by side are the point |
 
 ## `make-tests` — freeze a page
 

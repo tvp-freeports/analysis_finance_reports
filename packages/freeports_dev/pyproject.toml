@@ -39,7 +39,9 @@ package-dir = {"" = "src"}
 # `lib/**/*` was missing: the JSON and template files `init-format-repo` and `setup-input-db`
 # read at runtime live under `lib/`, not `data/`, so a non-editable install shipped none of them
 # and both commands failed with "data file not found".
-freeports_dev = ["py.typed", "data/**/*", "lib/**/*"]
+# `probes/*.py` are files to run, not modules: the directory has no `__init__.py`, so without this
+# line a non-editable install would ship a `probe` command with no probes behind it.
+freeports_dev = ["py.typed", "data/**/*", "lib/**/*", "probes/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

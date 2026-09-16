@@ -55,6 +55,10 @@ dev:
   target_lists: [TEST]
   noconfirm: false
   page_type: investments
+  text_width: 100
+  preview_columns: 20
+  max_hits: 50
+  probes_dirs: [probes]
 ```
 
 | Key | Environment | Flag | Default | Means |
@@ -62,6 +66,10 @@ dev:
 | `dev.target_lists` | `FREEPORTS_DEV_TARGET_LIST` | `--target-list` / `-T` | `[TEST]` | the lists a repository's tests search for |
 | `dev.noconfirm` | `FREEPORTS_DEV_NOCONFIRM` | `--noconfirm` | `false` | skip the `make-tests` prompts |
 | `dev.page_type` | `FREEPORTS_DEV_PAGE_TYPE` | `--page-type` / `-t` | `investments` | the page class `make-tests` and `inspect-page` assume |
+| `dev.text_width` | `FREEPORTS_DEV_TEXT_WIDTH` | `--text-width` | `100` | how much of a line's text `inspect-page` and `find-text` print |
+| `dev.preview_columns` | `FREEPORTS_DEV_PREVIEW_COLUMNS` | `--preview-columns` | `20` | how wide the ASCII preview of a page image is |
+| `dev.max_hits` | `FREEPORTS_DEV_MAX_HITS` | `--max-hits` | `50` | how many hits `find-text` prints before stopping |
+| `dev.probes_dirs` | `FREEPORTS_DEV_PROBES_DIRS` | `--probes-dir` (repeatable) | none | directories of your own probes, searched before the shipped ones — see {ref}`probe-subcommand` |
 
 As in the engine, **an absent flag is unset, not false**: `--noconfirm` can only ever switch the
 setting on, so a command line that does not mention it leaves alone a file that did. To switch it
@@ -70,6 +78,11 @@ back off, use a source that can spell false — `FREEPORTS_DEV_NOCONFIRM=false`,
 And as in the engine, `FREEPORTS_DEV_TARGET_LIST` is **one** list, the whole raw value, never split:
 a list whose name contains a comma still names one list. Several lists need a source with a list
 type — the flag, or the YAML file.
+
+`FREEPORTS_DEV_PROBES_DIRS` is the exception, and for a reason: it holds **paths**, and a list of
+paths in an environment is written the way `PATH` is — separated by `:` (`;` on Windows). Each tier
+is resolved against where it was written: the flag and the variable against the working directory, a
+relative entry of `dev.probes_dirs` against the configuration file.
 
 ```{caution}
 `dev.target_lists` decides what a repository's tests look for, and therefore what its reference

@@ -1,4 +1,4 @@
-﻿freeports\_dev.cli
+freeports\_dev.cli
 ==================
 
 .. automodule:: freeports_dev.cli

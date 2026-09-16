@@ -306,6 +306,55 @@ def _cmd_find_text(args):
         print(f"no match in {len(documents)} document(s)")
 
 
+def _tool_options_among_probe_words(args):
+    """Take the tool's own options out of the words after the probe's name.
+
+    ``freeports-dev probe run sfdr_title --summary a.pdf -F repo`` has to work: people add an option
+    at the end of a command line. Whatever this parser does not recognise stays, in its order, for the
+    probe -- which is how a probe's own ``--summary`` or ``--max-pages 30`` reaches it untouched.
+    """
+    parser = argparse.ArgumentParser(
+        add_help=False, parents=[_common_parser(), _probes_dirs_parser()]
+    )
+    parser.add_argument("--format", "-f")
+    found, remaining = parser.parse_known_args(args.words)
+    for name in ("repo", "db_directory", "config", "format"):
+        if getattr(found, name) is not None:
+            setattr(args, name, getattr(found, name))
+    if found.probes_dirs:
+        args.probes_dirs = (args.probes_dirs or []) + found.probes_dirs
+    args.words = remaining
+
+
+def _cmd_probe(args):
+    """List the ready-made probes, or run one on some documents."""
+    if args.probe_command == "run":
+        _tool_options_among_probe_words(args)
+    config = DevConfig(args)
+
+    from freeports_dev import find_text, probe
+
+    try:
+        probes = probe.discover(config.probes_dirs)
+        if args.probe_command != "run":
+            print(probe.format_listing(probes))
+            sys.exit(0)
+        chosen = probe.find_probe(probes, args.name)
+        arguments, paths = probe.split_arguments(args.words)
+        if not paths and not args.format:
+            raise probe.ProbeError(
+                "no documents: name PDFs or directories after the probe's arguments, or a format "
+                "with --format"
+            )
+        documents = find_text.documents_to_search(
+            paths, repo=config.formats_repo, format_name=args.format
+        )
+    except (probe.ProbeError, find_text.SearchError) as error:
+        print(f"Error: {error}")
+        sys.exit(1)
+    sys.exit(probe.run(chosen, arguments, documents))
+
+
 def _cmd_inspect_document(args):
     repo = DevConfig(args).formats_repo
 
@@ -1247,6 +1296,20 @@ def _page_type_parser():
     return parser
 
 
+def _probes_dirs_parser():
+    """Directories of one's own probes, searched before the ones the tool ships."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--probes-dir",
+        dest="probes_dirs",
+        action="append",
+        metavar="PATH",
+        help="A directory of probes of your own, searched before the shipped ones; repeatable "
+        "[default: $FREEPORTS_DEV_PROBES_DIRS, then `dev.probes_dirs` in the configuration file]",
+    )
+    return parser
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="freeports-dev",
@@ -1477,6 +1540,37 @@ def main():
         "--text-width",
         type=int,
         help="Truncate the printed text to this many characters [setting: dev.text_width]",
+    )
+
+    p_probe = sub.add_parser(
+        "probe",
+        help="List or run the ready-made probes: small scripts that ask one question of a document",
+    )
+    probe_sub = p_probe.add_subparsers(dest="probe_command")
+    probe_dirs = _probes_dirs_parser()
+    probe_sub.add_parser(
+        "list",
+        parents=[common, probe_dirs],
+        help="Name each probe and the question it asks",
+    )
+    p_probe_run = probe_sub.add_parser(
+        "run",
+        parents=[common, probe_dirs],
+        help="Run a probe: freeports-dev probe run [options] NAME [ARGUMENT...] PDF-OR-DIR...",
+    )
+    p_probe_run.add_argument(
+        "--format",
+        "-f",
+        help="Also run on the reports this format's tests already pin",
+    )
+    p_probe_run.add_argument(
+        "name", help="The probe, with or without the probe_ prefix"
+    )
+    p_probe_run.add_argument(
+        "words",
+        nargs=argparse.REMAINDER,
+        metavar="ARGUMENT... DOCUMENT...",
+        help="The probe's own arguments first, then PDFs or directories",
     )
 
     p_doc = sub.add_parser(
@@ -1814,6 +1908,8 @@ def main():
         _cmd_inspect_document(args)
     elif args.command == "find-text":
         _cmd_find_text(args)
+    elif args.command == "probe":
+        _cmd_probe(args)
     elif args.command == "init-format-repo":
         _cmd_init_repo(args)
     elif args.command == "init-input-db":

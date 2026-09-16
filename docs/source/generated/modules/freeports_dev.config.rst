@@ -11,6 +11,9 @@ freeports\_dev.config
    
       DEFAULT_PAGE_TYPE
       DEFAULT_TARGET_LISTS
+      DEFAULT_TEXT_WIDTH
+      DEFAULT_PREVIEW_COLUMNS
+      DEFAULT_MAX_HITS
    
    .. rubric:: Functions
 

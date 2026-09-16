@@ -22,9 +22,10 @@ what it will have is one that runs when it is asked for and says so when it has 
 import pytest
 
 
-#: Requesting any of these makes a test `slow`, because each one bootstraps a repository and every
-#: bootstrap is twenty-odd process starts.
-SLOW_FIXTURES = frozenset({"repo", "database"})
+#: Requesting any of these makes a test `slow`: `repo` and `database` each bootstrap a repository,
+#: twenty-odd process starts; `runs_a_process` is asked for by a test that starts one itself (a probe
+#: run end to end), which is the same rule at a smaller price.
+SLOW_FIXTURES = frozenset({"repo", "database", "runs_a_process"})
 
 
 def pytest_collection_modifyitems(config, items):

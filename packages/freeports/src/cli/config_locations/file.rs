@@ -60,6 +60,10 @@
 //! | `dev.target_lists` | the target lists a format repository's own tests search for |
 //! | `dev.noconfirm` | skip `make-tests` confirmation prompts |
 //! | `dev.page_type` | the default page type for `make-tests` and `inspect-page` |
+//! | `dev.text_width` | how much of a line's text `inspect-page` and `find-text` print |
+//! | `dev.preview_columns` | how wide the ASCII preview of a page image is |
+//! | `dev.max_hits` | how many hits `find-text` prints before stopping |
+//! | `dev.probes_dirs` | directories of one's own probes, searched before the shipped ones |
 //! | `validate.key_id` | the GPG key identifying the person signing grants |
 //! | `validate.sources` | where methodology pages are resolved from, in priority order |
 //! | `validate.offline` | never fetch a methodology; use what has already been cached |
@@ -116,6 +120,16 @@ pub struct DevFileConfig {
     /// The default page type for `make-tests` and `inspect-page`, for a repository whose formats do
     /// not call their pages `investments`.
     pub page_type: Option<String>,
+    /// How much of a line's text the reading modes of `inspect-page` and `find-text` print.
+    pub text_width: Option<u64>,
+    /// How wide the ASCII preview of a page image is, in `inspect-page --mode images`.
+    pub preview_columns: Option<u64>,
+    /// How many hits `find-text` prints before stopping.
+    pub max_hits: Option<u64>,
+    /// Directories of probes of one's own, searched before the probes `freeports-dev` ships. Kept
+    /// as written: a relative entry means relative to the file, and the tool resolves it, because
+    /// only the tool knows which file it read.
+    pub probes_dirs: Option<Vec<String>>,
 }
 
 /// The `validate` section: what `freeports-validate` reads from the configuration file.
@@ -392,6 +406,12 @@ fn dev_section(path: &Path, value: &serde_yaml::Value) -> Result<DevFileConfig, 
             "target_lists" => config.target_lists = Some(value_as_string_list(path, "dev.target_lists", entry)?),
             "noconfirm" => config.noconfirm = Some(value_as_bool(path, "dev.noconfirm", entry)?),
             "page_type" => config.page_type = Some(value_as_string(path, "dev.page_type", entry)?),
+            "text_width" => config.text_width = Some(value_as_whole_number(path, "dev.text_width", entry)?),
+            "preview_columns" => {
+                config.preview_columns = Some(value_as_whole_number(path, "dev.preview_columns", entry)?)
+            }
+            "max_hits" => config.max_hits = Some(value_as_whole_number(path, "dev.max_hits", entry)?),
+            "probes_dirs" => config.probes_dirs = Some(value_as_string_list(path, "dev.probes_dirs", entry)?),
             other => {
                 return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: format!("dev.{other}") });
             }
@@ -420,6 +440,12 @@ fn validate_section(path: &Path, value: &serde_yaml::Value) -> Result<ValidateFi
         }
     }
     Ok(config)
+}
+
+/// A count written as a YAML integer. A negative number is refused rather than wrapped, and a
+/// quoted one is refused too: these keys have no word form, unlike the parallelism levels.
+fn value_as_whole_number(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<u64, FileConfigError> {
+    value.as_u64().ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
 }
 
 fn value_as_bool(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<bool, FileConfigError> {
@@ -1087,6 +1113,76 @@ mod tests {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "dev: true\n");
                 assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+
+            mod reading_and_search_keys {
+                use super::*;
+
+                #[test]
+                fn every_presentation_key_is_read_as_a_whole_number() {
+                    let dir = tempfile::tempdir().unwrap();
+                    let path = write(
+                        dir.path(),
+                        "cfg.yaml",
+                        "dev:\n  text_width: 60\n  preview_columns: 30\n  max_hits: 5\n",
+                    );
+                    let dev = load_tooling(Some(&path)).unwrap().dev;
+                    assert_eq!(dev.text_width, Some(60));
+                    assert_eq!(dev.preview_columns, Some(30));
+                    assert_eq!(dev.max_hits, Some(5));
+                }
+
+                #[test]
+                fn a_presentation_key_left_out_stays_unset() {
+                    let dir = tempfile::tempdir().unwrap();
+                    let path = write(dir.path(), "cfg.yaml", "dev:\n  text_width: 60\n");
+                    let dev = load_tooling(Some(&path)).unwrap().dev;
+                    assert_eq!(dev.preview_columns, None);
+                    assert_eq!(dev.max_hits, None);
+                    assert_eq!(dev.probes_dirs, None);
+                }
+
+                #[test]
+                fn a_word_where_a_number_belongs_is_a_typed_error_naming_the_key() {
+                    let dir = tempfile::tempdir().unwrap();
+                    let path = write(dir.path(), "cfg.yaml", "dev:\n  max_hits: many\n");
+                    let result = load_tooling(Some(&path));
+                    assert!(matches!(result, Err(FileConfigError::InvalidValue { key: "dev.max_hits", .. })), "got {result:?}");
+                }
+
+                #[test]
+                fn a_negative_number_is_rejected_rather_than_wrapped() {
+                    let dir = tempfile::tempdir().unwrap();
+                    let path = write(dir.path(), "cfg.yaml", "dev:\n  text_width: -1\n");
+                    assert!(matches!(
+                        load_tooling(Some(&path)),
+                        Err(FileConfigError::InvalidValue { key: "dev.text_width", .. })
+                    ));
+                }
+            }
+
+            mod probes_dirs_key {
+                use super::*;
+
+                #[test]
+                fn the_directories_are_read_in_the_order_written() {
+                    let dir = tempfile::tempdir().unwrap();
+                    let path = write(dir.path(), "cfg.yaml", "dev:\n  probes_dirs: [lab/probes, /abs/probes]\n");
+                    assert_eq!(
+                        load_tooling(Some(&path)).unwrap().dev.probes_dirs,
+                        Some(vec!["lab/probes".to_string(), "/abs/probes".to_string()])
+                    );
+                }
+
+                #[test]
+                fn a_single_string_instead_of_a_list_is_a_typed_error() {
+                    let dir = tempfile::tempdir().unwrap();
+                    let path = write(dir.path(), "cfg.yaml", "dev:\n  probes_dirs: lab/probes\n");
+                    assert!(matches!(
+                        load_tooling(Some(&path)),
+                        Err(FileConfigError::InvalidValue { key: "dev.probes_dirs", .. })
+                    ));
+                }
             }
         }
 

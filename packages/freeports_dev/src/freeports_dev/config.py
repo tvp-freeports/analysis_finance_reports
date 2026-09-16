@@ -265,6 +265,26 @@ class DevConfig:
         )
 
     @property
+    def probes_dirs(self):
+        """Directories of one's own probes, searched before the ones the tool ships.
+
+        Unlike a target list, the environment variable **is** split -- on ``os.pathsep``, the way
+        ``PATH`` is -- because these are paths and that is how a list of paths is written in an
+        environment. Each tier is resolved against the place it was written: the flag and the
+        variable against the working directory, the file against the file.
+        """
+        from_args = self._arg("probes_dirs")
+        if from_args:
+            return [Path(p).expanduser().resolve() for p in from_args]
+        env = _env("FREEPORTS_DEV_PROBES_DIRS")
+        if env is not None:
+            return [Path(p).expanduser().resolve() for p in env.split(os.pathsep) if p]
+        from_file = self._from_file("DEV_PROBES_DIRS")
+        if from_file is not None:
+            return [Path(_from_config_dir(p, self._file_path)) for p in from_file]
+        return []
+
+    @property
     def max_hits(self):
         """How many hits ``find-text`` prints before stopping."""
         return _int_setting(

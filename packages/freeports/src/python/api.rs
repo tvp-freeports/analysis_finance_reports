@@ -454,6 +454,37 @@ impl PyFreeportsFileConfig {
         self.1.dev.page_type.clone()
     }
 
+    /// `dev.text_width` — how much of a line's text the reading modes print.
+    #[getter]
+    #[pyo3(name = "DEV_TEXT_WIDTH")]
+    fn dev_text_width(&self) -> Option<u64> {
+        self.1.dev.text_width
+    }
+
+    /// `dev.preview_columns` — how wide the ASCII preview of a page image is.
+    #[getter]
+    #[pyo3(name = "DEV_PREVIEW_COLUMNS")]
+    fn dev_preview_columns(&self) -> Option<u64> {
+        self.1.dev.preview_columns
+    }
+
+    /// `dev.max_hits` — how many hits `find-text` prints before stopping.
+    #[getter]
+    #[pyo3(name = "DEV_MAX_HITS")]
+    fn dev_max_hits(&self) -> Option<u64> {
+        self.1.dev.max_hits
+    }
+
+    /// `dev.probes_dirs` — directories of one's own probes, as written in the file.
+    ///
+    /// Relative entries are handed over unresolved: they mean "relative to the file", and
+    /// `freeports-dev` knows which file it read.
+    #[getter]
+    #[pyo3(name = "DEV_PROBES_DIRS")]
+    fn dev_probes_dirs(&self) -> Option<Vec<String>> {
+        self.1.dev.probes_dirs.clone()
+    }
+
     /// `validate.key_id` — the GPG key grants are signed with.
     #[getter]
     #[pyo3(name = "VALIDATE_KEY_ID")]

@@ -9,6 +9,24 @@ inspect-document  →  inspect-page  →  make-tests  →  test
                      engine see?                      still hold?
 ```
 
+## 0. Before the loop: ask the documents
+
+The loop starts from a format that exists. Before that, the questions are about the reports: is this
+an annual or a semi-annual report, where are the totals, does the anchor you have in mind hold on the
+other reports of the same issuer? `freeports-dev probe` answers the common ones on several documents
+at once:
+
+```console
+$ freeports-dev probe list
+$ freeports-dev probe run doc_kind ~/reports/issuer-x/
+$ freeports-dev probe run assets en ~/reports/issuer-x/
+```
+
+A probe gives leads, not results — it takes the first match, which in a financial report is often the
+table of contents. What it is good at is showing, side by side, whether a label, a font or a position
+is **the same in every report of the format**: an anchor that holds on one report only is not an
+anchor. See {ref}`probe-subcommand` for the probes that ship and for writing your own.
+
 ## 1. `inspect-document` — which page is what
 
 ```console
