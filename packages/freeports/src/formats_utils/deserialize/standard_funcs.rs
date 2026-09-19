@@ -548,9 +548,23 @@ pub type DateConverter =
 /// Both converters are configurable. [`DeserializerAssetsStandard::new`] picks between the built-in
 /// integer and float converters, while [`DeserializerAssetsStandard::with_converters`] takes
 /// arbitrary ones.
+/// Che cosa succede a una riga di attivi la cui equazione contabile non torna (`R32`).
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+pub enum Unbalanced {
+    /// L'errore risale, e il gestore di pagina salta **la pagina**. È il comportamento storico, e
+    /// resta il difetto perché nessun formato deve leggere diversamente senza averlo chiesto.
+    #[default]
+    FailPage,
+    /// L'errore si ferma qui: si scrive come `ERROR` con i tre importi, e la pagina continua con
+    /// gli altri comparti. Su una pagina che ne porta otto, il refuso di uno non costa gli altri
+    /// sette.
+    DropRow,
+}
+
 pub struct DeserializerAssetsStandard {
     num_converter: NumConverter,
     date_converter: DateConverter,
+    unbalanced: Unbalanced,
 }
 
 impl Default for DeserializerAssetsStandard {
@@ -584,7 +598,13 @@ impl DeserializerAssetsStandard {
     /// lines of "treat a dash as zero, otherwise parse an integer" — and a boolean cannot represent
     /// that. [`Self::new`] stays the convenient signature for the two built-in cases.
     pub fn with_converters(num_converter: NumConverter, date_converter: DateConverter) -> Self {
-        Self { num_converter, date_converter }
+        Self { num_converter, date_converter, unbalanced: Unbalanced::default() }
+    }
+
+    /// The same pipe, reading an unbalanced row the other way (`R32`).
+    pub fn with_unbalanced(mut self, unbalanced: Unbalanced) -> Self {
+        self.unbalanced = unbalanced;
+        self
     }
 
     /// Converts amounts with the configured converter: an already-typed value is accepted directly,
@@ -660,8 +680,22 @@ impl DeserializePipe for DeserializerAssetsStandard {
     }
 
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
-        let assets = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
-        Ok(vec![Extracted::FundAssets(assets)])
+        match self.call(block) {
+            Ok(assets) => Ok(vec![Extracted::FundAssets(assets)]),
+            // `R32`: a row whose accounting does not add up is a real error, and it is written as
+            // one — but it is **the row** that is wrong, not the page. Letting it rise would cost
+            // every other fund of a statement that lists eight of them side by side.
+            Err(DeserializeStandardFuncsError::OutputClass(
+                error @ OutputClassError::UnbalancedFundAssets { .. },
+            )) if self.unbalanced == Unbalanced::DropRow => {
+                tracing::error!(
+                    error = log_error(&error),
+                    "{error} - the row is dropped, the rest of the page is kept"
+                );
+                Ok(Vec::new())
+            }
+            Err(error) => Err(error.into_pipe_error(self.name())),
+        }
     }
 }
 
@@ -1550,6 +1584,61 @@ mod tests {
 
         fn assets_block(metadata: BTreeMap<String, BlockValue>) -> TextBlock {
             TextBlock::from_content(BlockType::RELEVANT_BLOCK, metadata, "")
+        }
+
+        /// `R32`: la riga la cui equazione contabile non torna.
+        mod the_unbalanced_row {
+            use super::*;
+            use crate::core::pipeline::DeserializePipe;
+
+            fn unbalanced() -> TextBlock {
+                // 200 + 800 ≠ 1500: è il refuso di MEDIOLANUM-IT24.B p13, dove un punto al posto
+                // di una virgola sposta la cifra di tre ordini di grandezza.
+                assets_block(assets_metadata(&[("tot_assets", BlockValue::from("1500"))]))
+            }
+
+            #[test]
+            fn by_default_it_rises_and_the_page_is_lost_with_it() {
+                let pipe = DeserializerAssetsStandard::new(true, cast::to_date);
+
+                let error = pipe.deserialize(&unbalanced()).unwrap_err();
+
+                assert!(format!("{error}").contains("1500"), "{error}");
+            }
+
+            /// La strada scelta dall'utente: l'errore si ferma qui, e gli altri comparti della
+            /// pagina — otto su ANIMA-EN23 p63 — non pagano il refuso di uno.
+            #[test]
+            fn dropping_the_row_keeps_the_rest_of_the_page() {
+                let pipe =
+                    DeserializerAssetsStandard::new(true, cast::to_date).with_unbalanced(Unbalanced::DropRow);
+
+                let produced = pipe.deserialize(&unbalanced()).expect("the row is dropped, not raised");
+
+                assert!(produced.is_empty());
+            }
+
+            /// Solo l'equazione: un campo mancante resta un errore che risale, perché non è la
+            /// riga a essere sbagliata, è il cablaggio.
+            #[test]
+            fn any_other_failure_still_rises() {
+                let pipe =
+                    DeserializerAssetsStandard::new(true, cast::to_date).with_unbalanced(Unbalanced::DropRow);
+                let mut md = assets_metadata(&[]);
+                md.remove("currency");
+
+                assert!(pipe.deserialize(&assets_block(md)).is_err());
+            }
+
+            #[test]
+            fn a_balanced_row_is_untouched_either_way() {
+                let pipe =
+                    DeserializerAssetsStandard::new(true, cast::to_date).with_unbalanced(Unbalanced::DropRow);
+
+                let produced = pipe.deserialize(&assets_block(assets_metadata(&[]))).unwrap();
+
+                assert_eq!(produced.len(), 1);
+            }
         }
 
         mod required_fields {

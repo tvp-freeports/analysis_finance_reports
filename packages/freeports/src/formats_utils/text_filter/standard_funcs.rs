@@ -1025,9 +1025,21 @@ impl TextFilterPipe for TextFilterManagmentCompanyStandard {
 pub struct TextFilterAssetsStandard {
     date_regex: Option<Regex>,
     remove_from_fund_regexes: Vec<Regex>,
+    note_marks: String,
 }
 
 impl TextFilterAssetsStandard {
+    /// The same filter, stripping these characters from the end of a fund's name (`R16`).
+    ///
+    /// It is not cosmetic. Fund identities compare after deep normalisation, and normalisation does
+    /// **not** remove an asterisk: `Global High Yield*` and `Global High Yield` are two different
+    /// elements, so a name carrying its footnote mark matches no known fund and the row disappears
+    /// without a word — the very case `R12` warns about.
+    pub fn with_note_marks(mut self, note_marks: impl Into<String>) -> Self {
+        self.note_marks = note_marks.into();
+        self
+    }
+
     pub fn new(
         date_regex: Option<&str>,
         remove_from_fund_regexes: Vec<String>,
@@ -1049,7 +1061,7 @@ impl TextFilterAssetsStandard {
             .transpose()?;
         let remove_from_fund_regexes =
             remove_from_fund_regexes.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { date_regex, remove_from_fund_regexes })
+        Ok(Self { date_regex, remove_from_fund_regexes, note_marks: String::new() })
     }
 
     pub fn call(
@@ -1065,6 +1077,14 @@ impl TextFilterAssetsStandard {
             let mut fund_name = raw_fund.to_string();
             for pattern in &self.remove_from_fund_regexes {
                 fund_name = pattern.replace_all(&fund_name, "");
+            }
+            if !self.note_marks.is_empty() {
+                let marks: Vec<char> = self.note_marks.chars().collect();
+                let stripped = fund_name.trim_end().trim_end_matches(|c| marks.contains(&c)).trim_end();
+                if stripped.len() != fund_name.trim_end().len() {
+                    tracing::debug!(fund = stripped, "footnote mark stripped from the fund name");
+                }
+                fund_name = stripped.to_string();
             }
 
             if !known_funds.contains(&MatchFund::new(&fund_name)) {
@@ -2650,6 +2670,55 @@ mod tests {
 
         fn known_funds() -> Vec<Extracted> {
             vec![Extracted::Fund(Fund::new("Alpha Fund"))]
+        }
+
+        /// `R16`: il richiamo di nota va tolto, o il comparto non si riconosce.
+        mod note_marks {
+            use super::*;
+
+            #[test]
+            fn a_fund_carrying_its_footnote_mark_is_not_recognised_without_the_parameter() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blocks = vec![asset_block("Alpha Fund*", "EUR", None)];
+
+                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+
+                assert!(kept.is_empty(), "the asterisk makes it a different fund");
+            }
+
+            #[test]
+            fn the_same_fund_is_recognised_once_the_mark_is_declared() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap().with_note_marks("*");
+                let blocks = vec![asset_block("Alpha Fund*", "EUR", None)];
+
+                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+
+                assert_eq!(kept.len(), 1);
+                assert_eq!(kept[0].metadata["fund"], BlockValue::from("Alpha Fund"));
+            }
+
+            /// Il richiamo può essere staccato dal nome da uno spazio — `ANIMA Brightview 2023-I *`
+            /// su ANIMA-EN23 p63, dove l'asterisco è perfino una riga a sé.
+            #[test]
+            fn a_mark_separated_by_a_space_goes_too() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap().with_note_marks("*†");
+                let blocks = vec![asset_block("Alpha Fund *", "EUR", None)];
+
+                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+
+                assert_eq!(kept.len(), 1);
+                assert_eq!(kept[0].metadata["fund"], BlockValue::from("Alpha Fund"));
+            }
+
+            #[test]
+            fn a_name_that_carries_no_mark_is_left_exactly_as_it_is() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap().with_note_marks("*");
+                let blocks = vec![asset_block("Alpha Fund", "EUR", None)];
+
+                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+
+                assert_eq!(kept[0].metadata["fund"], BlockValue::from("Alpha Fund"));
+            }
         }
 
         mod construction {

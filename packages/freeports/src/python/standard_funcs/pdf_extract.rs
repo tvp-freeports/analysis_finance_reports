@@ -7,7 +7,7 @@ use pyo3::exceptions::PyValueError;
 
 use crate::core::classes::BlockType;
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    AssetsColumn, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
+    AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
     PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard, PdfExtractSfdrArticleStandard, pdf_extract_currency_standard,
     pdf_extract_fund_standard, pdf_extract_managment_company_standard,
@@ -400,38 +400,113 @@ fn table_settings(
     })
 }
 
-/// One column of the assets pipe, from the flat keyword arguments.
-fn assets_column(anchor: PdfLineSelection, vector: (f64, f64), mult: (f64, f64)) -> AssetsColumn {
-    AssetsColumn {
-        anchor,
-        vector: (vector.0 as f32, vector.1 as f32),
-        width: mult.0 as f32,
-        height: mult.1 as f32,
+/// The Python shim of one numeric column of the assets pipe.
+///
+/// A column is an anchor plus the search window hung off it, and the three belong together: the
+/// window is measured in multiples of *that* anchor's bounding box, so a vector without its anchor
+/// means nothing. Grouping them is what lets the assets pipe take three column arguments instead of
+/// nine loose ones.
+///
+/// The defaults are the native constructor's, and they are the shape of the common case: the
+/// number sits on the label's own row, to its right.
+///
+/// The Python selection is kept beside the native one so that the `anchor` getter can hand back
+/// what was passed in: the native form is an either-or type the shim cannot rebuild from.
+#[pyclass(name = "AssetsColumn", module = "freeports.standard_funcs.pdf_extract")]
+#[derive(Clone)]
+pub struct PyAssetsColumn {
+    column: AssetsColumn,
+    anchor: PyPdfLineSelection,
+}
+
+impl PyAssetsColumn {
+    /// The wrapped native column, as the standard pipe constructor requires it.
+    pub fn native(&self) -> AssetsColumn {
+        self.column.clone()
     }
+}
+
+#[pymethods]
+impl PyAssetsColumn {
+    #[new]
+    #[pyo3(signature = (anchor, vec=(1.2, 0.0), mult=(100.0, 1.3)))]
+    fn new(anchor: &Bound<'_, PyAny>, vec: (f64, f64), mult: (f64, f64)) -> PyResult<PyAssetsColumn> {
+        let selection = anchor.extract::<PyRef<'_, PyPdfLineSelection>>().map_err(|_| {
+            tracing::error!(argument = "anchor", "expected a PdfLineSelection, got something else");
+            PyValueError::new_err("anchor must be a PdfLineSelection")
+        })?;
+        Ok(PyAssetsColumn {
+            column: AssetsColumn {
+                anchor: selection.selection(),
+                vector: (vec.0 as f32, vec.1 as f32),
+                width: mult.0 as f32,
+                height: mult.1 as f32,
+            },
+            anchor: selection.clone(),
+        })
+    }
+
+    #[getter]
+    fn anchor(&self) -> PyPdfLineSelection {
+        self.anchor.clone()
+    }
+
+    #[getter]
+    fn vec(&self) -> (f32, f32) {
+        self.column.vector
+    }
+
+    #[setter]
+    fn set_vec(&mut self, vec: (f64, f64)) {
+        self.column.vector = (vec.0 as f32, vec.1 as f32);
+    }
+
+    #[getter]
+    fn mult(&self) -> (f32, f32) {
+        (self.column.width, self.column.height)
+    }
+
+    #[setter]
+    fn set_mult(&mut self, mult: (f64, f64)) {
+        self.column.width = mult.0 as f32;
+        self.column.height = mult.1 as f32;
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "AssetsColumn(vec=({}, {}), mult=({}, {}))",
+            self.column.vector.0, self.column.vector.1, self.column.width, self.column.height
+        )
+    }
+}
+
+/// A native assets column from a Python object, with a message naming the argument.
+fn column_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<AssetsColumn> {
+    object.extract::<PyRef<'_, PyAssetsColumn>>().map(|column| column.native()).map_err(|_| {
+        tracing::error!(argument = name, "expected an AssetsColumn, got something else");
+        PyValueError::new_err(format!("{name} must be an AssetsColumn"))
+    })
 }
 
 /// The pipe for the fund-assets blocks.
 ///
-/// **A divergence absorbed here:** the Python signature takes fourteen flat keywords, three per
-/// numeric column, while the native type groups each triple into one column. The flat signature is
-/// kept, and the grouping happens in `assets_column`.
+/// Each of the three numeric columns is one [`PyAssetsColumn`], which is what the native type has
+/// always been: an anchor and the window hung off it. The signature used to spell the three apart
+/// into nine flat keywords and regroup them here, which meant a format could pass a vector to one
+/// column and a multiplier to another without anything noticing.
 #[pyfunction]
 #[pyo3(name = "PdfExtractAssetsStandard")]
 #[pyo3(signature = (
     fund_set,
     currency_set,
-    net_assets_set,
-    liabilities_set,
-    tot_assets_set,
-    net_assets_vec=(1.2, 0.0),
-    liabilities_vec=(1.2, 0.0),
-    tot_assets_vec=(1.2, 0.0),
-    net_assets_mult=(100.0, 1.3),
-    liabilities_mult=(100.0, 1.3),
-    tot_assets_mult=(100.0, 1.3),
-    date_set=None,
+    net_assets,
+    liabilities,
+    tot_assets,
+    date=None,
     table_condition=false,
     skip_column=1,
+    pair_by_abscissa=false,
+    drop=None,
     table_cfg=None,
     algorithm_flags=None,
     collapse_alg=None,
@@ -444,18 +519,14 @@ fn assets_column(anchor: PdfLineSelection, vector: (f64, f64), mult: (f64, f64))
 pub fn py_pdf_extract_assets_standard(
     fund_set: &Bound<'_, PyAny>,
     currency_set: Option<&Bound<'_, PyAny>>,
-    net_assets_set: &Bound<'_, PyAny>,
-    liabilities_set: &Bound<'_, PyAny>,
-    tot_assets_set: &Bound<'_, PyAny>,
-    net_assets_vec: (f64, f64),
-    liabilities_vec: (f64, f64),
-    tot_assets_vec: (f64, f64),
-    net_assets_mult: (f64, f64),
-    liabilities_mult: (f64, f64),
-    tot_assets_mult: (f64, f64),
-    date_set: Option<&Bound<'_, PyAny>>,
+    net_assets: &Bound<'_, PyAny>,
+    liabilities: &Bound<'_, PyAny>,
+    tot_assets: &Bound<'_, PyAny>,
+    date: Option<&Bound<'_, PyAny>>,
     table_condition: bool,
     skip_column: i64,
+    pair_by_abscissa: bool,
+    drop: Option<&Bound<'_, PyAny>>,
     table_cfg: Option<PyRef<'_, PyTableConfig>>,
     algorithm_flags: Option<&Bound<'_, PyAny>>,
     collapse_alg: Option<PyRef<'_, PyCollapseAlgorithm>>,
@@ -467,16 +538,19 @@ pub fn py_pdf_extract_assets_standard(
     let args = AssetsStandardArgs {
         fund_set: selection_of("fund_set", fund_set)?,
         currency_set: optional_selection_of("currency_set", currency_set)?,
-        net_assets: assets_column(selection_of("net_assets_set", net_assets_set)?, net_assets_vec, net_assets_mult),
-        liabilities: assets_column(
-            selection_of("liabilities_set", liabilities_set)?,
-            liabilities_vec,
-            liabilities_mult,
-        ),
-        tot_assets: assets_column(selection_of("tot_assets_set", tot_assets_set)?, tot_assets_vec, tot_assets_mult),
-        date_set: optional_selection_of("date_set", date_set)?,
+        net_assets: column_of("net_assets", net_assets)?,
+        liabilities: column_of("liabilities", liabilities)?,
+        tot_assets: column_of("tot_assets", tot_assets)?,
+        // One selection or a list of them: the list is a preference order, and the common case
+        // of a single candidate should not have to be written as a list of one.
+        date: match date.filter(|object| !object.is_none()) {
+            None => Vec::new(),
+            Some(object) => selections_of("date", object)?,
+        },
         table_condition,
         skip_column,
+        pairing: if pair_by_abscissa { AssetsPairing::ByAbscissa } else { AssetsPairing::ByIndex },
+        drop: optional_selection_of("drop", drop)?,
         // `algorithm_flags` left out keeps this pipe's own two flags, not `TableSettings`'
         // default: a format that names none of these keywords must read its fund columns exactly
         // as it did before.

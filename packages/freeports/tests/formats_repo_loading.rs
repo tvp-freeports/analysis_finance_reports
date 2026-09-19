@@ -830,3 +830,240 @@ pipelines = {{"investments": _Pipeline(
         assert!(repo.load().is_err(), "a pipe given a nonsense `rows` should not load");
     }
 }
+
+/// Una pagina di prospetto: il fondo, la valuta e i tre totali con il numero alla loro destra.
+///
+/// `Holdings` c'è perché è la riga che il classificatore del repo di prova cerca; il resto è la
+/// forma che `A4` legge — tre etichette e un numero per ciascuna, più il netto che sta **una riga
+/// sotto** la sua etichetta, che è il caso per cui la finestra di una colonna si sposta.
+fn assets_page(number: u32) -> Page {
+    Page::new(
+        number,
+        (300.0, 300.0),
+        vec![
+            PdfLine::new("ArialBold", 10.0, "Holdings", (0.0, 0.0, 60.0, 10.0)),
+            PdfLine::new("ArialBold", 10.0, "Alpha Fund", (0.0, 12.0, 60.0, 22.0)),
+            PdfLine::new("ArialItalic", 10.0, "in EUR", (0.0, 24.0, 40.0, 32.0)),
+            PdfLine::new("ArialBold", 10.0, "Total assets", (0.0, 40.0, 60.0, 50.0)),
+            PdfLine::new("Arial", 10.0, "1.500", (100.0, 40.0, 140.0, 50.0)),
+            PdfLine::new("ArialBold", 10.0, "Total liabilities", (0.0, 60.0, 60.0, 70.0)),
+            PdfLine::new("Arial", 10.0, "500", (100.0, 60.0, 140.0, 70.0)),
+            PdfLine::new("ArialBold", 10.0, "Total net assets", (0.0, 80.0, 60.0, 90.0)),
+            PdfLine::new("Arial", 10.0, "1.000", (100.0, 95.0, 140.0, 105.0)),
+        ],
+        Vec::new(),
+    )
+}
+
+/// `A4`, la pipe degli attivi, dal lato in cui un formato la nomina.
+///
+/// La superficie Python prende **una colonna per argomento** invece di tre parole chiave sciolte
+/// per colonna: un'ancora senza la sua finestra non vuol dire niente, e tenerle separate lasciava
+/// passare un formato che dava il vettore a una colonna e il moltiplicatore a un'altra.
+mod the_assets_pipe {
+    use super::*;
+
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::{Layer, Registry};
+
+    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+
+    /// Un modulo d'autore con un solo tubo `A4`, costruito con gli argomenti dati.
+    fn module_with(arguments: &str) -> String {
+        format!(
+            r#"
+from freeports.log import warn
+from freeports.standard_funcs.pdf_extract import AssetsColumn, PdfExtractAssetsStandard
+from freeports.utils.pdf_extract import PdfLineSelection
+
+class _Pipeline:
+    def __init__(self, pdf_extract, text_filter, deserialize):
+        self.pdf_extract = pdf_extract
+        self.text_filter = text_filter
+        self.deserialize = deserialize
+
+def filter_blocks(blocks, companies):
+    for blk in blocks:
+        warn("A4 read " + str(sorted(blk.metadata.items())), coord_1="a4")
+    return []
+
+def deserialize_nothing(txt_blk):
+    return None
+
+pipelines = {{"investments": _Pipeline(
+    PdfExtractAssetsStandard({arguments}),
+    filter_blocks,
+    deserialize_nothing,
+)}}
+"#
+        )
+    }
+
+    fn repo_with(arguments: &str) -> RepoBuilder {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/args.csv",
+            "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n",
+        );
+        repo.write("content/algorithms/unstructured/a_en24.py", &module_with(arguments));
+        repo
+    }
+
+    fn messages_of(arguments: &str) -> Vec<String> {
+        let repo = repo_with(arguments);
+        let algorithm = repo.load().expect("the repository loads");
+        let document = Document::new("A fund report", "A-EN24", vec![assets_page(7)]);
+
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let path = dir.path().join(".log.csv");
+        let csv = CsvLogLayer::create(&path).expect("csv layer construction");
+        let subscriber = Registry::default().with(csv.clone().with_filter(csv_event_filter()));
+        tracing::subscriber::with_default(subscriber, || {
+            algorithm.apply(&document, &[]).expect("the algorithm runs");
+        });
+        csv.close().expect("the csv layer closes");
+
+        let content = fs::read_to_string(&path).expect("read .log.csv");
+        content
+            .lines()
+            .skip(1)
+            .filter_map(|line| {
+                csv::ReaderBuilder::new()
+                    .has_headers(false)
+                    .from_reader(line.as_bytes())
+                    .records()
+                    .next()?
+                    .ok()
+                    .map(|record| record.iter().map(str::to_string).collect::<Vec<_>>()[8].clone())
+            })
+            .collect()
+    }
+
+    const HEADS: &str = r#"
+        fund_set=PdfLineSelection.text("^Alpha Fund$"),
+        currency_set=PdfLineSelection.text("^in EUR$"),
+        tot_assets=AssetsColumn(PdfLineSelection.text("^Total assets$")),
+        liabilities=AssetsColumn(PdfLineSelection.text("^Total liabilities$")),
+    "#;
+
+    #[test]
+    fn a_format_can_name_it_and_the_three_totals_reach_the_next_segment() {
+        let messages = messages_of(&format!(
+            r#"{HEADS}
+            net_assets=AssetsColumn(
+                PdfLineSelection.text("^Total net assets$"), vec=(1.2, 1.5), mult=(100.0, 1.3)
+            ),"#
+        ));
+
+        assert_eq!(
+            messages,
+            vec![
+                "A4 read [('currency', 'in EUR'), ('date', None), ('fund', 'Alpha Fund'), \
+                 ('liabilities', '500'), ('net_assets', '1.000'), ('tot_assets', '1.500')]"
+                    .to_string()
+            ]
+        );
+    }
+
+    /// Il difetto della finestra è «sulla riga dell'etichetta, alla sua destra»: il netto sta una
+    /// riga sotto, e senza spostare la finestra la sua colonna non prende niente — e la pipe lo
+    /// **dice**, nominando la colonna, invece di lasciare la riga sparire.
+    #[test]
+    fn a_column_whose_window_reaches_nothing_says_which_one_it_is() {
+        let messages =
+            messages_of(&format!(r#"{HEADS} net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$")),"#));
+
+        assert_eq!(messages.len(), 1, "{messages:?}");
+        assert!(messages[0].contains(r#"assets column "net_assets" has 0 entries"#), "{messages:?}");
+    }
+
+    /// Una colonna è un tipo, non tre parole chiave: passarle una selezione nuda è un errore di
+    /// cablaggio, e si vede al caricamento invece che a metà corsa.
+    #[test]
+    fn a_bare_selection_where_a_column_belongs_is_refused() {
+        let repo = repo_with(&format!(
+            r#"{HEADS} net_assets=PdfLineSelection.text("^Total net assets$"),"#
+        ));
+        let error = repo.load().expect_err("a bare selection is not a column");
+
+        assert!(format!("{error}").contains("net_assets must be an AssetsColumn"), "{error}");
+    }
+
+    /// I candidati della data passano il confine come lista, e l'ordine è quello della lista —
+    /// non quello della pagina, che è il punto per cui la lista esiste (`R5`).
+    #[test]
+    fn the_date_candidates_are_tried_in_the_order_the_format_writes_them() {
+        let messages = messages_of(&format!(
+            r#"{HEADS}
+            net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$"), vec=(1.2, 1.5)),
+            date=[PdfLineSelection.text("^nowhere on this page$"), PdfLineSelection.text("^Holdings$")],"#
+        ));
+
+        assert_eq!(messages.len(), 1, "{messages:?}");
+        assert!(messages[0].contains("('date', 'Holdings')"), "{messages:?}");
+    }
+
+    /// Un solo candidato si scrive senza lista: è la forma che tre formati usano già.
+    #[test]
+    fn a_single_candidate_needs_no_list() {
+        let messages = messages_of(&format!(
+            r#"{HEADS}
+            net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$"), vec=(1.2, 1.5)),
+            date=PdfLineSelection.text("^Holdings$"),"#
+        ));
+
+        assert!(messages[0].contains("('date', 'Holdings')"), "{messages:?}");
+    }
+
+    /// `R25` e la risposta **B**: candidati che non prendono niente lasciano un avviso e la riga,
+    /// non la pagina.
+    #[test]
+    fn candidates_that_take_nothing_leave_a_warning_and_the_row() {
+        let messages = messages_of(&format!(
+            r#"{HEADS}
+            net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$"), vec=(1.2, 1.5)),
+            date=PdfLineSelection.text("^nowhere on this page$"),"#
+        ));
+
+        assert!(messages.iter().any(|m| m.contains("the date of this statement is declared")), "{messages:?}");
+        assert!(messages.iter().any(|m| m.contains("('date', None)")), "{messages:?}");
+    }
+
+    /// Le due parole chiave dell'appaiamento si nominano dal formato, e su una pagina a un comparto
+    /// solo danno lo stesso esito dell'indice.
+    #[test]
+    fn a_format_can_ask_for_abscissa_pairing_and_name_a_column_to_drop() {
+        let messages = messages_of(&format!(
+            r#"{HEADS}
+            net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$"), vec=(1.2, 1.5)),
+            pair_by_abscissa=True,
+            drop=PdfLineSelection.text("^30/06/2023$"),"#
+        ));
+
+        assert_eq!(
+            messages,
+            vec![
+                "A4 read [('currency', 'in EUR'), ('date', None), ('fund', 'Alpha Fund'), \
+                 ('liabilities', '500'), ('net_assets', '1.000'), ('tot_assets', '1.500')]"
+                    .to_string()
+            ]
+        );
+    }
+
+    /// La valuta è obbligatoria fuori dal caso tabellare, e il costruttore lo dice caricando.
+    #[test]
+    fn a_missing_currency_selection_is_refused_when_the_page_is_not_a_table() {
+        let repo = repo_with(
+            r#"
+            fund_set=PdfLineSelection.text("^Alpha Fund$"),
+            currency_set=None,
+            tot_assets=AssetsColumn(PdfLineSelection.text("^Total assets$")),
+            liabilities=AssetsColumn(PdfLineSelection.text("^Total liabilities$")),
+            net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$")),
+            "#,
+        );
+        let error = repo.load().expect_err("no currency, no non-tabular branch");
+
+        assert!(format!("{error}").contains("currency"), "{error}");
+    }
+}

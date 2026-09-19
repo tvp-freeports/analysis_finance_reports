@@ -117,7 +117,8 @@ pub mod standard_funcs {
             PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd, section_bottom,
         };
         pub use crate::formats_utils::pdf_extract::standard_funcs::{
-            AssetsColumn, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
+            AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage,
+            InvestmentsStandardArgs,
             PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
             PdfExtractPageClassifyStandard, PdfExtractSfdrArticleStandard, PdfExtractStandardFuncsError,
             pdf_extract_currency_standard, pdf_extract_fund_standard, pdf_extract_managment_company_standard,
@@ -138,7 +139,7 @@ pub mod standard_funcs {
             DeserializeSfdrArticleStandard, DeserializeStandardFuncsError, DeserializerAssetsStandard,
             DeserializerFundStandard, DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
             DeserializerInvestmentsManagerStandard, DeserializerManagmentCompanyStandard,
-            DeserializerPageClassifyStandard,
+            DeserializerPageClassifyStandard, Unbalanced,
         };
     }
 }

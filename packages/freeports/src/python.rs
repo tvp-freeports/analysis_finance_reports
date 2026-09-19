@@ -206,7 +206,7 @@ pub mod freeports {
         mod pdf_extract {
             #[pymodule_export]
             use crate::python::standard_funcs::pdf_extract::{
-                py_pdf_extract_assets_standard, py_pdf_extract_currency_constant,
+                PyAssetsColumn, py_pdf_extract_assets_standard, py_pdf_extract_currency_constant,
                 py_pdf_extract_currency_standard, py_pdf_extract_fund_standard,
                 py_pdf_extract_investments_standard, py_pdf_extract_labelled_value_standard,
                 py_pdf_extract_managment_company_standard, py_pdf_extract_page_classify_standard,

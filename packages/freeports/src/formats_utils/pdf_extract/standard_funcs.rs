@@ -531,6 +531,80 @@ fn range_0_to_len_step(len: usize, step: i64) -> Result<Vec<usize>, PdfExtractSt
     Ok((0..len).step_by(step as usize).collect())
 }
 
+/// The text of several lines joined in reading order: rows top to bottom, and left to right inside
+/// a row. A single line is returned as it stands.
+///
+/// Two lines belong to the same row when their vertical extents overlap, which is what makes this
+/// right for both shapes a wrapped value takes: FINECO-EN23@LUX p31 spells its date as `D` ·
+/// `ECEMBER` · ` 31, 2024`, three fragments side by side whose boxes overlap vertically because
+/// they are two different sizes of the same word; a value wrapped onto the next line does not
+/// overlap, and stays in the order it is read.
+fn join_in_reading_order(lines: &[&PdfLine]) -> String {
+    // One line is not a join: its text goes through untouched, trailing spaces included. Trimming
+    // it would change what every format that already reads a date gets, for no reason — the
+    // trimming below exists so that two fragments do not meet with three spaces between them.
+    if let [only] = lines {
+        return only.text().clone();
+    }
+    let mut ordered: Vec<&&PdfLine> = lines.iter().collect();
+    ordered.sort_by(|a, b| {
+        let (a_box, b_box) = (a.bbox().as_tuple(), b.bbox().as_tuple());
+        let same_row = a_box.1 < b_box.3 && b_box.1 < a_box.3;
+        if same_row {
+            a_box.0.partial_cmp(&b_box.0).unwrap_or(std::cmp::Ordering::Equal)
+        } else {
+            a_box.1.partial_cmp(&b_box.1).unwrap_or(std::cmp::Ordering::Equal)
+        }
+    });
+    ordered.iter().map(|line| line.text().trim()).collect::<Vec<_>>().join(" ").trim().to_string()
+}
+
+/// The band a line belongs to: the one it overlaps most, or the nearest when it overlaps none.
+///
+/// The fallback is not a concession. A number is set right-aligned under a heading that is often
+/// narrower than the column it titles, so a cell can sit entirely beside its own band — which is
+/// why «the nearest» and not «none».
+fn band_of(line: &PdfLine, bands: &[(f32, f32)]) -> Option<usize> {
+    let (x0, _, x1, _) = line.bbox().as_tuple();
+    let overlap = |band: &(f32, f32)| (x1.min(band.1) - x0.max(band.0)).max(0.0);
+    let widest = bands
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| overlap(a).total_cmp(&overlap(b)))
+        .filter(|(_, band)| overlap(band) > 0.0);
+    if let Some((index, _)) = widest {
+        return Some(index);
+    }
+    let distance = |band: &(f32, f32)| if x1 < band.0 { band.0 - x1 } else { x0 - band.1 };
+    bands.iter().enumerate().min_by(|(_, a), (_, b)| distance(a).total_cmp(&distance(b))).map(|(i, _)| i)
+}
+
+/// Whether a line stands under one of the columns a format asked to leave out.
+fn falls_in(line: &PdfLine, bands: &[(f32, f32)]) -> bool {
+    let (x0, _, x1, _) = line.bbox().as_tuple();
+    let centre = (x0 + x1) / 2.0;
+    bands.iter().any(|(left, right)| centre >= *left && centre <= *right)
+}
+
+/// How a number is matched to the fund it belongs to.
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+pub enum AssetsPairing {
+    /// By position in the list: the *n*-th number of each label goes with the *n*-th fund.
+    ///
+    /// The historical behaviour, and the default, because changing it would move the output of
+    /// seven formats at once. It holds only while every column has a cell on every one of the
+    /// three rows: a single missing cell shifts everything after it, and the lengths match again
+    /// once the extra entries are dropped, so nothing says a word.
+    #[default]
+    ByIndex,
+    /// By abscissa: a number goes with the fund whose column it sits under.
+    ///
+    /// A missing cell then stays a missing cell. It is the rule `CLUSTERS` §4.1 sets for the whole
+    /// family — *columns are discovered, and label ↔ value pairing is done by comparing abscissae,
+    /// never by column index*.
+    ByAbscissa,
+}
+
 /// One of the three numeric columns of an assets block, with the multiplier of the search window
 /// that locates it from its own label.
 #[derive(Clone)]
@@ -562,12 +636,14 @@ impl AssetsColumn {
 pub struct PdfExtractAssetsStandard {
     fund_set: PdfLineSelection,
     currency_set: Option<PdfLineSelection>,
-    date_set: Option<PdfLineSelection>,
+    date: Vec<PdfLineSelection>,
     tot_assets: AssetsColumn,
     liabilities: AssetsColumn,
     net_assets: AssetsColumn,
     table_condition: bool,
     skip_column: i64,
+    pairing: AssetsPairing,
+    drop: Option<PdfLineSelection>,
     table: TableSettings,
 }
 
@@ -579,9 +655,22 @@ pub struct AssetsStandardArgs {
     pub net_assets: AssetsColumn,
     pub liabilities: AssetsColumn,
     pub tot_assets: AssetsColumn,
-    pub date_set: Option<PdfLineSelection>,
+    /// The date, as **candidates tried in order**: the first one that takes any line wins.
+    ///
+    /// An order of preference is not expressible with the selection algebra, because a union is
+    /// unordered and resolves to whichever line comes first **on the page** — on CARNE-EN23 p19
+    /// that is the page header, while `R5` wants the one above the column, which is lower down.
+    /// A list says which is preferred without saying where it sits.
+    ///
+    /// Each candidate **joins** every line it takes, in reading order: FINECO-EN23@LUX p31 writes
+    /// its date as three fragments in two different sizes.
+    pub date: Vec<PdfLineSelection>,
     pub table_condition: bool,
     pub skip_column: i64,
+    /// How a number is matched to its fund. See [`AssetsPairing`].
+    pub pairing: AssetsPairing,
+    /// The header of the columns to leave out, if any. See [`PdfExtractAssetsStandard::dropped_bands`].
+    pub drop: Option<PdfLineSelection>,
     /// How the **fund columns** are grouped, in the `table_condition: true` mode. The numeric
     /// columns do not pass through the tabularizer at all: each is a window hung off its own
     /// anchor, so nothing here touches them.
@@ -603,9 +692,11 @@ impl AssetsStandardArgs {
             net_assets,
             liabilities,
             tot_assets,
-            date_set: None,
+            date: Vec::new(),
             table_condition: false,
             skip_column: 1,
+            pairing: AssetsPairing::default(),
+            drop: None,
             table: TableSettings::assets_funds(),
         }
     }
@@ -626,15 +717,29 @@ impl PdfExtractAssetsStandard {
             net_assets,
             liabilities,
             tot_assets,
-            date_set,
+            date,
             table_condition,
             skip_column,
+            pairing,
+            drop,
             table,
         } = args;
         if !table_condition && currency_set.is_none() {
             return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "currency".to_string() });
         }
-        Ok(Self { fund_set, currency_set, date_set, tot_assets, liabilities, net_assets, table_condition, skip_column, table })
+        Ok(Self {
+            fund_set,
+            currency_set,
+            date,
+            tot_assets,
+            liabilities,
+            net_assets,
+            table_condition,
+            skip_column,
+            pairing,
+            drop,
+            table,
+        })
     }
 
     /// The page's lines minus the whitespace-only ones.
@@ -678,6 +783,50 @@ impl PdfExtractAssetsStandard {
             .collect())
     }
 
+    /// The horizontal band each fund column occupies, in the order the columns come out.
+    ///
+    /// It is what pairing by abscissa needs and pairing by index does without: a number belongs to
+    /// the fund whose column it sits under, not to the fund that happens to share its position in a
+    /// list. The band is the extent of the column's own header lines.
+    fn fund_bands(&self, lines: &[PdfLine]) -> Result<Vec<(f32, f32)>, PdfExtractStandardFuncsError> {
+        let funds: Vec<PdfLine> = select(&self.fund_set, lines).into_iter().cloned().collect();
+        if funds.is_empty() {
+            return Ok(Vec::new());
+        }
+        let coords = get_table_coordinates_from_lines(&funds, &self.table.config(None))?;
+        let cols: Vec<usize> = coords.iter().map(|(_, col)| *col).collect();
+        let n_cols = cols.iter().copied().max().map(|m| m + 1).unwrap_or(0);
+        Ok((0..n_cols)
+            .map(|col| {
+                funds.iter().zip(cols.iter()).filter(|(_, c)| **c == col).fold(
+                    (f32::INFINITY, f32::NEG_INFINITY),
+                    |(left, right), (line, _)| {
+                        let (x0, _, x1, _) = line.bbox().as_tuple();
+                        (left.min(x0), right.max(x1))
+                    },
+                )
+            })
+            .collect())
+    }
+
+    /// The bands of the columns a format asks to leave out (`drop`).
+    ///
+    /// AMUNDI-EN24 p360 prints each fund twice, this financial year and the previous one, and only
+    /// one of the two is the datum. The selection names the **header** of the columns to leave out
+    /// — `30/06/2023`, say — and every number standing under one of them is dropped with it.
+    fn dropped_bands(&self, lines: &[PdfLine]) -> Vec<(f32, f32)> {
+        let Some(selection) = &self.drop else { return Vec::new() };
+        let set = contextualized(selection, lines);
+        lines
+            .iter()
+            .filter(|line| set.contains(line))
+            .map(|line| {
+                let (x0, _, x1, _) = line.bbox().as_tuple();
+                (x0, x1)
+            })
+            .collect()
+    }
+
     /// Splits the last word off each fund name and takes it as the currency: the fallback of the
     /// tabular branch when there is no dedicated currency selection.
     fn split_trailing_currencies(
@@ -717,17 +866,63 @@ impl PdfExtractAssetsStandard {
             .collect()
     }
 
+    /// One value per fund column, matched by abscissa instead of by position.
+    ///
+    /// A column that takes nothing under a given fund leaves a hole rather than shifting every
+    /// value after it, which is the whole point: the shift is silent, the hole is not.
+    fn by_abscissa(items: &[&PdfLine], bands: &[(f32, f32)], column: &str) -> Vec<Option<String>> {
+        let mut out: Vec<Option<String>> = vec![None; bands.len()];
+        for item in items {
+            let Some(index) = band_of(item, bands) else { continue };
+            if out[index].is_some() {
+                tracing::debug!(
+                    column,
+                    fund_column = index,
+                    "a second value falls under the same fund column - the first one is kept"
+                );
+                continue;
+            }
+            out[index] = Some(item.text().clone());
+        }
+        out
+    }
+
+    /// The date of the statement, from the first candidate that takes anything.
+    ///
+    /// No candidate at all means the format does not read a date, and the value is simply null.
+    /// Candidates that all come up empty is a different thing — the format says the date is on the
+    /// page and it was not found — so it says so and still yields the row: `R25`, what is seen but
+    /// not read leaves a warning, not a lost page. Before, a selection matching nothing cost the
+    /// **whole page**, every other fund of the statement included.
+    fn date_value(&self, lines: &[PdfLine]) -> BlockValue {
+        if self.date.is_empty() {
+            return BlockValue::Null;
+        }
+        for candidate in &self.date {
+            let set = contextualized(candidate, lines);
+            let taken: Vec<&PdfLine> = lines.iter().filter(|line| set.contains(line)).collect();
+            if taken.is_empty() {
+                continue;
+            }
+            return BlockValue::from(join_in_reading_order(&taken));
+        }
+        tracing::warn!(
+            candidates = self.date.len(),
+            "the date of this statement is declared but no candidate matches - the row keeps no date"
+        );
+        BlockValue::Null
+    }
+
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
         let lines = Self::meaningful_lines(page);
 
-        let tot_assets_items = Self::select_column(&self.tot_assets, &lines);
-        let liabilities_items = Self::select_column(&self.liabilities, &lines);
-        let net_assets_items = Self::select_column(&self.net_assets, &lines);
-
-        let indices = range_0_to_len_step(tot_assets_items.len(), self.skip_column)?;
-        let tot_assets_text = Self::column_texts(&tot_assets_items, &indices, "tot_assets")?;
-        let liabilities_text = Self::column_texts(&liabilities_items, &indices, "liabilities")?;
-        let net_assets_text = Self::column_texts(&net_assets_items, &indices, "net_assets")?;
+        let dropped = self.dropped_bands(&lines);
+        let take = |column: &AssetsColumn| -> Vec<&PdfLine> {
+            Self::select_column(column, &lines).into_iter().filter(|line| !falls_in(line, &dropped)).collect()
+        };
+        let tot_assets_items = take(&self.tot_assets);
+        let liabilities_items = take(&self.liabilities);
+        let net_assets_items = take(&self.net_assets);
 
         let (fund_texts, currency_texts) = if !self.table_condition {
             let fund_set = contextualized(&self.fund_set, &lines);
@@ -751,55 +946,92 @@ impl PdfExtractAssetsStandard {
             }
         };
 
-        let date = match &self.date_set {
-            Some(selection) => {
-                let set = contextualized(selection, &lines);
-                BlockValue::from(select_expected_text(&set, &lines, "fund assets date")?)
+        let date = self.date_value(&lines);
+
+        let amounts = match self.pairing {
+            AssetsPairing::ByIndex => {
+                let indices = range_0_to_len_step(tot_assets_items.len(), self.skip_column)?;
+                let tot_assets_text = Self::column_texts(&tot_assets_items, &indices, "tot_assets")?;
+                let liabilities_text = Self::column_texts(&liabilities_items, &indices, "liabilities")?;
+                let net_assets_text = Self::column_texts(&net_assets_items, &indices, "net_assets")?;
+                let n_out = [
+                    fund_texts.len(),
+                    currency_texts.len(),
+                    tot_assets_text.len(),
+                    liabilities_text.len(),
+                    net_assets_text.len(),
+                ]
+                .into_iter()
+                .min()
+                .unwrap_or(0);
+                if fund_texts.len() != n_out
+                    || currency_texts.len() != n_out
+                    || tot_assets_text.len() != n_out
+                    || liabilities_text.len() != n_out
+                    || net_assets_text.len() != n_out
+                {
+                    tracing::warn!(
+                        funds = fund_texts.len(),
+                        currencies = currency_texts.len(),
+                        tot_assets = tot_assets_text.len(),
+                        liabilities = liabilities_text.len(),
+                        net_assets = net_assets_text.len(),
+                        kept = n_out,
+                        "assets columns have mismatched lengths - extra entries dropped"
+                    );
+                }
+                (0..n_out)
+                    .map(|i| {
+                        (
+                            i,
+                            Some(tot_assets_text[i].clone()),
+                            Some(liabilities_text[i].clone()),
+                            Some(net_assets_text[i].clone()),
+                        )
+                    })
+                    .collect::<Vec<_>>()
             }
-            None => BlockValue::Null,
+            AssetsPairing::ByAbscissa => {
+                let bands = if self.table_condition {
+                    self.fund_bands(&lines)?
+                } else {
+                    // One fund, one band: everything the three windows take is its own.
+                    vec![(f32::NEG_INFINITY, f32::INFINITY)]
+                };
+                let tot = Self::by_abscissa(&tot_assets_items, &bands, "tot_assets");
+                let lia = Self::by_abscissa(&liabilities_items, &bands, "liabilities");
+                let net = Self::by_abscissa(&net_assets_items, &bands, "net_assets");
+                (0..fund_texts.len().min(bands.len()))
+                    .map(|i| (i, tot[i].clone(), lia[i].clone(), net[i].clone()))
+                    .collect::<Vec<_>>()
+            }
         };
 
-        let n_out = [
-            fund_texts.len(),
-            currency_texts.len(),
-            tot_assets_text.len(),
-            liabilities_text.len(),
-            net_assets_text.len(),
-        ]
-        .into_iter()
-        .min()
-        .unwrap_or(0);
-        if fund_texts.len() != n_out
-            || currency_texts.len() != n_out
-            || tot_assets_text.len() != n_out
-            || liabilities_text.len() != n_out
-            || net_assets_text.len() != n_out
-        {
-            tracing::warn!(
-                funds = fund_texts.len(),
-                currencies = currency_texts.len(),
-                tot_assets = tot_assets_text.len(),
-                liabilities = liabilities_text.len(),
-                net_assets = net_assets_text.len(),
-                kept = n_out,
-                "assets columns have mismatched lengths - extra entries dropped"
-            );
+        let mut blocks = Vec::with_capacity(amounts.len());
+        for (i, tot_assets, liabilities, net_assets) in amounts {
+            let (Some(tot_assets), Some(liabilities), Some(net_assets)) = (tot_assets, liabilities, net_assets)
+            else {
+                // A hole rather than a shift: the fund is named, one of its three numbers is not
+                // under its column, and saying so is the whole reason to pair by abscissa.
+                tracing::warn!(
+                    fund = fund_texts.get(i).map(String::as_str).unwrap_or(""),
+                    "one of the three totals is missing under this fund's column - the row is left out"
+                );
+                continue;
+            };
+            let metadata = BTreeMap::from([
+                ("fund".to_string(), BlockValue::from(fund_texts[i].as_str())),
+                ("currency".to_string(), BlockValue::from(currency_texts[i].as_str())),
+                ("tot_assets".to_string(), BlockValue::from(tot_assets.as_str())),
+                ("liabilities".to_string(), BlockValue::from(liabilities.as_str())),
+                ("net_assets".to_string(), BlockValue::from(net_assets.as_str())),
+                ("date".to_string(), date.clone()),
+            ]);
+            blocks.push(PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, BlockValue::from("")));
         }
-        tracing::debug!(entries = n_out, table_condition = self.table_condition, "assets extracted");
+        tracing::debug!(entries = blocks.len(), table_condition = self.table_condition, "assets extracted");
 
-        Ok((0..n_out)
-            .map(|i| {
-                let metadata = BTreeMap::from([
-                    ("fund".to_string(), BlockValue::from(fund_texts[i].as_str())),
-                    ("currency".to_string(), BlockValue::from(currency_texts[i].as_str())),
-                    ("tot_assets".to_string(), BlockValue::from(tot_assets_text[i].as_str())),
-                    ("liabilities".to_string(), BlockValue::from(liabilities_text[i].as_str())),
-                    ("net_assets".to_string(), BlockValue::from(net_assets_text[i].as_str())),
-                    ("date".to_string(), date.clone()),
-                ]);
-                PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, BlockValue::from(""))
-            })
-            .collect())
+        Ok(blocks)
     }
 }
 
@@ -826,6 +1058,11 @@ mod tests {
     }
 
     /// An absolute text selection, by far the most common form in a formats repository.
+    /// An absolute font selection, for the cases where several lines share a family.
+    fn font_sel(font: &str) -> PdfLineSelection {
+        OptionallyRelative::Absolute(PdfLineSet::select_font(font))
+    }
+
     fn text_sel(pattern: &str) -> PdfLineSelection {
         OptionallyRelative::Absolute(PdfLineSet::select_text(pattern))
     }
@@ -1361,6 +1598,183 @@ mod tests {
             PdfExtractAssetsStandard::build(simple_args()).unwrap()
         }
 
+        /// Una pagina con due comparti affiancati, ciascuno con le sue tre cifre — la forma di
+        /// ANIMA-EN23 p63, dove gli affiancati sono otto.
+        ///
+        /// La cella mancante è quella che decide tutto: qui ad `Alpha` manca il passivo.
+        fn two_funds_page(with_alpha_liabilities: bool) -> Page {
+            let mut lines = vec![
+                PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("1000", (110.0, 30.0, 160.0, 40.0)),
+                line("2000", (210.0, 30.0, 260.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("400", (210.0, 50.0, 260.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("800", (110.0, 70.0, 160.0, 80.0)),
+                line("1600", (210.0, 70.0, 260.0, 80.0)),
+            ];
+            if with_alpha_liabilities {
+                lines.push(line("200", (110.0, 50.0, 160.0, 60.0)));
+            }
+            page(lines)
+        }
+
+        fn two_funds_args() -> AssetsStandardArgs {
+            AssetsStandardArgs {
+                fund_set: font_sel("Head"),
+                currency_set: Some(text_sel("^Total assets$")),
+                table_condition: true,
+                ..simple_args()
+            }
+        }
+
+        /// Con una cella in meno, l'appaiamento per indice **fa fallire la pagina**, nominando la
+        /// colonna: è l'unico caso in cui dice qualcosa, e costa tutti e due i comparti.
+        #[test]
+        fn pairing_by_index_fails_the_page_when_a_numeric_column_is_short() {
+            let pipe = PdfExtractAssetsStandard::build(two_funds_args()).unwrap();
+            let error = pipe.call(&two_funds_page(false)).unwrap_err();
+
+            assert!(
+                matches!(
+                    error,
+                    PdfExtractStandardFuncsError::MismatchedAssetsColumn { ref column, .. }
+                        if column == "liabilities"
+                ),
+                "{error:?}"
+            );
+        }
+
+        /// Per ascissa la cella mancante resta un buco: `Alpha` esce di scena **dicendolo**, e
+        /// `Beta` tiene i suoi numeri.
+        #[test]
+        fn pairing_by_abscissa_leaves_a_hole_instead_of_shifting() {
+            let args = AssetsStandardArgs { pairing: AssetsPairing::ByAbscissa, ..two_funds_args() };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&two_funds_page(false)).unwrap();
+
+            assert_eq!(blocks.len(), 1);
+            assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Beta"));
+            assert_eq!(metadata_of(&blocks[0], "liabilities"), BlockValue::from("400"));
+            assert_eq!(metadata_of(&blocks[0], "net_assets"), BlockValue::from("1600"));
+        }
+
+        /// **La misura che giustifica il parametro.** Tutte le celle ci sono, e l'appaiamento per
+        /// indice sbaglia lo stesso: le due cifre del passivo arrivano nell'ordine in cui stanno
+        /// nella pagina, non in quello delle colonne, e i due comparti si scambiano il numero.
+        ///
+        /// Non è un caso costruito: molte pagine di questi bilanci portano due tabelle affiancate,
+        /// e l'ordine delle righe del PDF non è l'ordine di lettura.
+        #[test]
+        fn pairing_by_index_follows_the_order_of_the_page_and_by_abscissa_the_columns() {
+            let by_index = PdfExtractAssetsStandard::build(two_funds_args())
+                .unwrap()
+                .call(&two_funds_page(true))
+                .unwrap();
+            let args = AssetsStandardArgs { pairing: AssetsPairing::ByAbscissa, ..two_funds_args() };
+            let by_abscissa =
+                PdfExtractAssetsStandard::build(args).unwrap().call(&two_funds_page(true)).unwrap();
+
+            assert_eq!(by_index.len(), 2);
+            assert_eq!(by_abscissa.len(), 2);
+            // Per indice: `Alpha` si prende il passivo di `Beta`, perché quella riga viene prima.
+            assert_eq!(metadata_of(&by_index[0], "fund"), BlockValue::from("Alpha"));
+            assert_eq!(metadata_of(&by_index[0], "liabilities"), BlockValue::from("400"));
+            // Per ascissa: ciascuno il suo.
+            assert_eq!(metadata_of(&by_abscissa[0], "fund"), BlockValue::from("Alpha"));
+            assert_eq!(metadata_of(&by_abscissa[0], "liabilities"), BlockValue::from("200"));
+            assert_eq!(metadata_of(&by_abscissa[1], "liabilities"), BlockValue::from("400"));
+        }
+
+        /// E dove l'ordine della pagina **è** quello delle colonne, le due strade coincidono: è la
+        /// condizione perché il difetto possa restare quello di prima senza costare niente.
+        #[test]
+        fn the_two_pairings_agree_when_the_page_order_is_the_column_order() {
+            let ordered = page(vec![
+                PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("1000", (110.0, 30.0, 160.0, 40.0)),
+                line("2000", (210.0, 30.0, 260.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("200", (110.0, 50.0, 160.0, 60.0)),
+                line("400", (210.0, 50.0, 260.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("800", (110.0, 70.0, 160.0, 80.0)),
+                line("1600", (210.0, 70.0, 260.0, 80.0)),
+            ]);
+            let by_index = PdfExtractAssetsStandard::build(two_funds_args()).unwrap().call(&ordered).unwrap();
+            let args = AssetsStandardArgs { pairing: AssetsPairing::ByAbscissa, ..two_funds_args() };
+            let by_abscissa = PdfExtractAssetsStandard::build(args).unwrap().call(&ordered).unwrap();
+
+            assert_eq!(by_index, by_abscissa);
+            assert_eq!(by_index.len(), 2);
+        }
+
+        /// AMUNDI-EN24 p360 stampa ogni comparto **due volte**, esercizio in corso e precedente.
+        /// `drop` nomina l'intestazione della colonna da lasciare fuori, e i numeri che le stanno
+        /// sotto se ne vanno con lei.
+        #[test]
+        fn drop_leaves_out_the_numbers_standing_under_the_named_column() {
+            let lines = vec![
+                PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                line("30/06/2024", (110.0, 15.0, 160.0, 25.0)),
+                line("30/06/2023", (170.0, 15.0, 220.0, 25.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("1000", (110.0, 30.0, 160.0, 40.0)),
+                line("900", (170.0, 30.0, 220.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("200", (110.0, 50.0, 160.0, 60.0)),
+                line("100", (170.0, 50.0, 220.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("800", (110.0, 70.0, 160.0, 80.0)),
+                line("800", (170.0, 70.0, 220.0, 80.0)),
+            ];
+            let args = AssetsStandardArgs {
+                fund_set: font_sel("Head"),
+                currency_set: Some(text_sel("^Total assets$")),
+                table_condition: true,
+                pairing: AssetsPairing::ByAbscissa,
+                drop: Some(text_sel("^30/06/2023$")),
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+
+            assert_eq!(blocks.len(), 1);
+            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
+            assert_eq!(metadata_of(&blocks[0], "liabilities"), BlockValue::from("200"));
+        }
+
+        /// Senza `drop`, la stessa pagina: il numero dell'esercizio precedente entra, ed è il
+        /// difetto che `drop` esiste per togliere.
+        #[test]
+        fn without_drop_the_previous_year_column_is_read_as_if_it_were_a_fund() {
+            let lines = vec![
+                PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("1000", (110.0, 30.0, 160.0, 40.0)),
+                line("900", (170.0, 30.0, 220.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("200", (110.0, 50.0, 160.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("800", (110.0, 70.0, 160.0, 80.0)),
+            ];
+            let args = AssetsStandardArgs {
+                fund_set: font_sel("Head"),
+                currency_set: Some(text_sel("^Total assets$")),
+                table_condition: true,
+                pairing: AssetsPairing::ByAbscissa,
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+
+            // Una banda sola, quindi il secondo numero cade sulla stessa e il primo resta: la riga
+            // è giusta per caso, e su una pagina a più comparti non lo sarebbe.
+            assert_eq!(blocks.len(), 1);
+            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
+        }
+
         #[test]
         fn build_rejects_a_missing_currency_set_outside_table_mode() {
             let args = AssetsStandardArgs { currency_set: None, ..simple_args() };
@@ -1400,13 +1814,80 @@ mod tests {
         }
 
         #[test]
-        fn a_configured_date_set_fills_the_date_metadata() {
+        fn a_configured_candidate_fills_the_date_metadata() {
             let mut lines = simple_page().lines;
             lines.push(line("31/12/2024", (0.0, 90.0, 40.0, 100.0)));
-            let args = AssetsStandardArgs { date_set: Some(text_sel("^31/12/2024$")), ..simple_args() };
+            let args = AssetsStandardArgs { date: vec![text_sel("^31/12/2024$")], ..simple_args() };
             let pipe = PdfExtractAssetsStandard::build(args).unwrap();
             let blocks = pipe.call(&page(lines)).unwrap();
             assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("31/12/2024"));
+        }
+
+        /// `R5`: si preferisce la data **della colonna**, vicina al numero; la testata di pagina è
+        /// l'alternativa. Su CARNE-EN23 p19 ci sono tutt'e due, e la testata sta **più in alto** —
+        /// quindi un'unione di selezioni prenderebbe proprio quella sbagliata.
+        #[test]
+        fn the_first_candidate_that_takes_something_wins_whatever_the_page_order() {
+            let mut lines = simple_page().lines;
+            lines.push(line("Annual report as of 31 December 2023", (0.0, 1.0, 200.0, 8.0)));
+            lines.push(line("31.12.2023", (150.0, 90.0, 200.0, 100.0)));
+            let args = AssetsStandardArgs {
+                date: vec![text_sel("^31.12.2023$"), text_sel("^Annual report as of 31 December 2023$")],
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("31.12.2023"));
+        }
+
+        /// Lo stesso insieme di candidati, sull'altro ordine: il secondo vale quando il primo non
+        /// prende niente, che è la pagina in cui la colonna la data non ce l'ha.
+        #[test]
+        fn the_next_candidate_is_tried_when_the_first_takes_nothing() {
+            let mut lines = simple_page().lines;
+            lines.push(line("Annual report as of 31 December 2023", (0.0, 1.0, 200.0, 8.0)));
+            let args = AssetsStandardArgs {
+                date: vec![text_sel("^31.12.2023$"), text_sel("^Annual report as of 31 December 2023$")],
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            assert_eq!(
+                metadata_of(&blocks[0], "date"),
+                BlockValue::from("Annual report as of 31 December 2023")
+            );
+        }
+
+        /// FINECO-EN23@LUX p31 scrive `D` · `ECEMBER` · ` 31, 2024` in due corpi diversi, fianco a
+        /// fianco: un candidato prende tutt'e tre le righe e le unisce nell'ordine di lettura.
+        #[test]
+        fn a_candidate_joins_the_fragments_it_takes_left_to_right() {
+            let mut lines = simple_page().lines;
+            lines.push(PdfLine::new("Narrow", 12.0, "D", (453.9, 44.6, 461.1, 56.6)));
+            lines.push(PdfLine::new("Narrow", 9.0, "ECEMBER", (461.0, 47.4, 497.5, 56.4)));
+            lines.push(PdfLine::new("Narrow", 12.0, "31, 2024", (497.5, 44.6, 538.6, 56.6)));
+            let args = AssetsStandardArgs { date: vec![font_sel("Narrow")], ..simple_args() };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("D ECEMBER 31, 2024"));
+        }
+
+        /// Un valore che va a capo resta nell'ordine in cui si legge: le due righe non si
+        /// sovrappongono in verticale, quindi decide l'ordinata e non l'ascissa.
+        #[test]
+        fn a_candidate_that_wraps_onto_the_next_line_keeps_the_reading_order() {
+            let mut lines = simple_page().lines;
+            lines.push(PdfLine::new("Narrow", 10.0, "31 dicembre", (400.0, 90.0, 460.0, 100.0)));
+            lines.push(PdfLine::new("Narrow", 10.0, "2024", (100.0, 104.0, 140.0, 114.0)));
+            let args = AssetsStandardArgs { date: vec![font_sel("Narrow")], ..simple_args() };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("31 dicembre 2024"));
+        }
+
+        /// `R25` e la risposta **B**: un formato che dichiara la data e non la trova avvisa e tiene
+        /// la riga. Prima costava **la pagina intera**, cioè ogni altro comparto del prospetto.
+        #[test]
+        fn candidates_that_all_come_up_empty_warn_and_keep_the_row() {
+            let args = AssetsStandardArgs { date: vec![text_sel("^nowhere on this page$")], ..simple_args() };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&simple_page()).unwrap();
+            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::Null);
         }
 
         #[test]

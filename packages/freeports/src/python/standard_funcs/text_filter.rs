@@ -147,10 +147,11 @@ pub fn py_text_filter_sfdr_article_standard(
 /// compilation happens inside the native type, so from a compiled pattern only its source is taken.
 #[pyfunction]
 #[pyo3(name = "TextFilterAssetsStandard")]
-#[pyo3(signature = (date_regex=None, remove_from_fund_regexes=None))]
+#[pyo3(signature = (date_regex=None, remove_from_fund_regexes=None, note_marks=""))]
 pub fn py_text_filter_assets_standard(
     date_regex: Option<&Bound<'_, PyAny>>,
     remove_from_fund_regexes: Option<&Bound<'_, PyAny>>,
+    note_marks: &str,
 ) -> PyResult<PyTextFilterPipe> {
     let source_of = |object: &Bound<'_, PyAny>| -> PyResult<String> {
         if object.is_instance_of::<PyString>() { object.extract() } else { pattern_source(object) }
@@ -170,5 +171,5 @@ pub fn py_text_filter_assets_standard(
         tracing::error!(error = log_error(&e), "TextFilterAssetsStandard construction failed: {e}");
         PyValueError::new_err(e.to_string())
     })?;
-    Ok(PyTextFilterPipe::new(Arc::new(pipe)))
+    Ok(PyTextFilterPipe::new(Arc::new(pipe.with_note_marks(note_marks))))
 }

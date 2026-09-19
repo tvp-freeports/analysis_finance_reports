@@ -8,6 +8,7 @@ use crate::commons::date::Date;
 use crate::formats_utils::deserialize::cast::{self, CastError};
 use crate::formats_utils::deserialize::standard_funcs::{
     DateConverter, DeserializeSfdrArticleStandard, DeserializerAssetsStandard, DeserializerFundStandard,
+    Unbalanced,
     DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
     DeserializerInvestmentsManagerStandard, DeserializerManagmentCompanyStandard,
     DeserializerPageClassifyStandard, NumConverter,
@@ -132,17 +133,19 @@ fn date_converter_of(callable: Py<PyAny>) -> DateConverter {
 /// which is the only translation that loses no behaviour.
 #[pyfunction]
 #[pyo3(name = "DeserializerAssetsStandard")]
-#[pyo3(signature = (num_converter, date_converter=None))]
+#[pyo3(signature = (num_converter, date_converter=None, drop_unbalanced_row=false))]
 pub fn py_deserializer_assets_standard(
     num_converter: Py<PyAny>,
     date_converter: Option<Py<PyAny>>,
+    drop_unbalanced_row: bool,
 ) -> PyDeserializePipe {
     let date_converter: DateConverter = match date_converter {
         Some(callable) => date_converter_of(callable),
         None => Arc::new(cast::to_date),
     };
-    PyDeserializePipe::new(Arc::new(DeserializerAssetsStandard::with_converters(
-        num_converter_of(num_converter),
-        date_converter,
-    )))
+    let unbalanced = if drop_unbalanced_row { Unbalanced::DropRow } else { Unbalanced::FailPage };
+    PyDeserializePipe::new(Arc::new(
+        DeserializerAssetsStandard::with_converters(num_converter_of(num_converter), date_converter)
+            .with_unbalanced(unbalanced),
+    ))
 }
