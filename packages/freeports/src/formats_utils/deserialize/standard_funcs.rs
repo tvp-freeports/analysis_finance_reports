@@ -470,6 +470,17 @@ impl DeserializePipe for DeserializerManagmentCompanyStandard {
 
 /// Reads the **same** `MANAGEMENT_COMPANY` block but builds an [`InvestmentsManager`]: different
 /// formats use one or the other over the same block type, never both in one pipeline.
+///
+/// # The role is imposed, and it says so
+///
+/// The block says who the management company is; nothing in the report says that company also
+/// manages the investments. The format declares it, by choosing this pipe over the other one, and
+/// for the formats that name no investment manager at all it is the right reading. But the row it
+/// produces is indistinguishable, in the output, from one the report stated — so the `.log.csv`
+/// says where it came from.
+///
+/// Once per block, not once per pipe as [`PdfExtractCurrencyConstant`] does: each block imposes a
+/// **different** company, so each is its own fact.
 pub struct DeserializerInvestmentsManagerFromManco;
 
 impl DeserializerInvestmentsManagerFromManco {
@@ -477,7 +488,15 @@ impl DeserializerInvestmentsManagerFromManco {
         &self,
         txt_blk: &TextBlock,
     ) -> Result<Option<InvestmentsManager>, DeserializeStandardFuncsError> {
-        build_manager(txt_blk, &BlockType::MANAGEMENT_COMPANY, InvestmentsManager::build)
+        let manager = build_manager(txt_blk, &BlockType::MANAGEMENT_COMPANY, InvestmentsManager::build)?;
+        if let Some(built) = &manager {
+            crate::core::tracing_setup::warn_imposed(
+                "investments_manager",
+                built.data.name.as_str(),
+                "the management company, which the format declares to manage the investments too",
+            );
+        }
+        Ok(manager)
     }
 }
 
@@ -1393,6 +1412,68 @@ mod tests {
                     Some(managed_funds_value(&["Fund A"])),
                 );
                 assert!(DeserializerInvestmentsManagerFromManco.call(&blk).unwrap().is_none());
+            }
+
+            /// R3: the report names a management company, not an investments manager. The role is
+            /// the format's declaration, and the audit trail has to be able to say so.
+            mod it_says_the_role_was_imposed {
+                use super::*;
+                use crate::core::tracing_setup::capture::{events, one_event};
+                use pretty_assertions::assert_eq;
+
+                fn manco(name: &str) -> TextBlock {
+                    manager_block(BlockType::MANAGEMENT_COMPANY, name, Some(managed_funds_value(&["Fund A"])))
+                }
+
+                #[test]
+                fn a_manager_built_from_a_management_company_is_announced() {
+                    let record = one_event(|| {
+                        DeserializerInvestmentsManagerFromManco.call(&manco("Acme Manager")).unwrap();
+                    });
+                    assert_eq!(record.level, Some(tracing::Level::WARN));
+                    assert!(
+                        record.message.starts_with("investments_manager was not read: imposed as \"Acme Manager\""),
+                        "found {:?}",
+                        record.message
+                    );
+                    assert_eq!(record.field("coord_ref_2"), Some("investments_manager"));
+                }
+
+                /// Unlike the constant currency, each block imposes a **different** company, so
+                /// each one is a fact of its own and each gets a row.
+                #[test]
+                fn every_block_says_it_again_because_every_block_imposes_another_company() {
+                    let records = events(|| {
+                        DeserializerInvestmentsManagerFromManco.call(&manco("Acme")).unwrap();
+                        DeserializerInvestmentsManagerFromManco.call(&manco("Beta")).unwrap();
+                    });
+                    assert_eq!(records.len(), 2);
+                    assert!(records[1].message.contains("\"Beta\""), "found {:?}", records[1].message);
+                }
+
+                /// A block of the wrong type builds nothing, so there is nothing to announce.
+                #[test]
+                fn a_skipped_block_says_nothing() {
+                    let blk = manager_block(
+                        BlockType::INVESTMENTS_MANAGER,
+                        "Acme Manager",
+                        Some(managed_funds_value(&["Fund A"])),
+                    );
+                    let records = events(|| {
+                        DeserializerInvestmentsManagerFromManco.call(&blk).unwrap();
+                    });
+                    assert!(records.is_empty(), "found {records:?}");
+                }
+
+                /// The management-company deserializer reads what the report says: nothing is
+                /// imposed, and nothing is logged.
+                #[test]
+                fn reading_the_management_company_as_itself_warns_nothing() {
+                    let records = events(|| {
+                        DeserializerManagmentCompanyStandard.call(&manco("Acme")).unwrap();
+                    });
+                    assert!(records.is_empty(), "found {records:?}");
+                }
             }
 
             #[test]

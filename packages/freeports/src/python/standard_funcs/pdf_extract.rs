@@ -12,14 +12,22 @@ use crate::formats_utils::pdf_extract::standard_funcs::{
     PdfExtractPageClassifyStandard, PdfExtractSfdrArticleStandard, pdf_extract_currency_standard,
     pdf_extract_fund_standard, pdf_extract_managment_company_standard,
 };
+use crate::formats_utils::pdf_extract::labelled_value::{
+    LabelledValueArgs, LabelledValueWindow, PdfExtractLabelledValueStandard,
+};
+use crate::formats_utils::pdf_extract::section::{
+    PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd,
+};
 use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 
 use crate::python::consts::PyCurrency;
 use crate::python::pipes::PyPdfExtractPipe;
 use crate::formats_utils::pdf_extract::standard_funcs::TableSettings;
+use crate::formats_utils::pdf_extract::tabularizer::TableCoordinatesConfig;
 use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
 use crate::python::utils::pdf_extract::{
-    PyCollapseAlgorithm, PyPdfLineSelection, PyTableConfig, PyTablePosAlgorithm, PyTablePosMeasureUnit,
+    PyCollapseAlgorithm, PyLabelledValueTake, PyLabelledValueWhere, PyPdfLineSelection, PyTableConfig,
+    PyTablePosAlgorithm, PyTablePosMeasureUnit,
 };
 use crate::core::tracing_setup::log_error;
 
@@ -107,6 +115,168 @@ pub fn py_pdf_extract_fund_standard(selection: &Bound<'_, PyAny>) -> PyResult<Py
 #[pyo3(name = "PdfExtractCurrencyStandard")]
 pub fn py_pdf_extract_currency_standard(selection: &Bound<'_, PyAny>) -> PyResult<PyPdfExtractPipe> {
     Ok(PyPdfExtractPipe::new(Arc::new(pdf_extract_currency_standard(selection_of("selection", selection)?))))
+}
+
+/// `PdfExtractLabelledValueStandard(label, block_type, name, *, …)` — *un'etichetta dichiara un
+/// valore lì accanto*.
+///
+/// Three positional arguments, and every keyword optional: the defaults are the label's own line,
+/// the first match and no further constraint, which is the shape twenty-one formats of the
+/// reference collection write the management company in. See
+/// [`crate::formats_utils::pdf_extract::labelled_value`] for what each placement means and for what
+/// `reach` and `across` are measured in.
+///
+/// `reach` and `across` are separate keywords rather than one `window` tuple so that a format can
+/// set the one it needs and leave the other at the default its placement carries — the two have
+/// different defaults for `BELOW` and for `RIGHT`, and a tuple would force both to be written.
+#[pyfunction]
+#[pyo3(name = "PdfExtractLabelledValueStandard")]
+#[pyo3(signature = (
+    label,
+    block_type,
+    name,
+    *,
+    r#where=None,
+    reach=None,
+    across=None,
+    value=None,
+    stop=None,
+    stop_at_label_family=false,
+    take=None,
+))]
+#[allow(clippy::too_many_arguments)]
+pub fn py_pdf_extract_labelled_value_standard(
+    label: &Bound<'_, PyAny>,
+    block_type: String,
+    name: String,
+    r#where: Option<PyRef<'_, PyLabelledValueWhere>>,
+    reach: Option<f32>,
+    across: Option<f32>,
+    value: Option<&Bound<'_, PyAny>>,
+    stop: Option<&Bound<'_, PyAny>>,
+    stop_at_label_family: bool,
+    take: Option<PyRef<'_, PyLabelledValueTake>>,
+) -> PyResult<PyPdfExtractPipe> {
+    let placement = r#where.map(|w| w.native()).unwrap_or_default();
+    let stop = optional_selection_of("stop", stop)?;
+    if stop.is_some() && stop_at_label_family {
+        // Two ways of saying where the section ends, and no way to honour both: a wiring mistake
+        // worth refusing loudly rather than resolving by precedence.
+        tracing::error!("stop and stop_at_label_family were both given");
+        return Err(PyValueError::new_err("stop and stop_at_label_family are alternatives, not a pair"));
+    }
+
+    let args = LabelledValueArgs {
+        label: selection_of("label", label)?,
+        block_type: BlockType::from(block_type),
+        name,
+        r#where: placement,
+        // A window only where a format asked for one, so that the unset side keeps the default its
+        // placement carries rather than an arbitrary zero.
+        window: (reach.is_some() || across.is_some()).then(|| {
+            let default = LabelledValueWindow::default_for(placement);
+            LabelledValueWindow {
+                reach: reach.or(default.reach),
+                across: across.unwrap_or(default.across),
+            }
+        }),
+        value: optional_selection_of("value", value)?,
+        stop: match (stop, stop_at_label_family) {
+            (Some(selection), _) => Some(SectionEnd::Selection(selection)),
+            (None, true) => Some(SectionEnd::SameFamilyAsAnchor),
+            (None, false) => None,
+        },
+        take: take.map(|t| t.native()).unwrap_or_default(),
+    };
+    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractLabelledValueStandard::new(args))))
+}
+
+/// `PdfExtractSectionStandard(heading, block_type, name, *, family=None, bottom=None, body=None,
+/// include_heading=False, rows=None)` — un'intestazione apre una sezione.
+///
+/// `family` omesso significa *la prossima riga con la stessa coppia (font, corpo)
+/// dell'intestazione*, che è il difetto misurato; passarne una selezione lo sostituisce, ed è il
+/// caso di AMUNDI-EN24 p510, dove intestazioni e righe hanno la stessa tipografia. `bottom` accetta
+/// una selezione o un'ordinata. `rows`, se dato, chiede le coordinate di tabella nei metadati:
+/// `True` scopre le colonne, una `TableConfig` le dichiara.
+#[pyfunction]
+#[pyo3(name = "PdfExtractSectionStandard")]
+#[pyo3(signature = (
+    heading,
+    block_type,
+    name,
+    *,
+    family=None,
+    bottom=None,
+    body=None,
+    include_heading=false,
+    rows=None,
+))]
+#[allow(clippy::too_many_arguments)]
+pub fn py_pdf_extract_section_standard(
+    heading: &Bound<'_, PyAny>,
+    block_type: String,
+    name: String,
+    family: Option<&Bound<'_, PyAny>>,
+    bottom: Option<&Bound<'_, PyAny>>,
+    body: Option<&Bound<'_, PyAny>>,
+    include_heading: bool,
+    rows: Option<&Bound<'_, PyAny>>,
+) -> PyResult<PyPdfExtractPipe> {
+    let args = SectionArgs {
+        heading: selection_of("heading", heading)?,
+        block_type: BlockType::from(block_type),
+        name,
+        // One keyword and no companion flag: the default is a value of the same type, so there is
+        // nothing to say with a second argument. The lesson `stop` / `stop_at_label_family` taught.
+        family: match optional_selection_of("family", family)? {
+            Some(selection) => SectionEnd::Selection(selection),
+            None => SectionEnd::SameFamilyAsAnchor,
+        },
+        bottom: section_bottom_of(bottom)?,
+        body: optional_selection_of("body", body)?,
+        include_heading,
+        emit: section_emit_of(rows)?,
+    };
+    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractSectionStandard::new(args))))
+}
+
+/// The extra floor: a selection, or a bare ordinate as `fineco_en23_ir/inv_managers.py` writes it.
+fn section_bottom_of(bottom: Option<&Bound<'_, PyAny>>) -> PyResult<Option<SectionEnd>> {
+    let Some(object) = bottom else { return Ok(None) };
+    if object.is_none() {
+        return Ok(None);
+    }
+    if let Ok(ordinate) = object.extract::<f32>() {
+        return Ok(Some(SectionEnd::Ordinate(ordinate)));
+    }
+    Ok(Some(SectionEnd::Selection(selection_of("bottom", object)?)))
+}
+
+/// `rows`: absent or false for plain lines, `True` to discover the columns, a `TableConfig` to
+/// declare them.
+fn section_emit_of(rows: Option<&Bound<'_, PyAny>>) -> PyResult<SectionEmit> {
+    let Some(object) = rows else { return Ok(SectionEmit::Lines) };
+    if object.is_none() {
+        return Ok(SectionEmit::Lines);
+    }
+    if let Ok(wanted) = object.extract::<bool>() {
+        return Ok(if wanted {
+            SectionEmit::Rows(Box::default())
+        } else {
+            SectionEmit::Lines
+        });
+    }
+    match object.extract::<PyRef<'_, PyTableConfig>>() {
+        Ok(config) => Ok(SectionEmit::Rows(Box::new(TableCoordinatesConfig {
+            table_config: Some(config.native().clone()),
+            ..TableCoordinatesConfig::default()
+        }))),
+        Err(_) => {
+            tracing::error!(argument = "rows", "expected True or a TableConfig");
+            Err(PyValueError::new_err("rows must be True or a TableConfig"))
+        }
+    }
 }
 
 /// `PdfExtractManagmentCompanyStandard(selection)` — la società di gestione.

@@ -109,6 +109,13 @@ pub mod standard_funcs {
     //! single type.
     pub mod pdf_extract {
         //! Pipes that turn a raw page into blocks: text, tables, page classification.
+        pub use crate::formats_utils::pdf_extract::labelled_value::{
+            LabelledValueArgs, LabelledValueTake, LabelledValueWhere, LabelledValueWindow,
+            PdfExtractLabelledValueStandard,
+        };
+        pub use crate::formats_utils::pdf_extract::section::{
+            PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd, section_bottom,
+        };
         pub use crate::formats_utils::pdf_extract::standard_funcs::{
             AssetsColumn, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
             PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,

@@ -530,3 +530,303 @@ pipelines = {"investments": _Pipeline(None, filter_blocks, None)}
         );
     }
 }
+
+/// `A1` attraverso la superficie Python: che un formato possa nominare il tubo nuovo e che il
+/// blocco che ne esce arrivi al segmento seguente.
+///
+/// I test di unità di `labelled_value.rs` provano la geometria; questo prova la strada — le
+/// parole chiave, le due enumerazioni e il passaggio del blocco — che un test di unità in Rust
+/// non attraversa.
+mod the_labelled_value_pipe {
+    use super::*;
+
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::{Layer, Registry};
+
+    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+
+    /// Due tubi `A1` sulla stessa pagina: uno legge il valore **sotto** l'etichetta, l'altro quello
+    /// **a destra**. Il `text_filter` d'autore riscrive nel registro ciò che ha ricevuto, che è il
+    /// modo in cui questo test legge l'uscita del primo segmento.
+    const LABELLED_VALUE_MODULE: &str = r#"
+from freeports.log import warn
+from freeports.standard_funcs.pdf_extract import PdfExtractLabelledValueStandard
+from freeports.utils.pdf_extract import PdfLineSelection, LabelledValueWhere
+
+class _Pipeline:
+    def __init__(self, pdf_extract, text_filter, deserialize):
+        self.pdf_extract = pdf_extract
+        self.text_filter = text_filter
+        self.deserialize = deserialize
+
+below = PdfExtractLabelledValueStandard(
+    PdfLineSelection.text("^Alpha Fund$"),
+    "RELEVANT_BLOCK",
+    "the value below",
+    where=LabelledValueWhere.BELOW,
+)
+
+right = PdfExtractLabelledValueStandard(
+    PdfLineSelection.text("^Acme Corp$"),
+    "RELEVANT_BLOCK",
+    "the value to the right",
+    where=LabelledValueWhere.RIGHT,
+)
+
+def filter_blocks(blocks, companies):
+    for blk in blocks:
+        warn("A1 read " + str(blk.content), coord_1="a1")
+    return []
+
+def deserialize_nothing(txt_blk):
+    return None
+
+pipelines = {"investments": _Pipeline((below, right), filter_blocks, deserialize_nothing)}
+"#;
+
+    /// I messaggi che l'algoritmo d'autore ha scritto attraversando un documento.
+    fn messages_of_a_run(module: &str) -> Vec<String> {
+        let repo = RepoBuilder::minimal();
+        // Il livello strutturato esce di scena: la `investments` di questo repo è **solo** quella
+        // d'autore, altrimenti il `text_filter` standard riceverebbe blocchi che non sono righe di
+        // tabella e farebbe fallire la pagina prima che il tubo in prova dica la sua.
+        repo.write(
+            "content/algorithms/structured/investments/args.csv",
+            "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n",
+        );
+        repo.write("content/algorithms/unstructured/a_en24.py", module);
+        let algorithm = repo.load().expect("the repository loads");
+        let document = Document::new("A fund report", "A-EN24", vec![holdings_page(7)]);
+
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let path = dir.path().join(".log.csv");
+        let csv = CsvLogLayer::create(&path).expect("csv layer construction");
+        let subscriber = Registry::default().with(csv.clone().with_filter(csv_event_filter()));
+        tracing::subscriber::with_default(subscriber, || {
+            algorithm.apply(&document, &[]).expect("the algorithm runs");
+        });
+        csv.close().expect("the csv layer closes");
+
+        let content = fs::read_to_string(&path).expect("read .log.csv");
+        content
+            .lines()
+            .skip(1)
+            .filter_map(|line| {
+                csv::ReaderBuilder::new()
+                    .has_headers(false)
+                    .from_reader(line.as_bytes())
+                    .records()
+                    .next()?
+                    .ok()
+                    .map(|record| record.iter().map(str::to_string).collect::<Vec<_>>()[8].clone())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_format_can_name_it_and_the_block_reaches_the_next_segment() {
+        let messages = messages_of_a_run(LABELLED_VALUE_MODULE);
+        assert!(
+            messages.iter().any(|m| m == "A1 read Amounts in EUR"),
+            "the value below its label did not come through, found {messages:?}"
+        );
+    }
+
+    #[test]
+    fn the_placement_to_the_right_works_through_the_same_surface() {
+        let messages = messages_of_a_run(LABELLED_VALUE_MODULE);
+        assert!(
+            messages.iter().any(|m| m == "A1 read 1.000"),
+            "the value beside its label did not come through, found {messages:?}"
+        );
+    }
+
+    /// Il difetto è il comportamento di sempre: la riga dell'etichetta stessa, intera.
+    #[test]
+    fn the_default_placement_emits_the_label_s_own_line() {
+        const ON_LINE: &str = r#"
+from freeports.log import warn
+from freeports.standard_funcs.pdf_extract import PdfExtractLabelledValueStandard
+from freeports.utils.pdf_extract import PdfLineSelection
+
+class _Pipeline:
+    def __init__(self, pdf_extract, text_filter, deserialize):
+        self.pdf_extract = pdf_extract
+        self.text_filter = text_filter
+        self.deserialize = deserialize
+
+def filter_blocks(blocks, companies):
+    for blk in blocks:
+        warn("A1 read " + str(blk.content), coord_1="a1")
+    return []
+
+def deserialize_nothing(txt_blk):
+    return None
+
+pipelines = {"investments": _Pipeline(
+    PdfExtractLabelledValueStandard(PdfLineSelection.text("Amounts in"), "RELEVANT_BLOCK", "on line"),
+    filter_blocks,
+    deserialize_nothing,
+)}
+"#;
+        let messages = messages_of_a_run(ON_LINE);
+        assert!(messages.iter().any(|m| m == "A1 read Amounts in EUR"), "found {messages:?}");
+    }
+
+    /// Le due maniere di dire dove finisce la sezione sono alternative, e chiederle insieme è un
+    /// errore di cablaggio: il repo non deve caricarsi in silenzio.
+    #[test]
+    fn stop_and_stop_at_label_family_are_refused_together() {
+        const BOTH: &str = r#"
+from freeports.standard_funcs.pdf_extract import PdfExtractLabelledValueStandard
+from freeports.utils.pdf_extract import PdfLineSelection
+
+pipelines = {"investments": PdfExtractLabelledValueStandard(
+    PdfLineSelection.text("^Alpha Fund$"),
+    "RELEVANT_BLOCK",
+    "both",
+    stop=PdfLineSelection.text("^Acme"),
+    stop_at_label_family=True,
+)}
+"#;
+        let repo = RepoBuilder::minimal();
+        repo.write("content/algorithms/unstructured/a_en24.py", BOTH);
+        assert!(repo.load().is_err(), "a pipe asked for two stops should not load");
+    }
+}
+
+/// `A2` visto dal repo dei formati: le parole chiave, il pavimento e le coordinate di tabella.
+///
+/// I test di unità di `section.rs` provano la geometria su pagine misurate; questo prova la strada —
+/// come un modulo d'autore costruisce il tubo e che cosa arriva al segmento seguente.
+mod the_section_pipe {
+    use super::*;
+
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::{Layer, Registry};
+
+    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+
+    /// Un modulo d'autore con un solo tubo `A2`, costruito con gli argomenti dati.
+    fn module_with(arguments: &str) -> String {
+        format!(
+            r#"
+from freeports.log import warn
+from freeports.standard_funcs.pdf_extract import PdfExtractSectionStandard
+from freeports.utils.pdf_extract import PdfLineSelection, TableConfig
+
+class _Pipeline:
+    def __init__(self, pdf_extract, text_filter, deserialize):
+        self.pdf_extract = pdf_extract
+        self.text_filter = text_filter
+        self.deserialize = deserialize
+
+def filter_blocks(blocks, companies):
+    for blk in blocks:
+        warn("A2 read " + str(blk.content) + str(sorted(blk.metadata.items())), coord_1="a2")
+    return []
+
+def deserialize_nothing(txt_blk):
+    return None
+
+pipelines = {{"investments": _Pipeline(
+    PdfExtractSectionStandard({arguments}),
+    filter_blocks,
+    deserialize_nothing,
+)}}
+"#
+        )
+    }
+
+    fn messages_of(arguments: &str) -> Vec<String> {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/args.csv",
+            "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n",
+        );
+        repo.write("content/algorithms/unstructured/a_en24.py", &module_with(arguments));
+        let algorithm = repo.load().expect("the repository loads");
+        let document = Document::new("A fund report", "A-EN24", vec![holdings_page(7)]);
+
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let path = dir.path().join(".log.csv");
+        let csv = CsvLogLayer::create(&path).expect("csv layer construction");
+        let subscriber = Registry::default().with(csv.clone().with_filter(csv_event_filter()));
+        tracing::subscriber::with_default(subscriber, || {
+            algorithm.apply(&document, &[]).expect("the algorithm runs");
+        });
+        csv.close().expect("the csv layer closes");
+
+        let content = fs::read_to_string(&path).expect("read .log.csv");
+        content
+            .lines()
+            .skip(1)
+            .filter_map(|line| {
+                csv::ReaderBuilder::new()
+                    .has_headers(false)
+                    .from_reader(line.as_bytes())
+                    .records()
+                    .next()?
+                    .ok()
+                    .map(|record| record.iter().map(str::to_string).collect::<Vec<_>>()[8].clone())
+            })
+            .collect()
+    }
+
+    const HEADING: &str = r#"PdfLineSelection.text("^Alpha Fund$"), "RELEVANT_BLOCK", "a section""#;
+
+    #[test]
+    fn a_format_can_name_it_and_the_section_reaches_the_next_segment() {
+        let messages = messages_of(HEADING);
+        assert_eq!(
+            messages,
+            vec![
+                "A2 read Amounts in EUR[]".to_string(),
+                "A2 read Acme Corp[]".to_string(),
+                "A2 read 1.000[]".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_family_given_as_a_selection_closes_the_section() {
+        let messages = messages_of(&format!(r#"{HEADING}, family=PdfLineSelection.text("^Acme")"#));
+        assert_eq!(messages, vec!["A2 read Amounts in EUR[]".to_string()]);
+    }
+
+    /// `fineco_en23_ir/inv_managers.py` chiude la sua tabella a `y1=520.0`: un'ordinata nuda, senza
+    /// nessuna intestazione sotto.
+    #[test]
+    fn a_bare_ordinate_is_accepted_as_the_bottom() {
+        let messages = messages_of(&format!("{HEADING}, bottom=30.0"));
+        assert_eq!(messages, vec!["A2 read Amounts in EUR[]".to_string()]);
+    }
+
+    #[test]
+    fn the_heading_comes_along_when_asked_for() {
+        let messages = messages_of(&format!("{HEADING}, include_heading=True"));
+        assert_eq!(messages.first().map(String::as_str), Some("A2 read Alpha Fund[]"));
+    }
+
+    #[test]
+    fn the_body_narrows_the_section_to_the_lines_that_count() {
+        let messages = messages_of(&format!(r#"{HEADING}, body=PdfLineSelection.font("arial")"#));
+        assert_eq!(messages, vec!["A2 read Acme Corp[]".to_string(), "A2 read 1.000[]".to_string()]);
+    }
+
+    #[test]
+    fn rows_puts_the_table_coordinates_in_the_metadata() {
+        let messages = messages_of(&format!("{HEADING}, rows=True"));
+        assert!(
+            messages.iter().all(|m| m.contains("table-row") && m.contains("table-col")),
+            "found {messages:?}"
+        );
+    }
+
+    #[test]
+    fn rows_refuses_something_that_is_neither_true_nor_a_table_config() {
+        let repo = RepoBuilder::minimal();
+        repo.write("content/algorithms/unstructured/a_en24.py", &module_with(&format!(r#"{HEADING}, rows="yes""#)));
+        assert!(repo.load().is_err(), "a pipe given a nonsense `rows` should not load");
+    }
+}

@@ -170,7 +170,8 @@ pub mod freeports {
             #[pymodule_export]
             use crate::python::utils::pdf_extract::{
                 PyCollapseAlgorithm, PyColumnConfig, PyLimits, PyPageImage, PyPdfLine,
-                PyPdfLineSelection, PyPdfLineSet, PyRowConfig, PySplittingState, PyTableConfig,
+                PyLabelledValueTake, PyLabelledValueWhere, PyPdfLineSelection, PyPdfLineSet, PyRowConfig,
+                PySplittingState, PyTableConfig,
                 PyTablePosAlgorithm, PyTablePosMeasureUnit, py_get_groups, py_get_table_coordinates,
                 py_pdfimages_from_pagedict, py_pdfline_selection_from_dict,
                 py_pdfline_selection_from_str, py_pdflines_from_pagedict,
@@ -207,8 +208,9 @@ pub mod freeports {
             use crate::python::standard_funcs::pdf_extract::{
                 py_pdf_extract_assets_standard, py_pdf_extract_currency_constant,
                 py_pdf_extract_currency_standard, py_pdf_extract_fund_standard,
-                py_pdf_extract_investments_standard, py_pdf_extract_managment_company_standard,
-                py_pdf_extract_page_classify_standard, py_pdf_extract_sfdr_article_standard,
+                py_pdf_extract_investments_standard, py_pdf_extract_labelled_value_standard,
+                py_pdf_extract_managment_company_standard, py_pdf_extract_page_classify_standard,
+                py_pdf_extract_section_standard, py_pdf_extract_sfdr_article_standard,
             };
         }
 

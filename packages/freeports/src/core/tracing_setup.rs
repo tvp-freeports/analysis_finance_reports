@@ -1450,6 +1450,35 @@ where
     error
 }
 
+/// The one wording for a value the engine wrote without having read it in the document.
+///
+/// # Why one wording and not ten
+///
+/// A value decided from the configuration, or deduced from another one, is allowed — but the
+/// `.log.csv` must say so, or a reader of the data cannot tell it apart from something the report
+/// actually printed. That is the rule; this function is what keeps it findable. Written by hand at
+/// each site, the same fact would reach the file in as many phrasings as there are sites, and
+/// nobody could search for it.
+///
+/// It is shared with the Python side on purpose: `freeports.log.warn_imposed`, which a format's
+/// algorithm calls, produces this same sentence, so that what the engine imposed and what an
+/// algorithm imposed read the same way in the audit trail.
+///
+/// `field` goes to `Second coord ref`, the column that says *which* field a row is about; the
+/// page, the report and the activity come from the spans, as everywhere else.
+pub fn imposed_message(field: &str, value: &str, reason: &str) -> String {
+    format!("{field} was not read: imposed as {value:?} - {reason}")
+}
+
+/// Warns that the engine imposed a value, in the wording of [`imposed_message`].
+///
+/// The Python side has its own call site rather than this one, because the two differ in the
+/// `target` an event carries — `format` for what an algorithm wrote, this module's path for what
+/// the engine did.
+pub fn warn_imposed(field: &str, value: &str, reason: &str) {
+    tracing::warn!(coord_ref_2 = field, "{}", imposed_message(field, value, reason));
+}
+
 /// The message carried by a caught panic, out of the opaque payload `catch_unwind` hands back.
 ///
 /// A panic payload is a `Box<dyn Any>`, and the only two shapes the standard library ever puts in
@@ -1789,6 +1818,101 @@ pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSe
         absorbed: Arc::new(Mutex::new(Vec::new())),
     })
 }
+
+/// Capturing the crate's own events, for the tests of whatever emits them.
+///
+/// Three places need the same thing — the level, the target, the message and the fields of every
+/// event a piece of code emitted — and each had grown its own miniature layer. This is that layer,
+/// written once: `python::log` for the bridge, `formats_utils` for the values the engine imposes,
+/// and this module's own tests.
+///
+/// It captures with **no filter at all**, which is what a unit test wants: whether an event would
+/// have survived the `.log.csv` threshold is a separate question, and the tests that ask it go
+/// through the real [`CsvLogLayer`] instead.
+#[cfg(test)]
+pub mod capture {
+    use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
+
+    use tracing::field::{Field, Visit};
+    use tracing::{Level, Subscriber};
+    use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+    use tracing_subscriber::Registry;
+
+    /// One captured event.
+    #[derive(Debug, Clone, Default)]
+    pub struct Record {
+        pub level: Option<Level>,
+        pub target: String,
+        pub message: String,
+        /// Every field the event actually recorded. A field whose value was `None` is **absent**
+        /// here, not empty — which is the property several tests exist to hold in place.
+        pub fields: HashMap<String, String>,
+    }
+
+    impl Visit for Record {
+        fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+            self.put(field, format!("{value:?}"));
+        }
+
+        fn record_str(&mut self, field: &Field, value: &str) {
+            self.put(field, value.to_string());
+        }
+    }
+
+    impl Record {
+        fn put(&mut self, field: &Field, value: String) {
+            if field.name() == "message" {
+                self.message = value;
+            } else {
+                self.fields.insert(field.name().to_string(), value);
+            }
+        }
+
+        /// The value of a field, or `None` where the event did not carry it.
+        pub fn field(&self, name: &str) -> Option<&str> {
+            self.fields.get(name).map(String::as_str)
+        }
+    }
+
+    #[derive(Clone, Default)]
+    struct CapturingLayer {
+        records: Arc<Mutex<Vec<Record>>>,
+    }
+
+    impl<S: Subscriber> Layer<S> for CapturingLayer {
+        fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+            let mut record = Record {
+                level: Some(*event.metadata().level()),
+                target: event.metadata().target().to_string(),
+                ..Record::default()
+            };
+            event.record(&mut record);
+            self.records.lock().expect("the capture mutex is not poisoned").push(record);
+        }
+    }
+
+    /// Every event emitted while `f` runs, in order.
+    pub fn events(f: impl FnOnce()) -> Vec<Record> {
+        let layer = CapturingLayer::default();
+        let subscriber = Registry::default().with(layer.clone());
+        tracing::subscriber::with_default(subscriber, f);
+        layer.records.lock().expect("the capture mutex is not poisoned").clone()
+    }
+
+    /// The single event emitted while `f` runs, or a panic naming how many there were.
+    pub fn one_event(f: impl FnOnce()) -> Record {
+        let mut records = events(f);
+        assert_eq!(records.len(), 1, "exactly one event was expected, found {}", records.len());
+        records.pop().expect("one record")
+    }
+
+    /// The events emitted while `f` runs whose message starts with `prefix`.
+    pub fn events_starting_with(prefix: &str, f: impl FnOnce()) -> Vec<Record> {
+        events(f).into_iter().filter(|r| r.message.starts_with(prefix)).collect()
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -27,6 +27,7 @@ use crate::core::page::Page;
 use crate::core::pipeline::{PdfExtractPipe, PipeError};
 
 use super::commons::{CommonsError, extract_text_pdf_block_or_fail_page, select_expected_text};
+use super::labelled_value::{LabelledValueArgs, PdfExtractLabelledValueStandard};
 use super::pdf_line::PdfLine;
 use super::relative::{OptionallyRelative, RelativeInfo};
 use super::select::pdf_line::PdfLineSet;
@@ -133,13 +134,32 @@ pub fn pdf_extract_currency_standard(selection: PdfLineSelection) -> ExtractText
     ExtractTextPdfBlockOrFailPage::new(selection, "currency", BlockType::CURRENCY_STATEMENT)
 }
 
-/// The pipe extracting the management company. See [`pdf_extract_fund_standard`].
+/// The pipe extracting the management company: [`PdfExtractLabelledValueStandard`] with its
+/// default placement, which is the one this pipe always had.
+///
+/// It is not an alias kept for compatibility — this workspace does not keep those. It is a
+/// **signpost**: twenty-one of the twenty-six formats of the reference collection write the
+/// management company as a label and a value, so whoever has to extract it should reach the
+/// standard algorithm before writing geometry of their own. Hence the name stays while the thing
+/// behind it becomes the general one.
+///
+/// Its parameter keeps the name `selection` and is not called `label`, because the ten formats
+/// calling this today do not hand it a label: they hand it a window they built by hand around the
+/// value. Calling it a label would be a lie, and the opposite of what the new signature teaches.
+///
+/// The fund name and the currency statement deliberately do **not** follow: on their pages there
+/// is no label beside the value, only a crop of the page, and the general name would point them at
+/// the wrong idea.
 ///
 /// The spelling `managment` is kept: it is the string that appears in logs and error messages, and
 /// in the configuration of every existing formats repository, so correcting it would be an
 /// observable change.
-pub fn pdf_extract_managment_company_standard(selection: PdfLineSelection) -> ExtractTextPdfBlockOrFailPage {
-    ExtractTextPdfBlockOrFailPage::new(selection, "managment company", BlockType::MANAGEMENT_COMPANY)
+pub fn pdf_extract_managment_company_standard(selection: PdfLineSelection) -> PdfExtractLabelledValueStandard {
+    PdfExtractLabelledValueStandard::new(LabelledValueArgs::new(
+        selection,
+        BlockType::MANAGEMENT_COMPANY,
+        "managment company",
+    ))
 }
 
 
@@ -199,15 +219,32 @@ impl PdfExtractPipe for PdfExtractPageClassifyStandard {
 // ----------------------------------------------------------------------------------------------
 /// A pipe declaring a constant currency, ignoring the page entirely: for formats where the currency
 /// is written nowhere but is known in advance.
+///
+/// # It says so, once
+///
+/// Nothing here is read: the currency comes from the format's configuration, and every holding of
+/// every page inherits it. That is allowed, and it must not be silent — so the pipe warns into the
+/// `.log.csv`.
+///
+/// **Once per pipe, not once per page.** The fact is about the format, not about the page: a
+/// document of forty holdings pages would otherwise leave forty identical rows, which is the shape
+/// of noise rather than of an audit trail. The row lands on the first page the pipe runs on, and
+/// the wording says it holds for the rest.
+///
+/// A pipe lives for one job, and a job is one report — a batch builds one per row (`cli/run.rs`),
+/// and the several files of a multidocument format are one report between them. So "once per pipe"
+/// is "once per report", which is the granularity the audit trail wants: whoever reads one
+/// document's data finds the note in that document's rows.
 pub struct PdfExtractCurrencyConstant {
     currency: Currency,
     block: PdfBlock,
+    warned: std::sync::atomic::AtomicBool,
 }
 
 impl PdfExtractCurrencyConstant {
     pub fn new(currency: Currency) -> Self {
         let block = PdfBlock::bare(BlockType::CURRENCY_STATEMENT, currency.code());
-        Self { currency, block }
+        Self { currency, block, warned: std::sync::atomic::AtomicBool::new(false) }
     }
 
     pub fn currency(&self) -> Currency {
@@ -215,6 +252,15 @@ impl PdfExtractCurrencyConstant {
     }
 
     pub fn call(&self, _page: &Page) -> Vec<PdfBlock> {
+        // `swap` and not `load`+`store`: pages of one document run in parallel, and two threads
+        // arriving together must still produce one row, not two.
+        if !self.warned.swap(true, std::sync::atomic::Ordering::Relaxed) {
+            crate::core::tracing_setup::warn_imposed(
+                "currency",
+                self.currency.code(),
+                "declared by the format, not written in the report - holds for every page of it",
+            );
+        }
         vec![self.block.clone()]
     }
 }
@@ -837,13 +883,9 @@ mod tests {
                 assert_eq!(blocks[0].type_block, BlockType::CURRENCY_STATEMENT);
             }
 
-            #[test]
-            fn management_company_keeps_the_reference_spelling_of_its_name() {
-                let pipe = pdf_extract_managment_company_standard(text_sel("^X$"));
-                assert_eq!(PdfExtractPipe::name(&pipe), "managment company");
-                let blocks = pipe.call(&page(vec![line("X", (0.0, 0.0, 10.0, 10.0))])).unwrap();
-                assert_eq!(blocks[0].type_block, BlockType::MANAGEMENT_COMPANY);
-            }
+            // La società di gestione non è più qui: dal 2026-09-19 il suo costruttore fabbrica
+            // `PdfExtractLabelledValueStandard`, e i suoi test stanno in `labelled_value.rs`,
+            // sottomodulo `the_managment_company_signpost`.
         }
     }
 
@@ -919,6 +961,66 @@ mod tests {
         #[test]
         fn never_fails() {
             assert!(PdfExtractCurrencyConstant::new(Currency::EUR).extract(&page(Vec::new())).is_ok());
+        }
+
+        /// R3: a value the engine decided instead of reading must not reach the output in silence.
+        mod it_says_the_currency_was_not_read {
+            use super::*;
+            use crate::core::tracing_setup::capture::{events, one_event};
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_first_page_carries_the_warning() {
+                let record = one_event(|| {
+                    PdfExtractCurrencyConstant::new(Currency::EUR).call(&page(Vec::new()));
+                });
+                assert_eq!(record.level, Some(tracing::Level::WARN));
+                assert!(
+                    record.message.starts_with("currency was not read: imposed as \"EUR\""),
+                    "found {:?}",
+                    record.message
+                );
+            }
+
+            /// The column that says which field a row is about — not a free field of its own.
+            #[test]
+            fn the_warning_names_the_field_in_its_own_column() {
+                let record = one_event(|| {
+                    PdfExtractCurrencyConstant::new(Currency::EUR).call(&page(Vec::new()));
+                });
+                assert_eq!(record.field("coord_ref_2"), Some("currency"));
+            }
+
+            /// The fact is about the format, not about the page: forty holdings pages must not
+            /// leave forty identical rows.
+            #[test]
+            fn it_warns_once_however_many_pages_the_pipe_runs_on() {
+                let pipe = PdfExtractCurrencyConstant::new(Currency::USD);
+                let records = events(|| {
+                    for _ in 0..40 {
+                        pipe.call(&page(Vec::new()));
+                    }
+                });
+                assert_eq!(records.len(), 1);
+            }
+
+            /// Each document of a job builds its own pipes, so each says it again.
+            #[test]
+            fn a_second_pipe_warns_again() {
+                let records = events(|| {
+                    PdfExtractCurrencyConstant::new(Currency::EUR).call(&page(Vec::new()));
+                    PdfExtractCurrencyConstant::new(Currency::USD).call(&page(Vec::new()));
+                });
+                assert_eq!(records.len(), 2);
+            }
+
+            #[test]
+            fn the_blocks_are_the_same_before_and_after_the_warning() {
+                let pipe = PdfExtractCurrencyConstant::new(Currency::GBP);
+                let first = pipe.call(&page(Vec::new()));
+                let second = pipe.call(&page(Vec::new()));
+                assert_eq!(first, second);
+            }
         }
     }
 

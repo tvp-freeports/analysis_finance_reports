@@ -11,6 +11,7 @@ use pyo3::types::{PyDict, PyList, PyType};
 use crate::commons::geometry::{Limits, Rectangle};
 use crate::core::page::PageImage;
 use crate::commons::sets::Container;
+use crate::formats_utils::pdf_extract::labelled_value::{LabelledValueTake, LabelledValueWhere};
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 use crate::formats_utils::pdf_extract::position::{self, ColumnConfig, RowConfig, TableConfig};
 use crate::formats_utils::pdf_extract::relative::OptionallyRelative;
@@ -856,6 +857,22 @@ plain_enum_shim!(
     ]
 );
 plain_enum_shim!(
+    PyLabelledValueWhere,
+    LabelledValueWhere,
+    "LabelledValueWhere",
+    [
+        (ON_LINE, LabelledValueWhere::OnLine),
+        (BELOW, LabelledValueWhere::Below),
+        (RIGHT, LabelledValueWhere::Right),
+    ]
+);
+plain_enum_shim!(
+    PyLabelledValueTake,
+    LabelledValueTake,
+    "LabelledValueTake",
+    [(FIRST, LabelledValueTake::First), (ALL, LabelledValueTake::All)]
+);
+plain_enum_shim!(
     PyTablePosMeasureUnit,
     TablePosMeasureUnit,
     "TablePosMeasureUnit",
@@ -899,6 +916,22 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
             .iter()
             .enumerate()
             .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyTablePosMeasureUnit(i))?.into_any().unbind())))
+            .collect::<PyResult<_>>()?,
+    )?;
+    attach(
+        "LabelledValueWhere",
+        PyLabelledValueWhere::MEMBERS
+            .iter()
+            .enumerate()
+            .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyLabelledValueWhere(i))?.into_any().unbind())))
+            .collect::<PyResult<_>>()?,
+    )?;
+    attach(
+        "LabelledValueTake",
+        PyLabelledValueTake::MEMBERS
+            .iter()
+            .enumerate()
+            .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyLabelledValueTake(i))?.into_any().unbind())))
             .collect::<PyResult<_>>()?,
     )?;
     attach(

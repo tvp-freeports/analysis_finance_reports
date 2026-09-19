@@ -168,9 +168,11 @@ level_function!(
 #[pyo3(name = "warn_imposed", signature = (*, field, value, reason))]
 pub fn py_warn_imposed(field: &str, value: &Bound<'_, PyAny>, reason: &str) -> PyResult<()> {
     let value = value.str()?.extract::<String>()?;
+    // The wording comes from the crate, which uses the same one for the values it imposes itself:
+    // one sentence, one thing to search for in the `.log.csv`, whichever side wrote it.
     emit!(
         warn,
-        format_args!("{field} was not read: imposed as {value:?} - {reason}"),
+        crate::core::tracing_setup::imposed_message(field, &value, reason),
         Coords { coord_ref_1: None, coord_ref_2: Some(field), coord_1: None, coord_2: None }
     );
     Ok(())
@@ -180,77 +182,12 @@ pub fn py_warn_imposed(field: &str, value: &Bound<'_, PyAny>, reason: &str) -> P
 mod tests {
     use super::*;
 
-    use std::sync::{Arc, Mutex};
+    use tracing::Level;
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::{Layer, Registry};
 
-    use tracing::field::{Field, Visit};
-    use tracing::{Level, Subscriber};
-    use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
-    use tracing_subscriber::Registry;
-
+    use crate::core::tracing_setup::capture::{events, one_event as one, Record};
     use crate::core::tracing_setup::{csv_event_filter, CsvLogLayer};
-
-    /// One captured event: its level, its message, and every field it actually recorded.
-    ///
-    /// The field map is the point of most of these tests — a coordinate left out must be *missing*
-    /// from it, not present and empty.
-    #[derive(Debug, Clone, Default)]
-    struct Record {
-        level: Option<Level>,
-        target: String,
-        message: String,
-        fields: std::collections::HashMap<String, String>,
-    }
-
-    impl Visit for Record {
-        fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-            let rendered = format!("{value:?}");
-            if field.name() == "message" {
-                self.message = rendered;
-            } else {
-                self.fields.insert(field.name().to_string(), rendered);
-            }
-        }
-
-        fn record_str(&mut self, field: &Field, value: &str) {
-            if field.name() == "message" {
-                self.message = value.to_string();
-            } else {
-                self.fields.insert(field.name().to_string(), value.to_string());
-            }
-        }
-    }
-
-    #[derive(Clone, Default)]
-    struct CapturingLayer {
-        records: Arc<Mutex<Vec<Record>>>,
-    }
-
-    impl<S: Subscriber> Layer<S> for CapturingLayer {
-        fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
-            let mut record = Record {
-                level: Some(*event.metadata().level()),
-                target: event.metadata().target().to_string(),
-                ..Record::default()
-            };
-            event.record(&mut record);
-            self.records.lock().expect("the capture mutex is not poisoned").push(record);
-        }
-    }
-
-    /// The events emitted by `f`, captured with no level filter at all.
-    fn captured(f: impl FnOnce()) -> Vec<Record> {
-        let layer = CapturingLayer::default();
-        let subscriber = Registry::default().with(layer.clone());
-        tracing::subscriber::with_default(subscriber, f);
-        layer.records.lock().expect("the capture mutex is not poisoned").clone()
-    }
-
-    /// The single event emitted by `f`.
-    fn one(f: impl FnOnce()) -> Record {
-        let mut records = captured(f);
-        assert_eq!(records.len(), 1, "exactly one event was expected, found {}", records.len());
-        records.pop().expect("one record")
-    }
 
     mod levels {
         use super::*;
@@ -285,7 +222,7 @@ mod tests {
 
         #[test]
         fn every_level_carries_the_format_target() {
-            for record in captured(|| {
+            for record in events(|| {
                 py_error("a", None, None, None, None);
                 py_warn("b", None, None, None, None);
                 py_info("c", None, None, None, None);
@@ -304,10 +241,10 @@ mod tests {
         #[test]
         fn the_four_given_coordinates_are_recorded() {
             let record = one(|| py_warn("said", Some("anchor"), Some("field"), Some("row 3"), Some("col 5")));
-            assert_eq!(record.fields.get("coord_ref_1").map(String::as_str), Some("anchor"));
-            assert_eq!(record.fields.get("coord_ref_2").map(String::as_str), Some("field"));
-            assert_eq!(record.fields.get("coord_1").map(String::as_str), Some("row 3"));
-            assert_eq!(record.fields.get("coord_2").map(String::as_str), Some("col 5"));
+            assert_eq!(record.field("coord_ref_1"), Some("anchor"));
+            assert_eq!(record.field("coord_ref_2"), Some("field"));
+            assert_eq!(record.field("coord_1"), Some("row 3"));
+            assert_eq!(record.field("coord_2"), Some("col 5"));
         }
 
         /// The property the whole design rests on: a `None` field is never visited, so it is
@@ -316,14 +253,14 @@ mod tests {
         #[test]
         fn an_omitted_coordinate_is_absent_not_empty() {
             let record = one(|| py_warn("said", None, None, None, None));
-            assert_eq!(record.fields, std::collections::HashMap::new());
+            assert!(record.fields.is_empty(), "found {:?}", record.fields);
         }
 
         #[test]
         fn coordinates_are_independent_of_each_other() {
             let record = one(|| py_warn("said", None, Some("market_value"), None, None));
             assert_eq!(record.fields.len(), 1);
-            assert_eq!(record.fields.get("coord_ref_2").map(String::as_str), Some("market_value"));
+            assert_eq!(record.field("coord_ref_2"), Some("market_value"));
         }
     }
 
@@ -354,7 +291,7 @@ mod tests {
         #[test]
         fn the_field_fills_the_column_that_says_which_field() {
             let record = imposed(|py| pyo3::types::PyString::new(py, "EUR").into_any());
-            assert_eq!(record.fields.get("coord_ref_2").map(String::as_str), Some("management_company"));
+            assert_eq!(record.field("coord_ref_2"), Some("management_company"));
         }
 
         /// An imposed value is not always a string — a currency, a number, an enum of the engine's
