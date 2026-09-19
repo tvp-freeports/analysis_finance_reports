@@ -408,3 +408,125 @@ mod format_detection {
         assert_eq!(freeports::formats_repo::metadata::url_to_format(repo.path(), &known, "https://x/").unwrap(), None);
     }
 }
+
+/// `A8`: ciò che un algoritmo d'autore scrive nel registro del motore.
+///
+/// I test unitari di `python::log` verificano il livello, i campi e la riga del `.log.csv` con
+/// span costruiti a mano. Questi verificano l'unica cosa che quelli non possono: che il giro
+/// completo — modulo Python caricato dal repo, chiamato dal motore, dentro gli span veri di
+/// `Algorithm::apply` — arrivi davvero nel file, **senza che il chiamante passi niente**.
+mod the_author_s_log {
+    use super::*;
+
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::{Layer, Registry};
+
+    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+
+    /// Un `text_filter` d'autore che scrive nel registro mentre interpreta la pagina.
+    ///
+    /// È il `text_filter` e non il `pdf_extract` perché un `pdf_extract` d'autore riceve il
+    /// dizionario PyMuPDF originale, che una pagina costruita a mano non ha: il segmento giusto per
+    /// questa prova è quello che una pagina sintetica attraversa davvero.
+    const LOGGING_MODULE: &str = r#"
+from freeports.log import warn, warn_imposed, debug
+
+class _Pipeline:
+    def __init__(self, pdf_extract, text_filter, deserialize):
+        self.pdf_extract = pdf_extract
+        self.text_filter = text_filter
+        self.deserialize = deserialize
+
+def filter_blocks(blocks, companies):
+    warn_imposed(field="currency", value="EUR", reason="constant of the format")
+    warn("la terza colonna non ha intestazione", coord_1="col 3")
+    debug("questo non deve arrivare nel file")
+    return []
+
+pipelines = {"investments": _Pipeline(None, filter_blocks, None)}
+"#;
+
+    /// Le righe di dati del `.log.csv` scritto mentre l'algoritmo attraversa un documento.
+    fn rows_of_a_run() -> Vec<Vec<String>> {
+        let repo = RepoBuilder::minimal();
+        repo.write("content/algorithms/unstructured/a_en24.py", LOGGING_MODULE);
+        let algorithm = repo.load().expect("the repository loads");
+        let document = Document::new("A fund report", "A-EN24", vec![holdings_page(7)]);
+
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let path = dir.path().join(".log.csv");
+        let csv = CsvLogLayer::create(&path).expect("csv layer construction");
+        let subscriber = Registry::default().with(csv.clone().with_filter(csv_event_filter()));
+        tracing::subscriber::with_default(subscriber, || {
+            algorithm.apply(&document, &[]).expect("the algorithm runs");
+        });
+        csv.close().expect("the csv layer closes");
+
+        let content = fs::read_to_string(&path).expect("read .log.csv");
+        content
+            .lines()
+            .skip(1)
+            .map(|line| {
+                csv::ReaderBuilder::new()
+                    .has_headers(false)
+                    .from_reader(line.as_bytes())
+                    .records()
+                    .next()
+                    .expect("one record per line")
+                    .expect("a well-formed record")
+                    .iter()
+                    .map(str::to_string)
+                    .collect()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn what_an_algorithm_writes_reaches_the_log_file() {
+        let messages: Vec<String> = rows_of_a_run().into_iter().map(|row| row[8].clone()).collect();
+        assert!(
+            messages.iter().any(|m| m == "la terza colonna non ha intestazione"),
+            "the free-text warning is missing, found {messages:?}"
+        );
+        assert!(
+            messages.iter().any(|m| m == "currency was not read: imposed as \"EUR\" - constant of the format"),
+            "the imposed-value warning is missing, found {messages:?}"
+        );
+    }
+
+    #[test]
+    fn the_report_and_the_page_are_filled_in_by_the_engine() {
+        let rows = rows_of_a_run();
+        let row = rows
+            .iter()
+            .find(|row| row[8] == "la terza colonna non ha intestazione")
+            .expect("the warning the author wrote");
+        assert_eq!(row[0], "A fund report", "Report");
+        assert_eq!(row[1], "7", "Page");
+        assert!(row[2].contains("page[7]"), "Activity says where it happened, found {:?}", row[2]);
+        assert_eq!(row[5], "col 3", "First coord");
+    }
+
+    #[test]
+    fn the_activity_names_the_pipe_the_author_wrote() {
+        let rows = rows_of_a_run();
+        let activity = rows
+            .iter()
+            .find(|row| row[8].starts_with("currency was not read"))
+            .map(|row| row[2].clone())
+            .expect("the imposed-value warning");
+        // Non una stringa esatta: l'annidamento degli span è del motore, e questo test riguarda il
+        // fatto che il tubo d'autore ci compaia, non la forma del percorso.
+        assert!(activity.contains("text_filter"), "found {activity:?}");
+        assert!(activity.contains("pipeline[investments]"), "found {activity:?}");
+    }
+
+    #[test]
+    fn a_debug_written_by_an_algorithm_does_not_reach_the_log_file() {
+        let messages: Vec<String> = rows_of_a_run().into_iter().map(|row| row[8].clone()).collect();
+        assert!(
+            !messages.iter().any(|m| m.contains("questo non deve arrivare")),
+            "the file's threshold is warn, found {messages:?}"
+        );
+    }
+}

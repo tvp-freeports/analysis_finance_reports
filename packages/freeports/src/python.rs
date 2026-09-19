@@ -28,6 +28,7 @@ pub mod convert;
 pub mod core;
 pub mod input;
 pub mod interfaces;
+pub mod log;
 pub mod pipes;
 pub mod output;
 pub mod standard_funcs;
@@ -104,6 +105,14 @@ pub mod freeports {
     mod consts {
         #[pymodule_export]
         use crate::python::consts::{PyCurrency, PyFinancialInstrument, PySfdrArticle};
+    }
+
+    /// `freeports.log` — the five levels a format's algorithm writes with, plus the one settled
+    /// helper. See `crate::python::log`.
+    #[pyo3::pymodule]
+    mod log {
+        #[pymodule_export]
+        use crate::python::log::{py_debug, py_error, py_info, py_trace, py_warn, py_warn_imposed};
     }
 
     #[pyo3::pymodule]
