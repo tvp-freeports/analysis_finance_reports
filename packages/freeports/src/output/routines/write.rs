@@ -150,17 +150,17 @@ struct InvestmentCsvRow {
     #[serde(rename = "Financial instrument")]
     financial_instrument: FinancialInstrument,
     #[serde(rename = "Nominal/Quantity")]
-    nominal_quantity: Option<f32>,
+    nominal_quantity: Option<f64>,
     #[serde(rename = "Market value")]
-    market_value: f32,
+    market_value: f64,
     #[serde(rename = "Currency")]
     currency: Currency,
     #[serde(rename = "% net assets")]
-    perc_net_assets: Option<f32>,
+    perc_net_assets: Option<f64>,
     #[serde(rename = "Fund ID")]
     fund_id: u32,
     #[serde(rename = "Acquisition cost")]
-    acquisition_cost: Option<f32>,
+    acquisition_cost: Option<f64>,
     #[serde(rename = "Acquisition currency")]
     acquisition_currency: Option<Currency>,
 }
@@ -198,11 +198,11 @@ struct FundAssetsCsvRow {
     #[serde(rename = "Date")]
     date: Option<Date>,
     #[serde(rename = "Total assets")]
-    total_assets: f32,
+    total_assets: f64,
     #[serde(rename = "Total liabilities")]
-    total_liabilities: f32,
+    total_liabilities: f64,
     #[serde(rename = "Total net assets")]
-    total_net_assets: f32,
+    total_net_assets: f64,
     #[serde(rename = "Currency")]
     currency: Currency,
 }
@@ -539,17 +539,17 @@ struct InvestmentSingleFileCsvRow {
     #[serde(rename = "Financial instrument")]
     financial_instrument: FinancialInstrument,
     #[serde(rename = "Nominal/Quantity")]
-    nominal_quantity: Option<f32>,
+    nominal_quantity: Option<f64>,
     #[serde(rename = "Market value")]
-    market_value: f32,
+    market_value: f64,
     #[serde(rename = "Currency")]
     currency: Currency,
     #[serde(rename = "% net assets")]
-    perc_net_assets: Option<f32>,
+    perc_net_assets: Option<f64>,
     #[serde(rename = "Fund ID")]
     fund_id: u32,
     #[serde(rename = "Acquisition cost")]
-    acquisition_cost: Option<f32>,
+    acquisition_cost: Option<f64>,
     #[serde(rename = "Acquisition currency")]
     acquisition_currency: Option<Currency>,
     #[serde(rename = "Maturity")]

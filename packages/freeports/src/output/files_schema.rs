@@ -40,7 +40,7 @@ fn positive_u16(field: &'static str, value: i32) -> Result<u16, SchemaError> {
         .ok_or_else(|| SchemaError::NotGreaterThan { field, value: value.to_string(), bound: "0".to_string() })
 }
 
-fn positive_f32(field: &'static str, value: f32) -> Result<f32, SchemaError> {
+fn positive_f64(field: &'static str, value: f64) -> Result<f64, SchemaError> {
     if value > 0.0 {
         Ok(value)
     } else {
@@ -48,7 +48,7 @@ fn positive_f32(field: &'static str, value: f32) -> Result<f32, SchemaError> {
     }
 }
 
-fn non_negative_f32(field: &'static str, value: f32) -> Result<f32, SchemaError> {
+fn non_negative_f64(field: &'static str, value: f64) -> Result<f64, SchemaError> {
     if value >= 0.0 {
         Ok(value)
     } else {
@@ -57,7 +57,7 @@ fn non_negative_f32(field: &'static str, value: f32) -> Result<f32, SchemaError>
 }
 
 /// `pa.Check.in_range(min, max)` — incluso su entrambi i lati (default di pandera).
-fn in_range_inclusive_f32(field: &'static str, value: f32, min: f32, max: f32) -> Result<f32, SchemaError> {
+fn in_range_inclusive_f64(field: &'static str, value: f64, min: f64, max: f64) -> Result<f64, SchemaError> {
     if value >= min && value <= max {
         Ok(value)
     } else {
@@ -70,7 +70,7 @@ fn in_range_inclusive_f32(field: &'static str, value: f32, min: f32, max: f32) -
     }
 }
 
-/// `pydantic.confloat(ge=min, lt=max)` — a differenza di `in_range_inclusive_f32`, esclude il
+/// `pydantic.confloat(ge=min, lt=max)` — a differenza di `in_range_inclusive_f64`, esclude il
 /// limite superiore.
 fn in_range_half_open_f64(field: &'static str, value: f64, min: f64, max: f64) -> Result<f64, SchemaError> {
     if value >= min && value < max {
@@ -155,12 +155,12 @@ pub struct InvestmentRow {
     pub triggering_text: String,
     pub investee: String,
     pub financial_instrument: FinancialInstrument,
-    pub nominal_quantity: Option<f32>,
-    pub market_value: f32,
+    pub nominal_quantity: Option<f64>,
+    pub market_value: f64,
     pub currency: Currency,
-    pub perc_net_assets: Option<f32>,
+    pub perc_net_assets: Option<f64>,
     pub fund_id: u32,
-    pub acquisition_cost: Option<f32>,
+    pub acquisition_cost: Option<f64>,
     pub acquisition_currency: Option<Currency>,
 }
 
@@ -173,12 +173,12 @@ impl InvestmentRow {
         triggering_text: String,
         investee: String,
         financial_instrument: FinancialInstrument,
-        nominal_quantity: Option<f32>,
-        market_value: f32,
+        nominal_quantity: Option<f64>,
+        market_value: f64,
         currency: Currency,
-        perc_net_assets: Option<f32>,
+        perc_net_assets: Option<f64>,
         fund_id: i64,
-        acquisition_cost: Option<f32>,
+        acquisition_cost: Option<f64>,
         acquisition_currency: Option<Currency>,
     ) -> Result<Self, SchemaError> {
         Ok(Self {
@@ -191,17 +191,17 @@ impl InvestmentRow {
             // Non-negative for the same reason as the market value: a report can carry a position
             // whose quantity has been written down to nothing, and the product's invariant is that
             // the number is not negative.
-            nominal_quantity: nominal_quantity.map(|v| non_negative_f32("Nominal/Quantity", v)).transpose()?,
+            nominal_quantity: nominal_quantity.map(|v| non_negative_f64("Nominal/Quantity", v)).transpose()?,
             // Zero is admissible here for the same reason as in
             // `InvestmentData::validate_ranges`: a frozen holding is reported at zero, and the
             // product's invariant is that the value is not negative, not that it is not zero.
-            market_value: non_negative_f32("Market value", market_value)?,
+            market_value: non_negative_f64("Market value", market_value)?,
             currency,
             perc_net_assets: perc_net_assets
-                .map(|v| in_range_inclusive_f32("% net assets", v, 0.0, 1.0))
+                .map(|v| in_range_inclusive_f64("% net assets", v, 0.0, 1.0))
                 .transpose()?,
             fund_id: positive_u32("Fund ID", fund_id)?,
-            acquisition_cost: acquisition_cost.map(|v| non_negative_f32("Acquisition cost", v)).transpose()?,
+            acquisition_cost: acquisition_cost.map(|v| non_negative_f64("Acquisition cost", v)).transpose()?,
             acquisition_currency,
         })
     }
@@ -308,9 +308,9 @@ pub struct FundAssetsRow {
     pub report: String,
     pub fund_id: u32,
     pub date: Option<Date>,
-    pub total_assets: f32,
-    pub total_liabilities: f32,
-    pub total_net_assets: f32,
+    pub total_assets: f64,
+    pub total_liabilities: f64,
+    pub total_net_assets: f64,
     pub currency: Currency,
 }
 
@@ -322,9 +322,9 @@ impl FundAssetsRow {
         report: String,
         fund_id: i64,
         date: Option<Date>,
-        total_assets: f32,
-        total_liabilities: f32,
-        total_net_assets: f32,
+        total_assets: f64,
+        total_liabilities: f64,
+        total_net_assets: f64,
         currency: Currency,
     ) -> Result<Self, SchemaError> {
         Ok(Self {
@@ -333,9 +333,9 @@ impl FundAssetsRow {
             report,
             fund_id: positive_u32("Fund ID", fund_id)?,
             date,
-            total_assets: positive_f32("Total assets", total_assets)?,
-            total_liabilities: positive_f32("Total liabilities", total_liabilities)?,
-            total_net_assets: positive_f32("Total net assets", total_net_assets)?,
+            total_assets: positive_f64("Total assets", total_assets)?,
+            total_liabilities: positive_f64("Total liabilities", total_liabilities)?,
+            total_net_assets: positive_f64("Total net assets", total_net_assets)?,
             currency,
         })
     }
@@ -444,11 +444,11 @@ mod tests {
     struct InvestmentRowArgs {
         id: i64,
         report_page: i32,
-        nominal_quantity: Option<f32>,
-        market_value: f32,
-        perc_net_assets: Option<f32>,
+        nominal_quantity: Option<f64>,
+        market_value: f64,
+        perc_net_assets: Option<f64>,
         fund_id: i64,
-        acquisition_cost: Option<f32>,
+        acquisition_cost: Option<f64>,
     }
 
     impl Default for InvestmentRowArgs {
@@ -559,13 +559,13 @@ mod tests {
 
         #[test_case(0.0; "lower bound inclusive is fine")]
         #[test_case(1.0; "upper bound inclusive is fine")]
-        fn accepts_perc_net_assets_at_inclusive_bounds(ok: f32) {
+        fn accepts_perc_net_assets_at_inclusive_bounds(ok: f64) {
             assert!(valid_investment(|a| a.perc_net_assets = Some(ok)).is_ok());
         }
 
         #[test_case(-0.0001; "just below zero")]
         #[test_case(1.0001; "just above one")]
-        fn rejects_perc_net_assets_outside_unit_range(bad: f32) {
+        fn rejects_perc_net_assets_outside_unit_range(bad: f64) {
             assert!(matches!(
                 valid_investment(|a| a.perc_net_assets = Some(bad)),
                 Err(SchemaError::OutOfRange { field: "% net assets", .. })
@@ -768,17 +768,17 @@ mod tests {
         }
 
         #[test_case(0.0; "total assets zero")]
-        fn rejects_non_positive_total_assets(bad: f32) {
+        fn rejects_non_positive_total_assets(bad: f64) {
             assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, bad, 50.0, 50.0, Currency::EUR).is_err());
         }
 
         #[test_case(0.0; "total liabilities zero")]
-        fn rejects_non_positive_total_liabilities(bad: f32) {
+        fn rejects_non_positive_total_liabilities(bad: f64) {
             assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, bad, 50.0, Currency::EUR).is_err());
         }
 
         #[test_case(0.0; "total net assets zero")]
-        fn rejects_non_positive_total_net_assets(bad: f32) {
+        fn rejects_non_positive_total_net_assets(bad: f64) {
             assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, bad, Currency::EUR).is_err());
         }
 

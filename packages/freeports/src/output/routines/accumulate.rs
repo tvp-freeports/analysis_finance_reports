@@ -346,9 +346,9 @@ fn pour_job(
                                 report.clone(),
                                 fund_id as i64,
                                 date,
-                                assets.tot_assets.into_inner() as f32,
-                                assets.liabilities.into_inner() as f32,
-                                assets.net_assets.into_inner() as f32,
+                                assets.tot_assets.into_inner(),
+                                assets.liabilities.into_inner(),
+                                assets.net_assets.into_inner(),
                                 currency,
                             )?);
                         }
@@ -448,12 +448,12 @@ fn push_investment(
         data.company_match.clone(),
         data.company.clone(),
         financial_instrument,
-        data.nominal_quantity.map(|v| v.into_inner() as f32),
-        market_value as f32,
+        data.nominal_quantity.map(|v| v.into_inner()),
+        market_value,
         currency,
-        data.perc_net_assets.as_ref().map(|p| p.resolved().expect("resolved after fulfill_promises").into_inner() as f32),
+        data.perc_net_assets.as_ref().map(|p| p.resolved().expect("resolved after fulfill_promises").into_inner()),
         fund_id as i64,
-        data.acquisition_cost.as_ref().map(|p| p.resolved().expect("resolved after fulfill_promises").into_inner() as f32),
+        data.acquisition_cost.as_ref().map(|p| p.resolved().expect("resolved after fulfill_promises").into_inner()),
         data.acquisition_currency.as_ref().map(|p| *p.resolved().expect("resolved after fulfill_promises")),
     )?;
 

@@ -237,6 +237,19 @@ pub fn to_int(data: &str) -> Result<i64, CastError> {
 ///
 /// The result is divided by 100 when `norm` is set — and **always** when a literal `%` was present,
 /// whatever `norm` says: the sign is in the data, and honouring it beats honouring the argument.
+///
+/// # Why the division moves the decimal point instead of dividing
+///
+/// `4.10` divided by `100.0` is not `0.041` in binary floating point: it is the neighbouring value,
+/// whose shortest decimal spelling is `0.040999999999999995`. The written percentage carries three
+/// significant digits and the quotient prints eighteen, so the extra fifteen are an artefact of the
+/// operation rather than anything the report says. They used to be invisible because the output
+/// schema truncated the column to `f32`; once the amounts moved to `f64` so as not to round
+/// hundreds of millions to seven digits, they surfaced in every `% net assets` cell.
+///
+/// Shifting the decimal exponent of the shortest representation is the same scaling done in base
+/// ten, where dividing by a power of ten is exact. It is **not** a rounding: no digit the report
+/// wrote is dropped, and a value that genuinely needs eighteen digits keeps them.
 pub fn perc_to_float(perc: &str, norm: bool) -> Result<f64, CastError> {
     let mut perc = normalization::normalize_word(perc, false);
     let mut norm = norm;
@@ -251,7 +264,24 @@ pub fn perc_to_float(perc: &str, norm: bool) -> Result<f64, CastError> {
         norm = true;
     }
     let f = to_float(&perc)?;
-    Ok(if norm { f / 100.0 } else { f })
+    Ok(if norm { shift_two_decimal_places(f) } else { f })
+}
+
+/// Divides by a hundred by moving the decimal exponent of `value`'s shortest representation.
+///
+/// `{:e}` prints the shortest decimal that reads back as `value`, so subtracting two from its
+/// exponent and reading it back is an exact division by a hundred in base ten. A value with no
+/// exponent to move — an infinity or a NaN, which no cast here produces but which cost nothing to
+/// survive — falls back on the arithmetic division.
+fn shift_two_decimal_places(value: f64) -> f64 {
+    let scientific = format!("{value:e}");
+    let Some((mantissa, exponent)) = scientific.split_once('e') else {
+        return value / 100.0;
+    };
+    match exponent.parse::<i32>() {
+        Ok(exponent) => format!("{mantissa}e{}", exponent - 2).parse().unwrap_or(value / 100.0),
+        Err(_) => value / 100.0,
+    }
 }
 
 /// Trims leading and trailing whitespace, preserving case.
@@ -517,6 +547,44 @@ mod tests {
         #[test]
         fn percent_sign_forces_normalization_even_when_norm_is_false() {
             assert_eq!(perc_to_float("10%", false).unwrap(), 0.1);
+        }
+
+        /// The digits the report wrote, and not one more: the value must print back as the
+        /// percentage shifted two places, never as the quotient's binary neighbour.
+        mod exact_decimal_shift {
+            use super::*;
+            use pretty_assertions::{assert_eq, assert_ne};
+            use test_case::test_case;
+
+            #[test_case("4.10%", "0.041"; "trailing zero in the report")]
+            #[test_case("0.07%", "0.0007"; "leading zeros")]
+            #[test_case("1.38%", "0.0138"; "three significant digits")]
+            #[test_case("-5.5%", "-0.055"; "negative")]
+            #[test_case("100%", "1"; "whole")]
+            #[test_case("0%", "0"; "zero")]
+            fn prints_the_shifted_percentage(input: &str, expected: &str) {
+                assert_eq!(format!("{}", perc_to_float(input, true).unwrap()), expected);
+            }
+
+            /// Dividing would have given a different `f64` for exactly these: the test is worth
+            /// nothing unless it says so.
+            #[test_case(4.10; "four point one")]
+            #[test_case(0.07; "seven hundredths")]
+            #[test_case(0.138; "nought point one three eight")]
+            fn the_quotient_would_have_differed(written: f64) {
+                assert_ne!(shift_two_decimal_places(written), written / 100.0);
+            }
+
+            #[test_case(f64::INFINITY; "infinity")]
+            #[test_case(f64::NEG_INFINITY; "negative infinity")]
+            fn a_value_with_no_exponent_to_move_falls_back_on_the_division(odd: f64) {
+                assert_eq!(shift_two_decimal_places(odd), odd / 100.0);
+            }
+
+            #[test]
+            fn a_nan_falls_back_on_the_division() {
+                assert!(shift_two_decimal_places(f64::NAN).is_nan());
+            }
         }
     }
 
