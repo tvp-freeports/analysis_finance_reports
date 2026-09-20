@@ -57,6 +57,10 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
 /// `dash_as_zero` is the same flag expression the structured level writes in its
 /// `Interpret dash as zero` column — `"MARKET_VALUE | PERC_NET_ASSETS"`, `"ALL"` — and `None` is
 /// the empty set, so an unstructured format that says nothing behaves as it always has.
+///
+/// `note_marks` is the `Note marks` column of the same level: the characters that count as a
+/// footnote mark on the fund's name (`R16`), written one after the other. The default is the empty
+/// string, which strips nothing.
 #[pyfunction]
 #[pyo3(name = "TextFilterInvestmentsStandard")]
 #[pyo3(signature = (
@@ -68,6 +72,7 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
     geometrical_indexes=true,
     merge_prev=false,
     dash_as_zero=None,
+    note_marks="",
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_text_filter_investments_standard(
@@ -79,6 +84,7 @@ pub fn py_text_filter_investments_standard(
     geometrical_indexes: bool,
     merge_prev: bool,
     dash_as_zero: Option<&str>,
+    note_marks: &str,
 ) -> PyResult<PyTextFilterPipe> {
     let dash_as_zero = match dash_as_zero {
         None => DashAsZero::empty(),
@@ -101,7 +107,7 @@ pub fn py_text_filter_investments_standard(
         tracing::error!(error = log_error(&e), "TextFilterInvestmentsStandard construction failed: {e}");
         PyValueError::new_err(e.to_string())
     })?;
-    Ok(PyTextFilterPipe::new(Arc::new(pipe)))
+    Ok(PyTextFilterPipe::new(Arc::new(pipe.with_note_marks(note_marks))))
 }
 
 /// `TextFilterSfdrSignStandard(fund_prefix=None, *, fund_block_type=None,

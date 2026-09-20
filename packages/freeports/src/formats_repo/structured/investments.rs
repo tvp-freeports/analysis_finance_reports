@@ -109,6 +109,7 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
         parse_dash_as_zero(config)?,
     )
     .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;
+    let pipe = pipe.with_note_marks(additional.and_then(|a| a.note_marks.as_deref()).unwrap_or(""));
     pipeline.text_filter.push(Arc::new(pipe));
     Ok(())
 }
@@ -162,7 +163,7 @@ mod tests {
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -393,7 +394,7 @@ mod tests {
         fn flags_of(expression: &str) -> Result<TablePosAlgorithm, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,,,\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_algorithm_flags(&configs[0])
         }
@@ -438,7 +439,7 @@ mod tests {
         fn dash_flags_of(cell: &str) -> Result<DashAsZero, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell}\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell},\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_dash_as_zero(&configs[0])
         }
@@ -490,7 +491,7 @@ mod tests {
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24,,,,,,,,MARKET_VALUE\n"),
+                &format!("{ADD_HEADER}A-EN24,,,,,,,,MARKET_VALUE,\n"),
             );
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
             assert!(get_investments_configs(repo.path()).is_err());
@@ -519,7 +520,7 @@ mod tests {
                 "investments/args.csv",
                 &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,2,,\n"),
             );
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell}\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell},\n"));
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
             let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
                 name: "Acme Corp".to_string(),
@@ -557,6 +558,86 @@ mod tests {
                 market_value_and_perc(""),
                 (BlockValue::from("-"), BlockValue::from("-"))
             );
+        }
+    }
+
+    /// The `Note marks` column, from the CSV cell to the name the pipeline publishes (`R16`).
+    mod note_marks_column {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// The fund's name carries its footnote mark, exactly as CARNE-EN23 p39 and
+        /// DANSKEINVEST-EN24 p127 print it.
+        fn page_with_a_marked_fund() -> Page {
+            Page::new(
+                1,
+                (300.0, 300.0),
+                vec![
+                    PdfLine::new("ArialBold", 10.0, "Alpha Fund*", (0.0, 0.0, 60.0, 10.0)),
+                    PdfLine::new("ArialItalic", 10.0, "Amounts in EUR", (0.0, 10.0, 60.0, 18.0)),
+                    PdfLine::new("Arial", 10.0, "Acme Corp", (0.0, 20.0, 40.0, 30.0)),
+                    PdfLine::new("Arial", 10.0, "1.000", (50.0, 20.0, 90.0, 30.0)),
+                ],
+                Vec::new(),
+            )
+        }
+
+        fn fund_name_with(cell: &str) -> BlockValue {
+            let repo = Repo::new();
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,,,\n"),
+            );
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,{cell}\n"));
+            let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
+            let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
+                name: "Acme Corp".to_string(),
+                regexs: vec![],
+                symbols: vec![],
+                buds: vec![],
+            }])
+            .expect("a name without patterns always compiles");
+            let blocks = pipeline
+                .apply_text_filter(&page_with_a_marked_fund(), &FilterData::TargetCompanies(&companies))
+                .expect("the page filters");
+            blocks
+                .iter()
+                .find_map(|b| b.metadata.get("fund").cloned())
+                .expect("one investment row carrying the fund")
+        }
+
+        /// The default, and what the twenty-four formats that say nothing get: the behaviour there
+        /// was before the column existed.
+        #[test]
+        fn an_empty_cell_leaves_the_mark_where_the_report_wrote_it() {
+            assert_eq!(fund_name_with(""), BlockValue::from("Alpha Fund*"));
+        }
+
+        /// The whole point of the column: the cell reaches the pipe the pipeline is built with.
+        #[test]
+        fn the_declared_mark_reaches_the_built_pipe() {
+            assert_eq!(fund_name_with("*"), BlockValue::from("Alpha Fund"));
+        }
+
+        /// A pipe with no row at all in `additional_args.csv` — the common case — must reach the
+        /// same place as an empty cell, not a missing-field error.
+        #[test]
+        fn a_pipe_with_no_additional_row_strips_nothing() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            let configs = get_investments_configs(repo.path()).expect("the repo loads");
+            assert!(configs[0].additional.is_none());
+        }
+
+        /// The column configures the `text_filter` segment, so declaring that segment off and then
+        /// filling the column in is the contradiction `DISABLED_SEGMENT_COLUMNS` exists to catch.
+        #[test]
+        fn a_disabled_text_filter_may_not_carry_the_column() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,*\n"));
+            repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
+            assert!(get_investments_configs(repo.path()).is_err());
         }
     }
 

@@ -47,7 +47,7 @@ impl RepoBuilder {
             )
             .write(
                 "content/algorithms/structured/investments/additional_args.csv",
-                "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
+                "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n",
             )
             .write("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n")
             .write("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n")
@@ -290,8 +290,8 @@ mod configuration_errors {
         let repo = RepoBuilder::minimal();
         repo.write(
             "content/algorithms/structured/investments/additional_args.csv",
-            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
-             A-EN24,,,,,,,,MARKET_VALUE | PERC_NET_ASSETS\n",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n\
+             A-EN24,,,,,,,,MARKET_VALUE | PERC_NET_ASSETS,\n",
         );
         assert!(repo.load().is_ok(), "a repository declaring the column must load");
     }
@@ -301,8 +301,8 @@ mod configuration_errors {
         let repo = RepoBuilder::minimal();
         repo.write(
             "content/algorithms/structured/investments/additional_args.csv",
-            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
-             A-EN24,,,,,,,,MARKET_VALEU\n",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n\
+             A-EN24,,,,,,,,MARKET_VALEU,\n",
         );
         let err = repo.load().unwrap_err();
         assert!(err.to_string().contains("MARKET_VALEU"), "{err}");
@@ -315,8 +315,37 @@ mod configuration_errors {
         let repo = RepoBuilder::minimal();
         repo.write(
             "content/algorithms/structured/investments/additional_args.csv",
-            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
-             A-EN24,,,,,,,,MARKET_VALUE\n",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n\
+             A-EN24,,,,,,,,MARKET_VALUE,\n",
+        );
+        repo.write(
+            "content/algorithms/structured/investments/partial_pipes.csv",
+            "ID,pdf_extract,text_filter,deserialize\n\
+             A-EN24,,FALSE,\n",
+        );
+        assert!(repo.load().is_err(), "a disabled text_filter may not carry the column");
+    }
+
+    /// The `Note marks` column (`R16`), from a whole repository: it loads, and a `text_filter`
+    /// declared off may not carry it.
+    #[test]
+    fn a_repository_declaring_note_marks_loads() {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/additional_args.csv",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n\
+             A-EN24,,,,,,,,,*\n",
+        );
+        assert!(repo.load().is_ok(), "a repository declaring the column must load");
+    }
+
+    #[test]
+    fn a_disabled_text_filter_carrying_note_marks_is_rejected() {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/additional_args.csv",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n\
+             A-EN24,,,,,,,,,*\n",
         );
         repo.write(
             "content/algorithms/structured/investments/partial_pipes.csv",

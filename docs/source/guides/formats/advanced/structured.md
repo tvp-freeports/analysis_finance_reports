@@ -53,6 +53,7 @@ pipe that says nothing behaves the way the library does.
 | `Geometrical indexing` | `text_filter` | `TRUE`/`FALSE` | `TRUE` |
 | `Merge previous` | `text_filter` | `TRUE`/`FALSE` | `FALSE` |
 | `Interpret dash as zero` | `text_filter` | flag expression | nothing substituted |
+| `Note marks` | `text_filter` | the characters, written one after the other | nothing stripped |
 | `Interpret quantity as float` | `deserialize` | `TRUE`/`FALSE` | `FALSE` |
 | `Interpret cost and value as int` | `deserialize` | `TRUE`/`FALSE` | `TRUE` |
 
@@ -126,6 +127,34 @@ The zero that results is a real value and behaves like one. It is on the lower e
 which the engine notes at `debug` and not in the `.log.csv` ({doc}`../../user/logging`) — zero is
 ordinary, and a file that said so on every written-off holding would say nothing else. That is the
 point: the holding is in the output, where it was being dropped before.
+
+### `Note marks`
+
+Some reports hang a footnote on a sub-fund's name in the heading of its own pages — `Sidera Funds
+SICAV – Christian Equity*`, `European Corporate Green Bond*` — and print the note at the foot of
+the page. The mark is part of the heading's text, in the same font and the same size as the name, so
+no selection can leave it out: it has to come off here, where the name is read.
+
+```text
+ID,…,Interpret dash as zero,Note marks
+CARNE-EN23,…,,*
+DANSKEINVEST-EN24,…,MARKET_VALUE | PERC_NET_ASSETS,*
+```
+
+The cell is the **set of characters** that count as a mark, written one after the other and with no
+separator — `*`, or `*¹†` for a report that uses three. They come off the **end** of the name, one
+or several, together with any space before them: a report that writes `ANIMA Brightview 2023-I *`
+loses the space too, while `A*B Fund` keeps its asterisk, because that one is not a footnote.
+
+It is not cosmetic. The name this pipe publishes *is* the sub-fund's identity: it goes into
+`funds.csv`, into the `fund` field of every holding on the page, and it is what every later phase —
+the statement of net assets, the investment managers, the SFDR article — looks the sub-fund up by.
+Those comparisons normalise the name, and normalisation does **not** remove an asterisk, so
+`Christian Equity*` and `Christian Equity` are two different sub-funds. A mark left on is therefore
+not a blemish in one column: it is a row that quietly matches nothing and disappears.
+
+The same column exists for the statement of net assets, where the heading carries the same mark for
+the same reason.
 
 ## Classification rows
 

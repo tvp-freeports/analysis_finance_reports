@@ -414,6 +414,30 @@ struct RowAnchor {
     n_cols: i64,
 }
 
+/// `R16` (`U3`): il richiamo di nota si toglie dalla coda del nome di un comparto.
+///
+/// Non e' un abbellimento. Le identita' dei fondi si confrontano dopo la normalizzazione profonda,
+/// che **non** tocca l'asterisco: `Global High Yield*` e `Global High Yield` restano due elementi
+/// diversi, quindi un nome che si porta dietro il richiamo non corrisponde a nessun fondo noto e la
+/// riga sparisce senza una parola.
+///
+/// `marks` e' l'insieme dei caratteri che valgono da richiamo, scritto di seguito (`"*†"`), e
+/// vuoto vuol dire «non toglierne nessuno» — cioe' il comportamento che il motore ha sempre avuto.
+/// Lo spazio prima del richiamo se ne va con lui: `ANIMA Brightview 2023-I *` su ANIMA-EN23 p63 lo
+/// scrive staccato, e li' l'asterisco e' perfino una riga a se'.
+fn strip_note_marks(name: &str, marks: &str) -> String {
+    if marks.is_empty() {
+        return name.to_string();
+    }
+    let marks: Vec<char> = marks.chars().collect();
+    let trimmed = name.trim_end();
+    let stripped = trimmed.trim_end_matches(|c| marks.contains(&c)).trim_end();
+    if stripped.len() != trimmed.len() {
+        tracing::debug!(fund = stripped, "footnote mark stripped from the fund name");
+    }
+    stripped.to_string()
+}
+
 /// Extracts the investment rows of a table, one per recognised target company.
 ///
 /// The `*_pos` values are offsets from the anchor cell. In geometric mode they are linear distances
@@ -435,6 +459,9 @@ pub struct TextFilterInvestmentsStandard {
     /// Which numeric fields read a dash the report prints as the zero it means. Empty by default,
     /// which is no change at all: see [`crate::formats_utils::text_filter::dash_as_zero`].
     pub dash_as_zero: DashAsZero,
+    /// The characters that count as a footnote mark on the fund's name (`R16`). Empty by default,
+    /// which strips nothing: see [`strip_note_marks`].
+    note_marks: String,
 }
 
 impl TextFilterInvestmentsStandard {
@@ -467,7 +494,18 @@ impl TextFilterInvestmentsStandard {
             geometrical_indexes,
             merge_prev,
             dash_as_zero,
+            note_marks: String::new(),
         })
+    }
+
+    /// The same pipe, stripping these characters from the end of the fund's name (`R16`).
+    ///
+    /// A builder and not a ninth parameter of [`Self::new`], for the same reason
+    /// [`TextFilterAssetsStandard::with_note_marks`] is one: the formats that need it are two out
+    /// of twenty-six, and the other twenty-four should not have to write an empty string.
+    pub fn with_note_marks(mut self, note_marks: impl Into<String>) -> Self {
+        self.note_marks = note_marks.into();
+        self
     }
 
     /// Separates the fund name and the currency from the table blocks, then extracts the rows.
@@ -489,8 +527,19 @@ impl TextFilterInvestmentsStandard {
                 if fund_found.is_some() {
                     return Err(StandardFuncsError::TwoFundsInSamePage);
                 }
+                // `R16`: il richiamo di nota se ne va **qui**, prima che il nome diventi l'identita'
+                // del comparto. Piu' avanti non si puo' piu': il nome finisce nei metadati di ogni
+                // riga di questa pagina e in `funds.csv`, e le fasi dopo lo confrontano cosi' com'e'.
+                let blk = match (self.note_marks.is_empty(), blk.content.as_str()) {
+                    (false, Some(name)) => {
+                        let mut stripped = blk.clone();
+                        stripped.content = BlockValue::from(strip_note_marks(name, &self.note_marks));
+                        stripped
+                    }
+                    _ => blk.clone(),
+                };
                 fund_found = Some(blk.content.clone());
-                results.push(standard_fund_txt_blk(blk.clone()));
+                results.push(standard_fund_txt_blk(blk));
             } else if blk.type_block == BlockType::CURRENCY_STATEMENT {
                 if currency_found.is_some() {
                     return Err(StandardFuncsError::TwoCurrenciesInSamePage);
@@ -1174,14 +1223,7 @@ impl TextFilterAssetsStandard {
             for pattern in &self.remove_from_fund_regexes {
                 fund_name = pattern.replace_all(&fund_name, "");
             }
-            if !self.note_marks.is_empty() {
-                let marks: Vec<char> = self.note_marks.chars().collect();
-                let stripped = fund_name.trim_end().trim_end_matches(|c| marks.contains(&c)).trim_end();
-                if stripped.len() != fund_name.trim_end().len() {
-                    tracing::debug!(fund = stripped, "footnote mark stripped from the fund name");
-                }
-                fund_name = stripped.to_string();
-            }
+            fund_name = strip_note_marks(&fund_name, &self.note_marks);
 
             if !known_funds.contains(&MatchFund::new(&fund_name)) {
                 tracing::trace!(fund = fund_name, "assets block skipped: fund not among the known funds");
@@ -2394,6 +2436,98 @@ mod tests {
         fn a_page_with_only_a_fund_name_produces_nothing() {
             let blks = vec![fund_block("Alpha Fund")];
             assert!(simple_investments(1).call(&blks, &targets(&["Acme"])).unwrap().is_empty());
+        }
+    }
+
+    /// `R16`: il richiamo di nota va tolto **qui**, dove il nome del comparto nasce.
+    ///
+    /// Dal nome che esce da questo filtro discendono `funds.csv` e i metadati `fund` di ogni riga
+    /// della pagina, ed e' contro quel nome che le fasi successive — attivi, gestori, articolo
+    /// SFDR — cercano il comparto. Un asterisco rimasto qui le fa fallire tutte in silenzio.
+    mod investments_note_marks {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        fn fund_block(name: &str) -> PdfBlock {
+            PdfBlock::bare(BlockType::FUND_NAME, name)
+        }
+
+        fn page(name: &str) -> Vec<PdfBlock> {
+            vec![
+                fund_block(name),
+                table_row(0, 0, "Acme Corp", false),
+                table_row(0, 1, "1.000", false),
+            ]
+        }
+
+        fn fund_name_of(pipe: &TextFilterInvestmentsStandard, name: &str) -> BlockValue {
+            let out = pipe.call(&page(name), &targets(&["Acme Corp"])).unwrap();
+            out[1].metadata["fund"].clone()
+        }
+
+        #[test]
+        fn without_the_parameter_the_mark_stays_where_the_report_wrote_it() {
+            let pipe = simple_investments(1);
+            assert_eq!(fund_name_of(&pipe, "Alpha Fund*"), BlockValue::from("Alpha Fund*"));
+        }
+
+        #[test]
+        fn the_declared_mark_goes_from_the_name() {
+            let pipe = simple_investments(1).with_note_marks("*");
+            assert_eq!(fund_name_of(&pipe, "Alpha Fund*"), BlockValue::from("Alpha Fund"));
+        }
+
+        /// Il blocco del fondo e i metadati delle righe portano **lo stesso** nome: se divergessero,
+        /// `funds.csv` e `investments.csv` parlerebbero di due comparti diversi.
+        #[test]
+        fn the_fund_block_and_the_rows_agree_on_the_stripped_name() {
+            let pipe = simple_investments(1).with_note_marks("*");
+            let out = pipe.call(&page("Alpha Fund*"), &targets(&["Acme Corp"])).unwrap();
+
+            assert_eq!(out[0].type_block, BlockType::FUND);
+            assert_eq!(out[0].content, BlockValue::from("Alpha Fund"));
+            assert_eq!(out[1].metadata["fund"], BlockValue::from("Alpha Fund"));
+        }
+
+        /// CARNE-EN23 p39 scrive `Christian Equity*` attaccato, ANIMA-EN23 p63 `2023-I *` staccato.
+        #[test]
+        fn a_mark_separated_by_a_space_goes_too() {
+            let pipe = simple_investments(1).with_note_marks("*");
+            assert_eq!(fund_name_of(&pipe, "Alpha Fund *"), BlockValue::from("Alpha Fund"));
+        }
+
+        #[test]
+        fn several_marks_can_be_declared_together() {
+            let pipe = simple_investments(1).with_note_marks("*\u{b9}");
+            assert_eq!(fund_name_of(&pipe, "Alpha Fund\u{b9}"), BlockValue::from("Alpha Fund"));
+            assert_eq!(fund_name_of(&pipe, "Alpha Fund**"), BlockValue::from("Alpha Fund"));
+        }
+
+        #[test]
+        fn a_name_that_carries_no_mark_is_left_exactly_as_it_is() {
+            let pipe = simple_investments(1).with_note_marks("*");
+            assert_eq!(fund_name_of(&pipe, "Alpha Fund"), BlockValue::from("Alpha Fund"));
+        }
+
+        /// Il richiamo si toglie dalla **coda**, non dovunque: `A*B Fund` e' un nome, non un nome
+        /// con una nota.
+        #[test]
+        fn a_mark_in_the_middle_of_the_name_is_not_a_footnote() {
+            let pipe = simple_investments(1).with_note_marks("*");
+            assert_eq!(fund_name_of(&pipe, "A*B Fund"), BlockValue::from("A*B Fund"));
+        }
+
+        /// Il contenuto di un blocco e' un `BlockValue`, non per forza una stringa. Se non lo e',
+        /// il tubo non deve ne' fallire ne' cambiarlo.
+        #[test]
+        fn a_fund_block_whose_content_is_not_text_passes_through_untouched() {
+            let pipe = simple_investments(1).with_note_marks("*");
+            let mut blks = vec![PdfBlock::new(BlockType::FUND_NAME, BTreeMap::new(), BlockValue::Int(7))];
+            blks.extend(page("ignored").into_iter().skip(1));
+
+            let out = pipe.call(&blks, &targets(&["Acme Corp"])).unwrap();
+
+            assert_eq!(out[1].metadata["fund"], BlockValue::Int(7));
         }
     }
 
