@@ -85,7 +85,7 @@ Metric                                     Item                                 
 ``docs.rust``                              ``src/output/files_schema.rs``                                      13.8 %
 ``docs.rust``                              ``src/commons/sets/ast_simple.rs``                                  14.3 %
 ``docs.rust``                              ``src/formats_utils/pdf_extract/tabularizer/collapse.rs``           14.3 %
-``docs.python``                            ``docs.python.freeports_dev``                                       57.9 %
+``docs.python``                            ``docs.python.freeports_dev``                                       58.1 %
 ``docs.python``                            ``docs.python.freeports_validate``                                  64.0 %
 ``lint.rust``                              ``clippy::redundant_closure``                                       4
 ``lint.rust``                              ``clippy::ptr_arg``                                                 1
@@ -112,7 +112,6 @@ Metric                                     Item                                 
 ``docs.python.freeports_dev``              ``ci.docstrings.DocumentableObject``                                0.0 %
 ``docs.python.freeports_dev``              ``ci.render.Table``                                                 0.0 %
 ``docs.python.freeports_dev``              ``ci.report.SuiteOutcome``                                          0.0 %
-``docs.python.freeports_dev``              ``create_test_page``                                                0.0 %
 ``docs.python.freeports_dev``              ``lib.conftest.template``                                           0.0 %
 ``docs.python.freeports_dev``              ``make_tests``                                                      0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.AlgorithmCache``                                    0.0 %
@@ -124,6 +123,7 @@ Metric                                     Item                                 
 ``docs.python.freeports_dev``              ``pytest_plugin.FreeportsFormat``                                   0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.JsonCache``                                         0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.PdfCache``                                          0.0 %
+``docs.python.freeports_dev``              ``pytest_plugin.PdfExtractTest``                                    0.0 %
 ``docs.python.freeports_validate``         ``lib.report.Table``                                                0.0 %
 ``docs.python.freeports_validate``         ``cli``                                                             50.0 %
 ``docs.python.freeports_validate``         ``lib.report``                                                      54.5 %

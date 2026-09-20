@@ -206,6 +206,12 @@ pub fn unwrap_deserialize(object: &Bound<'_, PyAny>) -> Option<Arc<dyn Deseriali
 /// A page from the dict PyMuPDF returns.
 ///
 /// The original dict stays attached: author pipes can read it, which is why a page keeps it.
+///
+/// A `"drawings"` entry, if the caller put one there, is read as the page's vector paths. PyMuPDF
+/// does not put it in the text dict — `page.get_drawings()` is a separate call, and only the
+/// document loader has the page object to make it — so this is how the development tooling hands
+/// across a page that is the same page the engine reads. Without it a pipe that decides on a drawn
+/// shape would answer one way in a run and another in `freeports-dev`.
 pub fn page_from_py(page: &Bound<'_, PyAny>) -> PyResult<Page> {
     let dict = page.cast::<PyDict>().map_err(|_| {
         pyo3::exceptions::PyTypeError::new_err("a page must be the dict returned by page.get_text(\"dict\")")
@@ -214,7 +220,15 @@ pub fn page_from_py(page: &Bound<'_, PyAny>) -> PyResult<Page> {
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
     let lines = page_dict::pdflines_from_pagedict(&parsed, true);
     let images = page_dict::pdfimages_from_pagedict(&parsed);
-    Ok(Page::new(1, (parsed.width, parsed.height), lines, images).with_raw(page.clone().unbind()))
+    let drawings = dict
+        .get_item("drawings")
+        .ok()
+        .flatten()
+        .map(|drawings| crate::input::document::pdfdrawings_from_py(&drawings))
+        .unwrap_or_default();
+    Ok(Page::new(1, (parsed.width, parsed.height), lines, images)
+        .with_drawings(drawings)
+        .with_raw(page.clone().unbind()))
 }
 
 /// A Python list of PDF blocks as a native vector.

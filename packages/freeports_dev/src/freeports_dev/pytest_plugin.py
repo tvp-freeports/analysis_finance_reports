@@ -143,14 +143,16 @@ class DocumentCache(ABC):
 
     def get_doc(self, path, pdf_cache):
         if path not in self.files:
-            self.files[path] = [p.get_text("dict") for p in pdf_cache.get_file(path)]
+            from freeports_dev.create_test_page import page_dict
+
+            self.files[path] = [page_dict(p) for p in pdf_cache.get_file(path)]
         return self.files[path]
 
     def get_page(self, path, page_n, pdf_cache):
         if (path, page_n) not in self.pages:
-            self.pages[(path, page_n)] = pdf_cache.get_file(path)[page_n - 1].get_text(
-                "dict"
-            )
+            from freeports_dev.create_test_page import page_dict
+
+            self.pages[(path, page_n)] = page_dict(pdf_cache.get_file(path)[page_n - 1])
         return self.pages[(path, page_n)]
 
 

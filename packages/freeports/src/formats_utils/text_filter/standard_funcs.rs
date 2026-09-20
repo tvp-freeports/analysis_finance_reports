@@ -32,7 +32,7 @@ use once_cell::sync::Lazy;
 use onig::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::commons::consts::Currency;
+use crate::commons::consts::{Currency, SfdrArticle};
 use crate::core::classes::value::BlockValue;
 use crate::core::classes::{BlockType, PdfBlock, TextBlock};
 use crate::core::match_fund::MatchFund;
@@ -919,26 +919,60 @@ fn resolved_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
     data.previous().iter().filter_map(Extracted::as_fund).filter_map(Fund::name).map(MatchFund::new).collect()
 }
 
-/// The `text_filter` pipe for a fund's SFDR classification (article 6, 8 or 9).
+/// The `text_filter` pipe that turns a tick into an SFDR classification.
 ///
-/// Takes the **first** PDF block, strips the literal prefixes and then the pattern ones, in that
-/// order, and optionally checks that the resulting fund is among the investment funds seen in
-/// earlier steps.
-pub struct TextFilterSfdrArticleStandard {
+/// It is the second half of `PdfExtractSfdrSignStandard`, and it does the three things that
+/// segment owes by `R23`: it **reads what the position means** — the affirmative box is a
+/// sustainable investment objective, hence article 9, and the negative one article 8 — it
+/// **checks the annex's title** against that answer (`R34`), and it **joins** the tick to the fund
+/// the page names.
+///
+/// # Why the fund arrives from another pipe
+///
+/// The fund's name is a different thing on the same page, not a part of the tick, so it is read by
+/// its own `pdf_extract` pipe — `PdfExtractLabelledValueStandard` on the `Product name:` line —
+/// and this filter picks it up from the blocks it is handed. A `text_filter` receives every block
+/// every `pdf_extract` pipe of its pipeline produced, which is all it takes to put the two
+/// together; nothing crosses a page, so no promise is involved.
+///
+/// # What the title check does
+///
+/// The title agrees with the tick on every disclosure measured but one, and is **missing** on two
+/// hundred and thirty-six. So: agreeing is silence, missing is a warning and the tick is believed,
+/// and disagreeing is an **error** and no row — a document that contradicts itself is not one to
+/// pick a winner from. Exactly one disclosure of the 905-document corpus does that.
+pub struct TextFilterSfdrSignStandard {
+    fund_block_type: BlockType,
     prefix_strings: Vec<String>,
     prefix_patterns: Vec<Regex>,
     demand_investment_funds_match: bool,
 }
 
-impl TextFilterSfdrArticleStandard {
+/// Reads `…Article 8…` / `…articolo 9…` out of the annex's title line, in the four languages of the
+/// collection.
+///
+/// Not a `PdfLineSelection`, because this is text being interpreted rather than lines being chosen,
+/// and not a parameter, because the wording is the European template's and not the format's.
+static TITLE_ARTICLE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    compile_pattern(r"(?i)(?:article|articolo|art[ií]culo|artikel)\s*([89])\b")
+        .expect("the title pattern is a literal and compiles")
+});
+
+impl TextFilterSfdrSignStandard {
     pub fn new(
+        fund_block_type: Option<BlockType>,
         prefix_strings: Vec<String>,
         prefix_patterns: Vec<String>,
         demand_investment_funds_match: bool,
     ) -> Result<Self, StandardFuncsError> {
         let prefix_patterns =
             prefix_patterns.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { prefix_strings, prefix_patterns, demand_investment_funds_match })
+        Ok(Self {
+            fund_block_type: fund_block_type.unwrap_or(BlockType::FUND_NAME),
+            prefix_strings,
+            prefix_patterns,
+            demand_investment_funds_match,
+        })
     }
 
     /// The resolved names of the investment funds (equities and bonds) seen in earlier steps.
@@ -951,21 +985,82 @@ impl TextFilterSfdrArticleStandard {
             .collect()
     }
 
+    /// The article the answer means. The pipe before it never named one.
+    fn article(answer: &str) -> Option<SfdrArticle> {
+        match answer {
+            "affirmative" => Some(SfdrArticle::Art9),
+            "negative" => Some(SfdrArticle::Art8),
+            _ => None,
+        }
+    }
+
+    /// Strips the label from the fund's line: literals first, in order, then patterns.
+    fn fund_name(&self, raw: &str) -> String {
+        let mut name = raw.to_string();
+        for prefix in &self.prefix_strings {
+            name = name.replace(prefix.as_str(), "");
+        }
+        for pattern in &self.prefix_patterns {
+            name = pattern.replace_all(&name, "").to_string();
+        }
+        name.trim().to_string()
+    }
+
     pub fn call(
         &self,
         pdf_blks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, StandardFuncsError> {
-        let first = pdf_blks.first().ok_or(StandardFuncsError::NoPdfBlocks)?;
-        let mut fund_name = first.content.str_or_fail("content")?.to_string();
+        let Some(sign) = pdf_blks.iter().find(|blk| blk.type_block == BlockType::SFDR_ARTICLE) else {
+            // The extractor returns nothing when it finds no tick, and says why in its own warning.
+            return Ok(Vec::new());
+        };
+        let answer = sign.metadata.get("answer").and_then(BlockValue::as_str).unwrap_or_default();
+        let Some(article) = Self::article(answer) else {
+            return Err(StandardFuncsError::NoPdfBlocks);
+        };
 
-        // Literal prefixes are removed as substrings wherever they occur, applied in order and
-        // before the pattern prefixes.
-        for prefix in &self.prefix_strings {
-            fund_name = fund_name.replace(prefix.as_str(), "");
+        if let Some(title) = sign.metadata.get("title").and_then(BlockValue::as_str) {
+            match TITLE_ARTICLE.captures(title) {
+                Some(found) => {
+                    let declared = found.at(1).unwrap_or_default();
+                    let agrees = matches!(
+                        (declared, article),
+                        ("8", SfdrArticle::Art8) | ("9", SfdrArticle::Art9)
+                    );
+                    if !agrees {
+                        tracing::error!(
+                            "the annex is titled as article {declared} and its first question is \
+                             ticked as {article:?}: the disclosure contradicts itself, and no \
+                             classification is read from it"
+                        );
+                        return Ok(Vec::new());
+                    }
+                }
+                None => tracing::warn!(
+                    "the annex's title does not name an article, so the ticked box is the only \
+                     evidence for this classification"
+                ),
+            }
         }
-        for pattern in &self.prefix_patterns {
-            fund_name = pattern.replace_all(&fund_name, "");
+
+        // The **first non-empty** one, not simply the first: a format may read the product's name
+        // with more than one pipe because the same annex writes it in two layouts — on the label's
+        // own line in some disclosures, in a second line beside it in others — and the pipe that
+        // does not apply to a given page leaves the label alone, which strips down to nothing.
+        let fund_name = pdf_blks
+            .iter()
+            .filter(|blk| blk.type_block == self.fund_block_type)
+            .filter_map(|blk| blk.content.as_str())
+            .map(|raw| self.fund_name(raw))
+            .find(|name| !name.is_empty())
+            .unwrap_or_default();
+        if fund_name.is_empty() {
+            tracing::warn!(
+                "this disclosure's article was read but the page does not name the fund it belongs \
+                 to: there is nobody to attribute it to"
+            );
+            return Ok(Vec::new());
         }
 
         if self.demand_investment_funds_match {
@@ -976,13 +1071,14 @@ impl TextFilterSfdrArticleStandard {
             }
         }
 
-        Ok(vec![TextBlock::from_content(BlockType::SFDR_ARTICLE, first.metadata.clone(), fund_name)])
+        let metadata = BTreeMap::from([("article".to_string(), BlockValue::from(article))]);
+        Ok(vec![TextBlock::from_content(BlockType::SFDR_ARTICLE, metadata, fund_name)])
     }
 }
 
-impl TextFilterPipe for TextFilterSfdrArticleStandard {
+impl TextFilterPipe for TextFilterSfdrSignStandard {
     fn name(&self) -> &str {
-        "TextFilterSfdrArticleStandard"
+        "TextFilterSfdrSignStandard"
     }
 
     fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
@@ -2381,14 +2477,32 @@ mod tests {
     }
 
 
-    mod text_filter_sfdr_article {
+    mod text_filter_sfdr_sign {
         use super::*;
         use crate::commons::consts::Currency as Cur;
         use crate::output::classes::investment::{Equity, InvestmentFields};
 
-        fn sfdr_pdf_block(content: &str) -> PdfBlock {
-            let metadata = BTreeMap::from([("article".to_string(), BlockValue::from("Art. 8"))]);
-            PdfBlock::new(BlockType::SFDR_ARTICLE, metadata, content)
+        /// The block `PdfExtractSfdrSignStandard` produces: the side the tick fell on, which
+        /// recognizer found it, and — when the format asked for it — the annex's title line.
+        fn tick(answer: &str, title: Option<&str>) -> PdfBlock {
+            let mut metadata = BTreeMap::from([
+                ("answer".to_string(), BlockValue::from(answer)),
+                ("sign".to_string(), BlockValue::from("text-mark")),
+                ("answered_by".to_string(), BlockValue::from("question")),
+            ]);
+            if let Some(title) = title {
+                metadata.insert("title".to_string(), BlockValue::from(title));
+            }
+            PdfBlock::new(BlockType::SFDR_ARTICLE, metadata, "")
+        }
+
+        /// The block the fund's own `pdf_extract` pipe produces, on the same page.
+        fn fund_line(content: &str) -> PdfBlock {
+            PdfBlock::bare(BlockType::FUND_NAME, content)
+        }
+
+        fn page(answer: &str, fund: &str) -> Vec<PdfBlock> {
+            vec![tick(answer, None), fund_line(fund)]
         }
 
         fn investment_fund(fund: &str) -> Extracted {
@@ -2404,38 +2518,162 @@ mod tests {
             )
         }
 
+        fn filter(strings: Vec<String>, patterns: Vec<String>, demand: bool) -> TextFilterSfdrSignStandard {
+            TextFilterSfdrSignStandard::new(None, strings, patterns, demand).unwrap()
+        }
+
         mod construction {
             use super::*;
 
             #[test]
             fn empty_prefixes_are_accepted() {
-                assert!(TextFilterSfdrArticleStandard::new(vec![], vec![], true).is_ok());
+                assert!(TextFilterSfdrSignStandard::new(None, vec![], vec![], true).is_ok());
             }
 
             #[test]
             fn an_invalid_regex_prefix_is_rejected_at_construction() {
-                assert!(TextFilterSfdrArticleStandard::new(vec![], vec!["(unterminated".to_string()], true).is_err());
+                assert!(
+                    TextFilterSfdrSignStandard::new(None, vec![], vec!["(unterminated".to_string()], true).is_err()
+                );
             }
         }
 
-        mod prefix_stripping {
+        mod the_answer_becomes_an_article {
             use super::*;
 
             #[test]
+            fn the_affirmative_box_is_article_9() {
+                let out = filter(vec![], vec![], false).call(&page("affirmative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                assert_eq!(out[0].metadata.get("article"), Some(&BlockValue::from(SfdrArticle::Art9)));
+            }
+
+            #[test]
+            fn the_negative_box_is_article_8() {
+                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                assert_eq!(out[0].metadata.get("article"), Some(&BlockValue::from(SfdrArticle::Art8)));
+            }
+
+            #[test]
+            fn article_6_is_never_written_because_a_tick_never_says_it() {
+                // The pipe it replaces answered article 6 whenever it recognised neither fragment.
+                // A tick has two sides and neither of them is "no declaration", so the case is gone.
+                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                assert_ne!(out[0].metadata.get("article"), Some(&BlockValue::from(SfdrArticle::Art6)));
+            }
+
+            #[test]
+            fn a_block_whose_answer_is_not_one_of_the_two_is_an_error() {
+                let blks = vec![tick("maybe", None), fund_line("Acme Fund")];
+                assert!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).is_err());
+            }
+
+            #[test]
+            fn no_tick_block_at_all_produces_nothing_rather_than_failing() {
+                // The extractor already said why in its own warning; failing again here would
+                // report one defect twice and take the page down with it.
+                let blks = vec![fund_line("Acme Fund")];
+                assert!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().is_empty());
+            }
+        }
+
+        mod the_title_check {
+            use super::*;
+
+            fn with_title(answer: &str, title: &str) -> Vec<PdfBlock> {
+                vec![tick(answer, Some(title)), fund_line("Acme Fund")]
+            }
+
+            #[test]
+            fn a_title_that_agrees_is_silent() {
+                let blks = with_title("negative", "Periodic disclosure ... referred to in Article 8, paragraphs 1");
+                let out = filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap();
+                assert_eq!(out.len(), 1);
+            }
+
+            #[test]
+            fn a_title_that_disagrees_writes_no_row() {
+                let blks = with_title("affirmative", "Periodic disclosure ... referred to in Article 8");
+                let out = filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn the_italian_wording_is_understood_too() {
+                let blks = with_title("negative", "Modello di informativa periodica ... di cui all'articolo 8, paragrafi");
+                assert_eq!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().len(), 1);
+            }
+
+            #[test]
+            fn a_title_that_names_no_article_leaves_the_tick_alone() {
+                let blks = with_title("affirmative", "Informativa periodica sulla promozione di caratteristiche");
+                assert_eq!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().len(), 1);
+            }
+
+            #[test]
+            fn no_title_block_at_all_leaves_the_tick_alone() {
+                let out = filter(vec![], vec![], false).call(&page("affirmative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                assert_eq!(out.len(), 1);
+            }
+        }
+
+        mod the_fund_comes_from_its_own_block {
+            use super::*;
+
+            #[test]
+            fn the_content_is_the_fund_the_other_pipe_read() {
+                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
+            }
+
+            #[test]
+            fn a_page_with_no_fund_block_writes_no_row() {
+                let blks = vec![tick("negative", None)];
+                assert!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().is_empty());
+            }
+
+            #[test]
+            fn the_first_fund_block_that_is_not_only_a_label_is_the_one_read() {
+                // Two pipes read the product's name, because the annex writes it in two layouts.
+                // On a page where the first layout does not apply, that pipe brings down the bare
+                // label, which strips to nothing — and the second pipe's block is the answer.
+                let blks = vec![
+                    tick("negative", None),
+                    fund_line("Product name: "),
+                    fund_line("Product name: Acme Fund"),
+                ];
+                let out = filter(vec!["Product name: ".to_string()], vec![], false)
+                    .call(&blks, &FilterData::EMPTY)
+                    .unwrap();
+                assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
+            }
+
+            #[test]
+            fn the_block_type_of_the_fund_can_be_named_by_the_format() {
+                let named = TextFilterSfdrSignStandard::new(
+                    Some(BlockType::new("PRODUCT_NAME")),
+                    vec![],
+                    vec![],
+                    false,
+                )
+                .unwrap();
+                let blks = vec![tick("negative", None), PdfBlock::bare(BlockType::new("PRODUCT_NAME"), "Acme Fund")];
+                let out = named.call(&blks, &FilterData::EMPTY).unwrap();
+                assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
+            }
+
+            #[test]
             fn a_literal_prefix_is_stripped() {
-                let filter = TextFilterSfdrArticleStandard::new(vec!["Prefix: ".to_string()], vec![], true).unwrap();
-                let previous = vec![investment_fund("Acme Fund")];
-                let blks = vec![sfdr_pdf_block("Prefix: Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                let out = filter(vec!["Prefix: ".to_string()], vec![], false)
+                    .call(&page("negative", "Prefix: Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
             }
 
             #[test]
             fn a_regex_prefix_is_stripped_too() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec!["^Prefix \\d+: ".to_string()], true).unwrap();
-                let previous = vec![investment_fund("Acme Fund")];
-                let blks = vec![sfdr_pdf_block("Prefix 42: Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                let out = filter(vec![], vec!["^Prefix \\d+: ".to_string()], false)
+                    .call(&page("negative", "Prefix 42: Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
             }
 
@@ -2445,18 +2683,11 @@ mod tests {
                 // wherever it occurs, not only at the head. With this input the order genuinely
                 // matters: applying the literal first removes `"Foo "` from the middle, leaving
                 // `"Extra Bar"`, on which the anchored pattern `"^Extra Foo "` no longer finds
-                // anything. Applying the pattern first would instead match the whole `"Extra Foo "`
-                // prefix of the original and leave `"Bar"`. The two orders give different results,
-                // which is what shows the literal really is applied first.
-                let filter = TextFilterSfdrArticleStandard::new(
-                    vec!["Foo ".to_string()],
-                    vec!["^Extra Foo ".to_string()],
-                    true,
-                )
-                .unwrap();
-                let previous = vec![investment_fund("Extra Bar")];
-                let blks = vec![sfdr_pdf_block("Extra Foo Bar")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                // anything. The two orders give different results, which is what shows the literal
+                // really is applied first.
+                let out = filter(vec!["Foo ".to_string()], vec!["^Extra Foo ".to_string()], false)
+                    .call(&page("negative", "Extra Foo Bar"), &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Extra Bar"));
             }
         }
@@ -2466,34 +2697,33 @@ mod tests {
 
             #[test]
             fn a_fund_present_among_resolved_investments_matches() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], true).unwrap();
                 let previous = vec![investment_fund("Acme Fund")];
-                let blks = vec![sfdr_pdf_block("Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                let out = filter(vec![], vec![], true)
+                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .unwrap();
                 assert_eq!(out.len(), 1);
             }
 
             #[test]
             fn a_fund_not_present_produces_nothing_when_match_is_demanded() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], true).unwrap();
                 let previous = vec![investment_fund("Someone Else Fund")];
-                let blks = vec![sfdr_pdf_block("Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                let out = filter(vec![], vec![], true)
+                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .unwrap();
                 assert!(out.is_empty());
             }
 
             #[test]
             fn no_match_is_demanded_when_the_flag_is_false() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
                 let previous: Vec<Extracted> = vec![];
-                let blks = vec![sfdr_pdf_block("Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                let out = filter(vec![], vec![], false)
+                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .unwrap();
                 assert_eq!(out.len(), 1);
             }
 
             #[test]
             fn an_unresolved_investment_fund_does_not_count_as_a_match() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], true).unwrap();
                 let pending_equity = Extracted::Equity(
                     Equity::build(InvestmentFields::new(
                         "Acme Corp",
@@ -2505,50 +2735,10 @@ mod tests {
                     .unwrap(),
                 );
                 let previous = vec![pending_equity];
-                let blks = vec![sfdr_pdf_block("Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                let out = filter(vec![], vec![], true)
+                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .unwrap();
                 assert!(out.is_empty());
-            }
-        }
-
-        mod pdf_blocks_and_metadata {
-            use super::*;
-
-            #[test]
-            fn an_empty_list_of_pdf_blocks_is_an_error() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
-                let previous: Vec<Extracted> = vec![];
-                assert!(matches!(
-                    filter.call(&[], &FilterData::Previous(&previous)),
-                    Err(StandardFuncsError::NoPdfBlocks)
-                ));
-            }
-
-            #[test]
-            fn only_the_first_pdf_block_is_used() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
-                let previous: Vec<Extracted> = vec![];
-                let blks = vec![sfdr_pdf_block("First Fund"), sfdr_pdf_block("Second Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
-                assert_eq!(out[0].content.as_str(), Some("First Fund"));
-            }
-
-            #[test]
-            fn the_metadata_of_the_first_block_is_carried_over() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
-                let previous: Vec<Extracted> = vec![];
-                let blks = vec![sfdr_pdf_block("Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
-                assert_eq!(out[0].metadata.get("article"), Some(&BlockValue::from("Art. 8")));
-            }
-
-            #[test]
-            fn the_result_is_typed_as_sfdr_article() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
-                let previous: Vec<Extracted> = vec![];
-                let blks = vec![sfdr_pdf_block("Acme Fund")];
-                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
-                assert_eq!(out[0].type_block, BlockType::SFDR_ARTICLE);
             }
         }
 
@@ -2557,15 +2747,18 @@ mod tests {
 
             #[test]
             fn the_pipe_name_identifies_it_in_errors() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
-                assert_eq!(filter.name(), "TextFilterSfdrArticleStandard");
+                assert_eq!(filter(vec![], vec![], false).name(), "TextFilterSfdrSignStandard");
             }
 
             #[test]
-            fn an_empty_pdf_block_list_is_a_fatal_error_not_a_page_failure() {
-                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
-                let err = filter.filter(&[], &FilterData::EMPTY).unwrap_err();
-                assert!(!err.is_page_failure());
+            fn the_result_is_typed_as_sfdr_article() {
+                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                assert_eq!(out[0].type_block, BlockType::SFDR_ARTICLE);
+            }
+
+            #[test]
+            fn a_page_with_no_blocks_at_all_produces_nothing() {
+                assert!(filter(vec![], vec![], false).filter(&[], &FilterData::EMPTY).unwrap().is_empty());
             }
         }
     }

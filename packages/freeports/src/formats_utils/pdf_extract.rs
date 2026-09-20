@@ -7,6 +7,7 @@
 pub mod commons;
 pub mod labelled_value;
 pub mod section;
+pub mod sfdr_sign;
 pub mod pdf_line;
 pub mod position;
 pub mod relative;

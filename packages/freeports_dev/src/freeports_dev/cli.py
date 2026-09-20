@@ -373,7 +373,9 @@ def _cmd_inspect_document(args):
     # of them at once -- "every page after the holdings header is holdings" -- so a page classified
     # on its own can get a different answer from the same page classified in its document. The
     # isolated answer is the wrong one, and it is the one somebody would act on.
-    pages = [p.get_text("dict") for p in pdf_file]
+    from freeports_dev.create_test_page import page_dict
+
+    pages = [page_dict(p) for p in pdf_file]
     classifications = a.classify_pages(pages)
 
     if args.page is not None:

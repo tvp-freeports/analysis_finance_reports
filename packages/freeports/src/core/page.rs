@@ -112,6 +112,26 @@ pub struct PageImage {
     pub data: Vec<u8>,
 }
 
+/// A vector path drawn on a page, reduced to what a pipe can decide on.
+///
+/// The counterpart of [`PageImage`] for what the page **draws** rather than what it embeds, and
+/// kept just as thin: a box, a fill colour and how many commands the path is made of. It is
+/// deliberately not the PyMuPDF drawing dict — that carries the points of every segment, which no
+/// pipe reads and which would make a page dozens of times heavier for the one module of the
+/// reference collection whose SFDR tick is a path (`FINECO-EN23@LUX p197`).
+///
+/// A page's drawings are **not** filled in by [`Page::new`]: only the PyMuPDF boundary in
+/// `input::document` has a page object to ask, and it attaches them with [`Page::with_drawings`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct PageDrawing {
+    /// The rectangle the path occupies on the page.
+    pub bbox: Rectangle,
+    /// The fill colour as `(r, g, b)` in `0.0..=1.0`, or `None` for a path that is only stroked.
+    pub fill: Option<(f32, f32, f32)>,
+    /// How many drawing commands the path is made of. A box is one or four; a tick is a dozen.
+    pub items: usize,
+}
+
 /// One page of a PDF document, already converted to native data.
 ///
 /// Derives neither `Clone` nor `PartialEq`; see the note on [`Page::raw`] in the module
@@ -126,6 +146,8 @@ pub struct Page {
     pub lines: Vec<PdfLine>,
     /// The page's raster images.
     pub images: Vec<PageImage>,
+    /// The page's vector paths. Empty unless [`Page::with_drawings`] was called.
+    pub drawings: Vec<PageDrawing>,
     /// The original PyMuPDF dict, kept for pipes written by a format author.
     raw: Option<Py<PyAny>>,
 }
@@ -134,12 +156,19 @@ impl Page {
     /// Builds a native page with no PyMuPDF dict attached — the form used by everything that is not
     /// the Python boundary, tests included.
     pub fn new(number: u32, size: (f32, f32), lines: Vec<PdfLine>, images: Vec<PageImage>) -> Self {
-        Page { number, size, lines, images, raw: None }
+        Page { number, size, lines, images, drawings: Vec::new(), raw: None }
     }
 
     /// Attaches the original PyMuPDF dict. Called only from `input::document`.
     pub fn with_raw(mut self, raw: Py<PyAny>) -> Self {
         self.raw = Some(raw);
+        self
+    }
+
+    /// Attaches the page's vector paths. Called from `input::document`, and from the tests of the
+    /// pipes that read them.
+    pub fn with_drawings(mut self, drawings: Vec<PageDrawing>) -> Self {
+        self.drawings = drawings;
         self
     }
 

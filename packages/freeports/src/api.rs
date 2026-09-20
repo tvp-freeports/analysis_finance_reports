@@ -120,7 +120,7 @@ pub mod standard_funcs {
             AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage,
             InvestmentsStandardArgs,
             PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
-            PdfExtractPageClassifyStandard, PdfExtractSfdrArticleStandard, PdfExtractStandardFuncsError,
+            PdfExtractPageClassifyStandard, PdfExtractStandardFuncsError,
             pdf_extract_currency_standard, pdf_extract_fund_standard, pdf_extract_managment_company_standard,
         };
     }
@@ -129,7 +129,7 @@ pub mod standard_funcs {
         //! Pipes that keep only the blocks belonging to the funds and fields being looked for.
         pub use crate::formats_utils::text_filter::standard_funcs::{
             StandardFuncsError, TextFilterAssetsStandard, TextFilterInvestmentsStandard,
-            TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrArticleStandard,
+            TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
         };
     }
 

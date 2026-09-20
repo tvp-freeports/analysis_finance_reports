@@ -1,5 +1,6 @@
 //! The shims of the eight standard pipes of the extraction segment.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use pyo3::prelude::*;
@@ -9,14 +10,18 @@ use crate::core::classes::BlockType;
 use crate::formats_utils::pdf_extract::standard_funcs::{
     AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
     PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
-    PdfExtractPageClassifyStandard, PdfExtractSfdrArticleStandard, pdf_extract_currency_standard,
+    PdfExtractPageClassifyStandard, pdf_extract_currency_standard,
     pdf_extract_fund_standard, pdf_extract_managment_company_standard,
 };
 use crate::formats_utils::pdf_extract::labelled_value::{
     LabelledValueArgs, LabelledValueWindow, PdfExtractLabelledValueStandard,
 };
+use crate::formats_utils::pdf_extract::pdf_line::Font;
 use crate::formats_utils::pdf_extract::section::{
     PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd,
+};
+use crate::formats_utils::pdf_extract::sfdr_sign::{
+    PdfExtractSfdrSignStandard, SfdrMarks, SfdrSignArgs, SfdrSignKind,
 };
 use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 
@@ -307,19 +312,113 @@ pub fn py_pdf_extract_currency_constant(currency: PyRef<'_, PyCurrency>) -> PyPd
     PyPdfExtractPipe::new(Arc::new(PdfExtractCurrencyConstant::new(currency.inner())))
 }
 
-/// `PdfExtractSfdrArticleStandard(art9_selection, art8_selection, fund_selection)`.
+/// A pair of selections out of a two-element Python sequence.
+fn label_pair(name: &str, object: &Bound<'_, PyAny>) -> PyResult<(PdfLineSelection, PdfLineSelection)> {
+    let pair = selections_of(name, object)?;
+    let [affirmative, negative] = <[PdfLineSelection; 2]>::try_from(pair).map_err(|got| {
+        tracing::error!("{name} must be a pair of selections, affirmative first; got {}", got.len());
+        PyValueError::new_err(format!("{name} must be a pair of selections, affirmative first"))
+    })?;
+    Ok((affirmative, negative))
+}
+
+/// The characters of a `str`, or of any iterable of one-character strings.
+fn chars_of(name: &str, object: Option<&Bound<'_, PyAny>>) -> PyResult<Vec<char>> {
+    let Some(object) = object.filter(|object| !object.is_none()) else {
+        return Ok(Vec::new());
+    };
+    if let Ok(text) = object.extract::<String>() {
+        return Ok(text.chars().collect());
+    }
+    let mut characters = Vec::new();
+    for item in object.try_iter()? {
+        let text: String = item?.extract()?;
+        let mut found = text.chars();
+        match (found.next(), found.next()) {
+            (Some(character), None) => characters.push(character),
+            _ => {
+                tracing::error!("{name} takes single characters, not {text:?}");
+                return Err(PyValueError::new_err(format!("{name} takes single characters, not {text:?}")));
+            }
+        }
+    }
+    Ok(characters)
+}
+
+/// `PdfExtractSfdrSignStandard(question, labels, *, fallback_labels=None, title=None, signs=None,
+/// ticked=None, blank=None, marks_by_font=None)` — *il segno nella casella, assegnato per
+/// posizione*.
+///
+/// Two positional arguments and every keyword optional: the question's anchor and the pair of
+/// answer labels, affirmative first. See
+/// [`crate::formats_utils::pdf_extract::sfdr_sign`] for what each recognizer looks for, and why the
+/// tick characters have to be named rather than guessed.
+///
+/// `ticked`, `blank` and `marks_by_font` **add to** the measured table rather than replacing it, so
+/// a format that meets a new typography declares only what is new.
 #[pyfunction]
-#[pyo3(name = "PdfExtractSfdrArticleStandard")]
-pub fn py_pdf_extract_sfdr_article_standard(
-    art9_selection: &Bound<'_, PyAny>,
-    art8_selection: &Bound<'_, PyAny>,
-    fund_selection: &Bound<'_, PyAny>,
+#[pyo3(name = "PdfExtractSfdrSignStandard")]
+#[pyo3(signature = (
+    question,
+    labels,
+    *,
+    fallback_labels=None,
+    title=None,
+    signs=None,
+    ticked=None,
+    blank=None,
+    marks_by_font=None,
+))]
+#[allow(clippy::too_many_arguments)]
+pub fn py_pdf_extract_sfdr_sign_standard(
+    question: &Bound<'_, PyAny>,
+    labels: &Bound<'_, PyAny>,
+    fallback_labels: Option<&Bound<'_, PyAny>>,
+    title: Option<&Bound<'_, PyAny>>,
+    signs: Option<Vec<String>>,
+    ticked: Option<&Bound<'_, PyAny>>,
+    blank: Option<&Bound<'_, PyAny>>,
+    marks_by_font: Option<BTreeMap<String, String>>,
 ) -> PyResult<PyPdfExtractPipe> {
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractSfdrArticleStandard::new(
-        selection_of("art9_selection", art9_selection)?,
-        selection_of("art8_selection", art8_selection)?,
-        selection_of("fund_selection", fund_selection)?,
-    ))))
+    let signs = match signs {
+        None => SfdrSignKind::ALL.to_vec(),
+        Some(names) => names
+            .iter()
+            .map(|name| {
+                SfdrSignKind::ALL
+                    .into_iter()
+                    .find(|kind| kind.as_str() == name)
+                    .ok_or_else(|| {
+                        let known =
+                            SfdrSignKind::ALL.map(SfdrSignKind::as_str).join(", ");
+                        tracing::error!("unknown sign recognizer {name:?}; the five are {known}");
+                        PyValueError::new_err(format!("unknown sign recognizer {name:?}; the five are {known}"))
+                    })
+            })
+            .collect::<PyResult<Vec<_>>>()?,
+    };
+    let by_font = marks_by_font
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(font, characters)| (Font::new(&font).inner().to_string(), characters.chars().collect()))
+        .collect::<Vec<_>>();
+
+    let args = SfdrSignArgs {
+        question: selection_of("question", question)?,
+        labels: label_pair("labels", labels)?,
+        fallback_labels: match fallback_labels.filter(|object| !object.is_none()) {
+            Some(object) => Some(label_pair("fallback_labels", object)?),
+            None => None,
+        },
+        title: optional_selection_of("title", title)?,
+        marks: SfdrMarks::default().extended(
+            chars_of("ticked", ticked)?,
+            chars_of("blank", blank)?,
+            by_font,
+        ),
+        signs,
+    };
+    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractSfdrSignStandard::new(args))))
 }
 
 /// The pipe for the investments table.

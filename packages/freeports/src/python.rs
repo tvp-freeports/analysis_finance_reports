@@ -210,7 +210,7 @@ pub mod freeports {
                 py_pdf_extract_currency_standard, py_pdf_extract_fund_standard,
                 py_pdf_extract_investments_standard, py_pdf_extract_labelled_value_standard,
                 py_pdf_extract_managment_company_standard, py_pdf_extract_page_classify_standard,
-                py_pdf_extract_section_standard, py_pdf_extract_sfdr_article_standard,
+                py_pdf_extract_section_standard, py_pdf_extract_sfdr_sign_standard,
             };
         }
 
@@ -220,7 +220,7 @@ pub mod freeports {
             use crate::python::standard_funcs::text_filter::{
                 py_text_filter_assets_standard, py_text_filter_investments_standard,
                 py_text_filter_managment_company_standard, py_text_filter_page_classify_standard,
-                py_text_filter_sfdr_article_standard,
+                py_text_filter_sfdr_sign_standard,
             };
         }
 

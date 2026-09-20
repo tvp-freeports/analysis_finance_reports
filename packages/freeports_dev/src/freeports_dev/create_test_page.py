@@ -17,6 +17,13 @@ from freeports.formats_repo import get_formats
 #
 # `TEXT_COLLECT_VECTORS` was dead weight besides: `PageDict::from_py` reads `width`, `height`,
 # `blocks`, `lines` and `spans`, and nothing else ever reaches the pipes.
+#
+# The page's **vector paths** are the one thing the text dict does not carry and the engine does
+# read: `page.get_drawings()` is a separate call, and `input/document.rs` makes it while it still
+# has the page object.  `page_dict()` below makes the same call and puts the result under
+# `"drawings"`, which is where `page_from_py` looks for it -- otherwise a pipe that decides on a
+# drawn shape (the SFDR tick of one annex in the whole reference collection) would answer one way
+# in a run and another under `freeports-dev`, for the very reason this comment exists.
 
 
 def get_page_xml(file_name: str, page: int):
@@ -42,11 +49,16 @@ def get_page_table(file_name: str, page: int):
     return tabs
 
 
+def page_dict(page):
+    """The page as the engine reads it: the text dict, plus the vector paths beside it."""
+    as_dict = page.get_text("dict")
+    as_dict["drawings"] = page.get_drawings()
+    return as_dict
+
+
 def get_page_dict(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
-    page_doc = pdf_file[page - 1]
-    page = page_doc.get_text("dict")
-    return page
+    return page_dict(pdf_file[page - 1])
 
 
 get_page = get_page_dict
@@ -54,7 +66,7 @@ get_page = get_page_dict
 
 def get_doc(file_path):
     pdf_file = pypdf.Document(file_path)
-    return [page.get_text("dict") for page in pdf_file]
+    return [page_dict(page) for page in pdf_file]
 
 
 def get_pdf_from_tests(fmt, document=None, base_path=None):
@@ -65,7 +77,7 @@ def get_pdf_from_tests(fmt, document=None, base_path=None):
 
 def get_doc_from_tests(fmt, document=None, base_path=None):
     pdf = get_pdf_from_tests(fmt, document, base_path=base_path)
-    return [page.get_text("dict") for page in pdf]
+    return [page_dict(page) for page in pdf]
 
 
 def print_pdf_line_sets(page, strings, mode="structured"):

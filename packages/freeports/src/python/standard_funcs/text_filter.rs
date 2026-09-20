@@ -6,10 +6,11 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
+use crate::core::classes::BlockType;
 use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
 use crate::formats_utils::text_filter::standard_funcs::{
-    TextFilterAssetsStandard, TextFilterInvestmentsStandard, TextFilterManagmentCompanyStandard,
-    TextFilterPageClassifyStandard, TextFilterSfdrArticleStandard,
+    StandardFuncsError, TextFilterAssetsStandard, TextFilterInvestmentsStandard,
+    TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
 };
 
 use crate::python::pipes::PyTextFilterPipe;
@@ -103,17 +104,22 @@ pub fn py_text_filter_investments_standard(
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 
-/// The pipe for a fund's SFDR classification.
+/// `TextFilterSfdrSignStandard(fund_prefix=None, *, fund_block_type=None,
+/// demand_investment_funds_match=True)` — the tick becomes an article.
 ///
 /// **A divergence absorbed here:** a single argument mixes literal strings and already-compiled
 /// patterns, while the native type wants them separated, the first going through a plain substring
 /// replacement and the second through the regex engine. The sorting happens here, and the relative
 /// order within each of the two groups is preserved.
+///
+/// `fund_block_type` names the block the fund's own `pdf_extract` pipe produced, and defaults to
+/// `FUND_NAME`, which is what `PdfExtractLabelledValueStandard` is normally told to emit.
 #[pyfunction]
-#[pyo3(name = "TextFilterSfdrArticleStandard")]
-#[pyo3(signature = (fund_prefix=None, demand_investment_funds_match=true))]
-pub fn py_text_filter_sfdr_article_standard(
+#[pyo3(name = "TextFilterSfdrSignStandard")]
+#[pyo3(signature = (fund_prefix=None, *, fund_block_type=None, demand_investment_funds_match=true))]
+pub fn py_text_filter_sfdr_sign_standard(
     fund_prefix: Option<&Bound<'_, PyAny>>,
+    fund_block_type: Option<String>,
     demand_investment_funds_match: bool,
 ) -> PyResult<PyTextFilterPipe> {
     let mut prefix_strings = Vec::new();
@@ -133,11 +139,16 @@ pub fn py_text_filter_sfdr_article_standard(
         }
     }
 
-    let pipe = TextFilterSfdrArticleStandard::new(prefix_strings, prefix_patterns, demand_investment_funds_match)
-        .map_err(|e| {
-            tracing::error!(error = log_error(&e), "TextFilterSfdrArticleStandard construction failed: {e}");
-            PyValueError::new_err(e.to_string())
-        })?;
+    let pipe = TextFilterSfdrSignStandard::new(
+        fund_block_type.map(BlockType::from),
+        prefix_strings,
+        prefix_patterns,
+        demand_investment_funds_match,
+    )
+    .map_err(|e: StandardFuncsError| {
+        tracing::error!(error = log_error(&e), "TextFilterSfdrSignStandard construction failed: {e}");
+        PyValueError::new_err(e.to_string())
+    })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 

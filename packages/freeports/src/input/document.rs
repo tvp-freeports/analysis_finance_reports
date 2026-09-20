@@ -15,7 +15,8 @@ use std::path::Path;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use crate::core::page::{Document, DocumentId, FormatName, Page, PageError};
+use crate::commons::geometry::Rectangle;
+use crate::core::page::{Document, DocumentId, FormatName, Page, PageDrawing, PageError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DocumentError {
@@ -91,6 +92,7 @@ fn read_pages(
             let lines = pdflines_from_pagedict(&page_dict, auto_rotate);
             let images = pdfimages_from_pagedict(&page_dict);
             let raw = dict.clone().into_any().unbind();
+            let drawings = pdfdrawings_from_page(&py_page);
 
             // The page's first line of text, not just the counts: at `-vv` this one line per page
             // becomes an index of the document to navigate by, instead of a thousand
@@ -99,14 +101,71 @@ fn read_pages(
                 found = %lines.first().map(|line| line.text().clone()).unwrap_or_default(),
                 line_count = lines.len(),
                 image_count = images.len(),
+                drawing_count = drawings.len(),
                 "page loaded"
             );
-            pages.push(Page::new(page_number, (page_dict.width, page_dict.height), lines, images).with_raw(raw));
+            pages.push(
+                Page::new(page_number, (page_dict.width, page_dict.height), lines, images)
+                    .with_drawings(drawings)
+                    .with_raw(raw),
+            );
         }
 
         tracing::info!(path = %path.display(), page_count = pages.len(), "document loaded");
         Ok(pages)
     }
+}
+
+/// Reads the page's vector paths through `page.get_drawings()`, reduced to [`PageDrawing`].
+///
+/// This is the only place the PyMuPDF page object is asked for anything besides its text dict, and
+/// it is why the object is still alive here: the dict does not carry what the page *draws*, only
+/// what it writes and embeds. One module of the reference collection states its SFDR article with a
+/// drawn tick and nothing else, so without this call that page has no answer at all.
+///
+/// A page whose drawings cannot be read is **not** an error: the call is refused on encrypted or
+/// malformed content, and a page with no usable paths is the normal case for the great majority of
+/// pages. Whatever goes wrong here leaves the list empty and the page otherwise intact, with one
+/// debug line saying so — the same treatment a degenerate image bbox gets in `page_dict`.
+fn pdfdrawings_from_page(py_page: &Bound<'_, PyAny>) -> Vec<PageDrawing> {
+    match py_page.call_method0("get_drawings") {
+        Ok(drawings) => pdfdrawings_from_py(&drawings),
+        Err(error) => {
+            tracing::debug!(error = %error, "the page's vector paths could not be read");
+            Vec::new()
+        }
+    }
+}
+
+/// The same conversion, from a list of drawing dicts already in hand.
+///
+/// Public because the development tooling loads a page through the other boundary — the text dict
+/// alone — and has to be able to hand the same paths across, or a pipe tried from `freeports-dev`
+/// would be looking at a different page from the one the engine reads. That is the rule
+/// `freeports_dev/create_test_page.py` states at the top of its own module, and this is what makes
+/// it keepable now that a page has more than lines and images.
+pub fn pdfdrawings_from_py(drawings: &Bound<'_, PyAny>) -> Vec<PageDrawing> {
+    let Ok(drawings) = drawings.try_iter() else {
+        tracing::debug!("the page's vector paths are not something iterable");
+        return Vec::new();
+    };
+    drawings.flatten().filter_map(|drawing| page_drawing(&drawing)).collect()
+}
+
+/// One PyMuPDF drawing dict as a [`PageDrawing`], or nothing when its box is unusable.
+fn page_drawing(drawing: &Bound<'_, PyAny>) -> Option<PageDrawing> {
+    let rect = drawing.get_item("rect").ok()?;
+    let corners = ["x0", "y0", "x1", "y1"]
+        .iter()
+        .map(|name| rect.getattr(*name).ok()?.extract::<f32>().ok())
+        .collect::<Option<Vec<f32>>>()?;
+    let bbox = Rectangle::build(corners[0], corners[1], corners[2], corners[3]).ok()?;
+    let fill = drawing
+        .get_item("fill")
+        .ok()
+        .and_then(|fill| fill.extract::<(f32, f32, f32)>().ok());
+    let items = drawing.get_item("items").ok().and_then(|items| items.len().ok()).unwrap_or(0);
+    Some(PageDrawing { bbox, fill, items })
 }
 
 /// Takes the warnings MuPDF buffered while reading, and turns them into log events.

@@ -20,7 +20,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::commons::consts::{Currency, SfdrArticle};
+use crate::commons::consts::Currency;
 use crate::commons::sets::Container;
 use crate::core::classes::{BlockType, BlockValue, PdfBlock};
 use crate::core::page::Page;
@@ -272,71 +272,6 @@ impl PdfExtractPipe for PdfExtractCurrencyConstant {
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
         Ok(self.call(page))
-    }
-}
-
-
-// ----------------------------------------------------------------------------------------------
-// PdfExtractSfdrArticleStandard
-// ----------------------------------------------------------------------------------------------
-/// Extracts the SFDR article the page declares, and the name of the fund it refers to.
-///
-/// The order of trial is deliberately **not** symmetric: article 8 first, then 9; if neither
-/// appears, the outcome is article 6 — the "no declaration" case — rather than an error, because
-/// saying nothing about SFDR is itself a classification.
-pub struct PdfExtractSfdrArticleStandard {
-    art9_selection: PdfLineSelection,
-    art8_selection: PdfLineSelection,
-    fund_selection: PdfLineSelection,
-}
-
-impl PdfExtractSfdrArticleStandard {
-    pub fn new(
-        art9_selection: PdfLineSelection,
-        art8_selection: PdfLineSelection,
-        fund_selection: PdfLineSelection,
-    ) -> Self {
-        Self { art9_selection, art8_selection, fund_selection }
-    }
-
-    pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
-        let lines = &page.lines;
-        let article = if !select(&self.art8_selection, lines).is_empty() {
-            SfdrArticle::Art8
-        } else if !select(&self.art9_selection, lines).is_empty() {
-            SfdrArticle::Art9
-        } else {
-            SfdrArticle::Art6
-        };
-
-        let mut funds = select(&self.fund_selection, lines);
-        if funds.is_empty() {
-            return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "Fund name".to_string() });
-        }
-        // Several lines: the texts are concatenated top to bottom. The sort is by vertical position
-        // and is stable, so lines at the same height keep page order.
-        if funds.len() > 1 {
-            funds.sort_by(|a, b| {
-                let (_, ay, _, _) = a.bbox().as_tuple();
-                let (_, by, _, _) = b.bbox().as_tuple();
-                ay.partial_cmp(&by).unwrap_or(std::cmp::Ordering::Equal)
-            });
-        }
-        let text: String = funds.iter().map(|line| line.text().as_str()).collect();
-        tracing::debug!(article = ?article, "SFDR article determined");
-
-        let metadata = BTreeMap::from([("article".to_string(), BlockValue::from(article))]);
-        Ok(vec![PdfBlock::new(BlockType::SFDR_ARTICLE, metadata, BlockValue::from(text))])
-    }
-}
-
-impl PdfExtractPipe for PdfExtractSfdrArticleStandard {
-    fn name(&self) -> &str {
-        "PdfExtractSfdrArticleStandard"
-    }
-
-    fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
 
@@ -1258,93 +1193,6 @@ mod tests {
                 let second = pipe.call(&page(Vec::new()));
                 assert_eq!(first, second);
             }
-        }
-    }
-
-    mod sfdr_article {
-        use super::*;
-
-        fn pipe() -> PdfExtractSfdrArticleStandard {
-            PdfExtractSfdrArticleStandard::new(text_sel("Article 9"), text_sel("Article 8"), text_sel("Fund"))
-        }
-
-        fn page_with(disclosure: &str) -> Page {
-            page(vec![line(disclosure, (0.0, 0.0, 60.0, 10.0)), line("Fund Alpha", (0.0, 20.0, 60.0, 30.0))])
-        }
-
-        #[test]
-        fn recognises_article_8() {
-            let blocks = pipe().call(&page_with("Article 8 disclosure")).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "article"), BlockValue::from(SfdrArticle::Art8));
-        }
-
-        #[test]
-        fn recognises_article_9() {
-            let blocks = pipe().call(&page_with("Article 9 disclosure")).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "article"), BlockValue::from(SfdrArticle::Art9));
-        }
-
-        #[test]
-        fn falls_back_to_article_6_when_neither_is_declared() {
-            let blocks = pipe().call(&page_with("no disclosure here")).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "article"), BlockValue::from(SfdrArticle::Art6));
-        }
-
-        #[test]
-        fn article_8_wins_over_article_9_when_both_appear() {
-            // The asymmetry, pinned on purpose: article 8 is checked first.
-            let p = page(vec![
-                line("Article 8 and Article 9 disclosure", (0.0, 0.0, 60.0, 10.0)),
-                line("Fund Alpha", (0.0, 20.0, 60.0, 30.0)),
-            ]);
-            let blocks = pipe().call(&p).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "article"), BlockValue::from(SfdrArticle::Art8));
-        }
-
-        #[test]
-        fn the_content_is_the_fund_name() {
-            let blocks = pipe().call(&page_with("Article 8 disclosure")).unwrap();
-            assert_eq!(blocks[0].content, BlockValue::from("Fund Alpha"));
-            assert_eq!(blocks[0].type_block, BlockType::SFDR_ARTICLE);
-        }
-
-        #[test]
-        fn errors_when_no_line_carries_the_fund_name() {
-            let p = page(vec![line("Article 8 disclosure", (0.0, 0.0, 60.0, 10.0))]);
-            let err = pipe().call(&p).unwrap_err();
-            let PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name } = err else {
-                panic!("expected ExpectedPdfBlockNotFound")
-            };
-            assert_eq!(name, "Fund name");
-        }
-
-        #[test]
-        fn a_missing_fund_name_is_a_fatal_pipe_error_not_a_skipped_page() {
-            let p = page(vec![line("Article 8 disclosure", (0.0, 0.0, 60.0, 10.0))]);
-            let err = pipe().extract(&p).unwrap_err();
-            assert!(!err.is_page_failure());
-        }
-
-        #[test]
-        fn several_fund_lines_are_concatenated_top_to_bottom() {
-            let p = page(vec![
-                line("Fund second", (0.0, 40.0, 60.0, 50.0)),
-                line("Fund first", (0.0, 10.0, 60.0, 20.0)),
-                line("Article 8", (0.0, 0.0, 60.0, 5.0)),
-            ]);
-            let blocks = pipe().call(&p).unwrap();
-            assert_eq!(blocks[0].content, BlockValue::from("Fund firstFund second"));
-        }
-
-        #[test]
-        fn fund_lines_at_the_same_height_keep_their_page_order() {
-            let p = page(vec![
-                line("Fund A", (0.0, 10.0, 20.0, 20.0)),
-                line("Fund B", (30.0, 10.0, 50.0, 20.0)),
-                line("Article 8", (0.0, 0.0, 60.0, 5.0)),
-            ]);
-            let blocks = pipe().call(&p).unwrap();
-            assert_eq!(blocks[0].content, BlockValue::from("Fund AFund B"));
         }
     }
 
