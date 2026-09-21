@@ -282,12 +282,15 @@ impl PdfExtractLabelledValueStandard {
         let (_, ay0, ax1, ay1) = anchor.bbox().as_tuple();
         let (x0, y0, _, y1) = line.bbox().as_tuple();
         let height = ay1 - ay0;
-        let to_the_right = x0 >= ax1;
+        // The same tenth of a line on both axes. The band already allowed it upwards; refusing it
+        // sideways said that a value is not to the right of a label it visibly follows, because the
+        // two boxes touch by a fraction of a point. Measured on UBS-EN23 p139, where
+        // `Product name:` ends at 265.5 and its value starts at 265.3 — two tenths of a point on a
+        // line eleven points high.
+        let slack = 0.1 * height;
+        let to_the_right = x0 >= ax1 - slack;
         let within_reach = self.window.reach.is_none_or(|reach| x0 <= ax1 + reach * height);
-        // A slack of a tenth of a line upwards, and no more: measured, a value's box can start up
-        // to 0.9 points above its label's on a line 11 points high, and nothing legitimate starts
-        // higher.
-        let band_top = ay0 - 0.1 * height;
+        let band_top = ay0 - slack;
         let band_bottom = ay1 + self.window.across * height;
         let in_band = y1 > band_top && y0 < band_bottom;
         to_the_right && within_reach && in_band
@@ -614,6 +617,42 @@ mod tests {
             ]);
             let blocks = built(right_args("^Gestora:")).call(&mediolanum).unwrap();
             assert_eq!(texts(&blocks), vec!["MEDIOLANUM GESTION, S.G.I.I.C., S.A.".to_string()]);
+        }
+
+        /// UBS-EN23 p139: the value's box starts **two tenths of a point before** its label's
+        /// ends — `Product name:` runs to 265.5 and the subfund's name begins at 265.3. The two
+        /// are plainly side by side, and a strict `x0 >= ax1` said they were not.
+        #[test]
+        fn tolerates_boxes_that_touch_by_a_fraction_of_a_point() {
+            let ubs = page(vec![
+                line("frutiger45lightbold", 10.0, "Product name:", (200.1, 175.3, 265.5, 186.8)),
+                line(
+                    "frutiger45light",
+                    10.0,
+                    " BPER International SICAV – Equity North America (the “subfund”)",
+                    (265.3, 175.6, 535.6, 187.1),
+                ),
+            ]);
+            let blocks = built(right_args("^Product name:")).call(&ubs).unwrap();
+            assert_eq!(
+                texts(&blocks),
+                vec![" BPER International SICAV – Equity North America (the “subfund”)".to_string()]
+            );
+        }
+
+        /// The slack is a tenth of a line and no more, on this axis as on the other: a box that
+        /// overlaps its label by two points is not a value beside it, it is a value **under** it.
+        #[test]
+        fn does_not_tolerate_an_overlap_wider_than_a_tenth_of_a_line() {
+            let overlapping = page(vec![
+                line("frutiger45lightbold", 10.0, "Product name:", (200.1, 175.3, 265.5, 186.8)),
+                line("frutiger45light", 10.0, "too far left", (263.5, 175.6, 535.6, 187.1)),
+            ]);
+            let err = built(right_args("^Product name:")).call(&overlapping).unwrap_err();
+            assert!(matches!(
+                err,
+                PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
+            ));
         }
 
         #[test]

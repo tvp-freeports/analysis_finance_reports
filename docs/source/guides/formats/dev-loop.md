@@ -66,6 +66,24 @@ Two more families of mode:
 - `structured` / `semistructured` / `unstructured` take `--strings` and report which lines match,
   which is how you find out what font and size a value is set in before writing a selection at all.
 
+### What the last two modes are fed
+
+`txt_blks` and `results` need a `filter_data` — what earlier iterations of the job already
+extracted — and a `text_filter` that keeps only what it can tie to a fund it has seen prints
+**nothing at all** when it is given the wrong one. An empty printout is then indistinguishable
+from a broken algorithm, which is the most expensive way this command can mislead you.
+
+It therefore takes the first of three that exists, and says on its first line which one it took:
+
+1. `--filter-data`, which reads either a `.json` fixture — the same file the suite reads — or a
+   dill `.pkl`;
+2. the page type's own `tests/formats/<FORMAT>/[<n>/]pages/<page type>/filter_data.json`, so that
+   an inspection sees what the test sees;
+3. the target list of the input database, which is what a first-iteration page gets in a real run.
+
+If the file it names is not the one you meant — a format with several documents has one fixture
+per variant — name it with `--filter-data` instead of reading the empty output as a result.
+
 ## 3. `make-tests` — freeze a page
 
 ```console
@@ -84,6 +102,13 @@ defends the bug.
 
 Freeze a handful of representative pages, not every page: the first page of a table, a continuation
 page, a page with an awkward row. Those are where formats break.
+
+`make-tests` is also the honest way to **run** a pipeline on a page, because it feeds the pipe
+exactly what the test will feed it. With `--noconfirm` it keeps every file that already exists,
+fixture and `filter_data.json` alike: to regenerate a page, delete its `<page>-txt_blks.json` and
+`<page>-results.json` first. That is deliberate in both directions — a hand-written
+`filter_data.json` can be put in place *before* the fixture exists, and it will be found rather
+than overwritten.
 
 ## 4. `test` — run them
 

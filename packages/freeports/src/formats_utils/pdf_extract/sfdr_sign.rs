@@ -278,6 +278,14 @@ struct AnswerRow {
     left: f32,
     right: f32,
     label_span: f32,
+    /// The bottom of the labels' own boxes, before the search band grew around them.
+    ///
+    /// Kept apart from `bottom` because the two answer different questions. `bottom` is *how far
+    /// down a tick may still belong to this row*, and it reaches a whole line below the labels;
+    /// this is *where this row's text ends*, and it is the only honest floor for the row that comes
+    /// after. Measured on UBS-EN23 p189: the band ends at 293.4 and the next row begins at 288.7,
+    /// so a fallback searched below the band finds nothing while the row is plainly there.
+    labels_bottom: f32,
 }
 
 /// *The tick in the box, assigned by position.*
@@ -317,7 +325,7 @@ impl PdfExtractSfdrSignStandard {
                     );
                     return Ok(Vec::new());
                 };
-                let Some(below) = self.row(fallback, lines, row.bottom) else {
+                let Some(below) = self.row(fallback, lines, row.labels_bottom) else {
                     tracing::warn!(
                         "the first question of this disclosure carries no tick and the row below it \
                          is not on the page: the article is not read"
@@ -408,6 +416,7 @@ impl PdfExtractSfdrSignStandard {
             left: ax0.min(nx0) - SIDE_REACH * height,
             right: ax1.max(nx1) + SIDE_REACH * height,
             label_span,
+            labels_bottom: bottom,
         })
     }
 
@@ -894,6 +903,41 @@ mod tests {
             let blocks = read(with_fallback(args()), &page(lines));
             assert_eq!(metadata(&blocks[0], "answer"), "affirmative");
             assert_eq!(metadata(&blocks[0], "answered_by"), "question");
+        }
+
+        /// UBS-EN23 p189, the page that cost a row. `Yes` and `No` sit at `y=270.0` and the
+        /// follow-up options at `y=288.7`, while the first question's search band reaches `293.4`:
+        /// the second row begins **inside** the band. Searched below the band it is not there;
+        /// searched below the labels' own boxes it is, and the Wingdings 2 tick on it is read.
+        #[test]
+        fn finds_a_second_row_that_begins_inside_the_first_question_s_band() {
+            let lines = vec![
+                line("Did this financial product have a sustainable investment objective?", 204.6, 250.3),
+                line("Yes", 282.0, 270.0),
+                line("No", 455.1, 270.0),
+                line("It made sustainable investments", 217.7, 288.7),
+                line("It promoted Environmental", 388.1, 288.7),
+                line("X", 380.0, 291.0),
+            ];
+            let blocks = read(with_fallback(args()), &page(lines));
+            assert_eq!(metadata(&blocks[0], "answer"), "negative");
+            assert_eq!(metadata(&blocks[0], "answered_by"), "row-below");
+        }
+
+        /// The floor is still a floor: a line **level with** the answer labels is part of the
+        /// first row, not the row after it. Here the options begin at `y=277.0`, inside the
+        /// labels' own boxes, and are refused.
+        #[test]
+        fn a_row_level_with_the_labels_is_not_a_second_row() {
+            let lines = vec![
+                line("Did this financial product have a sustainable investment objective?", 204.6, 250.3),
+                line("Yes", 282.0, 270.0),
+                line("No", 455.1, 270.0),
+                line("It made sustainable investments", 217.7, 277.0),
+                line("It promoted Environmental", 388.1, 277.0),
+                line("X", 380.0, 291.0),
+            ];
+            assert!(read(with_fallback(args()), &page(lines)).is_empty());
         }
 
         #[test]

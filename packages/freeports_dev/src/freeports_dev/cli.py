@@ -188,9 +188,7 @@ def _cmd_inspect_page(args):
 
     a = Algorithm.load(repo, args.format, get_formats(repo))
 
-    filter_data = args.filter_data
-    if filter_data is None:
-        filter_data = gtc(repo, config.target_lists, config)
+    filter_data = _filter_data_for(args, repo, config, base_path, gtc)
 
     page_type = config.page_type
     if args.mode == "pdf_blks":
@@ -211,6 +209,64 @@ def _cmd_inspect_page(args):
     elif args.mode == "table_ascii":
         pdf_blks = a.apply_pdf_extract(page, page_type)
         print_pdf_blks_table_ASCII(pdf_blks)
+
+
+def _filter_data_for(args, repo, config, base_path, gtc):
+    """What a pipe sees as `filter_data` when the page is inspected, in three tiers.
+
+    The tiers are `--filter-data`, then the page type's own `filter_data.json`, then the target
+    list. The middle one is the reason this function exists: the test suite feeds a pipe the
+    fixture, so an inspection that fed it the target list showed something the test never sees.
+    A `text_filter` that drops everything it cannot tie to a fund of interest then prints nothing
+    and looks broken, which is exactly the wrong thing for a diagnostic tool to say.
+
+    `--filter-data` reads either a `.json` fixture — the same file the suite reads, and the one a
+    person has at hand — or a `.pkl` written with dill, which is what `make-tests` has always
+    taken.
+    """
+    if args.filter_data:
+        return _filter_data_file(Path(args.filter_data))
+    fixture = base_path / args.format / "pages" / config.page_type / "filter_data.json"
+    if not fixture.exists():
+        # A variant lives one level down, and there is no reason to prefer any one of them: the
+        # fixture is the same for all of them often enough, and where it is not, `--filter-data`
+        # names the one wanted.
+        found = sorted(
+            (base_path / args.format).glob(
+                "*/pages/" + config.page_type + "/filter_data.json"
+            )
+        )
+        fixture = found[0] if found else fixture
+    if fixture.exists():
+        print("# filter_data: {}".format(fixture))
+        return _filter_data_file(fixture)
+    return gtc(repo, config.target_lists, config)
+
+
+def _filter_data_file(path):
+    """The contents of a `filter_data` file, read the way its suffix says to read it."""
+    if path.suffix == ".json":
+        from freeports_dev.serialization import load as json_load
+
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json_load(handle)
+        if isinstance(data, dict) and "target_lists" in data:
+            from freeports_dev.input_db import get_test_companies as gtc
+
+            return gtc(_repo_of(path), data["target_lists"])
+        return data
+    import dill
+
+    with open(path, "rb") as handle:
+        return dill.load(handle)
+
+
+def _repo_of(fixture):
+    """The repository a `tests/formats/...` fixture belongs to."""
+    for parent in fixture.parents:
+        if (parent / "content").is_dir():
+            return parent
+    return fixture.parent
 
 
 def _inspect_page_view(args, config, page, report_file):
@@ -1436,7 +1492,9 @@ def main():
     p_page.add_argument("--report", help="Path to report PDF")
     p_page.add_argument(
         "--filter-data",
-        help="Path to filter data .pkl file (for txt_blks and results modes)",
+        help="filter_data for txt_blks and results modes: a .json fixture or a dill .pkl "
+        "[default: the page type's own tests/formats/<F>/pages/<type>/filter_data.json, "
+        "then the target list]",
     )
     p_page.add_argument(
         "--order",
