@@ -919,10 +919,15 @@ impl TextFilterPipe for TextFilterInvestmentsStandard {
 // The `\A` prefix on each pattern is not decorative: matching must begin at position 0, while a
 // free search would match anywhere.
 //
-// On a content such as `"1,300,000.00 ITALY BTPS 3.4% …"`, which starts with a digit, the first
-// pattern — which requires a leading letter — must not match at all. A free search would start
-// matching at `"ITALY"` and invent an interest rate. This is a real regression found on genuine
-// fixtures, not a hypothetical one.
+// **The leading-letter anchor belongs to the second pattern only**, and the asymmetry is the whole
+// design. The second pattern reads a coupon that carries no `%`, so on a content such as
+// `"1,300,000.00 ITALY BTPS 3.4% …"` a free search would start matching at `"ITALY"` and invent an
+// interest rate out of any decimal number it found — a real regression on genuine fixtures. The
+// first pattern instead requires a literal `%`, and a `%` cannot be invented: demanding a leading
+// letter there cost every format that writes the quantity before the name. Measured on KAIROS-EN23,
+// whose rows read `"800,000.00 ENEL FIN INTL NV 3.375% 24-23/07/2028"`: **zero** of its twenty-three
+// bonds had an interest rate while all twenty-three had a maturity, and a `0%` coupon written in the
+// report came out as a null instead of a zero.
 //
 // The first pattern's `.*?` is lazy where every other one here is greedy, and that is the whole
 // point: a greedy prefix eats as much as it can while still leaving a match, so on
@@ -934,7 +939,7 @@ impl TextFilterPipe for TextFilterInvestmentsStandard {
 // pattern here, fell through to the second one, and came back with a fragment of the maturity
 // date read as an interest rate.
 static PERC_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
-    [r"\A[a-zA-Z].*?((\d+(?:[.,]\d+)?)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
+    [r"\A.*?((\d+(?:[.,]\d+)?)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
         .into_iter()
         .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
         .collect()
@@ -945,7 +950,10 @@ static DATE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
         r"\A.*(\d{2}[/\-.]\d{2}[/\-.]\d{4}).*",
         r"\A.*(\d{4}[/\-.]\d{2}[/\-.]\d{2}).*",
         r"\A.*(\d{2}[/\-.]\d{2}[/\-.]\d{2}).*",
-        r"\A.*\s(\d{2}[/\-]\d{2})\s.*",
+        // The month-and-year form closes the line as often as it sits inside it — `"ENELIM 1 09/24"`
+        // on FIDEURAM-IT24, `"BTPS 1.85 07/25"` on EURIZON-IT24 — so what follows the group is a
+        // space **or the end of the string**. Demanding a space lost every maturity written last.
+        r"\A.*\s(\d{2}[/\-]\d{2})(?:\s|\z).*",
     ]
     .into_iter()
     .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
@@ -2207,16 +2215,50 @@ mod tests {
         }
 
         #[test]
-        fn content_starting_with_a_digit_gets_no_spurious_interest_rate() {
-            // The percentage patterns are anchored and require a leading letter, so on a content
-            // starting with a digit they must not match — even though `"3.4%"` appears later in the
-            // text. An unanchored search would match from `"ITALY"` and invent a field.
+        fn a_coupon_with_a_percent_sign_is_read_after_a_leading_digit() {
+            // A `%` cannot be invented, so the first pattern applies wherever the coupon sits. The
+            // formats that write the quantity before the name — KAIROS-EN23 is the measured one —
+            // had no interest rate at all until this stopped demanding a leading letter.
             let blk = instrument_of("1,300,000.00 ITALY BTPS 3.4% 23-28/03/2025");
+            assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+            assert_eq!(blk.metadata.get("interest rate"), Some(&BlockValue::from("3.4%")));
+            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
+        }
+
+        #[test]
+        fn content_starting_with_a_digit_and_no_percent_sign_gets_no_interest_rate() {
+            // The protection that matters, and the reason the second pattern keeps its anchor: with
+            // no `%` to go by, a free search would read the quantity, the market value or the year
+            // as a coupon. `"20-31/12/2060"` carries three decimal-looking numbers and none is one.
+            let blk = instrument_of("100,000.00 ENI SPA 20-31/12/2060 FRN");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
             assert!(
                 !blk.metadata.contains_key("interest rate"),
                 "no spurious 'interest rate' must be produced"
             );
+            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("31/12/2060")));
+        }
+
+        #[test]
+        fn a_month_and_year_closing_the_line_is_a_maturity() {
+            // FIDEURAM-IT24. The pattern used to demand a space after the group, so a maturity
+            // written last — which is where this form usually sits — was lost.
+            let blk = instrument_of("ENELIM 1 09/24");
+            assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("09/24")));
+        }
+
+        #[test]
+        fn a_month_and_year_inside_the_line_is_still_a_maturity() {
+            let blk = instrument_of("ENELIM 1 09/24 EUR");
+            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("09/24")));
+        }
+
+        #[test]
+        fn a_full_date_outranks_the_month_and_year_form() {
+            // The tables are tried in order, and the longer forms come first: `"28/03/2025"` is a
+            // date, and `"28/03"` read out of it would be a different one.
+            let blk = instrument_of("Acme Corp mat 28/03/2025");
             assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
         }
 
@@ -2279,11 +2321,23 @@ mod tests {
             }
 
             #[test]
-            fn a_two_digit_coupon_after_a_leading_digit_is_still_refused() {
-                // The leading-letter anchor outranks the coupon: a content starting with a digit
-                // must produce no interest rate at all, however plain the coupon looks.
-                let blk = instrument_of("1,300,000.00 TULLOW OIL PLC 10.25% 15/05/2026");
-                assert!(!blk.metadata.contains_key("interest rate"));
+            fn a_two_digit_coupon_after_a_leading_digit_keeps_both_digits() {
+                // The lazy prefix has to survive the anchor's removal: the leftmost match must
+                // still begin at the coupon's first digit and not inside it.
+                assert_eq!(rate_of("1,300,000.00 TULLOW OIL PLC 10.25% 15/05/2026"), "10.25%");
+            }
+
+            #[test]
+            fn a_zero_coupon_after_a_leading_digit_is_read_as_zero() {
+                // KAIROS-EN23 p36. A nil coupon written in the report used to come out as a null,
+                // which is a different statement: `null` says the report did not say.
+                assert_eq!(rate_of("500,000.00 ENEL FIN INTL NV 0% 21-28/05/2026"), "0%");
+            }
+
+            #[test]
+            fn the_quantity_is_not_mistaken_for_the_coupon() {
+                // The lazy prefix stops at the **first** `%`, and the quantity carries none.
+                assert_eq!(rate_of("800,000.00 ENEL FIN INTL NV 3.375% 24-23/07/2028"), "3.375%");
             }
         }
     }
