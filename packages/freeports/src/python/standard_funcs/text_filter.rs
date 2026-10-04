@@ -61,6 +61,12 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
 /// `note_marks` is the `Note marks` column of the same level: the characters that count as a
 /// footnote mark on the fund's name (`R16`), written one after the other. The default is the empty
 /// string, which strips nothing.
+///
+/// `remove_from_fund_regexes` is the `Remove from fund` column: patterns cut out of the fund's
+/// name before it becomes the sub-fund's identity, for the `(continued)` of a continuation page.
+/// It accepts one pattern or an iterable of them, as a string or an already-compiled `re.Pattern`
+/// — from a compiled one only its source is taken, since the compilation happens inside the
+/// native type.
 #[pyfunction]
 #[pyo3(name = "TextFilterInvestmentsStandard")]
 #[pyo3(signature = (
@@ -73,6 +79,7 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
     merge_prev=false,
     dash_as_zero=None,
     note_marks="",
+    remove_from_fund_regexes=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_text_filter_investments_standard(
@@ -85,6 +92,7 @@ pub fn py_text_filter_investments_standard(
     merge_prev: bool,
     dash_as_zero: Option<&str>,
     note_marks: &str,
+    remove_from_fund_regexes: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyTextFilterPipe> {
     let dash_as_zero = match dash_as_zero {
         None => DashAsZero::empty(),
@@ -107,7 +115,20 @@ pub fn py_text_filter_investments_standard(
         tracing::error!(error = log_error(&e), "TextFilterInvestmentsStandard construction failed: {e}");
         PyValueError::new_err(e.to_string())
     })?;
-    Ok(PyTextFilterPipe::new(Arc::new(pipe.with_note_marks(note_marks))))
+    let patterns = match remove_from_fund_regexes.filter(|object| !object.is_none()) {
+        None => Vec::new(),
+        Some(object) => scalar_or_iterable(object)?
+            .iter()
+            .map(|item| {
+                if item.is_instance_of::<PyString>() { item.extract() } else { pattern_source(item) }
+            })
+            .collect::<PyResult<Vec<String>>>()?,
+    };
+    let pipe = pipe.with_note_marks(note_marks).with_remove_from_fund_regexes(&patterns).map_err(|e| {
+        tracing::error!(error = log_error(&e), "invalid remove_from_fund_regexes: {e}");
+        PyValueError::new_err(e.to_string())
+    })?;
+    Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 
 /// `TextFilterSfdrSignStandard(fund_prefix=None, *, fund_block_type=None,

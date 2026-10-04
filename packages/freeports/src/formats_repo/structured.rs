@@ -5,8 +5,9 @@
 //! constrained of the three levels and the one covering most formats.
 //!
 //! - [`tables`] reads and validates the CSV files and joins their rows per pipe;
-//! - [`investments`] and [`page_classify`] build the corresponding native pipes.
+//! - [`investments`], [`page_classify`] and [`fund_assets`] build the corresponding native pipes.
 
+pub mod fund_assets;
 pub mod investments;
 pub mod page_classify;
 pub mod tables;
@@ -82,11 +83,16 @@ pub fn get_pipelines(
 ) -> Result<std::collections::HashMap<crate::core::pipeline::PipelineName, crate::core::pipeline::Pipeline>, StructuredError>
 {
     let mut merged = investments::get_pipelines(formats_repo_dir, format_name)?;
-    for (name, pipeline) in page_classify::get_pipelines(formats_repo_dir, format_name)? {
-        match merged.remove(&name) {
-            Some(existing) => merged.insert(name, existing + pipeline),
-            None => merged.insert(name, pipeline),
-        };
+    for sublevel in [
+        page_classify::get_pipelines(formats_repo_dir, format_name)?,
+        fund_assets::get_pipelines(formats_repo_dir, format_name)?,
+    ] {
+        for (name, pipeline) in sublevel {
+            match merged.remove(&name) {
+                Some(existing) => merged.insert(name, existing + pipeline),
+                None => merged.insert(name, pipeline),
+            };
+        }
     }
     tracing::debug!(pipeline_count = merged.len(), "built structured pipelines");
     Ok(merged)

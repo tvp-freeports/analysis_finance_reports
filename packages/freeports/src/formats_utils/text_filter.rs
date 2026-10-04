@@ -6,6 +6,8 @@
 //! `standard_funcs` combines them into the ready-made filtering pipes.
 
 pub mod dash_as_zero;
+pub mod declared_funds;
+pub mod managment_company;
 pub mod matcher;
 pub mod standard_funcs;
 pub mod standard_txt_blk_builders;

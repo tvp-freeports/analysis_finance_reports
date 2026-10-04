@@ -1,12 +1,31 @@
 //! The registry of natively implemented semistructured algorithms.
 //!
-//! There is one today, in the extraction segment. The registry is therefore a tiny table and a
-//! hand-written match: no common signature can unify algorithms with different arguments and
-//! different results, and inventing one for a single element would be abstraction for its own sake.
+//! A table of names per segment and a hand-written match in [`super::build_native`]: no common
+//! signature can unify algorithms with different arguments and different results, and inventing one
+//! would buy nothing that the match does not already give.
+//!
+//! # Algorithms that take no arguments
+//!
+//! Most of the `deserialize` segment is in this shape — [`DeserializerFundStandard`] and its
+//! siblings are unit structs, and a repository that names one has nothing left to say about it. For
+//! those, the mapping cell *is* the whole configuration, so [`ARGLESS_NAMES`] lets the YAML entry be
+//! absent rather than demanding a `{}` that carries no information. An algorithm not listed there
+//! still requires its entry: a missing one is then a configuration mistake, not a default.
+
+pub mod sfdr_annex;
+
+use std::sync::Arc;
 
 use serde::Deserialize;
 
 use crate::commons::consts::Currency;
+use crate::core::pipeline::DeserializePipe;
+use crate::formats_utils::text_filter::managment_company::AmongLines;
+use crate::formats_utils::deserialize::standard_funcs::{
+    DeserializeSfdrArticleStandard, DeserializerFundStandard, DeserializerInvestmentStandard,
+    DeserializerInvestmentsManagerFromManco, DeserializerInvestmentsManagerStandard,
+    DeserializerManagmentCompanyStandard, DeserializerPageClassifyStandard,
+};
 use crate::formats_utils::pdf_extract::standard_funcs::{
     ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs, TableSettings, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
     PdfExtractStandardFuncsError, pdf_extract_fund_standard,
@@ -18,9 +37,42 @@ use super::SegmentKind;
 
 /// The native names of each segment.
 const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
-    (SegmentKind::PdfExtract, &["standard_cost_curr"]),
+    (SegmentKind::PdfExtract, &["standard_cost_curr", "currency_constant", "sfdr_annex"]),
+    (SegmentKind::TextFilter, &["sfdr_annex", "manco", "manco_imposed"]),
+    (
+        SegmentKind::Deserialize,
+        &[
+            "fund",
+            "managment_company",
+            "investments_manager",
+            "investments_manager_from_manco",
+            "investment",
+            "page_classify",
+            "sfdr_article",
+        ],
+    ),
+];
+
+/// The native names that need no YAML entry at all. See the module documentation.
+///
+/// The spelling `managment_company` keeps the engine's own misspelling, as the pipe and every
+/// existing repository's configuration do: correcting it here alone would make two names for one
+/// algorithm.
+const ARGLESS_NAMES: [(SegmentKind, &[&str]); 3] = [
+    (SegmentKind::PdfExtract, &[]),
     (SegmentKind::TextFilter, &[]),
-    (SegmentKind::Deserialize, &[]),
+    (
+        SegmentKind::Deserialize,
+        &[
+            "fund",
+            "managment_company",
+            "investments_manager",
+            "investments_manager_from_manco",
+            "investment",
+            "page_classify",
+            "sfdr_article",
+        ],
+    ),
 ];
 
 /// The native names registered for a segment.
@@ -31,6 +83,49 @@ pub fn names(segment: SegmentKind) -> &'static [&'static str] {
 /// Whether `name` is a native algorithm of `segment`.
 pub fn contains(segment: SegmentKind, name: &str) -> bool {
     names(segment).contains(&name)
+}
+
+/// Whether `name` is a native algorithm of `segment` that takes no arguments, and whose YAML entry
+/// may therefore be missing.
+pub fn is_argless(segment: SegmentKind, name: &str) -> bool {
+    ARGLESS_NAMES.iter().find(|(kind, _)| *kind == segment).is_some_and(|(_, names)| names.contains(&name))
+}
+
+/// The YAML configuration of the management-company reader.
+///
+/// `after` and `before` are **fragments of a regular expression**, not literal text: a parenthesis
+/// in them has to be protected. Leaving `after` out means *from the start of the line*, leaving
+/// `before` out *to its end*; leaving out both would take the whole line, which is what the
+/// standard filter already does, so a configuration that states neither is accepted and simply
+/// reads everything.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct InputManco {
+    pub after: String,
+    pub before: String,
+    /// `first` (the default) or `most_recent`, which is `U6`.
+    pub among: Option<String>,
+}
+
+/// The YAML configuration of the imposed management company: the name the format declares.
+#[derive(Debug, Clone, Deserialize)]
+pub struct InputMancoImposed {
+    pub name: String,
+}
+
+/// Which candidate line a configuration asks for.
+pub fn among_lines(name: Option<&str>) -> Option<AmongLines> {
+    match name.unwrap_or("first") {
+        "first" => Some(AmongLines::First),
+        "most_recent" => Some(AmongLines::MostRecent),
+        _ => None,
+    }
+}
+
+/// The YAML configuration of the constant-currency pipe: the one thing it has to be told.
+#[derive(Debug, Clone, Deserialize)]
+pub struct InputCurrencyConstant {
+    pub currency: Currency,
 }
 
 /// The YAML configuration of [`standard_cost_curr`].
@@ -110,4 +205,46 @@ pub fn standard_cost_curr(
         pdf_extract_fund_standard(selection("subfund_set", &input.subfund_set)?),
         PdfExtractCurrencyConstant::new(input.currency),
     ))
+}
+
+
+/// The `deserialize` pipe of an argument-less native name.
+///
+/// `None` for a name this segment does not register, which [`super::resolve`] has already ruled
+/// out: the caller treats it as unreachable rather than as a configuration error.
+///
+/// `investment` is **not** here although every call site constructs it bare: it carries two flags
+/// with defaults, so a repository may want to say something about it. It is argless in the sense
+/// that matters — its entry may be missing — but it is built from the entry when there is one.
+pub fn argless_deserialize(name: &str) -> Option<Arc<dyn DeserializePipe>> {
+    Some(match name {
+        "fund" => Arc::new(DeserializerFundStandard) as Arc<dyn DeserializePipe>,
+        "managment_company" => Arc::new(DeserializerManagmentCompanyStandard),
+        "investments_manager" => Arc::new(DeserializerInvestmentsManagerStandard),
+        "investments_manager_from_manco" => Arc::new(DeserializerInvestmentsManagerFromManco),
+        "page_classify" => Arc::new(DeserializerPageClassifyStandard),
+        "sfdr_article" => Arc::new(DeserializeSfdrArticleStandard),
+        _ => return None,
+    })
+}
+
+/// The YAML configuration of the standard investment deserializer: the two casts it can be told to
+/// read differently. Both default to what [`DeserializerInvestmentStandard::default`] chooses, so
+/// an absent entry and an empty one mean the same thing.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct InputInvestment {
+    pub cost_and_value_interpret_int: Option<bool>,
+    pub quantity_interpret_float: Option<bool>,
+}
+
+impl InputInvestment {
+    /// The pipe this configuration describes, each unstated flag taking the standard default.
+    pub fn build(&self) -> DeserializerInvestmentStandard {
+        let standard = DeserializerInvestmentStandard::default();
+        DeserializerInvestmentStandard::new(
+            self.cost_and_value_interpret_int.unwrap_or(standard.cost_and_value_interpret_int()),
+            self.quantity_interpret_float.unwrap_or(standard.quantity_interpret_float()),
+        )
+    }
 }

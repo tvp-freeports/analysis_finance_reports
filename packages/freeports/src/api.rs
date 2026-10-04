@@ -43,7 +43,7 @@ pub mod core {
     };
     pub use crate::core::promise::{Promise, PromiseError};
     pub use crate::core::promise_resolution::{FlatPromiseMap, PromiseMap};
-    pub use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage};
+    pub use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage, SpreadPage};
 }
 
 pub mod utils {
@@ -116,6 +116,7 @@ pub mod standard_funcs {
         pub use crate::formats_utils::pdf_extract::section::{
             PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd, section_bottom,
         };
+        pub use crate::formats_utils::pdf_extract::commons::SelectedText;
         pub use crate::formats_utils::pdf_extract::standard_funcs::{
             AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage,
             InvestmentsStandardArgs,

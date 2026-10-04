@@ -388,7 +388,10 @@ impl Algorithm {
         parallelism: Parallelism,
     ) -> Result<Vec<DocumentOutcome>, AlgorithmError> {
         let classifications = self.classify_pages_multidocument_with(docs, parallelism)?;
-        let scheduled = self.schedule.assign(docs, &classifications)?;
+        // Built before the assignment and kept alive for the whole run: a spread's merged page is
+        // owned, and the `ScheduledPage`s borrow it. Empty for every format without a spread class.
+        let spreads = self.schedule.spread_pages(docs, &classifications);
+        let scheduled = self.schedule.assign(docs, &classifications, &spreads)?;
 
         // Pages left out of the results, counted across every step. Atomic because the per-page
         // loop of a step runs on a rayon pool; `Relaxed` is enough, since nothing is ordered

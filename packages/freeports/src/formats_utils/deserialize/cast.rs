@@ -432,6 +432,27 @@ pub fn to_date_with_it_month(text: &str) -> Result<Date, CastError> {
     parse_day_month_name_year(text, IT_MONTHS, "it")
 }
 
+/// Parses a `"MONTH DD, YYYY"` date with an English month name: `FEBRUARY 28, 2023`.
+///
+/// The month-first order, which is not a variant of [`to_date_with_en_month`] but the opposite
+/// reading of the same three fields — so a text that one of them accepts the other refuses, and
+/// neither guesses for the other.
+///
+/// The comma is taken as a separator rather than required, so `FEBRUARY 28 2023` reads the same: a
+/// date is being recognised here, not validated.
+pub fn to_date_with_en_month_first(text: &str) -> Result<Date, CastError> {
+    let malformed = || CastError::MalformedDayMonthYear { text: text.to_string() };
+    let spaced = text.replace(',', " ");
+    let parts: Vec<&str> = spaced.split_whitespace().collect();
+    let [month, day, year] = parts.as_slice() else {
+        return Err(malformed());
+    };
+    let month = month_index(month, EN_MONTHS, "en")?;
+    let day: u8 = day.parse().map_err(|_| malformed())?;
+    let year: i32 = year.parse().map_err(|_| malformed())?;
+    Ok(Date::new(year, month, day)?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -761,6 +782,38 @@ mod tests {
         fn rejects_an_unknown_month_name_in_either_language() {
             assert!(to_date_with_en_month("1 Gennaio 2025").is_err());
             assert!(to_date_with_it_month("1 January 2025").is_err());
+        }
+
+        #[test]
+        fn to_date_with_en_month_first_parses_month_day_year() {
+            // The order FIDEURAM-EN23 heads its statement of net assets with.
+            assert_eq!(to_date_with_en_month_first("FEBRUARY 28, 2023").unwrap(), date(2023, 2, 28));
+            assert_eq!(to_date_with_en_month_first("january 1, 2025").unwrap(), date(2025, 1, 1));
+        }
+
+        #[test]
+        fn the_comma_of_a_month_first_date_is_a_separator_and_not_a_requirement() {
+            assert_eq!(
+                to_date_with_en_month_first("FEBRUARY 28 2023").unwrap(),
+                to_date_with_en_month_first("FEBRUARY 28, 2023").unwrap()
+            );
+            // And a stray one does not add a field.
+            assert_eq!(to_date_with_en_month_first(" MARCH , 3 , 2024 ").unwrap(), date(2024, 3, 3));
+        }
+
+        #[test]
+        fn the_two_english_orders_refuse_each_others_text_rather_than_guessing() {
+            // Neither falls back on the other: a report writes one order, and a date read in the
+            // wrong one would be a plausible wrong date rather than an error.
+            assert!(to_date_with_en_month("FEBRUARY 28, 2023").is_err());
+            assert!(to_date_with_en_month_first("28 February 2023").is_err());
+        }
+
+        #[test]
+        fn a_month_first_date_rejects_a_missing_field_and_an_unknown_month() {
+            assert!(to_date_with_en_month_first("FEBRUARY 2023").is_err());
+            assert!(to_date_with_en_month_first("FEBRUARY 28, 2023, extra").is_err());
+            assert!(to_date_with_en_month_first("FEBBRAIO 28, 2023").is_err());
         }
     }
 

@@ -60,6 +60,10 @@ struct ScheduleRow {
     format_name: String,
     page_type: String,
     filter_next_iteration: String,
+    /// Whether this class's pages are the **left facing of a spread**: two facing pages carrying
+    /// one table between them, read as one page. Optional like the flag before it, and absent on
+    /// every row of every repository but one.
+    spread: String,
 }
 
 /// A row of the mapping table.
@@ -142,6 +146,10 @@ fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleR
     let format_name_idx = column("Format name")?;
     let page_type_idx = column("Page type")?;
     let filter_idx = column("Filter next iteration")?;
+    // Optional **as a column**, not only as a cell: a repository written before spreads existed has
+    // no such column, and must keep loading. The two columns before it are required, so this is the
+    // only one looked up this way.
+    let spread_idx = headers.iter().position(|h| h == "Spread");
 
     let mut rows = Vec::new();
     for (i, record) in reader.records().enumerate() {
@@ -150,6 +158,7 @@ fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleR
             format_name: record.get(format_name_idx).unwrap_or("").to_string(),
             page_type: record.get(page_type_idx).unwrap_or("").to_string(),
             filter_next_iteration: record.get(filter_idx).unwrap_or("").to_string(),
+            spread: spread_idx.and_then(|idx| record.get(idx)).unwrap_or("").to_string(),
         });
     }
     Ok((path, rows))
@@ -219,13 +228,17 @@ pub fn get_schedule(
     }
 
     let mut steps = vec![ScheduleStep::new()];
+    let mut spreads = Vec::new();
     for (i, row) in matching {
         steps.last_mut().expect("lo schedule ha sempre almeno uno step").push(PageClass::new(&row.page_type));
+        if parse_flag(&path, i + 1, &row.spread)? {
+            spreads.push(PageClass::new(&row.page_type));
+        }
         if parse_flag(&path, i + 1, &row.filter_next_iteration)? {
             steps.push(ScheduleStep::new());
         }
     }
-    let schedule = Schedule::new(steps);
+    let schedule = Schedule::new(steps).with_spreads(spreads);
     tracing::debug!(step_count = schedule.steps().len(), "built schedule");
     Ok(schedule)
 }

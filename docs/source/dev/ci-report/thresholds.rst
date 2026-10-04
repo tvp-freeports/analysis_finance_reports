@@ -43,7 +43,7 @@ Metric                                     Minimum  Measured  Cost  What it meas
 ``tests.python.lines``                     32.0 %   53.9 %    slow  Line coverage of the Python packages, from pytest --cov.
 ``docs.rust``                              39.0 %   40.4 %    slow  Documented items of the crate, from rustdoc --show-coverage.
 ``docs.python``                            49.0 %   58.4 %    fast  Public Python objects carrying a docstring.
-``lint.rust``                              9.900    9.998     fast  Clippy diagnostics scored out of ten.
+``lint.rust``                              9.900    9.999     fast  Clippy diagnostics scored out of ten.
 ``lint.python``                            10.000   10.000    fast  Ruff violations scored out of ten.
 ``grants.coverage``                        100.0 %  100.0 %   slow  Files covered by a methodology grant.
 ``grants.keys_online``                     100.0 %  100.0 %   slow  Granters' keys published on the configured key server.

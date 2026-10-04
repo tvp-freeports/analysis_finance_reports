@@ -26,7 +26,7 @@ use crate::core::classes::{BlockType, BlockValue, PdfBlock};
 use crate::core::page::Page;
 use crate::core::pipeline::{PdfExtractPipe, PipeError};
 
-use super::commons::{CommonsError, extract_text_pdf_block_or_fail_page, select_expected_text};
+use super::commons::{CommonsError, SelectedText, extract_text_pdf_block_or_fail_page, select_expected_text};
 use super::labelled_value::{LabelledValueArgs, PdfExtractLabelledValueStandard};
 use super::pdf_line::PdfLine;
 use super::relative::{OptionallyRelative, RelativeInfo};
@@ -92,25 +92,54 @@ fn contextualized(selection: &PdfLineSelection, lines: &[PdfLine]) -> PdfLineSet
 // ----------------------------------------------------------------------------------------------
 // ExtractTextPdfBlockOrFailPage and the three factories over it
 // ----------------------------------------------------------------------------------------------
-/// Extracts the text of the first selected line into a single [`PdfBlock`]; if it finds nothing,
-/// fails the whole page, non-fatally, so the schedule skips it and carries on.
+/// Extracts the text of the selected line — or lines — into a single [`PdfBlock`]; if it finds
+/// nothing, fails the whole page, non-fatally, so the schedule skips it and carries on.
 ///
 /// The pipe behind the three fund/currency/management-company factories, which differ only in the
 /// name and block type they configure.
+///
+/// # A name written in pieces
+///
+/// [`SelectedText::EveryLine`] exists because a PDF generator splits one centred title into two
+/// text objects **on the same ordinate** when a long dash falls in the middle — on CARNE-EN23 the
+/// fund is `Sidera Funds SICAV – ` and `Euro ESG Credit` at `y=68.6` on pages 65 and 69, and one
+/// object on every other page of the same fund. Taking the first line there is half a name, and
+/// half a name does not lose one row: it loses **every** row of that fund, which end up attached to
+/// a fund that does not exist (`R24`).
+///
+/// It is the same algorithm with a parameter, not a second pipe: a format repository had written
+/// the joining variant as a Python shim of its own, and the two differed in exactly this.
 pub struct ExtractTextPdfBlockOrFailPage {
     selection: PdfLineSelection,
     name: String,
     type_block: BlockType,
+    text: SelectedText,
 }
 
 impl ExtractTextPdfBlockOrFailPage {
     pub fn new(selection: PdfLineSelection, name: impl Into<String>, type_block: BlockType) -> Self {
-        Self { selection, name: name.into(), type_block }
+        Self { selection, name: name.into(), type_block, text: SelectedText::FirstLine }
+    }
+
+    /// The same pipe reading **every** selected line, joined by `separator`.
+    ///
+    /// A space is the separator that fits a split title, because the generator may or may not leave
+    /// one at the end of the first piece and the squeezing makes the two layouts agree; a name split
+    /// **inside a word** passes `""`.
+    pub fn joining(mut self, separator: impl Into<String>) -> Self {
+        self.text = SelectedText::EveryLine { separator: separator.into() };
+        self
     }
 
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
         let set = contextualized(&self.selection, &page.lines);
-        Ok(extract_text_pdf_block_or_fail_page(&set, &page.lines, &self.name, self.type_block.clone())?)
+        Ok(extract_text_pdf_block_or_fail_page(
+            &set,
+            &page.lines,
+            &self.name,
+            self.type_block.clone(),
+            &self.text,
+        )?)
     }
 }
 
@@ -579,6 +608,7 @@ pub struct PdfExtractAssetsStandard {
     skip_column: i64,
     pairing: AssetsPairing,
     drop: Option<PdfLineSelection>,
+    drop_funds: Option<PdfLineSelection>,
     table: TableSettings,
 }
 
@@ -604,8 +634,28 @@ pub struct AssetsStandardArgs {
     pub skip_column: i64,
     /// How a number is matched to its fund. See [`AssetsPairing`].
     pub pairing: AssetsPairing,
-    /// The header of the columns to leave out, if any. See [`PdfExtractAssetsStandard::dropped_bands`].
+    /// The header of the **number** columns to leave out, if any. See
+    /// [`PdfExtractAssetsStandard::dropped_bands`].
     pub drop: Option<PdfLineSelection>,
+    /// A **fund** column to leave out whole, named by any of its own name lines.
+    ///
+    /// Separate from [`Self::drop`] and not a widening of it, because the two select different
+    /// things and a format needs one or the other. `drop` names the header of a column of numbers —
+    /// on AMUNDI-EN24 a **date**, `30/06/2023`, over the previous financial year's figures — and the
+    /// fund it belongs to is a fund that must stay. This one names a column that is not a fund at
+    /// all: FIDEURAM-EN23 p10 carries a `COMBINED STATEMENT OF NET ASSETS` column, which is the
+    /// umbrella's total.
+    ///
+    /// Dropping it from the **numbers** alone was not enough, and that is what made this parameter
+    /// necessary: the column stayed in the list of names, so the statement reported a fund with none
+    /// of its three totals — true to the letter, and a warning on every run. The whole column goes:
+    /// its name, and the numbers standing in its band.
+    ///
+    /// Subtracting its area in the fund selection instead **cannot** work, and was measured: on the
+    /// pages that do not carry that line the anchor does not resolve, a bound that cannot resolve
+    /// widens its side, and the subtraction takes the entire header with it — seven sub-funds down
+    /// to one.
+    pub drop_funds: Option<PdfLineSelection>,
     /// How the **fund columns** are grouped, in the `table_condition: true` mode. The numeric
     /// columns do not pass through the tabularizer at all: each is a window hung off its own
     /// anchor, so nothing here touches them.
@@ -632,9 +682,21 @@ impl AssetsStandardArgs {
             skip_column: 1,
             pairing: AssetsPairing::default(),
             drop: None,
+            drop_funds: None,
             table: TableSettings::assets_funds(),
         }
     }
+}
+
+/// One fund column of `A4`'s tabular branch. See [`PdfExtractAssetsStandard::fund_columns`].
+struct FundColumn {
+    /// The column's own lines, joined — the name the rows under it are attributed to.
+    text: String,
+    /// The abscissae its name lines span, which is what a number is matched against.
+    band: (f32, f32),
+    /// Whether `drop_funds` asks for it to go. Carried rather than filtered out at once, because
+    /// its band is still needed: the numbers standing under it have to go with it.
+    dropped: bool,
 }
 
 impl PdfExtractAssetsStandard {
@@ -657,6 +719,7 @@ impl PdfExtractAssetsStandard {
             skip_column,
             pairing,
             drop,
+            drop_funds,
             table,
         } = args;
         if !table_condition && currency_set.is_none() {
@@ -673,6 +736,7 @@ impl PdfExtractAssetsStandard {
             skip_column,
             pairing,
             drop,
+            drop_funds,
             table,
         })
     }
@@ -696,34 +760,15 @@ impl PdfExtractAssetsStandard {
         select(&selection, lines)
     }
 
-    /// The fund names recomposed column by column, when the page is tabular.
-    fn fund_texts_by_column(&self, lines: &[PdfLine]) -> Result<Vec<String>, PdfExtractStandardFuncsError> {
-        let funds: Vec<PdfLine> = select(&self.fund_set, lines).into_iter().cloned().collect();
-        if funds.is_empty() {
-            return Ok(Vec::new());
-        }
-        let coords = get_table_coordinates_from_lines(&funds, &self.table.config(None))?;
-        let cols: Vec<usize> = coords.iter().map(|(_, col)| *col).collect();
-        let n_cols = cols.iter().copied().max().map(|m| m + 1).unwrap_or(0);
-        Ok((0..n_cols)
-            .map(|col| {
-                funds
-                    .iter()
-                    .zip(cols.iter())
-                    .filter(|(_, c)| **c == col)
-                    .map(|(line, _)| line.text().trim())
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            })
-            .collect())
-    }
-
-    /// The horizontal band each fund column occupies, in the order the columns come out.
+    /// The fund columns of the tabular branch: what each one's lines spell, the band it occupies,
+    /// and whether `drop_funds` asks for it to be left out.
     ///
-    /// It is what pairing by abscissa needs and pairing by index does without: a number belongs to
-    /// the fund whose column it sits under, not to the fund that happens to share its position in a
-    /// list. The band is the extent of the column's own header lines.
-    fn fund_bands(&self, lines: &[PdfLine]) -> Result<Vec<(f32, f32)>, PdfExtractStandardFuncsError> {
+    /// One reader and not two, because a column's **name** and its **band** are the same grouping
+    /// seen twice: the texts are what the rows are attributed to, the bands are what pairing by
+    /// abscissa matches numbers against, and a column dropped from one and kept in the other is a
+    /// statement whose numbers belong to the wrong funds. They were two functions doing the same
+    /// grouping until a format needed to drop a column from both.
+    fn fund_columns(&self, lines: &[PdfLine]) -> Result<Vec<FundColumn>, PdfExtractStandardFuncsError> {
         let funds: Vec<PdfLine> = select(&self.fund_set, lines).into_iter().cloned().collect();
         if funds.is_empty() {
             return Ok(Vec::new());
@@ -731,15 +776,25 @@ impl PdfExtractAssetsStandard {
         let coords = get_table_coordinates_from_lines(&funds, &self.table.config(None))?;
         let cols: Vec<usize> = coords.iter().map(|(_, col)| *col).collect();
         let n_cols = cols.iter().copied().max().map(|m| m + 1).unwrap_or(0);
+        let unwanted = self.drop_funds.as_ref().map(|selection| contextualized(selection, lines));
         Ok((0..n_cols)
             .map(|col| {
-                funds.iter().zip(cols.iter()).filter(|(_, c)| **c == col).fold(
-                    (f32::INFINITY, f32::NEG_INFINITY),
-                    |(left, right), (line, _)| {
-                        let (x0, _, x1, _) = line.bbox().as_tuple();
-                        (left.min(x0), right.max(x1))
-                    },
-                )
+                let members: Vec<&PdfLine> =
+                    funds.iter().zip(cols.iter()).filter(|(_, c)| **c == col).map(|(line, _)| line).collect();
+                let text = members.iter().map(|line| line.text().trim()).collect::<Vec<_>>().join(" ");
+                let band = members.iter().fold((f32::INFINITY, f32::NEG_INFINITY), |(left, right), line| {
+                    let (x0, _, x1, _) = line.bbox().as_tuple();
+                    (left.min(x0), right.max(x1))
+                });
+                let dropped = unwanted
+                    .as_ref()
+                    .is_some_and(|set| members.iter().any(|line| set.contains(line)));
+                if dropped {
+                    // Named, because a format that drops the wrong column loses a real fund and the
+                    // only way to tell is to read which one went.
+                    tracing::debug!(column = %text, "fund column dropped: drop_funds names it");
+                }
+                FundColumn { text, band, dropped }
             })
             .collect())
     }
@@ -822,6 +877,63 @@ impl PdfExtractAssetsStandard {
         out
     }
 
+    /// The currency of **each** fund column of a statement.
+    ///
+    /// A statement may price its sub-funds in different currencies on one page — FIDEURAM-EN23
+    /// prints the first column in CHF and the other three in EUR, AMUNDI-EN24 two columns in USD
+    /// and two in EUR — so the currency is a datum of the column, not of the page. It used to be
+    /// read as a datum of the page, with the **first** matching line copied onto every fund, and
+    /// those four FIDEURAM sub-funds all came out in CHF.
+    ///
+    /// One matching line still means one currency for the whole statement, which is what the
+    /// formats reading a single `(valori espressi in euro)` line say and must keep saying. Only a
+    /// selection that matches several lines is paired, and it is paired the way the three amounts
+    /// are: by the fund column the line sits under.
+    fn currency_texts_by_column(
+        &self,
+        currency_selection: &PdfLineSelection,
+        lines: &[PdfLine],
+        bands: &[(f32, f32)],
+        gone: &[(f32, f32)],
+        funds: usize,
+    ) -> Result<Vec<String>, PdfExtractStandardFuncsError> {
+        let currency_set = contextualized(currency_selection, lines);
+        // A currency standing over a column `drop_funds` took away is **not** a currency of this
+        // statement, and it must not be left in: `band_of` attributes a line with no overlap to the
+        // **nearest** band — the rule that lets a number sit outside the column it belongs to — so a
+        // leftover would be claimed by whichever surviving column is closest, and, coming first in
+        // the page, would keep the place of the real one.
+        let taken: Vec<&PdfLine> =
+            lines.iter().filter(|line| currency_set.contains(line) && !falls_in(line, gone)).collect();
+        let [first, rest @ ..] = taken.as_slice() else {
+            // The same failure as before: a statement whose currency the format says is on the
+            // page, and is not.
+            return Ok(vec![select_expected_text(&currency_set, lines, "currency")?; funds]);
+        };
+        if rest.is_empty() {
+            return Ok(vec![first.text().clone(); funds]);
+        }
+
+        let by_column = Self::by_abscissa(&taken, bands, "currency");
+        let fallback = first.text().clone();
+        Ok((0..funds)
+            .map(|index| match by_column.get(index).and_then(Option::as_ref) {
+                Some(text) => text.clone(),
+                None => {
+                    // `R3`: a value nobody read on this column is still a value, and it says so.
+                    tracing::warn!(
+                        fund_column = index,
+                        currencies = taken.len(),
+                        imposed = %fallback,
+                        "this statement prices its columns in different currencies and this column \
+                         has none of its own: the first one is imposed"
+                    );
+                    fallback.clone()
+                }
+            })
+            .collect())
+    }
+
     /// The date of the statement, from the first candidate that takes anything.
     ///
     /// No candidate at all means the format does not read a date, and the value is simply null.
@@ -851,7 +963,19 @@ impl PdfExtractAssetsStandard {
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
         let lines = Self::meaningful_lines(page);
 
-        let dropped = self.dropped_bands(&lines);
+        // The fund columns first, because a column `drop_funds` takes away also takes away the
+        // numbers standing in its band — otherwise pairing by index would shift every fund after it
+        // onto its neighbour's figures.
+        let columns = if self.table_condition { self.fund_columns(&lines)? } else { Vec::new() };
+        let kept: Vec<&FundColumn> = columns.iter().filter(|column| !column.dropped).collect();
+        // The bands of the columns that are not funds at all. Everything standing in one of them is
+        // gone, the currency included — which is where the two drops differ, and why they are two
+        // parameters: `drop` says *these numbers are not data* and leaves the column a fund, so a
+        // currency printed over it still describes a fund that stays.
+        let gone: Vec<(f32, f32)> =
+            columns.iter().filter(|column| column.dropped).map(|column| column.band).collect();
+        let dropped: Vec<(f32, f32)> =
+            self.dropped_bands(&lines).into_iter().chain(gone.iter().copied()).collect();
         let take = |column: &AssetsColumn| -> Vec<&PdfLine> {
             Self::select_column(column, &lines).into_iter().filter(|line| !falls_in(line, &dropped)).collect()
         };
@@ -869,12 +993,20 @@ impl PdfExtractAssetsStandard {
             let currency = select_expected_text(&currency_set, &lines, "currency")?;
             (vec![fund], vec![currency])
         } else {
-            let fund_texts = self.fund_texts_by_column(&lines)?;
+            let fund_texts: Vec<String> = kept.iter().map(|column| column.text.clone()).collect();
             match &self.currency_set {
                 Some(currency_selection) => {
-                    let currency_set = contextualized(currency_selection, &lines);
-                    let currency = select_expected_text(&currency_set, &lines, "currency")?;
-                    let currencies = vec![currency; fund_texts.len()];
+                    // The **kept** columns' bands, which is why they are not recomputed here: a
+                    // currency matched against a column the names no longer have would land one
+                    // fund over.
+                    let bands: Vec<(f32, f32)> = kept.iter().map(|column| column.band).collect();
+                    let currencies = self.currency_texts_by_column(
+                        currency_selection,
+                        &lines,
+                        &bands,
+                        &gone,
+                        fund_texts.len(),
+                    )?;
                     (fund_texts, currencies)
                 }
                 None => Self::split_trailing_currencies(fund_texts)?,
@@ -927,8 +1059,8 @@ impl PdfExtractAssetsStandard {
                     .collect::<Vec<_>>()
             }
             AssetsPairing::ByAbscissa => {
-                let bands = if self.table_condition {
-                    self.fund_bands(&lines)?
+                let bands: Vec<(f32, f32)> = if self.table_condition {
+                    kept.iter().map(|column| column.band).collect()
                 } else {
                     // One fund, one band: everything the three windows take is its own.
                     vec![(f32::NEG_INFINITY, f32::INFINITY)]
@@ -1594,6 +1726,136 @@ mod tests {
             assert_eq!(metadata_of(&blocks[0], "liabilities"), BlockValue::from("200"));
         }
 
+        /// Una pagina con tre colonne di comparto, la terza delle quali è il **totale
+        /// dell'ombrello** e non un comparto — la forma di FIDEURAM-EN23 p10.
+        fn umbrella_page() -> Page {
+            page(vec![
+                PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                PdfLine::new("Head", 10.0, "COMBINED STATEMENT", (300.0, 0.0, 360.0, 10.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("1000", (110.0, 30.0, 160.0, 40.0)),
+                line("2000", (210.0, 30.0, 260.0, 40.0)),
+                line("3000", (310.0, 30.0, 360.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("200", (110.0, 50.0, 160.0, 60.0)),
+                line("400", (210.0, 50.0, 260.0, 60.0)),
+                line("600", (310.0, 50.0, 360.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("800", (110.0, 70.0, 160.0, 80.0)),
+                line("1600", (210.0, 70.0, 260.0, 80.0)),
+                line("2400", (310.0, 70.0, 360.0, 80.0)),
+            ])
+        }
+
+        fn umbrella_args() -> AssetsStandardArgs {
+            AssetsStandardArgs {
+                fund_set: font_sel("Head"),
+                currency_set: Some(text_sel("^Total assets$")),
+                table_condition: true,
+                ..simple_args()
+            }
+        }
+
+        /// `drop_funds` porta via la colonna **intera**: il nome e i numeri sotto di lei.
+        #[test]
+        fn drop_funds_takes_the_whole_column_away() {
+            let args = AssetsStandardArgs {
+                drop_funds: Some(text_sel("^COMBINED")),
+                ..umbrella_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&umbrella_page()).unwrap();
+
+            assert_eq!(blocks.len(), 2);
+            assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Alpha"));
+            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
+            assert_eq!(metadata_of(&blocks[1], "fund"), BlockValue::from("Beta"));
+            assert_eq!(metadata_of(&blocks[1], "tot_assets"), BlockValue::from("2000"));
+        }
+
+        /// **La misura che giustifica il parametro.** `drop` toglieva i numeri e lasciava il nome,
+        /// quindi la colonna restava un comparto senza nessuno dei suoi tre totali — vero alla
+        /// lettera, e un avviso a ogni corsa.
+        #[test]
+        fn drop_alone_leaves_the_column_in_the_names_with_no_totals() {
+            let args = AssetsStandardArgs {
+                pairing: AssetsPairing::ByAbscissa,
+                drop: Some(text_sel("^COMBINED")),
+                ..umbrella_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&umbrella_page()).unwrap();
+
+            // Due righe e non tre: la terza colonna è nei nomi, i suoi numeri no, quindi `A4` la
+            // lascia cadere **dicendolo**. Con `drop_funds` non c'è niente da dire.
+            assert_eq!(blocks.len(), 2);
+            let names: Vec<BlockValue> = blocks.iter().map(|b| metadata_of(b, "fund")).collect();
+            assert_eq!(names, vec![BlockValue::from("Alpha"), BlockValue::from("Beta")]);
+        }
+
+        /// Per indice la colonna scartata non sposta i comparti che la seguono, che è la ragione
+        /// per cui la sua banda entra fra quelle scartate e non solo il suo nome.
+        #[test]
+        fn a_dropped_column_does_not_shift_the_funds_after_it() {
+            let lines = vec![
+                PdfLine::new("Head", 10.0, "COMBINED STATEMENT", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new("Head", 10.0, "Alpha", (200.0, 0.0, 260.0, 10.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("3000", (110.0, 30.0, 160.0, 40.0)),
+                line("1000", (210.0, 30.0, 260.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("600", (110.0, 50.0, 160.0, 60.0)),
+                line("200", (210.0, 50.0, 260.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("2400", (110.0, 70.0, 160.0, 80.0)),
+                line("800", (210.0, 70.0, 260.0, 80.0)),
+            ];
+            let args = AssetsStandardArgs {
+                drop_funds: Some(text_sel("^COMBINED")),
+                ..umbrella_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+
+            assert_eq!(blocks.len(), 1);
+            assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Alpha"));
+            // I numeri di `Alpha`, non quelli dell'ombrello scalati di una posizione.
+            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
+            assert_eq!(metadata_of(&blocks[0], "net_assets"), BlockValue::from("800"));
+        }
+
+        /// La valuta per colonna segue le colonne **rimaste**: appaiata a quelle di prima sarebbe
+        /// un comparto più a destra.
+        #[test]
+        fn the_per_column_currency_follows_the_columns_that_are_kept() {
+            let lines = vec![
+                PdfLine::new("Head", 10.0, "COMBINED STATEMENT", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new("Head", 10.0, "Alpha", (200.0, 0.0, 260.0, 10.0)),
+                PdfLine::new("Curr", 10.0, "CHF", (110.0, 15.0, 160.0, 25.0)),
+                PdfLine::new("Curr", 10.0, "EUR", (210.0, 15.0, 260.0, 25.0)),
+                line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                line("3000", (110.0, 30.0, 160.0, 40.0)),
+                line("1000", (210.0, 30.0, 260.0, 40.0)),
+                line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                line("600", (110.0, 50.0, 160.0, 60.0)),
+                line("200", (210.0, 50.0, 260.0, 60.0)),
+                line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                line("2400", (110.0, 70.0, 160.0, 80.0)),
+                line("800", (210.0, 70.0, 260.0, 80.0)),
+            ];
+            let args = AssetsStandardArgs {
+                fund_set: font_sel("Head"),
+                currency_set: Some(font_sel("Curr")),
+                table_condition: true,
+                pairing: AssetsPairing::ByAbscissa,
+                drop_funds: Some(text_sel("^COMBINED")),
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+
+            assert_eq!(blocks.len(), 1);
+            assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Alpha"));
+            assert_eq!(metadata_of(&blocks[0], "currency"), BlockValue::from("EUR"));
+        }
+
         /// Senza `drop`, la stessa pagina: il numero dell'esercizio precedente entra, ed è il
         /// difetto che `drop` esiste per togliere.
         #[test]
@@ -1772,6 +2034,133 @@ mod tests {
         fn a_negative_skip_column_yields_no_block_like_an_empty_python_range() {
             let pipe = PdfExtractAssetsStandard::build(AssetsStandardArgs { skip_column: -1, ..simple_args() }).unwrap();
             assert!(pipe.call(&simple_page()).unwrap().is_empty());
+        }
+
+        /// La valuta **per colonna**: un prospetto che prezza i suoi comparti in valute diverse
+        /// sulla stessa pagina.
+        ///
+        /// Il caso misurato è FIDEURAM-EN23: la prima colonna in CHF e le altre tre in EUR, e
+        /// tutte e quattro uscivano in CHF perché la valuta era un dato della pagina. AMUNDI-EN24
+        /// ne porta un secondo, due colonne in USD e due in EUR.
+        mod currency_by_column {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// Due comparti affiancati, ciascuno con la **sua** riga di valuta sopra i numeri.
+            fn page_with_two_currencies(second: &str) -> Page {
+                page(vec![
+                    PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                    PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                    PdfLine::new("Curr", 8.0, "CHF", (110.0, 15.0, 150.0, 25.0)),
+                    PdfLine::new("Curr", 8.0, second, (210.0, 15.0, 250.0, 25.0)),
+                    line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                    line("1000", (110.0, 30.0, 160.0, 40.0)),
+                    line("2000", (210.0, 30.0, 260.0, 40.0)),
+                    line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                    line("200", (110.0, 50.0, 160.0, 60.0)),
+                    line("400", (210.0, 50.0, 260.0, 60.0)),
+                    line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                    line("800", (110.0, 70.0, 160.0, 80.0)),
+                    line("1600", (210.0, 70.0, 260.0, 80.0)),
+                ])
+            }
+
+            /// Una pagina con **una** riga di valuta sola, che è ciò che dicono i formati che
+            /// leggono un `(valori espressi in euro)` e che deve continuare a dire la stessa cosa.
+            fn page_with_one_currency() -> Page {
+                page(vec![
+                    PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                    PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                    PdfLine::new("Curr", 8.0, "EUR", (0.0, 15.0, 40.0, 25.0)),
+                    line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                    line("1000", (110.0, 30.0, 160.0, 40.0)),
+                    line("2000", (210.0, 30.0, 260.0, 40.0)),
+                    line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                    line("200", (110.0, 50.0, 160.0, 60.0)),
+                    line("400", (210.0, 50.0, 260.0, 60.0)),
+                    line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                    line("800", (110.0, 70.0, 160.0, 80.0)),
+                    line("1600", (210.0, 70.0, 260.0, 80.0)),
+                ])
+            }
+
+            fn args() -> AssetsStandardArgs {
+                AssetsStandardArgs {
+                    fund_set: font_sel("Head"),
+                    currency_set: Some(font_sel("Curr")),
+                    table_condition: true,
+                    ..simple_args()
+                }
+            }
+
+            fn currencies_of(page: &Page) -> Vec<BlockValue> {
+                let blocks = PdfExtractAssetsStandard::build(args()).unwrap().call(page).unwrap();
+                blocks.iter().map(|b| metadata_of(b, "currency")).collect()
+            }
+
+            /// Il difetto che questo cambiamento corregge.
+            #[test]
+            fn each_column_keeps_its_own_currency() {
+                assert_eq!(
+                    currencies_of(&page_with_two_currencies("EUR")),
+                    vec![BlockValue::from("CHF"), BlockValue::from("EUR")]
+                );
+            }
+
+            /// E nell'altro ordine, perché prima vinceva sempre la **prima** riga trovata.
+            #[test]
+            fn the_first_line_no_longer_wins_over_the_others() {
+                let currencies = currencies_of(&page_with_two_currencies("USD"));
+                assert_ne!(currencies[0], currencies[1], "due colonne, due valute");
+                assert_eq!(currencies[1], BlockValue::from("USD"));
+            }
+
+            /// L'invarianza che i cinque formati che già chiamavano `A4` pretendono.
+            #[test]
+            fn one_currency_line_still_serves_every_column() {
+                assert_eq!(
+                    currencies_of(&page_with_one_currency()),
+                    vec![BlockValue::from("EUR"), BlockValue::from("EUR")]
+                );
+            }
+
+            /// Una colonna senza valuta propria non perde la riga: prende la prima, **dicendolo**
+            /// (`R3`). Qui `Beta` non ha la sua.
+            #[test]
+            fn a_column_without_its_own_currency_takes_the_first_one() {
+                let page = page(vec![
+                    PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                    PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                    PdfLine::new("Curr", 8.0, "CHF", (110.0, 15.0, 150.0, 25.0)),
+                    PdfLine::new("Curr", 8.0, "CHF", (115.0, 16.0, 155.0, 26.0)),
+                    line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                    line("1000", (110.0, 30.0, 160.0, 40.0)),
+                    line("2000", (210.0, 30.0, 260.0, 40.0)),
+                    line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                    line("200", (110.0, 50.0, 160.0, 60.0)),
+                    line("400", (210.0, 50.0, 260.0, 60.0)),
+                    line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                    line("800", (110.0, 70.0, 160.0, 80.0)),
+                    line("1600", (210.0, 70.0, 260.0, 80.0)),
+                ]);
+                assert_eq!(
+                    currencies_of(&page),
+                    vec![BlockValue::from("CHF"), BlockValue::from("CHF")],
+                    "nessuna riga persa"
+                );
+            }
+
+            /// Una selezione che non prende niente resta l'errore che era: il formato dice che la
+            /// valuta è in pagina e non c'è.
+            #[test]
+            fn a_currency_selection_matching_nothing_still_fails() {
+                let args = AssetsStandardArgs { currency_set: Some(font_sel("Missing")), ..args() };
+                let error = PdfExtractAssetsStandard::build(args)
+                    .unwrap()
+                    .call(&page_with_two_currencies("EUR"))
+                    .unwrap_err();
+                assert!(format!("{error:?}").contains("currency"), "{error:?}");
+            }
         }
 
         mod range_helper {

@@ -188,6 +188,17 @@ impl DeserializerInvestmentStandard {
         Self { cost_and_value_interpret_int, quantity_interpret_float }
     }
 
+    /// Whether amounts and costs are read as integers. Readable so that a configuration layer can
+    /// leave a flag unstated and fall back to [`Self::default`] without restating its choice.
+    pub fn cost_and_value_interpret_int(&self) -> bool {
+        self.cost_and_value_interpret_int
+    }
+
+    /// Whether quantities are read as floats. See [`Self::cost_and_value_interpret_int`].
+    pub fn quantity_interpret_float(&self) -> bool {
+        self.quantity_interpret_float
+    }
+
     /// Amounts and costs: integers or floats, depending on the format's configuration.
     fn cast_amount(&self, data: &str) -> Result<f64, CastError> {
         if self.cost_and_value_interpret_int { cast::to_int(data).map(|v| v as f64) } else { cast::to_float(data) }

@@ -30,6 +30,9 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 use crate::core::pipeline::{Pipeline, PipelineName};
+use crate::formats_utils::text_filter::managment_company::{
+    TextFilterManagmentCompanyImposed, TextFilterManagmentCompanyInLine,
+};
 
 use super::unstructured::py_pipe::{PyDeserializePipe, PyPdfExtractPipe, PyTextFilterPipe};
 use args::ArgsError;
@@ -78,6 +81,18 @@ pub enum SemistructuredError {
         segment: &'static str,
         #[source]
         source: ArgsError,
+    },
+    #[error("segment '{segment}', algorithm 'manco': {source}")]
+    Manco {
+        segment: &'static str,
+        #[source]
+        source: crate::formats_utils::text_filter::managment_company::ManagmentCompanyError,
+    },
+    #[error("segment '{segment}', algorithm 'sfdr_annex': {source}")]
+    SfdrAnnex {
+        segment: &'static str,
+        #[source]
+        source: native::sfdr_annex::SfdrAnnexError,
     },
     #[error("segment '{segment}', algorithm '{name}': {source}")]
     Native {
@@ -265,10 +280,76 @@ fn build_native(
             })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(investments), Arc::new(fund), Arc::new(currency)]))
         }
-        // `resolve` cannot produce a native source for any other pair: the registry is its only
-        // source.
-        _ => unreachable!("native::contains only registers (PdfExtract, \"standard_cost_curr\")"),
+        (SegmentKind::PdfExtract, "currency_constant") => {
+            let input: native::InputCurrencyConstant = parse_args(segment, name, arg)?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(
+                crate::formats_utils::pdf_extract::standard_funcs::PdfExtractCurrencyConstant::new(input.currency),
+            )]))
+        }
+        (SegmentKind::PdfExtract, "sfdr_annex") => {
+            let input: native::sfdr_annex::InputSfdrAnnexPdfExtract = parse_args(segment, name, arg)?;
+            let pipes = native::sfdr_annex::pdf_extract(&input).map_err(|source| {
+                SemistructuredError::SfdrAnnex { segment: segment.file_stem(), source }
+            })?;
+            Ok(SegmentPipes::PdfExtract(pipes))
+        }
+        (SegmentKind::TextFilter, "sfdr_annex") => {
+            let input: native::sfdr_annex::InputSfdrAnnexTextFilter = parse_args(segment, name, arg)?;
+            let pipes = native::sfdr_annex::text_filter(&input).map_err(|source| {
+                SemistructuredError::SfdrAnnex { segment: segment.file_stem(), source }
+            })?;
+            Ok(SegmentPipes::TextFilter(pipes))
+        }
+        (SegmentKind::TextFilter, "manco") => {
+            let input: native::InputManco = if arg.is_null() {
+                native::InputManco::default()
+            } else {
+                parse_args(segment, name, arg)?
+            };
+            let among = native::among_lines(input.among.as_deref()).ok_or_else(|| {
+                SemistructuredError::MalformedArgs {
+                    segment: segment.file_stem(),
+                    name: name.to_string(),
+                    message: format!(
+                        "'among' is '{}': it is either 'first' or 'most_recent'",
+                        input.among.as_deref().unwrap_or("")
+                    ),
+                }
+            })?;
+            let pipe = TextFilterManagmentCompanyInLine::new(&input.after, &input.before, among)
+                .map_err(|source| SemistructuredError::Manco { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::TextFilter, "manco_imposed") => {
+            let input: native::InputMancoImposed = parse_args(segment, name, arg)?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(TextFilterManagmentCompanyImposed::new(input.name))]))
+        }
+        (SegmentKind::Deserialize, "investment") => {
+            let input: native::InputInvestment =
+                if arg.is_null() { native::InputInvestment::default() } else { parse_args(segment, name, arg)? };
+            Ok(SegmentPipes::Deserialize(vec![Arc::new(input.build())]))
+        }
+        (SegmentKind::Deserialize, other) => match native::argless_deserialize(other) {
+            Some(pipe) => Ok(SegmentPipes::Deserialize(vec![pipe])),
+            // `resolve` cannot produce a native source for a name the registry does not hold.
+            None => unreachable!("native::contains rejects unregistered deserialize names"),
+        },
+        // Likewise for the two segments whose registries hold nothing else.
+        _ => unreachable!("native::contains rejects unregistered names"),
     }
+}
+
+/// A native algorithm's YAML entry, parsed into the struct that describes it.
+fn parse_args<T: serde::de::DeserializeOwned>(
+    segment: SegmentKind,
+    name: &str,
+    arg: &serde_yaml::Value,
+) -> Result<T, SemistructuredError> {
+    serde_yaml::from_value(arg.clone()).map_err(|e| SemistructuredError::MalformedArgs {
+        segment: segment.file_stem(),
+        name: name.to_string(),
+        message: e.to_string(),
+    })
 }
 
 /// Converts a YAML value into its Python equivalent, to build an author's input object.
@@ -394,15 +475,31 @@ pub fn get_pipelines(
         for row in &rows {
             for segment in SegmentKind::ALL {
                 let Some(name) = segment.cell(row) else { continue };
+                // The name is resolved **before** its arguments are looked up: a cell naming an
+                // algorithm that does not exist is a typo, and saying so is more useful than
+                // reporting the missing YAML entry that follows from it.
+                let source = resolve(py, formats_repo_dir, segment, name)?;
+
                 let args = &args_by_segment[&segment];
-                let selected = args::lookup(args, format_name, &row.pipeline_name)
-                    .map_err(|source| SemistructuredError::Args { segment: segment.file_stem(), source })?;
+                // An argless native needs no entry: its absence is the configuration, and `Null`
+                // is what the builder is then handed. For every other algorithm a missing entry
+                // stays an error, because there is no default to fall back on.
+                let selected = match args::lookup(args, format_name, &row.pipeline_name) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if matches!(error, args::ArgsError::MissingArgs { .. }) && native::is_argless(segment, name) {
+                            &serde_yaml::Value::Null
+                        } else {
+                            return Err(SemistructuredError::Args { segment: segment.file_stem(), source: error });
+                        }
+                    }
+                };
                 let algorithm_id = args::algorithm_id(format_name, &row.pipeline_name);
                 let already = *emitted.get(&(row.pipeline_name.clone(), segment)).unwrap_or(&0);
                 let arg = args::positional(selected, already, &algorithm_id)
                     .map_err(|source| SemistructuredError::Args { segment: segment.file_stem(), source })?;
 
-                let pipes = match resolve(py, formats_repo_dir, segment, name)? {
+                let pipes = match source {
                     AlgorithmSource::Native => build_native(segment, name, arg)?,
                     AlgorithmSource::Author { func, input_class } => {
                         build_author(py, segment, name, &row.pipeline_name, &func, &input_class, arg)?
@@ -574,16 +671,126 @@ A-EN24(investments):
         use super::*;
 
         #[test]
-        fn standard_cost_curr_is_the_only_native_algorithm_today() {
-            assert!(native::contains(SegmentKind::PdfExtract, "standard_cost_curr"));
-            assert_eq!(native::names(SegmentKind::PdfExtract).len(), 1);
-            assert!(native::names(SegmentKind::TextFilter).is_empty());
-            assert!(native::names(SegmentKind::Deserialize).is_empty());
+        fn each_segment_registers_the_algorithms_it_serves() {
+            for name in ["standard_cost_curr", "currency_constant", "sfdr_annex"] {
+                assert!(native::contains(SegmentKind::PdfExtract, name), "{name}");
+            }
+            for name in ["sfdr_annex", "manco", "manco_imposed"] {
+                assert!(native::contains(SegmentKind::TextFilter, name), "{name}");
+            }
+            assert!(native::contains(SegmentKind::Deserialize, "sfdr_article"));
+        }
+
+        #[test]
+        fn one_name_may_serve_two_segments_with_its_own_arguments_in_each() {
+            // `sfdr_annex` is the case: the typography belongs to the extraction segment and the
+            // prefix to remove to the filtering one, so each reads its own YAML entry.
+            assert!(native::contains(SegmentKind::PdfExtract, "sfdr_annex"));
+            assert!(native::contains(SegmentKind::TextFilter, "sfdr_annex"));
+            assert!(!native::contains(SegmentKind::Deserialize, "sfdr_annex"));
         }
 
         #[test]
         fn a_name_of_another_segment_is_not_native_here() {
             assert!(!native::contains(SegmentKind::TextFilter, "standard_cost_curr"));
+        }
+
+        #[test]
+        fn every_argless_name_is_also_a_registered_name() {
+            for segment in SegmentKind::ALL {
+                for name in native::names(segment) {
+                    // The converse does not hold, which is the point of the two lists.
+                    let _ = native::is_argless(segment, name);
+                }
+            }
+            for segment in SegmentKind::ALL {
+                for name in ["fund", "managment_company", "investment"] {
+                    if native::is_argless(segment, name) {
+                        assert!(native::contains(segment, name), "{name} is argless but not registered");
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn a_configurable_native_is_not_argless() {
+            assert!(!native::is_argless(SegmentKind::PdfExtract, "standard_cost_curr"));
+            assert!(!native::is_argless(SegmentKind::PdfExtract, "currency_constant"));
+        }
+
+        #[test]
+        fn every_argless_deserialize_name_builds_a_pipe() {
+            for name in native::names(SegmentKind::Deserialize) {
+                if *name == "investment" {
+                    continue;
+                }
+                assert!(native::argless_deserialize(name).is_some(), "{name} has no builder");
+            }
+        }
+    }
+
+    mod argless_natives {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// A repository whose only row names one argless deserializer and nothing else.
+        fn repo_with(cell: &str) -> Repo {
+            let repo = Repo::new();
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(manco),,,{cell}\n"));
+            repo
+        }
+
+        #[test]
+        fn a_deserializer_that_takes_nothing_needs_no_yaml_entry() {
+            let pipelines = get_pipelines(repo_with("managment_company").path(), "A-EN24").unwrap();
+            let pipeline = &pipelines[&PipelineName::new("manco")];
+            assert_eq!(pipeline.deserialize.len(), 1);
+            assert!(pipeline.pdf_extract.is_empty());
+        }
+
+        #[test]
+        fn each_of_the_argless_deserializers_builds_from_a_bare_cell() {
+            for name in ["fund", "managment_company", "investments_manager", "investments_manager_from_manco", "page_classify", "sfdr_article"] {
+                let pipelines = get_pipelines(repo_with(name).path(), "A-EN24").unwrap();
+                assert_eq!(pipelines[&PipelineName::new("manco")].deserialize.len(), 1, "{name}");
+            }
+        }
+
+        #[test]
+        fn the_investment_deserializer_takes_its_flags_when_they_are_given() {
+            let repo = repo_with("investment");
+            repo.write("args/deserialize.yaml", "A-EN24(manco):\n  quantity_interpret_float: true\n");
+            let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
+            assert_eq!(pipelines[&PipelineName::new("manco")].deserialize.len(), 1);
+        }
+
+        #[test]
+        fn the_investment_deserializer_takes_the_standard_flags_without_an_entry() {
+            let pipelines = get_pipelines(repo_with("investment").path(), "A-EN24").unwrap();
+            assert_eq!(pipelines[&PipelineName::new("manco")].deserialize.len(), 1);
+        }
+
+        #[test]
+        fn an_unregistered_deserialize_name_is_still_rejected() {
+            let err = get_pipelines(repo_with("not_an_algorithm").path(), "A-EN24").unwrap_err();
+            assert!(matches!(err, SemistructuredError::UnknownAlgorithm { segment: "deserialize", .. }), "{err}");
+        }
+
+        #[test]
+        fn a_constant_currency_pipe_is_built_from_its_one_field() {
+            let repo = Repo::new();
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),currency_constant,,\n"));
+            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  currency: CHF\n");
+            let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
+            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 1);
+        }
+
+        #[test]
+        fn a_constant_currency_pipe_without_its_entry_is_an_error_not_a_default() {
+            let repo = Repo::new();
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),currency_constant,,\n"));
+            let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
+            assert!(matches!(err, SemistructuredError::Args { segment: "pdf_extract", .. }), "{err}");
         }
     }
 

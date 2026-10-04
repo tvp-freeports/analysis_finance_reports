@@ -110,6 +110,11 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
     )
     .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;
     let pipe = pipe.with_note_marks(additional.and_then(|a| a.note_marks.as_deref()).unwrap_or(""));
+    let cuts: Vec<String> =
+        additional.and_then(|a| a.remove_from_fund.clone()).into_iter().collect();
+    let pipe = pipe
+        .with_remove_from_fund_regexes(&cuts)
+        .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;
     pipeline.text_filter.push(Arc::new(pipe));
     Ok(())
 }
@@ -636,6 +641,168 @@ mod tests {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
             repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,*\n"));
+            repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
+            assert!(get_investments_configs(repo.path()).is_err());
+        }
+    }
+
+    /// The `Remove from fund` column: the `(continued)` of a continuation page, cut out of the
+    /// name before it becomes the sub-fund's identity.
+    mod remove_from_fund_column {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// The header **with** the column. `ADD_HEADER` deliberately stays as it was — a file
+        /// without the column has to keep loading, and `a_file_without_the_column_still_loads`
+        /// is the test that says so.
+        const ADD_HEADER_CUT: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks,Remove from fund\n";
+
+        /// FINECO-EN23@IR p538 writes the sub-fund's name with the word that says this is the rest
+        /// of the table that began on an earlier page.
+        fn page_with_a_continued_fund(fund: &str) -> Page {
+            Page::new(
+                1,
+                (300.0, 300.0),
+                vec![
+                    PdfLine::new("ArialBold", 10.0, fund, (0.0, 0.0, 120.0, 10.0)),
+                    PdfLine::new("ArialItalic", 10.0, "Amounts in EUR", (0.0, 10.0, 60.0, 18.0)),
+                    PdfLine::new("Arial", 10.0, "Acme Corp", (0.0, 20.0, 40.0, 30.0)),
+                    PdfLine::new("Arial", 10.0, "1.000", (50.0, 20.0, 90.0, 30.0)),
+                ],
+                Vec::new(),
+            )
+        }
+
+        /// The name as the built pipeline publishes it, given the two cells and the printed name.
+        fn fund_name_with(cut: &str, marks: &str, printed: &str) -> BlockValue {
+            let repo = Repo::new();
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,,,\n"),
+            );
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,,{marks},\"{cut}\"\n"),
+            );
+            let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
+            let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
+                name: "Acme Corp".to_string(),
+                regexs: vec![],
+                symbols: vec![],
+                buds: vec![],
+            }])
+            .expect("a name without patterns always compiles");
+            let blocks = pipeline
+                .apply_text_filter(
+                    &page_with_a_continued_fund(printed),
+                    &FilterData::TargetCompanies(&companies),
+                )
+                .expect("the page filters");
+            blocks
+                .iter()
+                .find_map(|b| b.metadata.get("fund").cloned())
+                .expect("one investment row carrying the fund")
+        }
+
+        /// What every format that says nothing gets: the behaviour there was before the column.
+        #[test]
+        fn an_empty_cell_cuts_nothing() {
+            assert_eq!(
+                fund_name_with("", "", "Alpha Fund (continued)"),
+                BlockValue::from("Alpha Fund (continued)")
+            );
+        }
+
+        /// The case the column was written for, and the reason it matters: without it this name
+        /// and `Alpha Fund` are two rows of `funds.csv` for one sub-fund.
+        #[test]
+        fn the_declared_pattern_reaches_the_built_pipe() {
+            assert_eq!(
+                fund_name_with(r"\(continued\)", "", "Alpha Fund (continued)"),
+                BlockValue::from("Alpha Fund")
+            );
+        }
+
+        /// The space the cut leaves behind goes too. A trailing space is as good as a parenthesis
+        /// at splitting one sub-fund into two.
+        #[test]
+        fn the_space_the_cut_leaves_behind_goes_with_it() {
+            let name = fund_name_with(r"\(continued\)", "", "Alpha Fund (continued)");
+            assert_eq!(name.as_str().expect("a textual name").find("  "), None);
+        }
+
+        /// A cut in the **middle** of the name must not weld the two halves together.
+        #[test]
+        fn a_cut_inside_the_name_leaves_one_space_not_none() {
+            assert_eq!(
+                fund_name_with(r"\(ex Beta\)", "", "Alpha (ex Beta) Fund"),
+                BlockValue::from("Alpha Fund")
+            );
+        }
+
+        /// An alternation is how one cell expresses several cuts — the reason there is no second
+        /// column for a list.
+        #[test]
+        fn an_alternation_cuts_either_spelling() {
+            assert_eq!(
+                fund_name_with(r"\(continued\)|\(cont\.\)", "", "Alpha Fund (cont.)"),
+                BlockValue::from("Alpha Fund")
+            );
+        }
+
+        /// The two cleanings compose, and in this order: the footnote mark sits at the very end,
+        /// so it survives whatever the pattern takes out of the middle.
+        #[test]
+        fn the_cut_and_the_footnote_mark_both_apply() {
+            assert_eq!(
+                fund_name_with(r"\(continued\)", "*", "Alpha Fund (continued)*"),
+                BlockValue::from("Alpha Fund")
+            );
+        }
+
+        /// A name that is nothing but the cut comes out empty rather than unchanged: it is not
+        /// this column's business to decide what an empty name means.
+        #[test]
+        fn a_name_that_is_only_the_cut_comes_out_empty() {
+            assert_eq!(fund_name_with(r"\(continued\)", "", "(continued)"), BlockValue::from(""));
+        }
+
+        /// A cell that is not a regex is refused when the pipeline is built, not when a page is
+        /// read: a format whose configuration is wrong must fail loudly and at once.
+        #[test]
+        fn a_cell_that_is_not_a_regex_is_refused() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,,,\"(unclosed\"\n"),
+            );
+            assert!(get_pipelines(repo.path(), "A-EN24").is_err());
+        }
+
+        /// A repository written before this column existed must keep loading: the column is
+        /// absent, which is what an empty cell means.
+        #[test]
+        fn a_file_without_the_column_still_loads() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,\n"));
+            let configs = get_investments_configs(repo.path()).expect("the repo loads");
+            assert_eq!(
+                configs[0].additional.as_ref().and_then(|a| a.remove_from_fund.clone()),
+                None
+            );
+        }
+
+        /// The column configures the `text_filter`, so a disabled one may not carry it.
+        #[test]
+        fn a_disabled_text_filter_may_not_carry_the_column() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,,,\"\\(continued\\)\"\n"),
+            );
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
             assert!(get_investments_configs(repo.path()).is_err());
         }

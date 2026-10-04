@@ -93,26 +93,52 @@ fn flags_of(
 ///
 /// The only pipe of this module also exposed directly among the utilities, because author modules
 /// use it for blocks that are none of the three standard cases below.
+///
+/// `join` is the separator of [`SelectedText::EveryLine`]: absent, the block is the **first** line
+/// the selection takes, which is what this pipe has always done. See
+/// [`py_pdf_extract_fund_standard`], where it is the parameter that matters.
 #[pyfunction]
 #[pyo3(name = "ExtractTextPdfBlockOrFailPage")]
+#[pyo3(signature = (selection, name, type_block, *, join=None))]
 pub fn py_extract_text_pdf_block_or_fail_page(
     selection: &Bound<'_, PyAny>,
     name: String,
     type_block: String,
+    join: Option<String>,
 ) -> PyResult<PyPdfExtractPipe> {
     let selection = selection_of("selection", selection)?;
-    Ok(PyPdfExtractPipe::new(Arc::new(ExtractTextPdfBlockOrFailPage::new(
-        selection,
-        name,
-        BlockType::from(type_block),
-    ))))
+    let pipe = ExtractTextPdfBlockOrFailPage::new(selection, name, BlockType::from(type_block));
+    Ok(PyPdfExtractPipe::new(Arc::new(joining(pipe, join))))
+}
+
+/// The pipe gathering every selected line when `join` says so, and untouched otherwise.
+fn joining(pipe: ExtractTextPdfBlockOrFailPage, join: Option<String>) -> ExtractTextPdfBlockOrFailPage {
+    match join {
+        None => pipe,
+        Some(separator) => pipe.joining(separator),
+    }
 }
 
 /// The pipe extracting the fund name.
+///
+/// `join` makes the block **every** selected line joined by that separator, in reading order,
+/// instead of the first one — `join=" "` for a title split where a long dash falls, `join=""` for
+/// one split inside a word. Absent, the pipe takes the first line, which is what every format
+/// writing the name on one line wants and what this pipe has always done.
+///
+/// It is a keyword and not a second function because the two are the same algorithm with a
+/// parameter: a formats repository had written the joining variant as a Python shim of its own —
+/// nine lines of geometry plus the reading order and the squeezing — and the only thing it changed
+/// was this.
 #[pyfunction]
 #[pyo3(name = "PdfExtractFundStandard")]
-pub fn py_pdf_extract_fund_standard(selection: &Bound<'_, PyAny>) -> PyResult<PyPdfExtractPipe> {
-    Ok(PyPdfExtractPipe::new(Arc::new(pdf_extract_fund_standard(selection_of("selection", selection)?))))
+#[pyo3(signature = (selection, *, join=None))]
+pub fn py_pdf_extract_fund_standard(
+    selection: &Bound<'_, PyAny>,
+    join: Option<String>,
+) -> PyResult<PyPdfExtractPipe> {
+    let pipe = pdf_extract_fund_standard(selection_of("selection", selection)?);
+    Ok(PyPdfExtractPipe::new(Arc::new(joining(pipe, join))))
 }
 
 /// The pipe extracting the currency statement.
@@ -606,6 +632,7 @@ fn column_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<AssetsColumn> {
     skip_column=1,
     pair_by_abscissa=false,
     drop=None,
+    drop_funds=None,
     table_cfg=None,
     algorithm_flags=None,
     collapse_alg=None,
@@ -626,6 +653,7 @@ pub fn py_pdf_extract_assets_standard(
     skip_column: i64,
     pair_by_abscissa: bool,
     drop: Option<&Bound<'_, PyAny>>,
+    drop_funds: Option<&Bound<'_, PyAny>>,
     table_cfg: Option<PyRef<'_, PyTableConfig>>,
     algorithm_flags: Option<&Bound<'_, PyAny>>,
     collapse_alg: Option<PyRef<'_, PyCollapseAlgorithm>>,
@@ -650,6 +678,7 @@ pub fn py_pdf_extract_assets_standard(
         skip_column,
         pairing: if pair_by_abscissa { AssetsPairing::ByAbscissa } else { AssetsPairing::ByIndex },
         drop: optional_selection_of("drop", drop)?,
+        drop_funds: optional_selection_of("drop_funds", drop_funds)?,
         // `algorithm_flags` left out keeps this pipe's own two flags, not `TableSettings`'
         // default: a format that names none of these keywords must read its fund columns exactly
         // as it did before.

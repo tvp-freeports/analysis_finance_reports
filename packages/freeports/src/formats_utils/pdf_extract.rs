@@ -5,6 +5,7 @@
 //! `standard_funcs` assembles those into the ready-made pipes a format names in its configuration.
 
 pub mod commons;
+pub mod labelled_column;
 pub mod labelled_value;
 pub mod section;
 pub mod sfdr_sign;

@@ -31,6 +31,7 @@
 use once_cell::sync::Lazy;
 use onig::Regex;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use crate::commons::consts::{Currency, SfdrArticle};
 use crate::core::classes::value::BlockValue;
@@ -438,6 +439,59 @@ fn strip_note_marks(name: &str, marks: &str) -> String {
     stripped.to_string()
 }
 
+/// Compiled patterns whose matches are cut out of a fund's name, carrying their own sources.
+///
+/// A newtype and not a bare `Vec<Regex>` because [`TextFilterInvestmentsStandard`] derives
+/// `PartialEq`/`Eq` and `onig::Regex` has neither: the comparison is on the **sources**, which is
+/// what equality of two configurations means here — two pipes configured with the same patterns
+/// are the same pipe, whatever the compiled automata turn out to be.
+#[derive(Debug, Clone, Default)]
+pub struct FundNameCuts {
+    sources: Vec<String>,
+    /// Behind an [`Arc`] because `onig::Regex` is not `Clone`, and this pipe is: cloning the
+    /// pointer shares the compiled automata instead of compiling them again, which is also the
+    /// cheaper of the two.
+    compiled: Arc<Vec<Regex>>,
+}
+
+impl PartialEq for FundNameCuts {
+    fn eq(&self, other: &Self) -> bool {
+        self.sources == other.sources
+    }
+}
+
+impl Eq for FundNameCuts {}
+
+impl FundNameCuts {
+    /// Compiles the patterns, failing on the first one that is not a regex.
+    pub fn new(patterns: &[String]) -> Result<Self, StandardFuncsError> {
+        let compiled = patterns.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { sources: patterns.to_vec(), compiled: Arc::new(compiled) })
+    }
+
+    fn is_empty(&self) -> bool {
+        self.compiled.is_empty()
+    }
+
+    /// The name with every match cut out, and the spacing left behind normalised.
+    ///
+    /// The spacing matters: cutting `(continued)` out of `Amundi Strategic Bond FAM Fund
+    /// (continued)` leaves a trailing space, and a name with a trailing space is as different from
+    /// the good one, under the uniqueness key of `funds.csv`, as it was with the parenthesis.
+    fn applied(&self, name: &str) -> String {
+        // No patterns means **no change at all**, spacing included: a pipe that was configured
+        // without this parameter must behave exactly as it did before the parameter existed.
+        if self.compiled.is_empty() {
+            return name.to_string();
+        }
+        let mut out = name.to_string();
+        for pattern in self.compiled.iter() {
+            out = pattern.replace_all(&out, "");
+        }
+        out.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+}
+
 /// Extracts the investment rows of a table, one per recognised target company.
 ///
 /// The `*_pos` values are offsets from the anchor cell. In geometric mode they are linear distances
@@ -462,6 +516,9 @@ pub struct TextFilterInvestmentsStandard {
     /// The characters that count as a footnote mark on the fund's name (`R16`). Empty by default,
     /// which strips nothing: see [`strip_note_marks`].
     note_marks: String,
+    /// Patterns cut out of the fund's name before it becomes the sub-fund's identity. Empty by
+    /// default, which cuts nothing: see [`Self::with_remove_from_fund_regexes`].
+    remove_from_fund: FundNameCuts,
 }
 
 impl TextFilterInvestmentsStandard {
@@ -495,6 +552,7 @@ impl TextFilterInvestmentsStandard {
             merge_prev,
             dash_as_zero,
             note_marks: String::new(),
+            remove_from_fund: FundNameCuts::default(),
         })
     }
 
@@ -506,6 +564,27 @@ impl TextFilterInvestmentsStandard {
     pub fn with_note_marks(mut self, note_marks: impl Into<String>) -> Self {
         self.note_marks = note_marks.into();
         self
+    }
+
+    /// The same pipe, cutting whatever these patterns match out of the fund's name.
+    ///
+    /// The twin of [`TextFilterAssetsStandard`]'s `remove_from_fund_regexes`, which has had it
+    /// since it was written: the asymmetry was an accident, not a design. What it is for is the
+    /// **continuation page** — a report that writes `Amundi Emerging Markets Bond FAM Fund
+    /// (continued)` above the rest of a table names the same sub-fund as the page before, and
+    /// taking that word as part of the name splits one sub-fund into two (thirty-five rows of
+    /// seventy-four on FINECO-EN23@IR). Normalisation does not save it: it drops the parentheses
+    /// and keeps the word.
+    ///
+    /// A builder and not a ninth parameter of [`Self::new`], for the same reason
+    /// [`Self::with_note_marks`] is one: the formats that need it are few, and the others should
+    /// not have to write an empty list.
+    pub fn with_remove_from_fund_regexes(
+        mut self,
+        patterns: &[String],
+    ) -> Result<Self, StandardFuncsError> {
+        self.remove_from_fund = FundNameCuts::new(patterns)?;
+        Ok(self)
     }
 
     /// Separates the fund name and the currency from the table blocks, then extracts the rows.
@@ -530,13 +609,23 @@ impl TextFilterInvestmentsStandard {
                 // `R16`: il richiamo di nota se ne va **qui**, prima che il nome diventi l'identita'
                 // del comparto. Piu' avanti non si puo' piu': il nome finisce nei metadati di ogni
                 // riga di questa pagina e in `funds.csv`, e le fasi dopo lo confrontano cosi' com'e'.
-                let blk = match (self.note_marks.is_empty(), blk.content.as_str()) {
-                    (false, Some(name)) => {
+                // Same order as `TextFilterAssetsStandard`: the patterns cut first, the footnote
+                // mark after. A mark sitting at the very end survives whatever the patterns take
+                // away from the middle, so cutting first never hides it.
+                let cleaned = match blk.content.as_str() {
+                    Some(name) if !self.remove_from_fund.is_empty() || !self.note_marks.is_empty() => {
+                        let cut = self.remove_from_fund.applied(name);
+                        Some(strip_note_marks(&cut, &self.note_marks))
+                    }
+                    _ => None,
+                };
+                let blk = match cleaned {
+                    Some(name) => {
                         let mut stripped = blk.clone();
-                        stripped.content = BlockValue::from(strip_note_marks(name, &self.note_marks));
+                        stripped.content = BlockValue::from(name);
                         stripped
                     }
-                    _ => blk.clone(),
+                    None => blk.clone(),
                 };
                 fund_found = Some(blk.content.clone());
                 results.push(standard_fund_txt_blk(blk));
@@ -1123,7 +1212,16 @@ impl TextFilterSfdrSignStandard {
         if self.demand_investment_funds_match {
             let known = Self::resolved_investment_funds(data);
             if !known.contains(&MatchFund::new(&fund_name)) {
-                tracing::debug!(fund = fund_name, "SFDR article discarded: fund not an investment fund seen so far");
+                // A `warn` and not a `debug`: this is a **lost article**, and losing one silently is
+                // the failure mode `R30` exists to prevent. The check is right — an annex naming a
+                // fund none of the report's investments mention belongs to another document — but
+                // when it is the *name* that was misread rather than the annex that is foreign, the
+                // only trace is this line, and at `debug` there was in practice no trace at all.
+                tracing::warn!(
+                    fund = fund_name,
+                    "SFDR article discarded: \"{fund_name}\" is not a fund this report's investments \
+                     name, so this annex is not this document's (`R30`)"
+                );
                 return Ok(Vec::new());
             }
         }
