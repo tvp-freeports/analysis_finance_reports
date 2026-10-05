@@ -223,7 +223,7 @@ pub fn py_pdf_extract_labelled_value_standard(
 }
 
 /// `PdfExtractSectionStandard(heading, block_type, name, *, family=None, bottom=None, body=None,
-/// include_heading=False, rows=None)` — un'intestazione apre una sezione.
+/// include_heading=False, rows=None, entry_gap=None)` — un'intestazione apre una sezione.
 ///
 /// `family` omesso significa *la prossima riga con la stessa coppia (font, corpo)
 /// dell'intestazione*, che è il difetto misurato; passarne una selezione lo sostituisce, ed è il
@@ -242,6 +242,7 @@ pub fn py_pdf_extract_labelled_value_standard(
     body=None,
     include_heading=false,
     rows=None,
+    entry_gap=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_pdf_extract_section_standard(
@@ -253,6 +254,7 @@ pub fn py_pdf_extract_section_standard(
     body: Option<&Bound<'_, PyAny>>,
     include_heading: bool,
     rows: Option<&Bound<'_, PyAny>>,
+    entry_gap: Option<f32>,
 ) -> PyResult<PyPdfExtractPipe> {
     let args = SectionArgs {
         heading: selection_of("heading", heading)?,
@@ -267,7 +269,7 @@ pub fn py_pdf_extract_section_standard(
         bottom: section_bottom_of(bottom)?,
         body: optional_selection_of("body", body)?,
         include_heading,
-        emit: section_emit_of(rows)?,
+        emit: section_emit_of(rows, entry_gap)?,
     };
     Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractSectionStandard::new(args))))
 }
@@ -285,8 +287,23 @@ fn section_bottom_of(bottom: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Secti
 }
 
 /// `rows`: absent or false for plain lines, `True` to discover the columns, a `TableConfig` to
-/// declare them.
-fn section_emit_of(rows: Option<&Bound<'_, PyAny>>) -> PyResult<SectionEmit> {
+/// declare them. `entry_gap`: the vertical distance that separates two entries, for the sections
+/// whose typography says nothing. The two are alternatives, because a block carries one shape of
+/// metadata or the other.
+fn section_emit_of(rows: Option<&Bound<'_, PyAny>>, entry_gap: Option<f32>) -> PyResult<SectionEmit> {
+    if let Some(gap) = entry_gap {
+        if rows.is_some_and(|object| !object.is_none()) {
+            tracing::error!(arguments = "rows, entry_gap", "a section emits table coordinates or entry numbers, not both");
+            return Err(PyValueError::new_err("rows and entry_gap are alternatives"));
+        }
+        // Written this way and not `!(gap > 0.0)`: a NaN compares false against everything, so the
+        // negation of a comparison is the one form that silently lets it through.
+        if gap <= 0.0 || gap.is_nan() {
+            tracing::error!(argument = "entry_gap", gap, "the gap between two entries is a positive distance");
+            return Err(PyValueError::new_err("entry_gap must be positive"));
+        }
+        return Ok(SectionEmit::Entries { gap });
+    }
     let Some(object) = rows else { return Ok(SectionEmit::Lines) };
     if object.is_none() {
         return Ok(SectionEmit::Lines);

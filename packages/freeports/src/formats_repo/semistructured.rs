@@ -88,6 +88,12 @@ pub enum SemistructuredError {
         #[source]
         source: crate::formats_utils::text_filter::managment_company::ManagmentCompanyError,
     },
+    #[error("segment '{segment}', algorithm 'inv_managers': {source}")]
+    InvManagers {
+        segment: &'static str,
+        #[source]
+        source: native::inv_managers::InvManagersError,
+    },
     #[error("segment '{segment}', algorithm 'sfdr_annex': {source}")]
     SfdrAnnex {
         segment: &'static str,
@@ -318,6 +324,17 @@ fn build_native(
             })?;
             let pipe = TextFilterManagmentCompanyInLine::new(&input.after, &input.before, among)
                 .map_err(|source| SemistructuredError::Manco { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::TextFilter, "inv_managers") => {
+            let input: native::inv_managers::InputInvManagers = if arg.is_null() {
+                native::inv_managers::InputInvManagers::default()
+            } else {
+                parse_args(segment, name, arg)?
+            };
+            let pipe = native::inv_managers::text_filter(&input).map_err(|source| {
+                SemistructuredError::InvManagers { segment: segment.file_stem(), source }
+            })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "manco_imposed") => {

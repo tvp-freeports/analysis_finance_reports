@@ -33,6 +33,7 @@ use crate::core::page::Page;
 use crate::core::pipeline::{PdfExtractPipe, PipeError};
 
 use super::pdf_line::PdfLine;
+use super::position::get_groups;
 use super::relative::RelativeInfo;
 use super::select::relative::PdfLineSelection;
 use super::standard_funcs::PdfExtractStandardFuncsError;
@@ -119,6 +120,20 @@ pub enum SectionEmit {
     /// sixteen manager formats read a table with one row per fund (FINECO-EN23@IR note 1,
     /// DANSKEINVEST-EN24 p352), and the ESG tables are in the same position.
     Rows(Box<TableCoordinatesConfig>),
+    /// One block per line, carrying `group` — the index of the **entry** the line belongs to,
+    /// counted from the top of the section.
+    ///
+    /// For the sections where the typography says nothing: a name, its address and its
+    /// qualification are the same font as the next name, and the only thing that separates one
+    /// entry from the next is the **vertical gap**. Measured on DANSKEINVEST-EN24 p5–6 (10.8
+    /// points between two lines of one entry, 19.2 to 21.6 between two entries) and on CARNE-EN23
+    /// p4 (9.2 within, 18.4 between): `gap` is the distance at or above which a line opens a new
+    /// entry, so it goes between the two — 15.0 on both.
+    ///
+    /// The blocks come out sorted by ordinate and then by abscissa, which is what the readers of
+    /// the `inv_managers` template expect: they walk the blocks in page order and start a new
+    /// declaration whenever `group` changes.
+    Entries { gap: f32 },
 }
 
 /// The construction parameters of [`PdfExtractSectionStandard`].
@@ -251,12 +266,42 @@ impl PdfExtractSectionStandard {
         };
         let section = self.section(heading, &page.lines);
         tracing::debug!(heading = %heading.text(), lines = section.len(), "{} read a section", self.name);
+        if section.is_empty() {
+            // A heading with nothing under it: the same normal answer as a page without the
+            // heading, and the guard the entry grouping needs, since grouping nothing is an error.
+            return Ok(Vec::new());
+        }
 
         match &self.emit {
             SectionEmit::Lines => Ok(section
                 .iter()
                 .map(|line| PdfBlock::bare(self.block_type.clone(), line.text().as_str()))
                 .collect()),
+            SectionEmit::Entries { gap } => {
+                // Sorted before grouping, and not after: `get_groups` returns one id per line **in
+                // the order of the sorted keys**, so the two orders have to be the same one or
+                // every id lands on the wrong line.
+                let mut sorted = section;
+                sorted.sort_by(|a, b| {
+                    let (ax, ay) = (a.bbox().as_tuple().0, a.bbox().as_tuple().1);
+                    let (bx, by) = (b.bbox().as_tuple().0, b.bbox().as_tuple().1);
+                    (ay, ax).partial_cmp(&(by, bx)).expect("page coordinates are finite")
+                });
+                let owned: Vec<PdfLine> = sorted.iter().map(|line| (*line).clone()).collect();
+                let groups = get_groups(&owned, *gap, true).map_err(|_| {
+                    // The only error `get_groups` has is the empty input, which the early return
+                    // above has already excluded.
+                    PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: self.name.clone() }
+                })?;
+                Ok(sorted
+                    .iter()
+                    .zip(groups)
+                    .map(|(line, group)| {
+                        let metadata = BTreeMap::from([("group".to_string(), BlockValue::from(group))]);
+                        PdfBlock::new(self.block_type.clone(), metadata, BlockValue::from(line.text().as_str()))
+                    })
+                    .collect())
+            }
             SectionEmit::Rows(config) => {
                 let owned: Vec<PdfLine> = section.iter().map(|line| (*line).clone()).collect();
                 let coords = get_table_coordinates_from_lines(&owned, config)
@@ -749,6 +794,98 @@ mod tests {
         fn lines_is_the_default_and_carries_no_metadata() {
             let blocks = run(args(text_sel("^Manager$")), &fineco_ir_p3());
             assert!(blocks.iter().all(|b| b.metadata.is_empty()));
+        }
+    }
+
+    /// CARNE-EN23 p4, measured: the `Investment Managers` section at the foot of the left column,
+    /// two entries whose name, specification and address are all arialmt 8.04 — 9.2 points between
+    /// two lines of one entry, 18.4 between the last line of one and the name of the next.
+    fn carne_en23_p4() -> Page {
+        page(vec![
+            line("arial-boldmt", 8.04, "Administrator, Domiciliary and Transfer Agent ", (57.6, 501.0, 233.3, 509.0)),
+            line("arialmt", 8.04, "The Bank of New York Mellon SA/NV ", (57.6, 519.5, 192.0, 527.5)),
+            line("arialmt", 8.04, "Luxembourg Branch ", (57.6, 528.8, 131.8, 536.8)),
+            line("arial-boldmt", 8.04, "Investment Managers ", (57.6, 574.6, 139.6, 582.6)),
+            line("arialmt", 8.04, "ARCA Fondi SGR S.p.A. ", (57.6, 593.2, 147.9, 601.2)),
+            line("arialmt", 8.04, "Via Disciplini 3 ", (57.6, 602.3, 111.9, 610.3)),
+            line("arialmt", 8.04, "I-20123 Milan ", (57.6, 611.6, 108.3, 619.6)),
+            line("arialmt", 8.04, "Italy ", (57.6, 620.8, 74.5, 628.8)),
+            line("arialmt", 8.04, "Goldman Sachs Asset Management International Ltd. ", (57.6, 639.2, 249.8, 647.2)),
+            line("arial-italicmt", 8.04, "(in charge for the USD nominated securities in the ", (57.6, 648.7, 234.7, 656.7)),
+            line("arialmt", 8.04, "subfund Sidera Funds SICAV – Global High Yield) ", (57.6, 657.5, 237.8, 665.5)),
+            line("arialmt", 8.04, "Plumtree Court, 25 Shoe Lane ", (57.6, 666.8, 168.0, 674.8)),
+            line("arialmt", 8.04, "London EC4A 4AU ", (57.6, 676.0, 129.7, 684.0)),
+            line("arialmt", 8.04, "United Kingdom ", (57.6, 685.1, 116.7, 693.1)),
+        ])
+    }
+
+    mod emitting_entries {
+        use super::*;
+
+        fn groups(blocks: &[PdfBlock]) -> Vec<i64> {
+            blocks.iter().map(|b| b.metadata["group"].as_int().expect("an integer group")).collect()
+        }
+
+        fn carne_args() -> SectionArgs {
+            let mut a = args(text_sel("^Investment Managers"));
+            a.emit = SectionEmit::Entries { gap: 15.0 };
+            a
+        }
+
+        #[test]
+        fn the_vertical_gap_cuts_the_section_into_its_entries() {
+            let blocks = run(carne_args(), &carne_en23_p4());
+            assert_eq!(groups(&blocks), vec![0, 0, 0, 0, 1, 1, 1, 1, 1, 1]);
+        }
+
+        #[test]
+        fn the_lines_of_an_entry_come_out_in_page_order() {
+            let blocks = run(carne_args(), &carne_en23_p4());
+            assert_eq!(
+                texts(&blocks)[..2].to_vec(),
+                vec!["ARCA Fondi SGR S.p.A. ".to_string(), "Via Disciplini 3 ".to_string()]
+            );
+        }
+
+        /// The grouping must not depend on the order the page hands the lines over: a PDF makes no
+        /// promise about it, and `get_groups` numbers the **sorted** keys.
+        #[test]
+        fn the_numbering_does_not_follow_the_order_the_page_arrives_in() {
+            let shuffled = {
+                let mut lines = carne_en23_p4().lines;
+                lines.reverse();
+                page(lines)
+            };
+            let blocks = run(carne_args(), &shuffled);
+            assert_eq!(groups(&blocks), vec![0, 0, 0, 0, 1, 1, 1, 1, 1, 1]);
+            assert_eq!(texts(&blocks)[0], "ARCA Fondi SGR S.p.A. ".to_string());
+        }
+
+        /// The section above `Investment Managers` has the same typography and a gap of its own:
+        /// what keeps it out is the heading, not the grouping.
+        #[test]
+        fn only_the_lines_of_this_section_are_numbered() {
+            let blocks = run(carne_args(), &carne_en23_p4());
+            assert!(!texts(&blocks).iter().any(|t| t.contains("Bank of New York Mellon")));
+        }
+
+        /// A gap wider than any in the section leaves one entry; a gap narrower than the line
+        /// spacing makes every line one.
+        #[test]
+        fn the_gap_is_what_decides_and_nothing_else() {
+            let mut wide = carne_args();
+            wide.emit = SectionEmit::Entries { gap: 100.0 };
+            assert_eq!(groups(&run(wide, &carne_en23_p4())), vec![0; 10]);
+
+            let mut narrow = carne_args();
+            narrow.emit = SectionEmit::Entries { gap: 1.0 };
+            assert_eq!(groups(&run(narrow, &carne_en23_p4())), (0..10).collect::<Vec<i64>>());
+        }
+
+        #[test]
+        fn a_heading_with_nothing_under_it_gives_no_block() {
+            let bare = page(vec![line("arial-boldmt", 8.04, "Investment Managers ", (57.6, 574.6, 139.6, 582.6))]);
+            assert!(run(carne_args(), &bare).is_empty());
         }
     }
 

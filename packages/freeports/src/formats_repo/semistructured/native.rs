@@ -12,6 +12,7 @@
 //! absent rather than demanding a `{}` that carries no information. An algorithm not listed there
 //! still requires its entry: a missing one is then a configuration mistake, not a default.
 
+pub mod inv_managers;
 pub mod sfdr_annex;
 
 use std::sync::Arc;
@@ -38,7 +39,7 @@ use super::SegmentKind;
 /// The native names of each segment.
 const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
     (SegmentKind::PdfExtract, &["standard_cost_curr", "currency_constant", "sfdr_annex"]),
-    (SegmentKind::TextFilter, &["sfdr_annex", "manco", "manco_imposed"]),
+    (SegmentKind::TextFilter, &["sfdr_annex", "manco", "manco_imposed", "inv_managers"]),
     (
         SegmentKind::Deserialize,
         &[
@@ -60,7 +61,7 @@ const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
 /// algorithm.
 const ARGLESS_NAMES: [(SegmentKind, &[&str]); 3] = [
     (SegmentKind::PdfExtract, &[]),
-    (SegmentKind::TextFilter, &[]),
+    (SegmentKind::TextFilter, &["inv_managers"]),
     (
         SegmentKind::Deserialize,
         &[
