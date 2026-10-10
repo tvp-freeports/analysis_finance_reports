@@ -21,13 +21,18 @@
 //! do it from Python, where the configuration is a page-by-page computation. The day one asks from
 //! configuration, the cell is a mapping of its own and not a flag.
 
+use std::sync::Arc;
+
 use serde::Deserialize;
 
 use crate::core::classes::BlockType;
+use crate::core::pipeline::PdfExtractPipe;
+use crate::formats_utils::pdf_extract::page_number::PdfExtractWithPrintedPage;
 use crate::formats_utils::pdf_extract::section::{
     PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd,
 };
 
+use super::page_number::InputPrintedPage;
 use super::selection::{InputSelection, SelectionConfigError};
 
 /// What a section configuration can be refused for.
@@ -76,6 +81,13 @@ pub struct InputSection {
     /// typography says nothing about where one entry ends. Absent means the lines are not numbered.
     #[serde(default)]
     pub entry_gap: Option<f32>,
+    /// The foot, where the section's blocks are to carry the **printed page number**.
+    ///
+    /// For a section whose sub-fund is named on another page: FINECO-EN23@IR's indicators are on
+    /// p894 and `Product name:` on p893, and the number in the metadata is what `esg` pairs them
+    /// by. Absent is six of the seven measured sections.
+    #[serde(default)]
+    pub page_number: Option<InputPrintedPage>,
 }
 
 /// The extra floor: a line selection, or a bare ordinate.
@@ -86,7 +98,9 @@ pub struct InputSection {
 #[serde(untagged)]
 pub enum InputBottom {
     Ordinate(f32),
-    Selection(InputSelection),
+    /// Boxed: a selection is now a whole tree of criteria, and a bare ordinate must not pay for it
+    /// in every `InputSection` that carries one.
+    Selection(Box<InputSelection>),
 }
 
 impl InputBottom {
@@ -99,7 +113,19 @@ impl InputBottom {
 }
 
 impl InputSection {
-    /// The pipe this configuration describes.
+    /// The pipe this configuration describes, with the printed page number added to its blocks
+    /// where the entry asks for it.
+    ///
+    /// Separate from [`InputSection::build`] because the decorator is a different type: `build`
+    /// answers *which section*, this one *which pipe*.
+    pub fn pipe(&self) -> Result<Arc<dyn PdfExtractPipe>, SectionConfigError> {
+        let section: Arc<dyn PdfExtractPipe> = Arc::new(self.build()?);
+        let Some(printed) = &self.page_number else { return Ok(section) };
+        let (selection, key) = printed.build()?;
+        Ok(Arc::new(PdfExtractWithPrintedPage::new(section, selection, key)))
+    }
+
+    /// The section this configuration describes.
     pub fn build(&self) -> Result<PdfExtractSectionStandard, SectionConfigError> {
         let emit = match self.entry_gap {
             None => SectionEmit::Lines,
@@ -234,6 +260,56 @@ mod tests {
         #[test]
         fn the_heading_can_be_part_of_the_section() {
             section("include_heading: true").build().expect("the heading carries the datum");
+        }
+    }
+
+    /// The printed page number in the blocks' metadata, which is what kept the seventh measured
+    /// section — FINECO-EN23@IR's indicators — in Python: not the section, but the function that
+    /// wrapped it.
+    mod the_printed_page_number {
+        use super::*;
+        use crate::core::pipeline::PdfExtractPipe;
+        use pretty_assertions::assert_eq;
+
+        #[test]
+        fn a_section_may_carry_it() {
+            section("page_number:\n  selection:\n    area: {y_min: 795}\n")
+                .pipe()
+                .expect("a foot is a selection like any other");
+        }
+
+        /// The decorator keeps the section's name, because what the log has to name is the pipe
+        /// that reads the page.
+        #[test]
+        fn the_decorated_pipe_keeps_the_sections_name() {
+            let pipe = section("page_number:\n  selection:\n    area: {y_min: 795}\n")
+                .pipe()
+                .expect("a well-formed entry");
+            assert_eq!(PdfExtractPipe::name(pipe.as_ref()), "merges");
+        }
+
+        #[test]
+        fn without_the_cell_the_pipe_is_the_section_itself() {
+            let pipe = section("").pipe().expect("a well-formed entry");
+            assert_eq!(PdfExtractPipe::name(pipe.as_ref()), "merges");
+        }
+
+        #[test]
+        fn a_malformed_foot_is_refused_and_named() {
+            let error = section("page_number:\n  selection: '^795'\n")
+                .pipe()
+                .err()
+                .expect("a bare anchor is a font name");
+            assert!(
+                matches!(
+                    error,
+                    SectionConfigError::Selection(SelectionConfigError::NotASelection {
+                        field: "page_number.selection",
+                        ..
+                    })
+                ),
+                "{error}"
+            );
         }
     }
 

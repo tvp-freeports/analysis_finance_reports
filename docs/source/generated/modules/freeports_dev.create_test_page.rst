@@ -1,4 +1,4 @@
-freeports\_dev.create\_test\_page
+﻿freeports\_dev.create\_test\_page
 =================================
 
 .. automodule:: freeports_dev.create_test_page
@@ -20,6 +20,7 @@ freeports\_dev.create\_test\_page
       get_pdf_from_tests
       get_results
       get_text_blocks
+      page_dict
       print_pdf_blks_table_ASCII
       print_pdf_blks_table_MD
       print_pdf_line_sets

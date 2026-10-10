@@ -1,4 +1,4 @@
-freeports.standard\_funcs.text\_filter
+﻿freeports.standard\_funcs.text\_filter
 ======================================
 
 .. automodule:: freeports.standard_funcs.text_filter
@@ -13,5 +13,5 @@ freeports.standard\_funcs.text\_filter
       TextFilterInvestmentsStandard
       TextFilterManagmentCompanyStandard
       TextFilterPageClassifyStandard
-      TextFilterSfdrArticleStandard
+      TextFilterSfdrSignStandard
    

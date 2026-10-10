@@ -12,6 +12,7 @@
    :recursive:
 
    consts
+   log
    core
    cli
    formats_repo

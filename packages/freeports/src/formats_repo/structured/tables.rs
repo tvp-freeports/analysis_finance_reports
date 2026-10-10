@@ -34,8 +34,15 @@ use super::super::id_format::{ComputedId, FkRelation, computed_ids, id_matches};
 /// The directory of the structured CSV files inside a formats repository.
 pub const STRUCTURED_DIR: &str = "content/algorithms/structured";
 
+/// The pipeline the management company's rows belong to when they declare none.
+pub const MANCO_PIPELINE: &str = "manco";
+
 /// The pipeline that investments rows belong to when they declare none.
 pub const INVESTMENTS_PIPELINE: &str = "investments";
+
+/// The same for the SFDR annex. A format with two annex layouts names the second one itself —
+/// KAIROS-EN23 is the measured case, `sfdr_classification_2` (`R27`).
+pub const SFDR_PIPELINE: &str = "sfdr_classification";
 
 /// Failures of reading or validating a structured table.
 ///
@@ -251,6 +258,14 @@ pub struct AdditionalArgsRow {
     /// column is absent the value is `None`, which is exactly what an empty cell means.
     #[serde(rename = "Remove from fund", default, deserialize_with = "optional_text")]
     pub remove_from_fund: Option<String>,
+    /// The pattern that reads the **quantity out of the name cell**, for a report that prints the
+    /// two in one cell: `800,000.00 ENEL FIN INTL NV 3.375% …`.
+    ///
+    /// One pattern and not a list, and `Remove from fund` is the same: a regular expression says
+    /// *either of these* with `|` of its own, so a second separator here would collide with the
+    /// language the cell is written in.
+    #[serde(rename = "Quantity in name", default, deserialize_with = "optional_text")]
+    pub quantity_in_name: Option<String>,
 }
 
 /// The `Collapse direction` cell: which way a broken cell collapses.
@@ -483,6 +498,97 @@ pub struct PageClassifyConfig {
     pub header_sets: Vec<String>,
 }
 
+/// A row of the management-company table: one whole `manco` pipeline.
+///
+/// One cell is required, the label. Everything else is what a page adds to the common shape — and
+/// the common shape is *a label, the value next to it, and a crop* — so a format laid out the usual
+/// way is one cell and one or two more.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MancoArgsRow {
+    #[serde(rename = "ID")]
+    pub id: String,
+    /// How the label is recognised, in the compact grammar.
+    #[serde(rename = "Label set")]
+    pub label_set: String,
+    /// `on_line` (the default), `below` or `right`.
+    #[serde(rename = "Where", default, deserialize_with = "optional_text")]
+    pub placement: Option<String>,
+    /// `first` (the default) or `all`.
+    #[serde(rename = "Take", default, deserialize_with = "optional_text")]
+    pub take: Option<String>,
+    /// How far past the label the value may be looked for.
+    #[serde(rename = "Reach", default, deserialize_with = "optional_number")]
+    pub reach: Option<f32>,
+    /// What **closes** the band the value is looked for in.
+    #[serde(rename = "Stop set", default, deserialize_with = "optional_text")]
+    pub stop_set: Option<String>,
+    /// The text the name begins after, in the line the label picked (`R23`).
+    #[serde(rename = "After", default, deserialize_with = "optional_text")]
+    pub after: Option<String>,
+    /// The text the name ends before.
+    #[serde(rename = "Before", default, deserialize_with = "optional_text")]
+    pub before: Option<String>,
+    /// `first` (the default) or `most_recent`, which is `U6`: a page naming two companies with
+    /// their periods keeps the one in charge at closing.
+    #[serde(rename = "Among", default, deserialize_with = "optional_text")]
+    pub among: Option<String>,
+    /// The name the **format declares** because the report does not (`R3`). Filling it replaces
+    /// the crop: the three cells above have nothing to crop from.
+    #[serde(rename = "Imposed name", default, deserialize_with = "optional_text")]
+    pub imposed_name: Option<String>,
+    /// Whether the same company is also the investment manager of every sub-fund of the document
+    /// (`R15`), which is the second deserializer of seven of the measured pipelines.
+    #[serde(rename = "Also investments manager", default, deserialize_with = "optional_bool")]
+    pub also_investments_manager: Option<bool>,
+}
+
+/// A row of the SFDR arguments table: one periodic annex, in one language.
+///
+/// One cell is required, the language, and the two others describe how the format's own pages break
+/// the product name. The anchor overrides of the semistructured form are deliberately **not** here:
+/// see [`super::sfdr`].
+#[derive(Debug, Clone, Deserialize)]
+pub struct SfdrArgsRow {
+    #[serde(rename = "ID")]
+    pub id: String,
+    /// `ITALIAN`, `ENGLISH`, `SPANISH` or `FRENCH`. Written **once**, where the semistructured form
+    /// writes it in two segments with nothing checking that the two agree.
+    #[serde(rename = "Language")]
+    pub language: String,
+    /// Reads the product name in the label's **column**, joined, for a page that wraps it or breaks
+    /// it into fragments. Seven of the sixteen measured annexes.
+    #[serde(rename = "Product joined", default, deserialize_with = "optional_bool")]
+    pub product_joined: Option<bool>,
+    /// The word the annex does not write and the holdings do (`R24`). Only with `Product joined`.
+    #[serde(rename = "Product prepend", default, deserialize_with = "optional_text")]
+    pub product_prepend: Option<String>,
+}
+
+/// A row of the SFDR product-prefix table: one thing to take off the product name.
+///
+/// A literal and a pattern are **not interchangeable** — the filter removes every literal first,
+/// in order, and only then every pattern — so each row says which of the two it is by **which cell
+/// it fills**. A row filling both, or neither, is refused.
+#[derive(Debug, Clone, Deserialize)]
+pub struct SfdrPrefixRow {
+    #[serde(rename = "ID")]
+    pub id: String,
+    #[serde(rename = "Literal", default, deserialize_with = "optional_text")]
+    pub literal: Option<String>,
+    #[serde(rename = "Pattern", default, deserialize_with = "optional_text")]
+    pub pattern: Option<String>,
+}
+
+/// One SFDR annex pipeline, its prefixes joined in file order.
+#[derive(Debug, Clone)]
+pub struct SfdrConfig {
+    pub id: ComputedId,
+    pub args: SfdrArgsRow,
+    /// The prefixes to strip, in file order, each flagged as a pattern or a literal. Empty means
+    /// the language's own prefix, which is what eleven of the sixteen do not override.
+    pub prefixes: Vec<(String, bool)>,
+}
+
 /// The columns a disabled segment may not carry, for each of the three segments.
 ///
 /// Declaring a segment off and then configuring it is a contradiction, not something loading should
@@ -647,6 +753,112 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
         configs.push(config);
     }
     tracing::debug!(config_count = configs.len(), "read investments configuration rows");
+    Ok(configs)
+}
+
+/// The management-company configurations, in file order.
+///
+/// One row per pipeline, and the table may be absent: see [`get_sfdr_configs`] for the reasoning,
+/// which is the same.
+pub fn get_manco_configs(formats_repo_dir: &Path) -> Result<Vec<(ComputedId, MancoArgsRow)>, TableError> {
+    if !formats_repo_dir.join(STRUCTURED_DIR).join("manco/args.csv").is_file() {
+        tracing::debug!("no manco table in this repository: no structured management company");
+        return Ok(Vec::new());
+    }
+    let (path, rows): (_, Vec<MancoArgsRow>) = read_table(formats_repo_dir, "manco/args.csv")?;
+    let ids = identify(
+        &path,
+        &rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        MANCO_PIPELINE,
+        FkRelation::OneToOne,
+    )?;
+    for (i, row) in rows.iter().enumerate() {
+        let line = i + 1;
+        check_line_selection(&path, line, "Label set", Some(&row.label_set))?;
+        check_line_selection(&path, line, "Stop set", row.stop_set.as_ref())?;
+        // A declared name and a crop are two different answers to "what is the company called",
+        // and a row holding both says one of them for nothing.
+        if row.imposed_name.is_some()
+            && (row.after.is_some() || row.before.is_some() || row.among.is_some())
+        {
+            return Err(TableError::MalformedRow {
+                path: path.clone(),
+                line,
+                reason: "'Imposed name' names the company itself, so it cannot be combined with \
+                         'After', 'Before' or 'Among', which crop it out of a line"
+                    .to_string(),
+            });
+        }
+    }
+    let configs: Vec<(ComputedId, MancoArgsRow)> = ids.into_iter().zip(rows).collect();
+    tracing::debug!(config_count = configs.len(), "read manco configuration rows");
+    Ok(configs)
+}
+
+/// The SFDR annex configurations, in file order.
+///
+/// Two tables joined on the id: the arguments, one row per pipeline, and the product prefixes,
+/// several rows per pipeline. A prefix row whose id no argument row declares is an error, as it is
+/// in the investments tables: a prefix belonging to nothing is a mistake in the repository, not a
+/// row to pass over in silence.
+pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, TableError> {
+    // **An absent file means no rows**, for the reason `get_fund_assets_configs` gives at length:
+    // this table arrived after repositories already existed, and one whose annexes are all written
+    // in YAML or in Python must not have to grow an empty file to keep loading. The prefix table
+    // follows the arguments: a repository that has the one and not the other is declaring prefixes
+    // for nothing, which the join below reports.
+    if !formats_repo_dir.join(STRUCTURED_DIR).join("sfdr/args.csv").is_file() {
+        tracing::debug!("no sfdr table in this repository: no structured annex");
+        return Ok(Vec::new());
+    }
+    let (args_path, args): (_, Vec<SfdrArgsRow>) = read_table(formats_repo_dir, "sfdr/args.csv")?;
+    let args_ids = identify(
+        &args_path,
+        &args.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        SFDR_PIPELINE,
+        FkRelation::OneToOne,
+    )?;
+    let known: HashSet<ComputedId> = args_ids.iter().cloned().collect();
+
+    let has_prefixes = formats_repo_dir.join(STRUCTURED_DIR).join("sfdr/product_prefixes.csv").is_file();
+    let (prefix_path, prefix_rows): (_, Vec<SfdrPrefixRow>) = match has_prefixes {
+        true => read_table(formats_repo_dir, "sfdr/product_prefixes.csv")?,
+        false => (PathBuf::new(), Vec::new()),
+    };
+    let prefix_ids = identify(
+        &prefix_path,
+        &prefix_rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        SFDR_PIPELINE,
+        FkRelation::OneToMany,
+    )?;
+    let mut prefixes: HashMap<ComputedId, Vec<(String, bool)>> = HashMap::new();
+    for (i, (id, row)) in prefix_ids.into_iter().zip(prefix_rows).enumerate() {
+        let line = i + 1;
+        if !known.contains(&id) {
+            return Err(TableError::UnmatchedRow { path: prefix_path.clone(), line, id: id.to_string() });
+        }
+        let entry = match (row.literal, row.pattern) {
+            (Some(literal), None) => (literal, false),
+            (None, Some(pattern)) => (pattern, true),
+            // Both would be two prefixes written as one row and one of them silently lost; neither
+            // is a row that strips nothing, which is a cell left empty by mistake.
+            _ => {
+                return Err(TableError::MalformedRow {
+                    path: prefix_path.clone(),
+                    line,
+                    reason: "a prefix row fills exactly one of 'Literal' and 'Pattern'".to_string(),
+                });
+            }
+        };
+        prefixes.entry(id).or_default().push(entry);
+    }
+
+    let configs: Vec<SfdrConfig> = args_ids
+        .into_iter()
+        .zip(args)
+        .map(|(id, args)| SfdrConfig { prefixes: prefixes.remove(&id).unwrap_or_default(), id, args })
+        .collect();
+    tracing::debug!(config_count = configs.len(), "read sfdr configuration rows");
     Ok(configs)
 }
 
@@ -892,6 +1104,107 @@ mod tests {
 
     /// The header of the fund-assets table.
     const ASSETS_HEADER: &str = "ID,Fund set,Currency set,Date set,Total assets,Total liabilities,Net assets,Value window,Total assets window,Total liabilities window,Net assets window,Drop set,Drop fund set,Table condition,Pair by abscissa,Value step,Values in one line,Date regex,Note marks,Remove from fund,Amount cast,Date cast\n";
+
+    /// The SFDR annex table, which is two tables joined on the id.
+    mod sfdr_args {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        const SFDR_HEADER: &str = "ID,Language,Product joined,Product prepend\n";
+        const PREFIX_HEADER: &str = "ID,Literal,Pattern\n";
+
+        fn repo_with(args: &str, prefixes: &str) -> Repo {
+            let repo = Repo::new();
+            let base = repo.path().join(STRUCTURED_DIR).join("sfdr");
+            fs::create_dir_all(&base).expect("sfdr dir");
+            fs::write(base.join("args.csv"), format!("{SFDR_HEADER}{args}")).expect("write args");
+            if !prefixes.is_empty() {
+                fs::write(base.join("product_prefixes.csv"), format!("{PREFIX_HEADER}{prefixes}"))
+                    .expect("write prefixes");
+            }
+            repo
+        }
+
+        /// A repository that has no annex table at all still loads: the table arrived after
+        /// repositories existed.
+        #[test]
+        fn an_absent_table_is_no_rows_and_not_a_failure() {
+            assert!(get_sfdr_configs(Repo::new().path()).unwrap().is_empty());
+        }
+
+        #[test]
+        fn one_cell_is_a_whole_row() {
+            let configs = get_sfdr_configs(repo_with("ANIMA-EN23,ENGLISH,,\n", "").path()).unwrap();
+            assert_eq!(configs.len(), 1);
+            assert_eq!(configs[0].id.to_string(), "ANIMA-EN23(sfdr_classification)/0");
+            assert_eq!(configs[0].args.language, "ENGLISH");
+            assert_eq!(configs[0].args.product_joined, None);
+            assert!(configs[0].prefixes.is_empty());
+        }
+
+        /// The pipeline is named only where it is not the conventional one — KAIROS-EN23's second
+        /// layout, `R27`.
+        #[test]
+        fn a_second_layout_names_its_own_pipeline() {
+            let configs = get_sfdr_configs(
+                repo_with("KAIROS-EN23,ENGLISH,,\nKAIROS-EN23(sfdr_classification_2),ENGLISH,,\n", "").path(),
+            )
+            .unwrap();
+            let names: Vec<String> = configs.iter().map(|c| c.id.pipeline.clone()).collect();
+            assert_eq!(names, ["sfdr_classification", "sfdr_classification_2"]);
+        }
+
+        #[test]
+        fn the_prefixes_keep_their_order_and_their_kind() {
+            let repo = repo_with(
+                "MEDIOLANUM-IT24.A,ITALIAN,,\n",
+                "MEDIOLANUM-IT24.A,Nome del prodotto: ,\nMEDIOLANUM-IT24.A,, \\(.*\\)\n",
+            );
+            let configs = get_sfdr_configs(repo.path()).unwrap();
+            assert_eq!(
+                configs[0].prefixes,
+                [("Nome del prodotto: ".to_string(), false), (" \\(.*\\)".to_string(), true)],
+                "a literal first, then a pattern, in file order"
+            );
+        }
+
+        /// A row filling both cells would be two prefixes written as one and one of them silently
+        /// lost; a row filling neither strips nothing.
+        #[test]
+        fn a_prefix_row_fills_exactly_one_of_the_two_cells() {
+            for body in ["AMUNDI-EN24,a literal,a pattern\n", "AMUNDI-EN24,,\n"] {
+                let repo = repo_with("AMUNDI-EN24,ENGLISH,,\n", body);
+                let error = get_sfdr_configs(repo.path()).err().expect(body);
+                assert!(error.to_string().contains("exactly one"), "{error}");
+            }
+        }
+
+        #[test]
+        fn a_prefix_for_an_id_no_argument_row_declares_is_refused() {
+            let repo = repo_with("AMUNDI-EN24,ENGLISH,,\n", "AMUNDI-IT24,,Nome del prodotto\n");
+            assert!(matches!(
+                get_sfdr_configs(repo.path()),
+                Err(TableError::UnmatchedRow { .. })
+            ));
+        }
+
+        #[test]
+        fn the_two_optional_cells_are_read() {
+            let configs =
+                get_sfdr_configs(repo_with("CARNE-EN23,ENGLISH,TRUE,SIDERA FUNDS SICAV\n", "").path()).unwrap();
+            assert_eq!(configs[0].args.product_joined, Some(true));
+            assert_eq!(configs[0].args.product_prepend.as_deref(), Some("SIDERA FUNDS SICAV"));
+        }
+
+        #[test]
+        fn a_language_is_required() {
+            let repo = Repo::new();
+            let base = repo.path().join(STRUCTURED_DIR).join("sfdr");
+            fs::create_dir_all(&base).expect("sfdr dir");
+            fs::write(base.join("args.csv"), "ID,Product joined\nANIMA-EN23,\n").expect("write");
+            assert!(get_sfdr_configs(repo.path()).is_err());
+        }
+    }
 
     mod fund_assets_args {
         use super::*;

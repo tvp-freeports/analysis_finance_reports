@@ -5,11 +5,14 @@
 //! constrained of the three levels and the one covering most formats.
 //!
 //! - [`tables`] reads and validates the CSV files and joins their rows per pipe;
-//! - [`investments`], [`page_classify`] and [`fund_assets`] build the corresponding native pipes.
+//! - [`investments`], [`page_classify`], [`fund_assets`], [`sfdr`] and [`manco`] build the
+//!   corresponding native pipes.
 
 pub mod fund_assets;
 pub mod investments;
+pub mod manco;
 pub mod page_classify;
+pub mod sfdr;
 pub mod tables;
 
 use crate::commons::flag_expr::FlagExprError;
@@ -60,6 +63,31 @@ pub enum StructuredError {
         #[source]
         source: StandardFuncsError,
     },
+    /// The annex refused the language or an override. Carried as its own variant because the
+    /// builder is shared with the semistructured level and raises the same error there.
+    #[error("'{id}': {source}")]
+    SfdrAnnex {
+        id: String,
+        #[source]
+        source: crate::formats_repo::semistructured::native::sfdr_annex::SfdrAnnexError,
+    },
+    /// The crop refused its two words — they are equal, or one of them is not a pattern.
+    #[error("'{id}': {source}")]
+    Manco {
+        id: String,
+        #[source]
+        source: crate::formats_utils::text_filter::managment_company::ManagmentCompanyError,
+    },
+    /// A cell of the management-company table whose value is not one of the words that column
+    /// takes. Named rather than silently defaulted: a misspelled `below` would read the value on
+    /// the label's own line and find the label.
+    #[error("'{id}', column '{column}': '{cell}' is not one of {expected}")]
+    MancoCell {
+        id: String,
+        column: &'static str,
+        cell: String,
+        expected: &'static str,
+    },
     #[error("'{id}': {source}")]
     PdfExtract {
         id: String,
@@ -89,6 +117,8 @@ pub fn get_pipelines(
     for sublevel in [
         page_classify::get_pipelines(formats_repo_dir, format_name)?,
         fund_assets::get_pipelines(formats_repo_dir, format_name)?,
+        sfdr::get_pipelines(formats_repo_dir, format_name)?,
+        manco::get_pipelines(formats_repo_dir, format_name)?,
     ] {
         for (name, pipeline) in sublevel {
             match merged.remove(&name) {

@@ -225,7 +225,7 @@ fn table_meta_int(block: &PdfBlock, field: &str) -> Result<i64, StandardFuncsErr
     Ok(block.metadata_or_fail(field)?.int_or_fail(field)?)
 }
 
-// There is no `table_meta_bool`: the only boolean a table block carried was `is-max-width`, and
+// There is no `table_meta_bool`: the only boolean a table block ever carried was `is-max-width`, and
 // the mechanism that read it is gone (`P8`). The extraction pipe still writes the field — it costs
 // nothing and leaves eighty page fixtures where they are — but nothing in this segment reads it.
 
@@ -391,6 +391,39 @@ pub struct FundNameCuts {
     compiled: Arc<Vec<Regex>>,
 }
 
+/// The pattern that reads a quantity out of the head of the name cell.
+///
+/// Its own type for the same reason [`FundNameCuts`] is one: `onig::Regex` is neither `Clone` nor
+/// `PartialEq`, and this pipe is both.
+#[derive(Debug, Clone)]
+pub struct QuantityInName {
+    source: String,
+    compiled: Arc<Regex>,
+}
+
+impl PartialEq for QuantityInName {
+    fn eq(&self, other: &Self) -> bool {
+        self.source == other.source
+    }
+}
+
+impl Eq for QuantityInName {}
+
+impl QuantityInName {
+    pub fn new(pattern: &str) -> Result<Self, StandardFuncsError> {
+        Ok(Self { source: pattern.to_string(), compiled: Arc::new(compile_pattern(pattern)?) })
+    }
+
+    /// The quantity at the head of `content`, trailing separator included, or `None` when the
+    /// content does not open with one.
+    fn read(&self, content: &str) -> Option<String> {
+        self.compiled
+            .find(content)
+            .filter(|(start, _)| *start == 0)
+            .map(|(_, end)| content[..end].to_string())
+    }
+}
+
 impl PartialEq for FundNameCuts {
     fn eq(&self, other: &Self) -> bool {
         self.sources == other.sources
@@ -453,6 +486,19 @@ pub struct TextFilterInvestmentsStandard {
     /// Patterns cut out of the fund's name before it becomes the sub-fund's identity. Empty by
     /// default, which cuts nothing: see [`Self::with_remove_from_fund_regexes`].
     remove_from_fund: FundNameCuts,
+    /// The pattern that reads the **quantity out of the name cell**, for a report that prints the
+    /// two in one cell.
+    ///
+    /// Two formats of the collection do it — ANIMA_SICAV-EN24 and KAIROS-EN23, whose rows read
+    /// `800,000.00 ENEL FIN INTL NV 3.375% 24-23/07/2028` — and both had written the same four
+    /// lines of Python around this pipe. It is text interpretation and belongs in this segment
+    /// (`R23`), and it is a **parameter** because the two differ in nothing but the pattern.
+    ///
+    /// The match is anchored at the start of the content and what is kept is the **whole** of it,
+    /// trailing separator included, because that is what the author modules kept and what the cast
+    /// downstream already reads. It overwrites whatever the positions put in `quantity`: a format
+    /// that needs this has no column for it.
+    quantity_in_name: Option<QuantityInName>,
 }
 
 impl TextFilterInvestmentsStandard {
@@ -485,6 +531,7 @@ impl TextFilterInvestmentsStandard {
             dash_as_zero,
             note_marks: String::new(),
             remove_from_fund: FundNameCuts::default(),
+            quantity_in_name: None,
         })
     }
 
@@ -516,6 +563,12 @@ impl TextFilterInvestmentsStandard {
         patterns: &[String],
     ) -> Result<Self, StandardFuncsError> {
         self.remove_from_fund = FundNameCuts::new(patterns)?;
+        Ok(self)
+    }
+
+    /// The same pipe reading the quantity out of the **name cell**. See [`Self::quantity_in_name`].
+    pub fn with_quantity_in_name(mut self, pattern: &str) -> Result<Self, StandardFuncsError> {
+        self.quantity_in_name = Some(QuantityInName::new(pattern)?);
         Ok(self)
     }
 
@@ -846,6 +899,21 @@ impl TextFilterInvestmentsStandard {
         }
 
         let content = anchor.content.str_or_fail("content")?.replace('\n', "");
+
+        // Before the instrument is decided, because it reads the same content: a quantity printed
+        // inside the name cell is not a field of the row's grid.
+        if let Some(pattern) = &self.quantity_in_name {
+            match pattern.read(&content) {
+                Some(quantity) => {
+                    metadata.insert("quantity".to_string(), BlockValue::from(quantity.as_str()));
+                }
+                // Not an error and not a `warn`: a row whose name does not open with a number is
+                // a row whose quantity the report did not print there, and the field stays as the
+                // positions left it.
+                None => tracing::debug!("the quantity is not at the head of '{content}'"),
+            }
+        }
+
         let mut instrument = BlockType::EQUITY_TARGET;
         for pattern in PERC_REGEXES.iter() {
             if let Some(captures) = pattern.captures(&content)
@@ -1395,12 +1463,11 @@ mod tests {
     // ------------------------------------------------------------------------------------------
     use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, TargetCompanyInput};
 
-    /// A table-row block, with the three metadata fields the table requires.
-    fn table_row(row: i64, col: i64, text: &str, is_max_width: bool) -> PdfBlock {
+    /// A table-row block, with the two metadata fields the table requires.
+    fn table_row(row: i64, col: i64, text: &str) -> PdfBlock {
         let metadata = BTreeMap::from([
             ("table-row".to_string(), BlockValue::Int(row)),
             ("table-col".to_string(), BlockValue::Int(col)),
-            ("is-max-width".to_string(), BlockValue::Bool(is_max_width)),
         ]);
         PdfBlock::new(BlockType::TABLE_BODY, metadata, text)
     }
@@ -1532,10 +1599,10 @@ mod tests {
         /// A four-column row: company, market value, quantity, percentage of net assets.
         fn row_of(company: &str, market_value: &str, quantity: &str, perc: &str) -> Vec<PdfBlock> {
             vec![
-                table_row(0, 0, company, false),
-                table_row(0, 1, market_value, false),
-                table_row(0, 2, quantity, false),
-                table_row(0, 3, perc, false),
+                table_row(0, 0, company),
+                table_row(0, 1, market_value),
+                table_row(0, 2, quantity),
+                table_row(0, 3, perc),
             ]
         }
 
@@ -1620,9 +1687,9 @@ mod tests {
         #[test]
         fn the_acquisition_currency_is_never_substituted() {
             let blks = vec![
-                table_row(0, 0, "Acme Corp", false),
-                table_row(0, 1, "1.000", false),
-                table_row(0, 2, "-", false),
+                table_row(0, 0, "Acme Corp"),
+                table_row(0, 1, "1.000"),
+                table_row(0, 2, "-"),
             ];
             let pipe =
                 TextFilterInvestmentsStandard::new(1, None, None, Some(2), None, true, DashAsZero::all())
@@ -1642,7 +1709,7 @@ mod tests {
 
         #[test]
         fn a_matched_row_becomes_one_text_block_carrying_the_company() {
-            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
 
             assert_eq!(out.len(), 1);
@@ -1653,17 +1720,17 @@ mod tests {
 
         #[test]
         fn a_row_with_no_target_company_produces_nothing() {
-            let blks = vec![table_row(0, 0, "Nothing here", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Nothing here"), table_row(0, 1, "1.000")];
             assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
         }
 
         #[test]
         fn the_optional_fields_are_read_at_their_offsets() {
             let blks = vec![
-                table_row(0, 0, "Acme Corp", false),
-                table_row(0, 1, "1.000", false),
-                table_row(0, 2, "12,5", false),
-                table_row(0, 3, "42", false),
+                table_row(0, 0, "Acme Corp"),
+                table_row(0, 1, "1.000"),
+                table_row(0, 2, "12,5"),
+                table_row(0, 3, "42"),
             ];
             let filter =
                 TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, DashAsZero::empty())
@@ -1676,7 +1743,7 @@ mod tests {
 
         #[test]
         fn an_optional_field_that_is_not_there_stays_null_instead_of_failing() {
-            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             // `% net assets` points at column 5, which does not exist.
             let filter =
                 TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
@@ -1687,16 +1754,16 @@ mod tests {
 
         #[test]
         fn a_market_value_that_is_not_there_drops_the_whole_row() {
-            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             // Unlike the optional fields, a missing market value makes the row be skipped.
             assert!(simple_investments(9).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
         }
 
         #[test]
         fn the_manco_metadata_of_the_anchor_is_carried_over() {
-            let mut anchor = table_row(0, 0, "Acme Corp", false);
+            let mut anchor = table_row(0, 0, "Acme Corp");
             anchor.metadata.insert("manco".to_string(), BlockValue::from("Acme SGR"));
-            let blks = vec![anchor, table_row(0, 1, "1.000", false)];
+            let blks = vec![anchor, table_row(0, 1, "1.000")];
 
             let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("manco"), Some(&BlockValue::from("Acme SGR")));
@@ -1704,7 +1771,7 @@ mod tests {
 
         #[test]
         fn an_anchor_without_manco_gets_a_null_one() {
-            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("manco"), Some(&BlockValue::Null));
         }
@@ -1713,10 +1780,10 @@ mod tests {
         fn a_geometric_offset_wraps_into_the_next_row() {
             // A 2x2 table: from cell (0,0) an offset of 2 wraps into the next row, column 0.
             let blks = vec![
-                table_row(0, 0, "Acme Corp", false),
-                table_row(0, 1, "ignored", false),
-                table_row(1, 0, "wrapped", false),
-                table_row(1, 1, "ignored too", false),
+                table_row(0, 0, "Acme Corp"),
+                table_row(0, 1, "ignored"),
+                table_row(1, 0, "wrapped"),
+                table_row(1, 1, "ignored too"),
             ];
             let out = simple_investments(2).call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("wrapped")));
@@ -1725,9 +1792,9 @@ mod tests {
         #[test]
         fn flat_offsets_walk_the_block_list_instead_of_the_grid() {
             let blks = vec![
-                table_row(0, 0, "Acme Corp", false),
-                table_row(0, 1, "1.000", false),
-                table_row(1, 0, "next row", false),
+                table_row(0, 0, "Acme Corp"),
+                table_row(0, 1, "1.000"),
+                table_row(1, 0, "next row"),
             ];
             let filter =
                 TextFilterInvestmentsStandard::new(2, None, None, None, None, false, DashAsZero::empty())
@@ -1811,10 +1878,10 @@ mod tests {
         #[test]
         fn a_matched_row_records_the_cell_it_hooked_itself_to() {
             let blks = vec![
-                table_row(0, 0, "Country", false),
-                table_row(0, 1, "Market value", false),
-                table_row(1, 0, "Acme Corp", false),
-                table_row(1, 1, "1.000", false),
+                table_row(0, 0, "Country"),
+                table_row(0, 1, "Market value"),
+                table_row(1, 0, "Acme Corp"),
+                table_row(1, 1, "1.000"),
             ];
             let records = anchor_records(|| {
                 let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
@@ -1836,10 +1903,10 @@ mod tests {
         #[test]
         fn the_first_anchor_is_the_triggering_text_and_the_second_the_company() {
             let blks = vec![
-                table_row(0, 0, "Acme Corp Reg Shs", false),
-                table_row(0, 1, "1.000", false),
-                table_row(1, 0, "filler", false),
-                table_row(1, 1, "2.000", false),
+                table_row(0, 0, "Acme Corp Reg Shs"),
+                table_row(0, 1, "1.000"),
+                table_row(1, 0, "filler"),
+                table_row(1, 1, "2.000"),
             ];
             let records = anchor_records(|| {
                 let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
@@ -1856,10 +1923,10 @@ mod tests {
         #[test]
         fn the_row_carries_its_table_position_in_its_metadata() {
             let blks = vec![
-                table_row(0, 0, "Country", false),
-                table_row(0, 1, "Market value", false),
-                table_row(1, 0, "Acme Corp", false),
-                table_row(1, 1, "1.000", false),
+                table_row(0, 0, "Country"),
+                table_row(0, 1, "Market value"),
+                table_row(1, 0, "Acme Corp"),
+                table_row(1, 1, "1.000"),
             ];
             let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
 
@@ -1876,11 +1943,11 @@ mod tests {
             // The matched cell has no cell to its right, so the market value cannot be read and
             // the row is skipped.
             let blks = vec![
-                table_row(0, 0, "Country", false),
-                table_row(0, 1, "Market value", false),
-                table_row(1, 0, "Acme Corp", false),
-                table_row(2, 0, "zzz", false),
-                table_row(2, 1, "5", false),
+                table_row(0, 0, "Country"),
+                table_row(0, 1, "Market value"),
+                table_row(1, 0, "Acme Corp"),
+                table_row(2, 0, "zzz"),
+                table_row(2, 1, "5"),
             ];
             let records = records_matching(
                 || {
@@ -1902,7 +1969,7 @@ mod tests {
         fn it_stays_at_debug_so_it_never_reaches_the_audit_trail() {
             // `CSV_MAX_LEVEL` is a fixed ceiling at `warn`: one line per position found belongs in
             // the JSONL and on stderr at `-vv`, not in the extraction's audit trail.
-            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             let records = anchor_records(|| {
                 let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
             });
@@ -1911,7 +1978,7 @@ mod tests {
 
         #[test]
         fn a_row_that_matched_nothing_records_no_anchor() {
-            let blks = vec![table_row(0, 0, "Nothing here", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Nothing here"), table_row(0, 1, "1.000")];
             let records = anchor_records(|| {
                 let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
             });
@@ -1922,7 +1989,7 @@ mod tests {
         fn a_row_whose_fields_could_not_be_read_records_no_anchor_either() {
             // The event says a row *was extracted* at this position; a row that was skipped has
             // its own line, at `warn`, and two lines for one row is what the log must not do.
-            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             let records = anchor_records(|| {
                 let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
             });
@@ -1937,8 +2004,6 @@ mod tests {
     /// normal grid is a description that wrapped onto a second line. The two need opposite fixes.
     mod investments_missing_field_diagnostics {
         use super::*;
-        use pretty_assertions::assert_eq;
-
         use super::tracing_capture::{Record, field_of, records_matching};
 
         mod field_probe_rendering {
@@ -1988,7 +2053,7 @@ mod tests {
 
             #[test]
             fn the_warning_names_the_field_the_offset_and_the_cell() {
-                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
                 // Offset 9 on a 2-column grid wraps: (0 + 9) / 2 = row 4, (0 + 9) % 2 = column 1.
                 let records = skip_records(|| {
                     let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
@@ -2007,10 +2072,10 @@ mod tests {
             #[test]
             fn the_coordinates_still_name_the_anchor_not_the_probe() {
                 let blks = vec![
-                    table_row(0, 0, "filler", false),
-                    table_row(0, 1, "0", false),
-                    table_row(1, 0, "Acme Corp", false),
-                    table_row(1, 1, "1.000", false),
+                    table_row(0, 0, "filler"),
+                    table_row(0, 1, "0"),
+                    table_row(1, 0, "Acme Corp"),
+                    table_row(1, 1, "1.000"),
                 ];
                 let records = skip_records(|| {
                     let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
@@ -2028,9 +2093,9 @@ mod tests {
             #[test]
             fn an_empty_cell_within_the_grid_is_reported_at_its_own_coordinates() {
                 let blks = vec![
-                    table_row(0, 0, "Acme Corp", false),
-                    table_row(1, 0, "15/02/2030", false),
-                    table_row(1, 1, "1.000", false),
+                    table_row(0, 0, "Acme Corp"),
+                    table_row(1, 0, "15/02/2030"),
+                    table_row(1, 1, "1.000"),
                 ];
                 let records = skip_records(|| {
                     let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
@@ -2046,7 +2111,7 @@ mod tests {
 
             #[test]
             fn a_flat_mode_miss_reports_a_block_position_instead_of_a_cell() {
-                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
                 let filter =
                     TextFilterInvestmentsStandard::new(9, None, None, None, None, false, DashAsZero::empty())
                         .unwrap();
@@ -2069,7 +2134,7 @@ mod tests {
 
             #[test]
             fn the_field_stays_null_and_the_row_survives() {
-                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
                 let filter =
                     TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
                         .unwrap();
@@ -2082,7 +2147,7 @@ mod tests {
             /// that simply left the cell blank produces the same `Null` and is not an anomaly.
             #[test]
             fn a_debug_event_says_which_field_and_where_it_looked() {
-                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
                 let filter =
                     TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
                         .unwrap();
@@ -2104,9 +2169,9 @@ mod tests {
             #[test]
             fn a_field_that_is_present_logs_nothing() {
                 let blks = vec![
-                    table_row(0, 0, "Acme Corp", false),
-                    table_row(0, 1, "1.000", false),
-                    table_row(0, 2, "12,5", false),
+                    table_row(0, 0, "Acme Corp"),
+                    table_row(0, 1, "1.000"),
+                    table_row(0, 2, "12,5"),
                 ];
                 let filter =
                     TextFilterInvestmentsStandard::new(1, None, Some(2), None, None, true, DashAsZero::empty())
@@ -2136,7 +2201,7 @@ mod tests {
                 for row in 0..3 {
                     for col in 0..3 {
                         let content = if (row, col) == (0, 0) { "Acme Corp".to_string() } else { format!("r{row}c{col}") };
-                        blks.push(table_row(row, col, &content, false));
+                        blks.push(table_row(row, col, &content));
                     }
                 }
 
@@ -2159,7 +2224,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn instrument_of(text: &str) -> TextBlock {
-            let blks = vec![table_row(0, 0, text, false), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, text), table_row(0, 1, "1.000")];
             simple_investments(1)
                 .call(&blks, &targets(&[text]))
                 .unwrap()
@@ -2332,16 +2397,16 @@ mod tests {
         #[test]
         fn two_blocks_of_the_same_column_are_two_rows_and_neither_matches_the_joined_name() {
             let blks = vec![
-                table_row(0, 0, "Acme ", true),
-                table_row(1, 0, "Corp", false),
-                table_row(0, 1, "1.000", false),
+                table_row(0, 0, "Acme "),
+                table_row(1, 0, "Corp"),
+                table_row(0, 1, "1.000"),
             ];
             assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
         }
 
         #[test]
         fn a_cell_already_joined_upstream_matches_on_its_own() {
-            let blks = vec![table_row(0, 0, "Acme Corp", true), table_row(0, 1, "1.000", false)];
+            let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out.len(), 1);
             assert_eq!(out[0].metadata.get("company match"), Some(&BlockValue::from("Acme Corp")));
@@ -2350,9 +2415,9 @@ mod tests {
         #[test]
         fn blocks_in_different_columns_are_never_joined() {
             let blks = vec![
-                table_row(0, 0, "Acme ", true),
-                table_row(0, 1, "Corp", false),
-                table_row(0, 2, "1.000", false),
+                table_row(0, 0, "Acme "),
+                table_row(0, 1, "Corp"),
+                table_row(0, 2, "1.000"),
             ];
             assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
         }
@@ -2371,7 +2436,7 @@ mod tests {
         }
 
         fn rows() -> Vec<PdfBlock> {
-            vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)]
+            vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")]
         }
 
         #[test]
@@ -2465,8 +2530,8 @@ mod tests {
         fn page(name: &str) -> Vec<PdfBlock> {
             vec![
                 fund_block(name),
-                table_row(0, 0, "Acme Corp", false),
-                table_row(0, 1, "1.000", false),
+                table_row(0, 0, "Acme Corp"),
+                table_row(0, 1, "1.000"),
             ]
         }
 
@@ -2558,7 +2623,6 @@ mod tests {
             let metadata = BTreeMap::from([
                 ("table-row".to_string(), BlockValue::Int(0)),
                 ("table-col".to_string(), BlockValue::Int(0)),
-                ("is-max-width".to_string(), BlockValue::Bool(false)),
             ]);
             let blks = vec![PdfBlock::new(BlockType::TABLE_BODY, metadata, 42i64)];
             assert!(matches!(
@@ -2573,7 +2637,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn rows() -> Vec<PdfBlock> {
-            vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)]
+            vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")]
         }
 
         #[test]

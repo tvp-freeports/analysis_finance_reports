@@ -14,8 +14,10 @@
 
 pub mod carryover;
 pub mod esg;
+pub mod grouped_lines;
 pub mod inv_managers;
 pub mod labelled_value;
+pub mod page_number;
 pub mod renaming;
 pub mod section;
 pub mod selected_text;
@@ -27,7 +29,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 
 use crate::commons::consts::Currency;
-use crate::core::pipeline::DeserializePipe;
+use crate::core::pipeline::{DeserializePipe, PdfExtractPipe};
 use crate::formats_utils::text_filter::managment_company::AmongLines;
 use crate::formats_utils::deserialize::standard_funcs::{
     DeserializeSfdrArticleStandard, DeserializerFundStandard, DeserializerInvestmentStandard,
@@ -35,8 +37,9 @@ use crate::formats_utils::deserialize::standard_funcs::{
     DeserializerManagmentCompanyStandard, DeserializerPageClassifyStandard,
 };
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs, TableSettings, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
-    PdfExtractStandardFuncsError, pdf_extract_fund_standard,
+    InvestmentsStandardArgs, TableSettings, PdfExtractCurrencyConstant,
+    PdfExtractInvestmentsStandard, PdfExtractStandardFuncsError, pdf_extract_currency_standard,
+    pdf_extract_fund_standard,
 };
 use crate::formats_utils::pdf_extract::position::SplittingDirection;
 use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
@@ -47,7 +50,17 @@ use super::SegmentKind;
 
 /// The native names of each segment.
 const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
-    (SegmentKind::PdfExtract, &["standard_cost_curr", "currency_constant", "sfdr_annex", "labelled_value", "fund", "currency", "section"]),
+    (SegmentKind::PdfExtract, &[
+            "investments",
+            "currency_constant",
+            "sfdr_annex",
+            "labelled_value",
+            "fund",
+            "currency",
+            "section",
+            "page_number",
+            "grouped_lines",
+        ]),
     (
         SegmentKind::TextFilter,
         &["sfdr_annex", "manco", "manco_imposed", "inv_managers", "labelled_assets", "esg", "renaming"],
@@ -152,17 +165,34 @@ pub struct InputCurrencyConstant {
     pub currency: Currency,
 }
 
-/// The YAML configuration of [`standard_cost_curr`].
+/// The YAML configuration of [`investments`]: the three pipes a holdings table needs.
 ///
-/// The two flag fields are **strings** rather than parsed flag values: in YAML a flag is written by
+/// Two cells are required — the body of the table and the column of sub-fund names — and the
+/// currency, which is either **declared** by the format or **read** off the page.
+///
+/// The flag field is a **string** rather than a parsed flag value: in YAML a flag is written by
 /// name, and resolving that name is [`TablePosAlgorithm::from_expression`]'s job.
 #[derive(Debug, Clone, Deserialize)]
-pub struct InputStandardCostCurr {
+#[serde(deny_unknown_fields)]
+pub struct InputInvestments {
     #[serde(default)]
     pub deselection_list: Vec<InputPdfLineSet>,
     pub body_set: InputPdfLineSet,
     pub subfund_set: InputPdfLineSet,
-    pub currency: Currency,
+    /// The separator that joins **every** selected line into the sub-fund's name, where the page
+    /// splits it into several text objects. Absent means the first line alone (`R24`).
+    #[serde(default)]
+    pub subfund_join: Option<String>,
+    /// The currency the format **declares**, where the page does not state it. Exactly one of this
+    /// and `currency_set`.
+    #[serde(default)]
+    pub currency: Option<Currency>,
+    /// Where the page **states** the currency. Exactly one of this and `currency`.
+    #[serde(default)]
+    pub currency_set: Option<InputPdfLineSet>,
+    /// Which column of the table holds the company, where it is not the first one.
+    #[serde(default)]
+    pub company_index: Option<usize>,
     #[serde(default)]
     pub algorithm_flags: Option<String>,
     /// How far apart two cells may sit and still share a **column**.
@@ -203,15 +233,20 @@ pub enum NativeError {
     Pipe(#[from] PdfExtractStandardFuncsError),
     #[error("field 'collapse_direction': must be 'down' or 'up', found '{found}'")]
     CollapseDirection { found: String },
+    /// The currency is either declared or read, and a configuration saying both says one of them
+    /// for nothing — while one saying neither leaves the holdings without a currency, which the
+    /// output schema requires.
+    #[error("exactly one of 'currency' and 'currency_set': the currency is either declared by the format or read off the page")]
+    Currency,
 }
 
-/// The three extraction pipes a "standard cost and currency" format needs.
+/// The three extraction pipes a holdings table needs: the table, the sub-fund, the currency.
 ///
-/// The currency is not written in the document but declared in the configuration, hence a
-/// constant-currency pipe in place of the usual one that reads it off the page.
-pub fn standard_cost_curr(
-    input: &InputStandardCostCurr,
-) -> Result<(PdfExtractInvestmentsStandard, ExtractTextPdfBlockOrFailPage, PdfExtractCurrencyConstant), NativeError> {
+/// They are one name and not three because they always travel together — a table of holdings
+/// belongs to a sub-fund and is expressed in a currency, and a page that gives one gives all three.
+/// The currency is the one that differs: some formats print it on the page and others do not print
+/// it at all, in which case the format declares it and the pipe warns (`R3`).
+pub fn investments(input: &InputInvestments) -> Result<Vec<Arc<dyn PdfExtractPipe>>, NativeError> {
     let selection = |field: &'static str, spec: &InputPdfLineSet| {
         pdfline_selection_from_dict(spec).map_err(|source| NativeError::LineSelection { field, source })
     };
@@ -236,6 +271,7 @@ pub fn standard_cost_curr(
 
     let args = InvestmentsStandardArgs {
         deselection_list,
+        company_index: input.company_index,
         table: TableSettings {
             algorithm_flags: flags("algorithm_flags", &input.algorithm_flags)?,
             col_tolerance: input.col_tolerance,
@@ -249,11 +285,25 @@ pub fn standard_cost_curr(
         ..InvestmentsStandardArgs::new(selection("body_set", &input.body_set)?)
     };
 
-    Ok((
-        PdfExtractInvestmentsStandard::new(args),
-        pdf_extract_fund_standard(selection("subfund_set", &input.subfund_set)?),
-        PdfExtractCurrencyConstant::new(input.currency),
-    ))
+    let fund = {
+        let pipe = pdf_extract_fund_standard(selection("subfund_set", &input.subfund_set)?);
+        match &input.subfund_join {
+            Some(separator) => pipe.joining(separator.clone()),
+            None => pipe,
+        }
+    };
+
+    // Exactly one of the two, because the currency is either the page's or the format's and a
+    // configuration that says both says one of them for nothing.
+    let currency: Arc<dyn PdfExtractPipe> = match (input.currency, &input.currency_set) {
+        (Some(currency), None) => Arc::new(PdfExtractCurrencyConstant::new(currency)),
+        (None, Some(spec)) => {
+            Arc::new(pdf_extract_currency_standard(selection("currency_set", spec)?))
+        }
+        _ => return Err(NativeError::Currency),
+    };
+
+    Ok(vec![Arc::new(PdfExtractInvestmentsStandard::new(args)), Arc::new(fund), currency])
 }
 
 

@@ -1,4 +1,4 @@
-freeports.utils.pdf\_extract
+﻿freeports.utils.pdf\_extract
 ============================
 
 .. automodule:: freeports.utils.pdf_extract
@@ -26,6 +26,8 @@ freeports.utils.pdf\_extract
       Limits
       PageImage
       PdfLine
+      LabelledValueTake
+      LabelledValueWhere
       PdfLineSelection
       PdfLineSet
       RowConfig

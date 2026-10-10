@@ -28,6 +28,11 @@ AMUNDI-IT24(investments):
   tolerance: 1.0
 ```
 
+A selection inside that YAML is a **mapping** of conditions, and it says everything the compact
+textual form does and three things more: the two set operations `any_of` and `all_of`, and
+`font_of` — see {doc}`../selections`. Writing it as a compact string in quotes also works, and is
+reasonable for a single condition.
+
 ## The key that links a format to an algorithm
 `{format}({pipeline})`, falling back to the bare `{format}` only for the **unnamed** pipeline. The
 two forms are not interchangeable: writing `AMUNDI-IT24` when the pipeline has a name will not be

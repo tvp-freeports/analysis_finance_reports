@@ -6,7 +6,9 @@
 
 pub mod commons;
 pub mod labelled_column;
+pub mod grouped_lines;
 pub mod labelled_value;
+pub mod page_number;
 pub mod section;
 pub mod sfdr_sign;
 pub mod pdf_line;

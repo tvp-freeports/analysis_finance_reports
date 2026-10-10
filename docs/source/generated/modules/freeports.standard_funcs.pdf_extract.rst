@@ -1,4 +1,4 @@
-freeports.standard\_funcs.pdf\_extract
+﻿freeports.standard\_funcs.pdf\_extract
 ======================================
 
 .. automodule:: freeports.standard_funcs.pdf_extract
@@ -14,7 +14,15 @@ freeports.standard\_funcs.pdf\_extract
       PdfExtractCurrencyStandard
       PdfExtractFundStandard
       PdfExtractInvestmentsStandard
+      PdfExtractLabelledValueStandard
       PdfExtractManagmentCompanyStandard
       PdfExtractPageClassifyStandard
-      PdfExtractSfdrArticleStandard
+      PdfExtractSectionStandard
+      PdfExtractSfdrSignStandard
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AssetsColumn
    

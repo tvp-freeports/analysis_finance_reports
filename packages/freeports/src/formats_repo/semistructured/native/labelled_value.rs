@@ -5,19 +5,16 @@
 //! that kept a `pdf_extract` written in Python for a datum that is not geometry of its own but a
 //! **relation between two lines**, which [`PdfExtractLabelledValueStandard`] already states.
 //!
-//! # Why the selections are written as strings
+//! # What a label takes to state
 //!
 //! A label is almost never one criterion. Measured over the forty-eight sites, it is a font (often
 //! a **union** of families, `R8`), a size interval, and an anchored text — and in four sites a
 //! **difference**, because the share class of a statement begins with the same words as the fund
-//! (`VALORE COMPLESSIVO NETTO DEL FONDO` against `… CLASSE AM`). The mapping form
-//! [`InputPdfLineSet`] intersects the criteria it is given and cannot express a difference, a font
-//! union or an anchor that is itself a line of the page; the **compact grammar** expresses all
-//! four, and is the same grammar the structured level's cells are written in.
+//! (`VALORE COMPLESSIVO NETTO DEL FONDO` against `… CLASSE AM`). Eight more hang a `window(..)` off
+//! the label, and three bound a column by a heading somewhere else on the page.
 //!
-//! So a selection here is either, and the choice is [`InputSelection`], which this level's
-//! algorithms share: see [`super::selection`] for the two shapes and for the refusal that keeps a
-//! mistyped cell from selecting the whole page.
+//! Every one of those is a key of the mapping form, which is the one to write here: see
+//! [`super::selection`] for the choice and [`InputSelection`] for the two shapes it admits.
 //!
 //! # What stays in Python
 //!

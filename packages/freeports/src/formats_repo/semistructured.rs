@@ -120,6 +120,12 @@ pub enum SemistructuredError {
         #[source]
         source: native::selection::SelectionConfigError,
     },
+    #[error("segment '{segment}', algorithm 'grouped_lines': {source}")]
+    GroupedLines {
+        segment: &'static str,
+        #[source]
+        source: native::grouped_lines::GroupedLinesConfigError,
+    },
     #[error("segment '{segment}', algorithm 'section': {source}")]
     Section {
         segment: &'static str,
@@ -170,8 +176,8 @@ pub fn local_extension_path(formats_repo_dir: &Path, segment: SegmentKind) -> Pa
         .join(format!("{}.py", segment.file_stem()))
 }
 
-/// The name of the input class an author must provide alongside a function: `standard_cost_curr`
-/// becomes `InputStandardCostCurr`.
+/// The name of the input class an author must provide alongside a function: `investments`
+/// becomes `InputInvestments`.
 pub fn input_class_name(name: &str) -> String {
     let mut out = String::from("Input");
     for part in name.split('_') {
@@ -312,17 +318,17 @@ fn build_native(
     arg: &serde_yaml::Value,
 ) -> Result<SegmentPipes, SemistructuredError> {
     match (segment, name) {
-        (SegmentKind::PdfExtract, "standard_cost_curr") => {
-            let input: native::InputStandardCostCurr =
+        (SegmentKind::PdfExtract, "investments") => {
+            let input: native::InputInvestments =
                 serde_yaml::from_value(arg.clone()).map_err(|e| SemistructuredError::MalformedArgs {
                     segment: segment.file_stem(),
                     name: name.to_string(),
                     message: e.to_string(),
                 })?;
-            let (investments, fund, currency) = native::standard_cost_curr(&input).map_err(|source| {
+            let pipes = native::investments(&input).map_err(|source| {
                 SemistructuredError::Native { segment: segment.file_stem(), name: name.to_string(), source }
             })?;
-            Ok(SegmentPipes::PdfExtract(vec![Arc::new(investments), Arc::new(fund), Arc::new(currency)]))
+            Ok(SegmentPipes::PdfExtract(pipes))
         }
         (SegmentKind::PdfExtract, "currency_constant") => {
             let input: native::InputCurrencyConstant = parse_args(segment, name, arg)?;
@@ -347,8 +353,26 @@ fn build_native(
         (SegmentKind::PdfExtract, "section") => {
             let input: native::section::InputSection = parse_args(segment, name, arg)?;
             let pipe = input
-                .build()
+                .pipe()
                 .map_err(|source| SemistructuredError::Section { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::PdfExtract(vec![pipe]))
+        }
+        (SegmentKind::PdfExtract, "grouped_lines") => {
+            let input: native::grouped_lines::InputGroupedLines = parse_args(segment, name, arg)?;
+            let pipe = input
+                .build()
+                .map_err(|source| SemistructuredError::GroupedLines { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::PdfExtract, "page_number") => {
+            let input: native::page_number::InputPageNumber = parse_args(segment, name, arg)?;
+            let pipe = input
+                .build()
+                .map_err(|source| SemistructuredError::Selection {
+                    segment: segment.file_stem(),
+                    name: "page_number",
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "fund") => {
@@ -683,7 +707,7 @@ mod tests {
     const MAPPING_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
 
     /// The minimal YAML configuration of the one native algorithm.
-    const COST_CURR_ARGS: &str = "\
+    const INVESTMENTS_ARGS: &str = "\
 A-EN24(investments):
   body_set:
     font: Tahoma
@@ -744,7 +768,7 @@ A-EN24(investments):
         use pretty_assertions::assert_eq;
         use test_case::test_case;
 
-        #[test_case("standard_cost_curr", "InputStandardCostCurr"; "several parts")]
+        #[test_case("investments", "InputInvestments"; "several parts")]
         #[test_case("simple", "InputSimple"; "one part")]
         #[test_case("a_b_c", "InputABC"; "single letter parts")]
         #[test_case("already_Capital", "InputAlreadyCapital"; "a part already capitalized")]
@@ -818,7 +842,7 @@ A-EN24(investments):
 
         #[test]
         fn each_segment_registers_the_algorithms_it_serves() {
-            for name in ["standard_cost_curr", "currency_constant", "sfdr_annex"] {
+            for name in ["investments", "currency_constant", "sfdr_annex"] {
                 assert!(native::contains(SegmentKind::PdfExtract, name), "{name}");
             }
             for name in ["sfdr_annex", "manco", "manco_imposed"] {
@@ -838,7 +862,7 @@ A-EN24(investments):
 
         #[test]
         fn a_name_of_another_segment_is_not_native_here() {
-            assert!(!native::contains(SegmentKind::TextFilter, "standard_cost_curr"));
+            assert!(!native::contains(SegmentKind::TextFilter, "investments"));
         }
 
         #[test]
@@ -860,7 +884,7 @@ A-EN24(investments):
 
         #[test]
         fn a_configurable_native_is_not_argless() {
-            assert!(!native::is_argless(SegmentKind::PdfExtract, "standard_cost_curr"));
+            assert!(!native::is_argless(SegmentKind::PdfExtract, "investments"));
             assert!(!native::is_argless(SegmentKind::PdfExtract, "currency_constant"));
         }
 
@@ -979,21 +1003,84 @@ A-EN24(investments):
         }
 
         #[test]
-        fn standard_cost_curr_contributes_three_pdf_extract_pipes() {
+        fn investments_contributes_three_pdf_extract_pipes() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
-            repo.write("args/pdf_extract.yaml", COST_CURR_ARGS);
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             let pipeline = &pipelines[&PipelineName::new("investments")];
             assert_eq!(pipeline.pdf_extract.len(), 3);
             assert!(pipeline.text_filter.is_empty());
         }
 
+        /// The currency is the one cell of the three pipes that differs between formats: some
+        /// print it on the page, some do not print it at all.
+        #[test]
+        fn the_currency_is_either_declared_or_read_and_never_both() {
+            let args = |currency: &str| {
+                format!("A-EN24(investments):\n  body_set:\n    font: Tahoma\n  subfund_set:\n    font: Arial-BoldMT\n{currency}")
+            };
+            let built = |currency: &str| {
+                let repo = Repo::new();
+                repo.write(
+                    "formats_mapping.csv",
+                    &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+                );
+                repo.write("args/pdf_extract.yaml", &args(currency));
+                get_pipelines(repo.path(), "A-EN24")
+            };
+
+            // declared
+            let pipelines = built("  currency: EUR\n").expect("a declared currency");
+            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 3);
+            // read off the page
+            let pipelines = built("  currency_set:\n    text: '(expressed in'\n").expect("a read currency");
+            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 3);
+
+            for currency in ["", "  currency: EUR\n  currency_set:\n    text: x\n"] {
+                let error = built(currency).expect_err("neither or both is refused");
+                assert!(error.to_string().contains("exactly one of 'currency' and 'currency_set'"), "{error}");
+            }
+        }
+
+        /// The three cells the author modules had and this name did not, each measured on one
+        /// format: CARNE-EN23 needs all three.
+        #[test]
+        fn the_subfund_may_be_joined_and_the_company_column_named() {
+            let repo = Repo::new();
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "args/pdf_extract.yaml",
+                concat!(
+                    "A-EN24(investments):\n",
+                    "  body_set:\n    font: Tahoma\n",
+                    "  subfund_set:\n    font: Arial-BoldMT\n",
+                    "  subfund_join: ' '\n",
+                    "  company_index: 1\n",
+                    "  currency_set:\n    text: 'Valuation in'\n",
+                ),
+            );
+            let pipelines = get_pipelines(repo.path(), "A-EN24").expect("the three cells are read");
+            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 3);
+        }
+
+        #[test]
+        fn an_unknown_cell_of_the_investments_entry_is_refused() {
+            let repo = Repo::new();
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  body_set:\n    font: Tahoma\n  subfund_set:\n    font: X\n  currency: EUR\n  manco_set:\n    font: Y\n",
+            );
+            let error = get_pipelines(repo.path(), "A-EN24").expect_err("a key nobody reads");
+            assert!(error.to_string().contains("manco_set"), "{error}");
+        }
+
         #[test]
         fn the_pipeline_is_named_after_the_row_it_comes_from() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
-            repo.write("args/pdf_extract.yaml", COST_CURR_ARGS);
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             assert_eq!(pipelines.keys().collect::<Vec<_>>(), vec![&PipelineName::new("investments")]);
         }
@@ -1003,10 +1090,10 @@ A-EN24(investments):
             let repo = Repo::new();
             repo.write(
                 "formats_mapping.csv",
-                &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\nA-EN24(investments),standard_cost_curr,,\n"),
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\nA-EN24(investments),investments,,\n"),
             );
             // A single scalar argument: both rows share it, so the pipes come to six.
-            repo.write("args/pdf_extract.yaml", COST_CURR_ARGS);
+            repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 6);
         }
@@ -1017,7 +1104,7 @@ A-EN24(investments):
             let repo = Repo::new();
             repo.write(
                 "formats_mapping.csv",
-                &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\nA-EN24(investments),standard_cost_curr,,\n"),
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\nA-EN24(investments),investments,,\n"),
             );
             repo.write(
                 "args/pdf_extract.yaml",
@@ -1030,7 +1117,7 @@ A-EN24(investments):
         #[test]
         fn a_missing_args_entry_for_a_requested_algorithm_is_an_error() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
             assert!(matches!(err, SemistructuredError::Args { segment: "pdf_extract", .. }), "{err}");
         }
@@ -1038,10 +1125,10 @@ A-EN24(investments):
         #[test]
         fn malformed_args_for_a_native_algorithm_name_the_algorithm() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
             repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  body_set: {font: A}\n");
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(&err, SemistructuredError::MalformedArgs { name, .. } if name == "standard_cost_curr"), "{err}");
+            assert!(matches!(&err, SemistructuredError::MalformedArgs { name, .. } if name == "investments"), "{err}");
         }
 
         #[test]
@@ -1056,7 +1143,7 @@ A-EN24(investments):
         #[test]
         fn an_unknown_currency_in_the_args_is_reported_as_malformed_args() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
             repo.write(
                 "args/pdf_extract.yaml",
                 "A-EN24(investments):\n  body_set: {font: A}\n  subfund_set: {font: B}\n  currency: XYZ\n",
@@ -1070,16 +1157,16 @@ A-EN24(investments):
         #[test]
         fn the_algorithm_flags_of_the_args_reach_the_pipe() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
-            repo.write("args/pdf_extract.yaml", &format!("{COST_CURR_ARGS}  algorithm_flags: USE_RULER_AREA\n"));
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write("args/pdf_extract.yaml", &format!("{INVESTMENTS_ARGS}  algorithm_flags: USE_RULER_AREA\n"));
             assert!(get_pipelines(repo.path(), "A-EN24").is_ok());
         }
 
         #[test]
         fn an_unknown_algorithm_flag_is_rejected_naming_the_field() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
-            repo.write("args/pdf_extract.yaml", &format!("{COST_CURR_ARGS}  algorithm_flags: NOPE\n"));
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write("args/pdf_extract.yaml", &format!("{INVESTMENTS_ARGS}  algorithm_flags: NOPE\n"));
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
             assert!(matches!(err, SemistructuredError::Native { .. }), "{err}");
         }
@@ -1153,16 +1240,16 @@ def my_algo(arg):
 
         #[test]
         fn a_name_defined_both_natively_and_by_the_author_is_a_hard_error() {
-            let repo = repo_with_author("def standard_cost_curr(arg):\n    return lambda page: []\n");
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\n"));
-            repo.write("args/pdf_extract.yaml", COST_CURR_ARGS);
+            let repo = repo_with_author("def investments(arg):\n    return lambda page: []\n");
+            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(&err, SemistructuredError::AmbiguousAlgorithm { name, .. } if name == "standard_cost_curr"), "{err}");
+            assert!(matches!(&err, SemistructuredError::AmbiguousAlgorithm { name, .. } if name == "investments"), "{err}");
         }
 
         #[test]
         fn the_collision_check_fires_even_when_another_algorithm_is_the_one_requested() {
-            let module = format!("{AUTHOR_MODULE}\ndef standard_cost_curr(arg):\n    return lambda page: []\n");
+            let module = format!("{AUTHOR_MODULE}\ndef investments(arg):\n    return lambda page: []\n");
             let repo = repo_with_author(&module);
             repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"));
             repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  threshold: 5\n");

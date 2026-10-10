@@ -81,8 +81,8 @@ pub mod utils {
             pdflines_from_pagedict,
         };
         pub use crate::input::document::selection::{
-            FontCriterion, InputAreaSpec, InputPdfLineSet, LineSelectionError,
-            pdfline_selection_from_dict, pdfline_selection_from_str,
+            FontCriterion, InputAreaSpec, InputBound, InputPdfLineSet, InputWindowSpec,
+            LineSelectionError, pdfline_selection_from_dict, pdfline_selection_from_str,
         };
     }
 }

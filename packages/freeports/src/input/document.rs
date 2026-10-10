@@ -8,7 +8,10 @@ pub mod page_dict;
 pub mod selection;
 
 pub use page_dict::{PageDict, PageDictBlock, PageDictLine, PageDictSpan, pdfimages_from_pagedict, pdflines_from_pagedict};
-pub use selection::{FontCriterion, InputAreaSpec, InputPdfLineSet, LineSelectionError, pdfline_selection_from_dict, pdfline_selection_from_str};
+pub use selection::{
+    FontCriterion, InputAreaSpec, InputBound, InputPdfLineSet, InputWindowSpec, LineSelectionError,
+    pdfline_selection_from_dict, pdfline_selection_from_str,
+};
 
 use std::path::Path;
 

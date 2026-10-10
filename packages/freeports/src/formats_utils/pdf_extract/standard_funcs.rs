@@ -458,20 +458,14 @@ impl PdfExtractInvestmentsStandard {
             "investments table body selected"
         );
 
-        let widths: Vec<f32> = rows
-            .iter()
-            .map(|row| {
-                let (x0, _, x1, _) = row.bbox().as_tuple();
-                x1 - x0
-            })
-            .collect();
-        let max_width = widths.iter().copied().fold(f32::MIN, f32::max);
-
-        let block = |(table_row, table_col): (usize, usize), lines: &[&PdfLine], max_width: bool| {
+        // `is-max-width` used to be a third key here — whether the line was as wide as the widest
+        // of the table — and **nothing ever read it**: the one consumer went away with the `split`
+        // loop that `P8` removed, and the field stayed because removing it rewrites eighty page
+        // fixtures. It is gone, and so is the width computation that fed it.
+        let block = |(table_row, table_col): (usize, usize), lines: &[&PdfLine]| {
             let metadata = BTreeMap::from([
                 ("table-row".to_string(), BlockValue::from(table_row as i64)),
                 ("table-col".to_string(), BlockValue::from(table_col as i64)),
-                ("is-max-width".to_string(), BlockValue::from(max_width)),
             ]);
             PdfBlock::new(
                 BlockType::TABLE_BODY,
@@ -481,11 +475,7 @@ impl PdfExtractInvestmentsStandard {
         };
 
         if !self.collapse_into_cells() {
-            return Ok(rows
-                .iter()
-                .enumerate()
-                .map(|(i, row)| block(coords[i], &[row], widths[i] == max_width))
-                .collect());
+            return Ok(rows.iter().enumerate().map(|(i, row)| block(coords[i], &[row])).collect());
         }
 
         // One block per **cell**. Which lines share a cell is what `collapse` decided; the order
@@ -493,20 +483,14 @@ impl PdfExtractInvestmentsStandard {
         //
         // The cells come out in the order their **first** line appears, so a table that was
         // already one line per cell comes out exactly as it did before.
-        let mut cells: Vec<((usize, usize), Vec<&PdfLine>, bool)> = Vec::new();
+        let mut cells: Vec<((usize, usize), Vec<&PdfLine>)> = Vec::new();
         let mut seen: BTreeMap<(usize, usize), usize> = BTreeMap::new();
         for (i, row) in rows.iter().enumerate() {
-            let is_max_width = widths[i] == max_width;
             match seen.get(&coords[i]) {
-                Some(&at) => {
-                    cells[at].1.push(row);
-                    // A cell is as wide as its widest line: the field says whether the text
-                    // reached the page's widest, and a joined cell did if any of its lines did.
-                    cells[at].2 |= is_max_width;
-                }
+                Some(&at) => cells[at].1.push(row),
                 None => {
                     seen.insert(coords[i], cells.len());
-                    cells.push((coords[i], vec![row], is_max_width));
+                    cells.push((coords[i], vec![row]));
                 }
             }
         }
@@ -520,7 +504,7 @@ impl PdfExtractInvestmentsStandard {
         // left a row empty — kept here, where the rows are decided.
         let renumbered: BTreeMap<usize, usize> = cells
             .iter()
-            .map(|((row, _), _, _)| *row)
+            .map(|((row, _), _)| *row)
             .collect::<std::collections::BTreeSet<_>>()
             .into_iter()
             .enumerate()
@@ -534,7 +518,7 @@ impl PdfExtractInvestmentsStandard {
         );
         Ok(cells
             .into_iter()
-            .map(|((row, col), lines, max)| block((renumbered[&row], col), &lines, max))
+            .map(|((row, col), lines)| block((renumbered[&row], col), &lines))
             .collect())
     }
 
@@ -1537,18 +1521,22 @@ mod tests {
             );
         }
 
+        /// A block of the table carries its **two coordinates and nothing else**.
+        ///
+        /// It used to carry a third key, `is-max-width` — whether the line was as wide as the
+        /// widest of the table — which nothing ever read: its one consumer went away with the
+        /// `split` loop `P8` removed. This test is what keeps a fourth key from arriving without
+        /// a reader.
         #[test]
-        fn marks_the_widest_lines_with_is_max_width() {
+        fn a_block_carries_its_two_coordinates_and_nothing_else() {
             let p = page(vec![line("narrow", (0.0, 0.0, 10.0, 10.0)), line("wide", (0.0, 20.0, 90.0, 30.0))]);
-            let blocks = body_pipe().call(&p).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "is-max-width"), BlockValue::from(false));
-            assert_eq!(metadata_of(&blocks[1], "is-max-width"), BlockValue::from(true));
-        }
-
-        #[test]
-        fn several_equally_wide_lines_are_all_marked() {
-            let blocks = body_pipe().call(&table_page()).unwrap();
-            assert!(blocks.iter().all(|b| metadata_of(b, "is-max-width") == BlockValue::from(true)));
+            for block in body_pipe().call(&p).unwrap() {
+                assert_eq!(
+                    block.metadata.keys().collect::<Vec<_>>(),
+                    ["table-col", "table-row"],
+                    "the metadata of a table block"
+                );
+            }
         }
 
         #[test]
@@ -1673,11 +1661,11 @@ mod tests {
                 }
             }
 
-            /// A joined cell is as wide as its widest line.
+            /// A joined cell carries the same two keys as any other block.
             #[test]
-            fn is_max_width_is_true_when_any_line_of_the_cell_reached_it() {
+            fn a_joined_cell_carries_its_two_coordinates() {
                 let blocks = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
-                assert_eq!(metadata_of(&blocks[0], "is-max-width"), BlockValue::from(true));
+                assert_eq!(blocks[0].metadata.keys().collect::<Vec<_>>(), ["table-col", "table-row"]);
             }
         }
 

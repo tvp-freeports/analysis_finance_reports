@@ -132,16 +132,16 @@ mod tests {
 
         #[test]
         fn derives_the_format_and_pipeline_of_each_row() {
-            let dir = repo(&format!("{HEADER}AMUNDI-IT24(investments),standard_cost_curr,,\n"));
+            let dir = repo(&format!("{HEADER}AMUNDI-IT24(investments),investments,,\n"));
             let rows = get_formats_mapping(dir.path()).unwrap();
             assert_eq!(rows[0].format_name, "AMUNDI-IT24");
             assert_eq!(rows[0].pipeline_name, "investments");
-            assert_eq!(rows[0].pdf_extract.as_deref(), Some("standard_cost_curr"));
+            assert_eq!(rows[0].pdf_extract.as_deref(), Some("investments"));
         }
 
         #[test]
         fn an_empty_cell_means_no_algorithm_for_that_segment() {
-            let dir = repo(&format!("{HEADER}A-EN24(inv),standard_cost_curr,,\n"));
+            let dir = repo(&format!("{HEADER}A-EN24(inv),investments,,\n"));
             let rows = get_formats_mapping(dir.path()).unwrap();
             assert!(rows[0].text_filter.is_none() && rows[0].deserialize.is_none());
         }

@@ -37,18 +37,86 @@ pub enum FontCriterion {
     Multiple(Vec<String>),
 }
 
+/// One side of an area, in the structured form: a coordinate, or a line of the page.
+///
+/// Untagged, so a number stays a number and a mapping is a **nested selection** — the structured
+/// spelling of the compact grammar's `<expression>` bound. `{x_max: {text: "^Situazione a fine"}}`
+/// is *as far right as that heading*, which is what a statement whose columns move between
+/// documents of the same format has to say.
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[serde(untagged)]
+pub enum InputBound {
+    Number(f32),
+    Anchor(Box<InputPdfLineSet>),
+}
+
+impl InputBound {
+    /// The side as a coordinate, or `None` when it is an anchor — the honest answer for a side
+    /// whose value depends on a page this function never sees.
+    fn number(&self) -> Option<f32> {
+        match self {
+            InputBound::Number(value) => Some(*value),
+            InputBound::Anchor(_) => None,
+        }
+    }
+
+    fn is_anchor(&self) -> bool {
+        matches!(self, InputBound::Anchor(_))
+    }
+}
+
 /// The deserialization-side mirror of `InputArea`: four optional bounds, not yet validated.
 /// `InputArea::build` stays the single point of validation.
-#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InputAreaSpec {
     #[serde(default)]
-    pub x_min: Option<f32>,
+    pub x_min: Option<InputBound>,
     #[serde(default)]
-    pub x_max: Option<f32>,
+    pub x_max: Option<InputBound>,
     #[serde(default)]
-    pub y_min: Option<f32>,
+    pub y_min: Option<InputBound>,
     #[serde(default)]
-    pub y_max: Option<f32>,
+    pub y_max: Option<InputBound>,
+}
+
+impl InputAreaSpec {
+    /// Whether any side is an anchor, which is what makes the selection relative.
+    fn has_anchor(&self) -> bool {
+        self.sides().iter().any(|side| side.as_ref().is_some_and(InputBound::is_anchor))
+    }
+
+    fn sides(&self) -> [&Option<InputBound>; 4] {
+        [&self.x_min, &self.x_max, &self.y_min, &self.y_max]
+    }
+
+    /// The four sides as the coordinates they are, an anchor counting as absent. What
+    /// `InputArea::build` validates: a side it is not given is a side it cannot compare.
+    fn numbers(&self) -> [Option<f32>; 4] {
+        self.sides().map(|side| side.as_ref().and_then(InputBound::number))
+    }
+}
+
+/// A `window(..)` term in the structured form: *the box of the line this anchor picks, moved and
+/// scaled*.
+///
+/// Four numbers and an anchor, none of them optional — the same shape and the same reading as the
+/// compact grammar's term, for which see [`WindowSpec`]. The anchor is a whole selection because
+/// every measured one is qualified by a font: the word that anchors it occurs in the body of the
+/// page too.
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InputWindowSpec {
+    /// The line the window hangs from.
+    pub anchor: Box<InputPdfLineSet>,
+    /// The displacement of the window's top-left corner from the anchor's, in anchor widths.
+    pub dx: f32,
+    /// The same, in anchor heights.
+    pub dy: f32,
+    /// The window's width, in anchor widths.
+    pub width: f32,
+    /// Its height, in anchor heights.
+    pub height: f32,
 }
 
 /// A font size written as external configuration: one exact size, or an interval.
@@ -64,8 +132,21 @@ pub enum FontSizeCriterion {
     Interval(f32, f32),
 }
 
-/// The structured form of a line selection: four optional criteria, intersected.
+/// The structured form of a line selection: the criteria it states, intersected, minus what
+/// `without` subtracts.
+///
+/// Nine keys, and the whole of the compact grammar is among them — which is the point. The two
+/// forms were not equally expressive while the area took four numbers and nothing else: a
+/// selection needing an anchored side, a window or a difference had to be written as a string,
+/// and a formats repository ended up with both spellings side by side for no reason the author
+/// chose. The three forms the mapping could not state are `area`'s [`InputBound`], `window` and
+/// `without`; `any_of`, `all_of` and `font_of` are three more that the compact grammar does not
+/// have either, and the mapping is now strictly the richer of the two.
+///
+/// Every spec written before those keys existed reads exactly as it did: they are optional, and a
+/// numeric side is still a number.
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InputPdfLineSet {
     #[serde(default)]
     pub text: Option<String>,
@@ -75,6 +156,118 @@ pub struct InputPdfLineSet {
     pub font_size: Option<FontSizeCriterion>,
     #[serde(default)]
     pub area: Option<InputAreaSpec>,
+    /// A band measured off the line an anchor picks, intersected with the rest like any other
+    /// criterion.
+    #[serde(default)]
+    pub window: Option<InputWindowSpec>,
+    /// The font **taken from another line**: whichever family the line this anchor picks is set
+    /// in, intersected with the rest like any other criterion.
+    ///
+    /// It is the one criterion that cannot be written down, because it is not a property of the
+    /// lines being selected but of a line somewhere else on the same page. MEDIOLANUM-ES24.A names
+    /// no font anywhere: its portfolio is typeset in whatever family the column heading
+    /// `Descripción de la cartera` happens to use, and three of its selections — the body, the
+    /// fund heading, the currency — say exactly that. Writing a family instead would pin the
+    /// format to one typesetting of one document.
+    ///
+    /// The engine has had [`RelativeSelectPdfLineSet::select_font_of`] all along; this is its
+    /// spelling in configuration. The compact grammar has none, which is why a selection using it
+    /// is written as a mapping — and the mapping is the form to write anyway.
+    #[serde(default)]
+    pub font_of: Option<Box<InputPdfLineSet>>,
+    /// The **union** of several selections, intersected with whatever else this spec states.
+    ///
+    /// The one form that has no compact spelling, and the reason it exists is measured: a report
+    /// paginated as a book prints the page number on the left of an even page and on the right of
+    /// an odd one, so the number is *in either of two areas* and in no single one. The compact
+    /// grammar unites fonts (`R8`) and nothing else, and writing two separate selection cells
+    /// instead would say *two selections* where the format means one.
+    ///
+    /// An empty list means the same as leaving the key out.
+    #[serde(default)]
+    pub any_of: Vec<InputPdfLineSet>,
+    /// Several selections **intersected**, beside the ones this spec's own keys state.
+    ///
+    /// The mapping's keys already intersect, so this is for the case they cannot reach: **two
+    /// criteria of the same kind**. FINECO-EN23@IR's table is bounded above by a heading *and* by
+    /// an ordinate — the heading closes the table where there is one, the ordinate keeps the page
+    /// foot out where there is not — and that is two `area`s, which one `area` key cannot be.
+    ///
+    /// An empty list means the same as leaving the key out.
+    #[serde(default)]
+    pub all_of: Vec<InputPdfLineSet>,
+    /// What is **taken out** of this selection: the compact grammar's ` / `, as a list because the
+    /// operator folds. Each element is a whole selection, and may subtract in its turn.
+    ///
+    /// Applied last, as the outermost operation: `(criteria & all_of & any_of) / without`.
+    #[serde(default)]
+    pub without: Vec<InputPdfLineSet>,
+}
+
+impl InputPdfLineSet {
+    /// Whether the absolute construction path can build this spec: no anchored side, no window,
+    /// nothing subtracted.
+    fn is_absolute(&self) -> bool {
+        self.window.is_none()
+            && self.font_of.is_none()
+            && self.without.is_empty()
+            && self.any_of.is_empty()
+            && self.all_of.is_empty()
+            && !self.area.as_ref().is_some_and(InputAreaSpec::has_anchor)
+    }
+
+    /// Whether the spec states any criterion of its **own** — a union aside.
+    fn states_own_criterion(&self) -> bool {
+        self.text.is_some()
+            || self.font.is_some()
+            || self.font_size.is_some()
+            || self.area.is_some()
+            || self.window.is_some()
+            || self.font_of.is_some()
+    }
+
+    /// Whether the spec states any criterion at all.
+    ///
+    /// A spec that states none is the selection of *every* line, and a cell is allowed to say so —
+    /// but not where it would be a silent disaster: an anchor, or an operand of a difference. See
+    /// [`LineSelectionError::NoCriterion`]. `without` alone does not count: subtracting from
+    /// everything is the shape the compact grammar refuses as a first operand. A union does, since
+    /// a union of selections that each state something states something.
+    fn states_a_criterion(&self) -> bool {
+        self.states_own_criterion() || !self.any_of.is_empty() || !self.all_of.is_empty()
+    }
+
+    /// The spec's criteria in the form the two construction paths share, its `without` left aside.
+    fn parts(&self) -> SelectionParts {
+        let bound = |side: &Option<InputBound>| match side {
+            None => BoundSpec::Absent,
+            Some(InputBound::Number(value)) => BoundSpec::Number(*value),
+            Some(InputBound::Anchor(spec)) => BoundSpec::Spec(spec.clone()),
+        };
+        SelectionParts {
+            font: self.font.clone(),
+            font_of: self.font_of.clone(),
+            font_size: self.font_size,
+            text: self.text.clone(),
+            sides: self.area.as_ref().map(|area| {
+                (bound(&area.x_min), bound(&area.x_max), bound(&area.y_min), bound(&area.y_max))
+            }),
+        }
+    }
+
+    /// The spec's window as the one the compact path builds, so that both spellings of a window go
+    /// through the same leaf.
+    fn windows(&self) -> Vec<WindowSpec> {
+        self.window
+            .iter()
+            .map(|window| WindowSpec {
+                anchor: WindowAnchor::Spec(window.anchor.clone()),
+                displacement: (window.dx, window.dy),
+                width: window.width,
+                height: window.height,
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -149,12 +342,114 @@ fn font_set(criterion: &FontCriterion) -> Result<FontSet, LineSelectionError> {
     }
 }
 
-/// Builds an always-absolute [`PdfLineSelection`] by intersecting the criteria that are present.
+/// Builds a [`PdfLineSelection`] from the structured form.
+///
+/// Absolute wherever the spec is — the path every spec written before `area`'s anchors, `window`
+/// and `without` existed takes, unchanged, down to the order the criteria intersect in — and
+/// relative as soon as one of those three appears, for the same reason the compact grammar's are:
+/// an anchor names a line of a page this function never sees.
 pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSelection, LineSelectionError> {
     // Called once per selection spec while a formats repository loads, potentially thousands of
     // times across a whole repository: never above `trace!`.
     tracing::trace!(?data, "building a pdf line selection from a dict spec");
 
+    if !data.is_absolute() {
+        return Ok(OptionallyRelative::Relative(dict_expression(data)?));
+    }
+    absolute_from_dict(data)
+}
+
+/// The structured form as a relative tree: `(criteria & all_of & any_of) / without`.
+///
+/// The difference folds left, as ` / ` does; an operand carrying a `without` or an `any_of` of its
+/// own nests, which the compact grammar cannot write and which costs nothing to allow here.
+fn dict_expression(data: &InputPdfLineSet) -> Result<RelativePdfLineSet, LineSelectionError> {
+    let own = match data.states_own_criterion() {
+        true => Some(selection_node(data.parts(), data.windows(), || describe(data))?),
+        false => None,
+    };
+
+    let mut intersection = None;
+    for operand in &data.all_of {
+        let one = dict_expression(operand)?;
+        intersection = Some(match intersection {
+            None => one,
+            Some(accumulated) => accumulated & one,
+        });
+    }
+
+    let mut union = None;
+    for operand in &data.any_of {
+        let one = dict_expression(operand)?;
+        union = Some(match union {
+            None => one,
+            Some(accumulated) => accumulated | one,
+        });
+    }
+
+    let stated = [own, intersection, union].into_iter().flatten().reduce(|a, b| a & b);
+    // Unreachable through `pdfline_selection_from_dict`, which sends a spec stating nothing down
+    // the absolute path, and raised for an anchor or an operand — the two places where *every
+    // line* must not pass for an answer.
+    let mut node = stated.ok_or_else(|| LineSelectionError::NoCriterion(describe(data)))?;
+    for operand in &data.without {
+        node = node / dict_expression(operand)?;
+    }
+    Ok(node)
+}
+
+/// A spec in the one place *every line* must not pass for an answer: an anchor.
+///
+/// The refusal is here and not in [`pdfline_selection_from_dict`], because an empty spec at the
+/// top level is a legitimate way to say *the whole page* and has always built one.
+fn anchor_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSelection, LineSelectionError> {
+    if !data.states_a_criterion() {
+        return Err(LineSelectionError::NoCriterion(describe(data)));
+    }
+    pdfline_selection_from_dict(data)
+}
+
+/// A spec as a refusal quotes it: the keys it states, which is what its author can look for.
+///
+/// The derived `Debug` would name the five it does not state as well, and the one that matters
+/// would be the hardest word in the line to find.
+fn describe(data: &InputPdfLineSet) -> String {
+    let mut keys = Vec::new();
+    if data.text.is_some() {
+        keys.push("text");
+    }
+    if data.font.is_some() {
+        keys.push("font");
+    }
+    if data.font_size.is_some() {
+        keys.push("font_size");
+    }
+    if data.area.is_some() {
+        keys.push("area");
+    }
+    if data.window.is_some() {
+        keys.push("window");
+    }
+    if data.font_of.is_some() {
+        keys.push("font_of");
+    }
+    if !data.all_of.is_empty() {
+        keys.push("all_of");
+    }
+    if !data.any_of.is_empty() {
+        keys.push("any_of");
+    }
+    if !data.without.is_empty() {
+        keys.push("without");
+    }
+    if keys.is_empty() {
+        return "a selection spec stating nothing".to_string();
+    }
+    format!("a selection spec stating {}", keys.join(", "))
+}
+
+/// The original construction path: the criteria that are present, intersected, all absolute.
+fn absolute_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSelection, LineSelectionError> {
     let font_size_set = match data.font_size {
         None => None,
         Some(criterion) => Some(font_size_interval(criterion)?),
@@ -162,7 +457,8 @@ pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSele
 
     let area_set = match &data.area {
         Some(spec) => {
-            let input_area = InputArea::build(spec.x_min, spec.x_max, spec.y_min, spec.y_max)?;
+            let [x_min, x_max, y_min, y_max] = spec.numbers();
+            let input_area = InputArea::build(x_min, x_max, y_min, y_max)?;
             let x_min = input_area.x_min().unwrap_or(0.0);
             let y_min = input_area.y_min().unwrap_or(0.0);
             let x_max = input_area.x_max().unwrap_or(1e6);
@@ -283,6 +579,10 @@ enum BoundSpec {
     /// `<expression>`: the line a selection written in this same grammar picks. The form the
     /// measured statements need, because their anchors are qualified by a font.
     Expression(String),
+    /// The same anchor, written as a nested [`InputPdfLineSet`] — what a side of the structured
+    /// form's `area` holds. Not reachable from the compact grammar: the two spellings of an
+    /// anchored side meet one step further down, at [`BoundSpec::to_bound`].
+    Spec(Box<InputPdfLineSet>),
 }
 
 impl BoundSpec {
@@ -302,7 +602,7 @@ impl BoundSpec {
     }
 
     fn is_anchor(&self) -> bool {
-        matches!(self, BoundSpec::Text(_) | BoundSpec::Expression(_))
+        matches!(self, BoundSpec::Text(_) | BoundSpec::Expression(_) | BoundSpec::Spec(_))
     }
 
     fn number(&self) -> Option<f32> {
@@ -329,6 +629,7 @@ impl BoundSpec {
             BoundSpec::Expression(expression) => {
                 OptionallyRelative::Relative(pdfline_selection_from_str(expression)?)
             }
+            BoundSpec::Spec(spec) => OptionallyRelative::Relative(anchor_from_dict(spec)?),
         })
     }
 }
@@ -542,6 +843,44 @@ fn strip_angles(text: &str) -> &str {
 /// The keyword that opens a window term, its bracket included.
 const WINDOW_KEYWORD: &str = "window(";
 
+/// The line a window hangs from, in whichever of the two spellings its configuration used.
+///
+/// One enum rather than two window types: everything else about a window — the four numbers, the
+/// leaf it becomes, the refusal of an anchor that states nothing — is the same on both sides, and
+/// the anchor is the only part the spelling reaches.
+#[derive(Debug, Clone, PartialEq)]
+enum WindowAnchor {
+    /// An expression of the compact grammar, its angle brackets stripped.
+    Compact(String),
+    /// A nested structured spec.
+    Spec(Box<InputPdfLineSet>),
+}
+
+impl WindowAnchor {
+    /// The anchor as the selection that will pick its line.
+    ///
+    /// Both arms refuse an anchor that states no criterion — the compact one inside
+    /// [`relative_expression`], the structured one inside [`anchor_from_dict`] — because an anchor
+    /// is precisely the place where *every line* must not be allowed to pass for an answer.
+    fn selection(&self) -> Result<PdfLineSelection, LineSelectionError> {
+        match self {
+            WindowAnchor::Compact(expression) => {
+                Ok(OptionallyRelative::Relative(relative_expression(expression)?))
+            }
+            WindowAnchor::Spec(spec) => anchor_from_dict(spec),
+        }
+    }
+
+    /// Whether the anchor is, in its entirety, written in the grammar it claims. A structured spec
+    /// has no spelling to get wrong: serde has already read it.
+    fn is_well_formed(&self) -> bool {
+        match self {
+            WindowAnchor::Compact(expression) => is_pdfline_selection(expression),
+            WindowAnchor::Spec(_) => true,
+        }
+    }
+}
+
 /// A `window(..)` term: *the box of the line this anchor picks, moved and scaled*.
 ///
 /// It is the grammar's form for [`RelativeSelectPdfLineSet::area_from_movewindow`], and it is a
@@ -565,9 +904,9 @@ const WINDOW_KEYWORD: &str = "window(";
 /// the format, and there a number that is not written is a number that cannot be read.
 #[derive(Debug, Clone, PartialEq)]
 struct WindowSpec {
-    /// The anchor as the cell wrote it, angle brackets stripped. Resolved, not stored resolved,
-    /// because resolving it means parsing this same grammar one level down.
-    anchor: String,
+    /// The anchor as the configuration wrote it. Resolved, not stored resolved, because resolving
+    /// it means building a selection one level down.
+    anchor: WindowAnchor,
     displacement: (f32, f32),
     width: f32,
     height: f32,
@@ -600,7 +939,7 @@ impl WindowSpec {
         for (slot, text) in read.iter_mut().zip(&numbers) {
             *slot = text.parse::<f32>().map_err(|_| refuse(&format!("{text} is not a number")))?;
         }
-        let anchor = strip_angles(term[..cut].trim()).to_string();
+        let anchor = WindowAnchor::Compact(strip_angles(term[..cut].trim()).to_string());
         Ok(Self { anchor, displacement: (read[0], read[1]), width: read[2], height: read[3] })
     }
 
@@ -610,7 +949,7 @@ impl WindowSpec {
     /// absolute, because that is where an anchor stating nothing is refused — and an anchor is
     /// precisely the place where *every line* must not be allowed to pass for an answer.
     fn leaf(&self) -> Result<RelativeSelectPdfLineSet, LineSelectionError> {
-        let anchor = OptionallyRelative::Relative(relative_expression(&self.anchor)?);
+        let anchor = self.anchor.selection()?;
         Ok(RelativeSelectPdfLineSet::area_from_movewindow(
             anchor,
             self.displacement,
@@ -624,6 +963,9 @@ impl WindowSpec {
 #[derive(Debug, Clone, PartialEq, Default)]
 struct SelectionParts {
     font: Option<FontCriterion>,
+    /// The font taken from another line. Only the structured form can state it: the compact
+    /// grammar has no spelling for it, so this is always `None` on that path.
+    font_of: Option<Box<InputPdfLineSet>>,
     font_size: Option<FontSizeCriterion>,
     text: Option<String>,
     sides: Option<(BoundSpec, BoundSpec, BoundSpec, BoundSpec)>,
@@ -673,11 +1015,15 @@ impl SelectionParts {
 
         let text = captures.at(5).map(|t| t.to_string());
 
-        Self { font, font_size, text, sides }
+        Self { font, font_of: None, font_size, text, sides }
     }
 
     fn is_empty(&self) -> bool {
-        self.font.is_none() && self.font_size.is_none() && self.text.is_none() && self.sides.is_none()
+        self.font.is_none()
+            && self.font_of.is_none()
+            && self.font_size.is_none()
+            && self.text.is_none()
+            && self.sides.is_none()
     }
 
     /// Whether any side of the area is an anchor, which is what makes the selection relative.
@@ -712,27 +1058,33 @@ impl Operand {
         self.windows.is_empty() && !self.parts.has_anchor()
     }
 
-    fn states_a_criterion(&self) -> bool {
-        !self.windows.is_empty() || !self.parts.is_empty()
-    }
-
     /// Whether the operand is, in its entirety, written in the grammar. See
     /// [`is_pdfline_selection`], whose question this answers for one operand.
     fn is_well_formed(&self) -> bool {
         LINE_SET_ANCHORED_REGEXP.find(&self.plain).is_some()
-            && self.windows.iter().all(|window| is_pdfline_selection(&window.anchor))
+            && self.windows.iter().all(|window| window.anchor.is_well_formed())
     }
 
     /// The structured form, for the absolute path.
     fn into_dict(self) -> InputPdfLineSet {
         let Self { parts, .. } = self;
         let area = parts.sides.map(|(x_min, x_max, y_min, y_max)| InputAreaSpec {
-            x_min: x_min.number(),
-            x_max: x_max.number(),
-            y_min: y_min.number(),
-            y_max: y_max.number(),
+            x_min: x_min.number().map(InputBound::Number),
+            x_max: x_max.number().map(InputBound::Number),
+            y_min: y_min.number().map(InputBound::Number),
+            y_max: y_max.number().map(InputBound::Number),
         });
-        InputPdfLineSet { text: parts.text, font: parts.font, font_size: parts.font_size, area }
+        InputPdfLineSet {
+            text: parts.text,
+            font: parts.font,
+            font_size: parts.font_size,
+            area,
+            window: None,
+            font_of: None,
+            all_of: Vec::new(),
+            any_of: Vec::new(),
+            without: Vec::new(),
+        }
     }
 
     /// The relative construction path: the operand as a tree of leaves, intersected.
@@ -747,11 +1099,26 @@ impl Operand {
     ///
     /// `input` is carried only to be quoted in the one refusal this path can raise.
     fn node(self, input: &str) -> Result<RelativePdfLineSet, LineSelectionError> {
-        if !self.states_a_criterion() {
-            return Err(LineSelectionError::NoCriterion(input.to_string()));
-        }
         let Self { parts, windows, .. } = self;
-        let SelectionParts { font, font_size, text, sides } = parts;
+        selection_node(parts, windows, || input.to_string())
+    }
+}
+
+/// The relative construction path, shared by the two spellings.
+///
+/// `description` is called only to quote the offending configuration in the one refusal this path
+/// can raise, which is why it is a closure: rendering a structured spec costs an allocation, and
+/// the overwhelming majority of selections are well formed.
+fn selection_node(
+    parts: SelectionParts,
+    windows: Vec<WindowSpec>,
+    description: impl FnOnce() -> String,
+) -> Result<RelativePdfLineSet, LineSelectionError> {
+    {
+        if windows.is_empty() && parts.is_empty() {
+            return Err(LineSelectionError::NoCriterion(description()));
+        }
+        let SelectionParts { font, font_of, font_size, text, sides } = parts;
 
         let mut node = None;
         if let Some((x_min, x_max, y_min, y_max)) = &sides {
@@ -785,6 +1152,12 @@ impl Operand {
         if let Some(criterion) = font {
             let leaf = SelectPdfLineSet::Font(font_set(&criterion)?);
             node = intersect_leaf(node, OptionallyRelative::Absolute(leaf));
+        }
+        // Through `anchor_from_dict`, like every other anchor: a `font_of` whose spec states
+        // nothing would take the font of whichever line comes first on the page.
+        if let Some(spec) = font_of {
+            let leaf = RelativeSelectPdfLineSet::select_font_of(anchor_from_dict(&spec)?);
+            node = intersect_leaf(node, OptionallyRelative::Relative(leaf));
         }
         Ok(node.expect("states_a_criterion guarantees at least one leaf"))
     }
@@ -930,7 +1303,12 @@ mod tests {
         fn area_with_partial_bounds_defaults_missing_bounds_to_zero_and_one_million() {
             // The absent bounds are replaced by the defaults.
             let data = InputPdfLineSet {
-                area: Some(InputAreaSpec { x_min: Some(5.0), x_max: None, y_min: None, y_max: Some(50.0) }),
+                area: Some(InputAreaSpec {
+                    x_min: Some(InputBound::Number(5.0)),
+                    x_max: None,
+                    y_min: None,
+                    y_max: Some(InputBound::Number(50.0)),
+                }),
                 ..Default::default()
             };
             let selection = pdfline_selection_from_dict(&data).unwrap();
@@ -981,7 +1359,7 @@ mod tests {
 
         #[test]
         fn an_invalid_area_bubbles_up_a_position_error() {
-            let data = InputPdfLineSet { area: Some(InputAreaSpec { x_min: Some(0.0), ..Default::default() }), ..Default::default() };
+            let data = InputPdfLineSet { area: Some(InputAreaSpec { x_min: Some(InputBound::Number(0.0)), ..Default::default() }), ..Default::default() };
             let err = expect_err(pdfline_selection_from_dict(&data));
             let LineSelectionError::Area(PositionError::XMinNotPositive(v)) = err else { panic!("expected Area(XMinNotPositive), got {err:?}") };
             assert_eq!(v, 0.0);
@@ -1063,8 +1441,14 @@ mod tests {
             let via_dict = pdfline_selection_from_dict(&InputPdfLineSet {
                 font: Some(FontCriterion::Single("Arial".to_string())),
                 font_size: Some(FontSizeCriterion::Exact(12.0)),
-                area: Some(InputAreaSpec { x_min: Some(1.0), x_max: Some(10.0), y_min: Some(2.0), y_max: Some(20.0) }),
+                area: Some(InputAreaSpec {
+                    x_min: Some(InputBound::Number(1.0)),
+                    x_max: Some(InputBound::Number(10.0)),
+                    y_min: Some(InputBound::Number(2.0)),
+                    y_max: Some(InputBound::Number(20.0)),
+                }),
                 text: Some("foo".to_string()),
+                ..Default::default()
             })
             .unwrap();
 
@@ -1277,7 +1661,16 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn spec(x_min: Option<f32>, x_max: Option<f32>, y_min: Option<f32>, y_max: Option<f32>) -> InputPdfLineSet {
-            InputPdfLineSet { area: Some(InputAreaSpec { x_min, x_max, y_min, y_max }), ..Default::default() }
+            let side = |value: Option<f32>| value.map(InputBound::Number);
+            InputPdfLineSet {
+                area: Some(InputAreaSpec {
+                    x_min: side(x_min),
+                    x_max: side(x_max),
+                    y_min: side(y_min),
+                    y_max: side(y_max),
+                }),
+                ..Default::default()
+            }
         }
 
         /// The shape that gets through: `x_min` above the `1e6` that stands in for an absent
@@ -1825,4 +2218,492 @@ mod tests {
         }
     }
 
+    /// The structured form, now that it states the whole grammar.
+    ///
+    /// The three forms under test here — an anchored side, a `window` and a `without` — arrived
+    /// after the mapping did, which is why a formats repository used to write a selection needing
+    /// one of them as a compact string even where every neighbouring selection was a mapping.
+    ///
+    /// Most of what follows is one assertion: **the two spellings select the same lines**. That is
+    /// the property worth freezing, because the structured path exists to be an alternative
+    /// spelling and not a second semantics — and it is cheap to state, since the compact form of
+    /// each of these shapes is already measured against a page in the three modules above.
+    mod the_structured_form_states_the_whole_grammar {
+        use super::*;
+
+        fn spec(yaml: &str) -> InputPdfLineSet {
+            serde_yaml::from_str(yaml).expect("the test's own yaml")
+        }
+
+        /// The lines a structured spec selects on a page, resolved against it.
+        fn selected_by<'a>(yaml: &str, page: &'a [PdfLine]) -> Vec<&'a str> {
+            let set = pdfline_selection_from_dict(&spec(yaml))
+                .expect("a well-formed spec")
+                .contextualize(page);
+            page.iter().filter(|l| set.contains(l)).map(|l| l.text().as_str()).collect()
+        }
+
+        /// A page with two columns and a heading in each, which is enough to tell an anchored side
+        /// from a numeric one and a difference from an intersection.
+        fn two_columns() -> Vec<PdfLine> {
+            vec![
+                line("Arial-Bold", 8.0, "Situazione a fine", (300.0, 40.0, 380.0, 50.0)),
+                line("Arial", 8.0, "left of the heading", (10.0, 60.0, 90.0, 70.0)),
+                line("Arial", 8.0, "1,25", (120.0, 60.0, 160.0, 70.0)),
+                line("Arial", 8.0, "right of the heading", (400.0, 60.0, 480.0, 70.0)),
+            ]
+        }
+
+        mod an_anchored_side {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// `{x_max: {text: ".."}}` is the mapping spelling of `((:<"..">)(:))`.
+            #[test]
+            fn a_side_may_be_a_nested_selection_instead_of_a_number() {
+                let page = two_columns();
+                let got = selected_by(
+                    "font: Arial\narea:\n  x_max:\n    text: '^Situazione a fine'\n",
+                    &page,
+                );
+                assert_eq!(got, ["left of the heading", "1,25"]);
+            }
+
+            #[test]
+            fn it_agrees_with_the_compact_spelling() {
+                let page = two_columns();
+                assert_eq!(
+                    selected_by("font: Arial\narea:\n  x_max:\n    text: '^Situazione a fine'\n", &page),
+                    selected(r#"Arial ((:<"^Situazione a fine">)(:))"#, &page),
+                );
+            }
+
+            /// The anchor is a whole selection, so it carries its own font — which is the shape
+            /// every measured one has, the anchoring word occurring in the body of the page too.
+            #[test]
+            fn the_anchor_carries_its_own_criteria() {
+                let page = vec![
+                    line("Arial-Bold", 8.0, "Notes", (300.0, 40.0, 340.0, 50.0)),
+                    line("Arial", 8.0, "Notes", (10.0, 40.0, 50.0, 50.0)),
+                    line("Arial", 8.0, "a value", (120.0, 60.0, 160.0, 70.0)),
+                ];
+                let got = selected_by(
+                    "font: Arial\narea:\n  x_max:\n    font: Arial-Bold\n    text: '^Notes'\n",
+                    &page,
+                );
+                assert_eq!(got, ["Notes", "a value"], "the bold heading is the side, not the plain one");
+            }
+
+            #[test]
+            fn a_numeric_side_still_reads_as_a_number() {
+                let page = two_columns();
+                assert_eq!(
+                    selected_by("font: Arial\narea:\n  x_max: 200\n", &page),
+                    selected("Arial ((:200)(:))", &page),
+                );
+            }
+
+            #[test]
+            fn an_anchor_stating_nothing_is_refused_rather_than_taking_the_whole_page() {
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "font: Arial\narea:\n  x_max: {}\n",
+                )));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+        }
+
+        mod a_window {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            fn statement_head() -> Vec<PdfLine> {
+                vec![
+                    line("Arial-Bold", 8.0, "Assets", (100.0, 50.0, 140.0, 60.0)),
+                    line("Arial-Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
+                    line("Arial", 8.0, "left of the anchor", (10.0, 40.0, 50.0, 50.0)),
+                ]
+            }
+
+            const WINDOW: &str = "window:\n  anchor:\n    font: Arial-Bold\n    text: '^Assets'\n  dx: 1.2\n  dy: -1.0\n  width: 100.0\n  height: 1.5\n";
+
+            #[test]
+            fn the_four_numbers_and_the_anchor_read_as_they_do_in_the_grammar() {
+                assert_eq!(selected_by(WINDOW, &statement_head()), ["EUR"]);
+            }
+
+            #[test]
+            fn it_agrees_with_the_compact_spelling() {
+                let page = statement_head();
+                assert_eq!(
+                    selected_by(WINDOW, &page),
+                    selected(r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#, &page),
+                );
+            }
+
+            #[test]
+            fn the_other_criteria_are_intersected_with_it() {
+                let page = vec![
+                    line("Arial-Bold", 8.0, "Assets", (100.0, 50.0, 140.0, 60.0)),
+                    line("Arial-Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
+                    line("Helvetica", 8.0, "another family, same band", (300.0, 40.0, 340.0, 50.0)),
+                ];
+                let got = selected_by(&format!("font: Helvetica\n{WINDOW}"), &page);
+                assert_eq!(got, ["another family, same band"]);
+            }
+
+            /// Four numbers, none of them optional: an expression written out is read by whoever
+            /// maintains the format, and there a number that is not written cannot be read.
+            #[test]
+            fn none_of_the_four_numbers_may_be_left_out() {
+                let error = serde_yaml::from_str::<InputPdfLineSet>(
+                    "window:\n  anchor:\n    text: '^Assets'\n  dx: 1.2\n  dy: -1.0\n  width: 100.0\n",
+                )
+                .expect_err("a window with three numbers is not a window");
+                assert!(error.to_string().contains("height"), "{error}");
+            }
+
+            #[test]
+            fn an_anchor_stating_nothing_is_refused() {
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "window:\n  anchor: {}\n  dx: 1.0\n  dy: 0.0\n  width: 2.0\n  height: 1.0\n",
+                )));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+        }
+
+        /// The union, which has no compact spelling at all.
+        ///
+        /// It is the form `P10` needed and the reason it exists: a report paginated as a book
+        /// prints the page number on the left of an even page and on the right of an odd one, so
+        /// the number is in *either* of two areas. The compact grammar unites fonts and nothing
+        /// else, and the mapping is where new expressiveness belongs now that it is the form to
+        /// write.
+        mod a_union {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// The two bands of a page numbered as a book, and a line in each.
+            fn book_foot() -> Vec<PdfLine> {
+                vec![
+                    line("Arial", 7.0, "12", (40.0, 800.0, 55.0, 810.0)),
+                    line("Arial", 7.0, "13", (540.0, 800.0, 555.0, 810.0)),
+                    line("Arial", 7.0, "the fund name", (200.0, 800.0, 400.0, 810.0)),
+                ]
+            }
+
+            #[test]
+            fn any_of_takes_the_lines_of_either_operand() {
+                let page = book_foot();
+                let got = selected_by("any_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\n", &page);
+                assert_eq!(got, ["12", "13"], "both margins, and not what sits between them");
+            }
+
+            #[test]
+            fn the_spec_s_own_criteria_are_intersected_with_the_union() {
+                let page = vec![
+                    line("Arial", 7.0, "12", (40.0, 800.0, 55.0, 810.0)),
+                    line("Helvetica", 7.0, "13", (540.0, 800.0, 555.0, 810.0)),
+                ];
+                let got = selected_by(
+                    "font: Arial\nany_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\n",
+                    &page,
+                );
+                assert_eq!(got, ["12"], "the union narrows the area, the font narrows the family");
+            }
+
+            #[test]
+            fn a_union_of_one_is_that_one() {
+                let page = book_foot();
+                assert_eq!(
+                    selected_by("any_of:\n  - area: {x_max: 100}\n", &page),
+                    selected_by("area: {x_max: 100}\n", &page),
+                );
+            }
+
+            #[test]
+            fn it_makes_the_spec_relative() {
+                let built = pdfline_selection_from_dict(&spec("any_of:\n  - text: '^A'\n"))
+                    .expect("a well-formed spec");
+                assert!(matches!(built, OptionallyRelative::Relative(_)));
+            }
+
+            #[test]
+            fn an_operand_stating_nothing_is_refused_rather_than_uniting_the_whole_page() {
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "any_of:\n  - text: '^A'\n  - {}\n",
+                )));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+
+            /// The union is inside the difference, which is what `(criteria & any_of) / without`
+            /// means: the subtraction applies to the whole union and not to its first operand.
+            #[test]
+            fn what_is_subtracted_is_taken_off_the_whole_union() {
+                let page = vec![
+                    line("Arial", 7.0, "12", (40.0, 800.0, 55.0, 810.0)),
+                    line("Arial", 7.0, "13", (540.0, 800.0, 555.0, 810.0)),
+                ];
+                let got = selected_by(
+                    "any_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\nwithout:\n  - text: '^13$'\n",
+                    &page,
+                );
+                assert_eq!(got, ["12"]);
+            }
+        }
+
+        /// The intersection, for the case the mapping's own keys cannot reach: **two criteria of
+        /// the same kind**.
+        mod an_intersection {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// FINECO-EN23@IR's table: bounded above by a heading **and** by an ordinate, which is
+            /// two areas and therefore cannot be one `area` key.
+            #[test]
+            fn two_areas_of_the_same_spec_are_both_applied() {
+                let page = vec![
+                    line("Arial", 7.0, "a holding", (140.0, 300.0, 300.0, 310.0)),
+                    line("Arial", 7.0, "SWAPS", (140.0, 600.0, 200.0, 610.0)),
+                    line("Arial", 7.0, "below the heading", (140.0, 700.0, 300.0, 710.0)),
+                    line("Arial", 7.0, "the page foot", (140.0, 800.0, 300.0, 810.0)),
+                ];
+                let got = selected_by(
+                    "font: Arial\nall_of:\n  - area: {y_max: {text: '^SWAPS$'}}\n  - area: {y_max: 750}\n",
+                    &page,
+                );
+                assert_eq!(got, ["a holding"], "the heading closes it, and the ordinate keeps the foot out");
+            }
+
+            /// With the heading absent the anchored side widens, and the ordinate is what is left:
+            /// the reason the two are written together rather than one instead of the other.
+            #[test]
+            fn the_second_still_holds_when_the_first_cannot_resolve() {
+                let page = vec![
+                    line("Arial", 7.0, "a holding", (140.0, 300.0, 300.0, 310.0)),
+                    line("Arial", 7.0, "the page foot", (140.0, 800.0, 300.0, 810.0)),
+                ];
+                let got = selected_by(
+                    "font: Arial\nall_of:\n  - area: {y_max: {text: '^SWAPS$'}}\n  - area: {y_max: 750}\n",
+                    &page,
+                );
+                assert_eq!(got, ["a holding"]);
+            }
+
+            #[test]
+            fn it_makes_the_spec_relative() {
+                let built = pdfline_selection_from_dict(&spec("all_of:\n  - text: '^A'\n"))
+                    .expect("a well-formed spec");
+                assert!(matches!(built, OptionallyRelative::Relative(_)));
+            }
+
+            #[test]
+            fn an_operand_stating_nothing_is_refused() {
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "all_of:\n  - text: '^A'\n  - {}\n",
+                )));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+
+            /// The three operations compose in one order: the keys and `all_of` and `any_of`
+            /// intersect, and `without` is taken off the lot.
+            #[test]
+            fn the_three_operations_compose() {
+                let page = vec![
+                    line("Arial", 7.0, "12", (40.0, 800.0, 55.0, 810.0)),
+                    line("Arial", 7.0, "13", (540.0, 800.0, 555.0, 810.0)),
+                    line("Helvetica", 7.0, "another family", (40.0, 800.0, 55.0, 810.0)),
+                ];
+                let got = selected_by(
+                    "all_of:\n  - font: Arial\nany_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\nwithout:\n  - text: '^13$'\n",
+                    &page,
+                );
+                assert_eq!(got, ["12"]);
+            }
+        }
+
+        mod a_difference {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn without_subtracts_what_it_lists() {
+                let page = two_columns();
+                let got = selected_by("font: Arial\nwithout:\n  - text: ','\n", &page);
+                assert_eq!(got, ["left of the heading", "right of the heading"]);
+            }
+
+            #[test]
+            fn it_agrees_with_the_compact_spelling() {
+                let page = two_columns();
+                assert_eq!(
+                    selected_by("font: Arial\nwithout:\n  - text: ','\n", &page),
+                    selected("Arial / \",\"", &page),
+                );
+            }
+
+            /// The list folds, as ` / ` does.
+            #[test]
+            fn several_operands_are_taken_out_in_turn() {
+                let page = two_columns();
+                let got = selected_by(
+                    "font: Arial\nwithout:\n  - text: ','\n  - text: '^right'\n",
+                    &page,
+                );
+                assert_eq!(got, ["left of the heading"]);
+            }
+
+            /// Which the compact grammar cannot write: its difference only ever folds left.
+            #[test]
+            fn an_operand_may_subtract_in_its_turn() {
+                let page = two_columns();
+                let got = selected_by(
+                    "font: Arial\nwithout:\n  - text: 'of the heading'\n    without:\n      - text: '^left'\n",
+                    &page,
+                );
+                assert_eq!(got, ["left of the heading", "1,25"], "only the right-hand line is taken out");
+            }
+
+            #[test]
+            fn an_operand_stating_nothing_is_refused_rather_than_subtracting_the_whole_page() {
+                let error = expect_err(pdfline_selection_from_dict(&spec("font: Arial\nwithout:\n  - {}\n")));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+
+            /// `without` alone states no criterion of its own, which is the shape the compact
+            /// grammar refuses as a first operand.
+            #[test]
+            fn subtracting_from_nothing_is_refused_too() {
+                let error = expect_err(pdfline_selection_from_dict(&spec("without:\n  - text: ','\n")));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+        }
+
+        /// `font_of`: the family is not written down, it is read off another line of the page.
+        mod a_font_taken_from_another_line {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// A page typeset in a family no selection names: the heading and the body share it,
+            /// and a second family is there to be excluded.
+            fn one_unnamed_family() -> Vec<PdfLine> {
+                vec![
+                    line("GillSans-Light", 9.0, "Descripcion de la cartera", (10.0, 40.0, 120.0, 50.0)),
+                    line("GillSans-Light", 8.0, "BOND 2029 4,5%", (10.0, 60.0, 120.0, 70.0)),
+                    line("Courier", 8.0, "a note in another family", (10.0, 80.0, 120.0, 90.0)),
+                ]
+            }
+
+            #[test]
+            fn the_font_is_the_one_of_the_line_the_anchor_picks() {
+                let page = one_unnamed_family();
+                let got = selected_by("font_of:\n  text: 'de la cartera'\n", &page);
+                assert_eq!(got, ["Descripcion de la cartera", "BOND 2029 4,5%"]);
+            }
+
+            /// Intersected with the spec's own keys, like every other criterion: the anchor's own
+            /// line is outside the area and the other family is outside the font.
+            #[test]
+            fn it_intersects_the_rest_of_the_spec() {
+                let page = one_unnamed_family();
+                let got = selected_by(
+                    "area:\n  y_min: 55.0\nfont_of:\n  text: 'de la cartera'\n",
+                    &page,
+                );
+                assert_eq!(got, ["BOND 2029 4,5%"]);
+            }
+
+            /// A page the anchor is not on resolves to the empty font set, so the selection is
+            /// empty — not the whole page. A portfolio page without its heading is not a portfolio.
+            #[test]
+            fn an_anchor_the_page_does_not_carry_selects_nothing() {
+                let page = one_unnamed_family();
+                let got = selected_by("font_of:\n  text: '^no such heading$'\n", &page);
+                assert_eq!(got, Vec::<&str>::new());
+            }
+
+            /// The same refusal every anchor gets: a spec stating nothing would take the font of
+            /// whichever line comes first on the page.
+            #[test]
+            fn an_anchor_stating_nothing_is_refused() {
+                let error = expect_err(pdfline_selection_from_dict(&spec("font_of: {}\n")));
+                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+            }
+
+            /// `font_of` alone is a criterion, so a spec stating only it is not "every line".
+            #[test]
+            fn it_counts_as_a_criterion_of_its_own() {
+                let got = spec("font_of:\n  text: 'x'\n");
+                assert!(!got.is_absolute(), "a font read off the page is relative");
+                assert!(got.states_a_criterion(), "font_of is a criterion");
+            }
+
+            /// It is in the refusal's list of stated keys, which is what its author looks for.
+            #[test]
+            fn a_refusal_names_the_key() {
+                let described = describe(&spec("font_of:\n  text: 'x'\n"));
+                assert!(described.contains("font_of"), "{described}");
+            }
+        }
+
+        mod what_the_three_forms_do_not_change {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// An empty spec at the top level is the whole page, as it has always been. The
+            /// refusal above belongs to anchors and operands, not to a selection.
+            #[test]
+            fn an_empty_spec_is_still_every_line() {
+                let selection = pdfline_selection_from_dict(&InputPdfLineSet::default())
+                    .expect("an empty spec is the whole page");
+                assert!(selects(&selection, &line("Arial", 10.0, "anything", (1.0, 1.0, 2.0, 2.0))));
+            }
+
+            /// A spec with none of the three stays **absolute**, which is what every spec written
+            /// before them was: the fast path is still the path they take.
+            #[test]
+            fn a_spec_with_none_of_them_is_still_absolute() {
+                let absolute = pdfline_selection_from_dict(&spec("font: Arial\narea:\n  x_max: 200\n"))
+                    .expect("a well-formed spec");
+                assert!(matches!(absolute, OptionallyRelative::Absolute(_)));
+            }
+
+            #[test]
+            fn each_of_the_three_makes_it_relative() {
+                for yaml in [
+                    "font: Arial\narea:\n  x_max:\n    text: '^A'\n",
+                    "window:\n  anchor:\n    text: '^A'\n  dx: 1.0\n  dy: 0.0\n  width: 2.0\n  height: 1.0\n",
+                    "font: Arial\nwithout:\n  - text: ','\n",
+                ] {
+                    let built = pdfline_selection_from_dict(&spec(yaml)).expect("a well-formed spec");
+                    assert!(matches!(built, OptionallyRelative::Relative(_)), "{yaml}");
+                }
+            }
+
+            /// The numeric sides go through the same validation they always did, anchors or no
+            /// anchors: a side written `0` is refused here as it is in a cell.
+            #[test]
+            fn a_numeric_side_is_validated_beside_an_anchored_one() {
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "area:\n  x_min: 0\n  x_max:\n    text: '^A'\n",
+                )));
+                assert!(
+                    matches!(error, LineSelectionError::Area(PositionError::XMinNotPositive(_))),
+                    "{error:?}"
+                );
+            }
+
+            /// A refusal names the keys the spec states, so that its author can find it. The
+            /// derived `Debug` would name the five it does not state as well.
+            #[test]
+            fn a_refusal_quotes_the_keys_the_spec_states() {
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "font: Arial\nwithout:\n  - {}\n",
+                )));
+                assert_eq!(
+                    error.to_string(),
+                    "this expression states no criterion, so it would select every line: a selection spec stating nothing"
+                );
+            }
+        }
+    }
 }

@@ -158,6 +158,12 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
     let pipe = pipe
         .with_remove_from_fund_regexes(&cuts)
         .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;
+    let pipe = match additional.and_then(|a| a.quantity_in_name.as_deref()) {
+        None => pipe,
+        Some(pattern) => pipe
+            .with_quantity_in_name(pattern)
+            .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?,
+    };
     pipeline.text_filter.push(Arc::new(pipe));
     Ok(())
 }

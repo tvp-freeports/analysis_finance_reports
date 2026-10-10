@@ -1,18 +1,29 @@
 //! A line selection as a formats repository's YAML writes it.
 //!
-//! Two shapes, because a selection is written for two different jobs. The mapping form —
-//! [`InputPdfLineSet`], `{font, font_size, text, area}` — intersects the criteria it is given and
-//! reads well where there are two or three of them. The **compact grammar**, the one the structured
-//! level's cells are written in, expresses what the mapping cannot: a font **union** (`R8`), an
-//! area whose side is a line of the page, a `window(..)`, and the difference `A / B` — and a
-//! measured label needs one of those four often enough that offering only the mapping would push
-//! the selection back into Python.
+//! Two shapes of the same thing, and in YAML the **mapping** is the one to write.
 //!
-//! So a selection here is either, and a string is **validated** before it is parsed:
-//! [`pdfline_selection_from_str`] answers an expression it does not recognise with the selection of
-//! *every line*, which for a label is the one failure that produces output instead of an error.
+//! The mapping form is [`InputPdfLineSet`] — `{text, font, font_size, area, window, without}` — and
+//! it now states the whole of the grammar: an area side may be a line of the page, `window` hangs a
+//! band off an anchor, `without` subtracts. While it could not, a selection needing one of those
+//! three had to be written as a compact string even where every selection around it was a mapping,
+//! and a repository ended up with both spellings side by side for a reason no author chose. That
+//! was the only argument for the string form here, and it is gone.
+//!
+//! The **compact grammar** stays, for two reasons that have nothing to do with expressiveness: the
+//! structured level's cells live in a CSV, where a mapping cannot be written, and a one-criterion
+//! selection is shorter as `'arialmt[7.5:8.5]'` than as three lines. It is read where it is found,
+//! and it is **validated** before it is parsed: [`pdfline_selection_from_str`] answers an
+//! expression it does not recognise with the selection of *every line*, which for a label is the
+//! one failure that produces output instead of an error.
+//!
+//! In YAML, prefer the mapping. It says which criterion is which without a grammar to know, it
+//! nests instead of quoting — an anchor inside an area inside a window needs no `<…>` and no
+//! escaping — and a key it does not know it **refuses**, where a mistyped compact cell can only be
+//! caught by the shape of the whole string.
 
-use serde::Deserialize;
+use serde::de::Visitor;
+use serde::de::value::MapAccessDeserializer;
+use serde::{Deserialize, Deserializer};
 
 use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::input::document::selection::{
@@ -39,14 +50,50 @@ pub enum SelectionConfigError {
     NotASelection { field: &'static str, cell: String },
 }
 
-/// A line selection: the compact grammar, or the mapping form. See the module documentation.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(untagged)]
+/// A line selection: the mapping form, or the compact grammar. See the module documentation.
+#[derive(Debug, Clone)]
 pub enum InputSelection {
-    /// The compact grammar — fonts, `[size]`, areas with text anchors, `window(..)`, and `A / B`.
+    /// The compact grammar — fonts, `[size]`, areas with anchors, `window(..)`, and `A / B`.
     Compact(String),
-    /// Four optional criteria, intersected.
-    Structured(InputPdfLineSet),
+    /// The mapping form, which states the same grammar as a tree of keys. Boxed because it is a
+    /// tree: the compact form is a string, and a selection written as one must not pay for the
+    /// other's size in every configuration that holds one.
+    Structured(Box<InputPdfLineSet>),
+}
+
+/// Written by hand rather than derived as an untagged enum, for the error message.
+///
+/// `#[serde(untagged)]` tries each variant and, when none fits, says only *data did not match any
+/// variant of untagged enum InputSelection* — it has thrown away which variant was nearly right
+/// and why it failed. A mapping with a mistyped key is the likeliest mistake in a repository where
+/// every selection is a mapping, and `unknown field 'fonts', expected one of 'text', 'font', …` is
+/// the difference between a message that names the typo and one that does not.
+///
+/// So the variant is chosen by what **arrives** — a string is the compact form, a mapping the
+/// structured one — and the mapping's own error is propagated untouched.
+impl<'de> Deserialize<'de> for InputSelection {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct SelectionVisitor;
+
+        impl<'de> Visitor<'de> for SelectionVisitor {
+            type Value = InputSelection;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a line selection: a mapping of criteria, or a compact expression in quotes")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+                Ok(InputSelection::Compact(value.to_string()))
+            }
+
+            fn visit_map<M: serde::de::MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
+                InputPdfLineSet::deserialize(MapAccessDeserializer::new(map))
+                    .map(|spec| InputSelection::Structured(Box::new(spec)))
+            }
+        }
+
+        deserializer.deserialize_any(SelectionVisitor)
+    }
 }
 
 impl InputSelection {
@@ -132,7 +179,38 @@ mod tests {
         fn keeps_its_keys() {
             selection("{font: arial, font_size: [7.5, 8.5], text: it is managed by}")
                 .build("label")
-                .expect("four optional criteria, intersected");
+                .expect("the criteria it states, intersected");
+        }
+
+        /// The three forms that used to need the compact string, now that the mapping states them.
+        #[test]
+        fn states_an_anchored_side_a_window_and_a_difference() {
+            selection("{area: {x_max: {text: '^Situazione a fine'}}, without: [{text: ','}]}")
+                .build("value")
+                .expect("an anchored side and a subtraction");
+            selection(
+                "{window: {anchor: {font: arial, text: 'Societa di gestione:'}, dx: -0.2, dy: 1.5, width: 100.0, height: 1.2}}",
+            )
+            .build("label")
+            .expect("a window hangs off its anchor");
+        }
+
+        /// What the hand-written `Deserialize` is for: an untagged enum would answer *data did not
+        /// match any variant* and throw the typo away.
+        #[test]
+        fn a_mistyped_key_is_named_in_the_refusal() {
+            let error = serde_yaml::from_str::<InputSelection>("{fonts: arialmt}")
+                .expect_err("a key the mapping does not know must not be dropped in silence");
+            let message = error.to_string();
+            assert!(message.contains("unknown field `fonts`"), "{message}");
+            assert!(message.contains("`font_size`"), "{message}");
+        }
+
+        #[test]
+        fn a_selection_that_is_neither_a_string_nor_a_mapping_says_what_one_is() {
+            let error = serde_yaml::from_str::<InputSelection>("[arialmt]")
+                .expect_err("a list is not a selection");
+            assert!(error.to_string().contains("a line selection"), "{error}");
         }
 
         #[test]
