@@ -94,6 +94,44 @@ pub enum SemistructuredError {
         #[source]
         source: native::inv_managers::InvManagersError,
     },
+    #[error("segment '{segment}', algorithm 'renaming': {source}")]
+    Renaming {
+        segment: &'static str,
+        #[source]
+        source: native::renaming::RenamingConfigError,
+    },
+    #[error("segment '{segment}', algorithm 'esg': {source}")]
+    Esg {
+        segment: &'static str,
+        #[source]
+        source: native::esg::EsgConfigError,
+    },
+    #[error("segment '{segment}', algorithm '{name}': {source}")]
+    Carryover {
+        segment: &'static str,
+        name: &'static str,
+        #[source]
+        source: native::carryover::CarryoverConfigError,
+    },
+    #[error("segment '{segment}', algorithm '{name}': {source}")]
+    Selection {
+        segment: &'static str,
+        name: &'static str,
+        #[source]
+        source: native::selection::SelectionConfigError,
+    },
+    #[error("segment '{segment}', algorithm 'section': {source}")]
+    Section {
+        segment: &'static str,
+        #[source]
+        source: native::section::SectionConfigError,
+    },
+    #[error("segment '{segment}', algorithm 'labelled_value': {source}")]
+    LabelledValue {
+        segment: &'static str,
+        #[source]
+        source: native::labelled_value::LabelledValueConfigError,
+    },
     #[error("segment '{segment}', algorithm 'sfdr_annex': {source}")]
     SfdrAnnex {
         segment: &'static str,
@@ -299,6 +337,38 @@ fn build_native(
             })?;
             Ok(SegmentPipes::PdfExtract(pipes))
         }
+        (SegmentKind::PdfExtract, "labelled_value") => {
+            let input: native::labelled_value::InputLabelledValue = parse_args(segment, name, arg)?;
+            let pipe = input.build().map_err(|source| {
+                SemistructuredError::LabelledValue { segment: segment.file_stem(), source }
+            })?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::PdfExtract, "section") => {
+            let input: native::section::InputSection = parse_args(segment, name, arg)?;
+            let pipe = input
+                .build()
+                .map_err(|source| SemistructuredError::Section { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::PdfExtract, "fund") => {
+            let input: native::selected_text::InputSelectedText = parse_args(segment, name, arg)?;
+            let pipe = input.fund().map_err(|source| SemistructuredError::Selection {
+                segment: segment.file_stem(),
+                name: "fund",
+                source,
+            })?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::PdfExtract, "currency") => {
+            let input: native::selected_text::InputSelectedText = parse_args(segment, name, arg)?;
+            let pipe = input.currency().map_err(|source| SemistructuredError::Selection {
+                segment: segment.file_stem(),
+                name: "currency",
+                source,
+            })?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
         (SegmentKind::TextFilter, "sfdr_annex") => {
             let input: native::sfdr_annex::InputSfdrAnnexTextFilter = parse_args(segment, name, arg)?;
             let pipes = native::sfdr_annex::text_filter(&input).map_err(|source| {
@@ -336,6 +406,65 @@ fn build_native(
                 SemistructuredError::InvManagers { segment: segment.file_stem(), source }
             })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::TextFilter, "renaming") => {
+            let input: native::renaming::InputRenaming = parse_args(segment, name, arg)?;
+            let pipe = native::renaming::text_filter(&input).map_err(|source| {
+                SemistructuredError::Renaming { segment: segment.file_stem(), source }
+            })?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::Deserialize, "renaming") => {
+            let input: native::renaming::InputRenamingDeserialize = if arg.is_null() {
+                native::renaming::InputRenamingDeserialize::default()
+            } else {
+                parse_args(segment, name, arg)?
+            };
+            let pipe = native::renaming::deserialize(&input).map_err(|source| {
+                SemistructuredError::Renaming { segment: segment.file_stem(), source }
+            })?;
+            Ok(SegmentPipes::Deserialize(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::TextFilter, "esg") => {
+            let input: native::esg::InputEsg = parse_args(segment, name, arg)?;
+            let pipe = native::esg::text_filter(&input).map_err(|source| SemistructuredError::Esg {
+                segment: segment.file_stem(),
+                source,
+            })?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::TextFilter, "labelled_assets") => {
+            let input: native::carryover::InputLabelledAssets = parse_args(segment, name, arg)?;
+            let pipe = native::carryover::text_filter(&input).map_err(|source| {
+                SemistructuredError::Carryover {
+                    segment: segment.file_stem(),
+                    name: "labelled_assets",
+                    source,
+                }
+            })?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::Deserialize, "carryover_deposit") => {
+            let input: native::carryover::InputCarryoverDeposit = parse_args(segment, name, arg)?;
+            let pipe = native::carryover::deposit(&input).map_err(|source| {
+                SemistructuredError::Carryover {
+                    segment: segment.file_stem(),
+                    name: "carryover_deposit",
+                    source,
+                }
+            })?;
+            Ok(SegmentPipes::Deserialize(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::Deserialize, "assets") => {
+            let input: native::carryover::InputAssets = if arg.is_null() {
+                native::carryover::InputAssets::default()
+            } else {
+                parse_args(segment, name, arg)?
+            };
+            let pipe = native::carryover::assets(&input).map_err(|source| {
+                SemistructuredError::Carryover { segment: segment.file_stem(), name: "assets", source }
+            })?;
+            Ok(SegmentPipes::Deserialize(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "manco_imposed") => {
             let input: native::InputMancoImposed = parse_args(segment, name, arg)?;
@@ -735,13 +864,42 @@ A-EN24(investments):
             assert!(!native::is_argless(SegmentKind::PdfExtract, "currency_constant"));
         }
 
+        /// The deserialize names that have an **arm of their own** in [`build_native`] and are
+        /// therefore not reached through [`native::argless_deserialize`], which is the fallback.
+        ///
+        /// `assets` and `carryover_deposit` are configurable, like `investment`: the first takes the
+        /// two casts, the second the fields it promises. A name is on this list because it has a
+        /// builder in the other place, never because it has none.
+        const CONFIGURABLE_DESERIALIZERS: [&str; 4] =
+            ["investment", "assets", "carryover_deposit", "renaming"];
+
         #[test]
         fn every_argless_deserialize_name_builds_a_pipe() {
             for name in native::names(SegmentKind::Deserialize) {
-                if *name == "investment" {
+                if CONFIGURABLE_DESERIALIZERS.contains(name) {
                     continue;
                 }
                 assert!(native::argless_deserialize(name).is_some(), "{name} has no builder");
+            }
+        }
+
+        /// The other half of the pair: a configurable name must really have its own arm, or it would
+        /// be registered and unbuildable — which is the hole the list above could otherwise hide.
+        #[test]
+        fn every_configurable_deserialize_name_has_an_arm_of_its_own() {
+            for name in CONFIGURABLE_DESERIALIZERS {
+                assert!(native::contains(SegmentKind::Deserialize, name), "{name} is not registered");
+                let built = build_native(SegmentKind::Deserialize, name, &serde_yaml::Value::Null);
+                // Either it builds from nothing, or it refuses the empty configuration by name:
+                // both answers prove the arm is there. A name with no arm falls through to the
+                // argless fallback, which returns `UnknownAlgorithm` instead.
+                match built {
+                    Ok(_) => {}
+                    Err(SemistructuredError::MalformedArgs { name: refused, .. }) => {
+                        assert_eq!(refused, name);
+                    }
+                    Err(other) => panic!("{name}: unexpected {other:?}"),
+                }
             }
         }
     }

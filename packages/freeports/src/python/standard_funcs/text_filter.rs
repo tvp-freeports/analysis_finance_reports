@@ -76,7 +76,6 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
     acquisition_currency_pos=None,
     acquisition_cost_pos=None,
     geometrical_indexes=true,
-    merge_prev=false,
     dash_as_zero=None,
     note_marks="",
     remove_from_fund_regexes=None,
@@ -89,7 +88,6 @@ pub fn py_text_filter_investments_standard(
     acquisition_currency_pos: Option<i64>,
     acquisition_cost_pos: Option<i64>,
     geometrical_indexes: bool,
-    merge_prev: bool,
     dash_as_zero: Option<&str>,
     note_marks: &str,
     remove_from_fund_regexes: Option<&Bound<'_, PyAny>>,
@@ -108,7 +106,6 @@ pub fn py_text_filter_investments_standard(
         acquisition_currency_pos,
         acquisition_cost_pos,
         geometrical_indexes,
-        merge_prev,
         dash_as_zero,
     )
     .map_err(|e| {

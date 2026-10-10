@@ -12,7 +12,14 @@
 //! absent rather than demanding a `{}` that carries no information. An algorithm not listed there
 //! still requires its entry: a missing one is then a configuration mistake, not a default.
 
+pub mod carryover;
+pub mod esg;
 pub mod inv_managers;
+pub mod labelled_value;
+pub mod renaming;
+pub mod section;
+pub mod selected_text;
+pub mod selection;
 pub mod sfdr_annex;
 
 use std::sync::Arc;
@@ -31,6 +38,8 @@ use crate::formats_utils::pdf_extract::standard_funcs::{
     ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs, TableSettings, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
     PdfExtractStandardFuncsError, pdf_extract_fund_standard,
 };
+use crate::formats_utils::pdf_extract::position::SplittingDirection;
+use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
 use crate::input::document::selection::{InputPdfLineSet, LineSelectionError, pdfline_selection_from_dict};
 
@@ -38,8 +47,11 @@ use super::SegmentKind;
 
 /// The native names of each segment.
 const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
-    (SegmentKind::PdfExtract, &["standard_cost_curr", "currency_constant", "sfdr_annex"]),
-    (SegmentKind::TextFilter, &["sfdr_annex", "manco", "manco_imposed", "inv_managers"]),
+    (SegmentKind::PdfExtract, &["standard_cost_curr", "currency_constant", "sfdr_annex", "labelled_value", "fund", "currency", "section"]),
+    (
+        SegmentKind::TextFilter,
+        &["sfdr_annex", "manco", "manco_imposed", "inv_managers", "labelled_assets", "esg", "renaming"],
+    ),
     (
         SegmentKind::Deserialize,
         &[
@@ -50,6 +62,10 @@ const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
             "investment",
             "page_classify",
             "sfdr_article",
+            "assets",
+            "carryover_deposit",
+            "esg_indicator",
+            "renaming",
         ],
     ),
 ];
@@ -72,6 +88,13 @@ const ARGLESS_NAMES: [(SegmentKind, &[&str]); 3] = [
             "investment",
             "page_classify",
             "sfdr_article",
+            // Both of its cells have the engine's own default — `int` and the numeric date — so a
+            // statement written the ordinary way names it and says nothing else.
+            "assets",
+            "esg_indicator",
+            // Its one cell is the language of the months, and `en_month` is the default the
+            // template had: three of the four measured sections are in English.
+            "renaming",
         ],
     ),
 ];
@@ -148,6 +171,17 @@ pub struct InputStandardCostCurr {
     /// The same for a **row**. Independent: leaving it out means zero, not `col_tolerance`.
     #[serde(default)]
     pub row_tolerance: f32,
+    /// The columns whose cells may break across several lines — the columns of names, since a long
+    /// name wraps and a number does not. Naming them asks the pipe for one block per **cell**.
+    ///
+    /// The same cell the structured level calls `Collapse`, as a list because a page carrying two
+    /// tables side by side has two columns of names. Empty is no collapse, which is what every
+    /// configuration written before this said.
+    #[serde(default)]
+    pub collapse_cols: Vec<usize>,
+    /// `down` (the default) puts a broken cell on the **first** row of its run, `up` on the last.
+    #[serde(default)]
+    pub collapse_direction: Option<String>,
 }
 
 /// Failures of building a native algorithm.
@@ -167,6 +201,8 @@ pub enum NativeError {
     },
     #[error(transparent)]
     Pipe(#[from] PdfExtractStandardFuncsError),
+    #[error("field 'collapse_direction': must be 'down' or 'up', found '{found}'")]
+    CollapseDirection { found: String },
 }
 
 /// The three extraction pipes a "standard cost and currency" format needs.
@@ -190,12 +226,24 @@ pub fn standard_cost_curr(
         deselection_list.push(selection("deselection_list", spec)?);
     }
 
+    let collapse_direction = match input.collapse_direction.as_deref().unwrap_or("down") {
+        "down" => SplittingDirection::Down,
+        "up" => SplittingDirection::Up,
+        other => {
+            return Err(NativeError::CollapseDirection { found: other.to_string() });
+        }
+    };
+
     let args = InvestmentsStandardArgs {
         deselection_list,
         table: TableSettings {
             algorithm_flags: flags("algorithm_flags", &input.algorithm_flags)?,
             col_tolerance: input.col_tolerance,
             row_tolerance: input.row_tolerance,
+            collapse: !input.collapse_cols.is_empty(),
+            collapse_algorithm: CollapseAlgorithm::Pattern,
+            collapse_direction,
+            collapse_cols: input.collapse_cols.clone(),
             ..TableSettings::default()
         },
         ..InvestmentsStandardArgs::new(selection("body_set", &input.body_set)?)
@@ -225,6 +273,7 @@ pub fn argless_deserialize(name: &str) -> Option<Arc<dyn DeserializePipe>> {
         "investments_manager_from_manco" => Arc::new(DeserializerInvestmentsManagerFromManco),
         "page_classify" => Arc::new(DeserializerPageClassifyStandard),
         "sfdr_article" => Arc::new(DeserializeSfdrArticleStandard),
+        "esg_indicator" => Arc::new(esg::deserialize()),
         _ => return None,
     })
 }

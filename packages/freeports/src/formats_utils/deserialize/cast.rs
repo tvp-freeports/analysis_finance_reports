@@ -386,6 +386,10 @@ const IT_MONTHS: &[&str] = &[
     "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
     "ottobre", "novembre", "dicembre",
 ];
+const ES_MONTHS: &[&str] = &[
+    "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre",
+    "octubre", "noviembre", "diciembre",
+];
 
 fn month_index(text: &str, months: &[&str], locale: &'static str) -> Result<u8, CastError> {
     let needle = text.to_lowercase();
@@ -430,6 +434,18 @@ pub fn to_date_with_en_month(text: &str) -> Result<Date, CastError> {
 /// Parses a `"DD MONTH YYYY"` date with an Italian month name.
 pub fn to_date_with_it_month(text: &str) -> Result<Date, CastError> {
     parse_day_month_name_year(text, IT_MONTHS, "it")
+}
+
+/// Parses a `"DD de MONTH de YYYY"` date with a Spanish month name: `31 de diciembre de 2024`.
+///
+/// The two `de`s are dropped rather than required, the same way [`to_date_with_en_month_first`]
+/// treats its comma: what is being done here is recognising a date, not validating one. With them
+/// gone the three fields are in the order [`to_date_with_it_month`] already reads, so the parsing
+/// itself is shared and only the month names and the filler word differ.
+pub fn to_date_with_es_month(text: &str) -> Result<Date, CastError> {
+    let without_filler: Vec<&str> =
+        text.split_whitespace().filter(|part| !part.eq_ignore_ascii_case("de")).collect();
+    parse_day_month_name_year(&without_filler.join(" "), ES_MONTHS, "es")
 }
 
 /// Parses a `"MONTH DD, YYYY"` date with an English month name: `FEBRUARY 28, 2023`.
@@ -782,6 +798,32 @@ mod tests {
         fn rejects_an_unknown_month_name_in_either_language() {
             assert!(to_date_with_en_month("1 Gennaio 2025").is_err());
             assert!(to_date_with_it_month("1 January 2025").is_err());
+        }
+
+        /// `31 de diciembre de 2024`, the only way MEDIOLANUM-ES24.A writes a date.
+        #[test]
+        fn to_date_with_es_month_drops_the_two_de_and_reads_the_three_fields() {
+            assert_eq!(to_date_with_es_month("31 de diciembre de 2024").unwrap(), Date::new(2024, 12, 31).unwrap());
+            assert_eq!(to_date_with_es_month("1 de enero de 2025").unwrap(), Date::new(2025, 1, 1).unwrap());
+        }
+
+        /// The filler is dropped, not required: the same three fields without it read the same, as
+        /// `to_date_with_en_month_first` treats its comma.
+        #[test]
+        fn to_date_with_es_month_reads_the_same_date_without_the_filler() {
+            assert_eq!(to_date_with_es_month("31 diciembre 2024").unwrap(), Date::new(2024, 12, 31).unwrap());
+        }
+
+        #[test]
+        fn to_date_with_es_month_is_case_insensitive_like_the_other_three() {
+            assert_eq!(to_date_with_es_month("31 DE DICIEMBRE DE 2024").unwrap(), Date::new(2024, 12, 31).unwrap());
+        }
+
+        /// An Italian month is not a Spanish one, and neither converter guesses for the other.
+        #[test]
+        fn to_date_with_es_month_refuses_a_month_of_another_language() {
+            assert!(to_date_with_es_month("31 dicembre 2024").is_err());
+            assert!(to_date_with_it_month("31 diciembre 2024").is_err());
         }
 
         #[test]

@@ -25,6 +25,8 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer};
 
+use crate::formats_utils::pdf_extract::position::SplittingDirection;
+use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
 use crate::input::document::selection::is_pdfline_selection;
 
 use super::super::id_format::{ComputedId, FkRelation, computed_ids, id_matches};
@@ -198,8 +200,34 @@ pub struct AdditionalArgsRow {
     pub interpret_cost_and_value_as_int: Option<bool>,
     #[serde(rename = "Geometrical indexing", deserialize_with = "optional_bool")]
     pub geometrical_indexing: Option<bool>,
-    #[serde(rename = "Merge previous", deserialize_with = "optional_bool")]
-    pub merge_previous: Option<bool>,
+    /// The index of the column whose cells may break across several lines — the column of names,
+    /// since a long name wraps and a number does not.
+    ///
+    /// Naming it **is** asking for the collapse: with the cell filled the `pdf_extract` emits one
+    /// block per cell instead of one per line, joining the pieces of a broken one. Which lines are
+    /// one cell is decided by `tabularizer::collapse`, and every other column is left alone.
+    ///
+    /// `default`, like `Remove from fund` and for the same reason: it arrived after repositories
+    /// existed, and one that does not need it must not grow an empty column to keep loading.
+    /// Several columns, because a page often carries **two tables side by side** and then the
+    /// column of names is two: `1 | 5` on AMUNDI-EN24, whose grid is eight columns wide.
+    #[serde(rename = "Collapse", default, deserialize_with = "optional_text")]
+    pub collapse: Option<String>,
+    /// Which way a broken cell collapses: `down` (the default) puts the pieces on the **first** row
+    /// of the run, `up` on the last. It is what `Merge previous` used to choose on the other side of
+    /// the pipeline.
+    #[serde(rename = "Collapse direction", default, deserialize_with = "optional_named")]
+    pub collapse_direction: Option<CollapseDirectionCell>,
+    /// Which of the two collapse algorithms reads the run: `pattern` (the default) takes every run
+    /// of consecutive cells of the column, `geometry` only the runs whose rows carry **nothing but
+    /// the name**.
+    ///
+    /// The difference is measured, and it is the difference between a format that needs the
+    /// collapse and one that would be harmed by it: on MEDIOLANUM-IT24.A a country heading
+    /// (`IRLANDA`) sits in the name's column with a full row of values beside it, and `pattern`
+    /// glues it to the investment above. `geometry` leaves it alone, because its row is not empty.
+    #[serde(rename = "Collapse algorithm", default, deserialize_with = "optional_named")]
+    pub collapse_algorithm: Option<CollapseAlgorithmCell>,
     /// A flag expression naming the numeric fields that read the report's dash as zero — text
     /// rather than a bool, like `Algorithm flags` and for the same reason: the cell names a set.
     #[serde(rename = "Interpret dash as zero", deserialize_with = "optional_text")]
@@ -223,6 +251,71 @@ pub struct AdditionalArgsRow {
     /// column is absent the value is `None`, which is exactly what an empty cell means.
     #[serde(rename = "Remove from fund", default, deserialize_with = "optional_text")]
     pub remove_from_fund: Option<String>,
+}
+
+/// The `Collapse direction` cell: which way a broken cell collapses.
+///
+/// A named cell rather than a bool, because `up`/`down` is what the collapse mechanism itself calls
+/// the two directions, and a repository that writes the engine's own word needs no translation
+/// table in its head.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CollapseDirectionCell {
+    Down,
+    Up,
+}
+
+impl FromStr for CollapseDirectionCell {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "down" => Ok(CollapseDirectionCell::Down),
+            "up" => Ok(CollapseDirectionCell::Up),
+            other => Err(format!("'{other}' is not a collapse direction: down or up")),
+        }
+    }
+}
+
+impl CollapseDirectionCell {
+    /// The engine's own direction.
+    pub fn native(self) -> SplittingDirection {
+        match self {
+            CollapseDirectionCell::Down => SplittingDirection::Down,
+            CollapseDirectionCell::Up => SplittingDirection::Up,
+        }
+    }
+}
+
+/// The `Collapse algorithm` cell: which of the two readings of a run.
+///
+/// Only the two the measured formats need. The engine has four — the two and their two
+/// combinations — and a cell naming a combination can be added the day a page asks for one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CollapseAlgorithmCell {
+    Pattern,
+    Geometry,
+}
+
+impl FromStr for CollapseAlgorithmCell {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "pattern" => Ok(CollapseAlgorithmCell::Pattern),
+            "geometry" => Ok(CollapseAlgorithmCell::Geometry),
+            other => Err(format!("'{other}' is not a collapse algorithm: pattern or geometry")),
+        }
+    }
+}
+
+impl CollapseAlgorithmCell {
+    /// The engine's own algorithm.
+    pub fn native(self) -> CollapseAlgorithm {
+        match self {
+            CollapseAlgorithmCell::Pattern => CollapseAlgorithm::Pattern,
+            CollapseAlgorithmCell::Geometry => CollapseAlgorithm::Geometry,
+        }
+    }
 }
 
 /// A row of the deselection table.
@@ -397,7 +490,18 @@ pub struct PageClassifyConfig {
 const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
     (
         "pdf_extract",
-        &["Subfund set", "Currency set", "Body set", "Deselection set", "Algorithm flags", "Column tolerance", "Row tolerance"],
+        &[
+            "Subfund set",
+            "Currency set",
+            "Body set",
+            "Deselection set",
+            "Algorithm flags",
+            "Column tolerance",
+            "Row tolerance",
+            "Collapse",
+            "Collapse direction",
+            "Collapse algorithm",
+        ],
     ),
     (
         "text_filter",
@@ -408,7 +512,6 @@ const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
             "Acquisition cost",
             "Acquisition currency",
             "Geometrical indexing",
-            "Merge previous",
             "Interpret dash as zero",
             "Note marks",
             "Remove from fund",
@@ -435,7 +538,9 @@ impl InvestmentsConfig {
             "Acquisition cost" => self.args.acquisition_cost.is_some(),
             "Acquisition currency" => self.args.acquisition_currency.is_some(),
             "Geometrical indexing" => additional.is_some_and(|a| a.geometrical_indexing.is_some()),
-            "Merge previous" => additional.is_some_and(|a| a.merge_previous.is_some()),
+            "Collapse" => additional.is_some_and(|a| a.collapse.is_some()),
+            "Collapse direction" => additional.is_some_and(|a| a.collapse_direction.is_some()),
+            "Collapse algorithm" => additional.is_some_and(|a| a.collapse_algorithm.is_some()),
             "Interpret quantity as float" => additional.is_some_and(|a| a.interpret_quantity_as_float.is_some()),
             "Interpret cost and value as int" => additional.is_some_and(|a| a.interpret_cost_and_value_as_int.is_some()),
             "Interpret dash as zero" => additional.is_some_and(|a| a.interpret_dash_as_zero.is_some()),
@@ -647,6 +752,16 @@ pub struct FundAssetsArgsRow {
     /// shape, and its step is two.
     #[serde(rename = "Value step", default, deserialize_with = "optional_number")]
     pub value_step: Option<i64>,
+    /// Whether one line of a value window may carry several values, told apart by the run of
+    /// spaces between them. Absent means one value per line, which is how every other statement
+    /// measured is typeset.
+    ///
+    /// MEDIOLANUM-EN24 prints its ordinary rows one object per cell and its three **total** rows
+    /// as one object holding all four numbers — or, on the net-assets row, as three objects
+    /// holding one, one and two. Counting objects therefore says nothing about how many values a
+    /// row carries, and this cell is what tells the pipe to read the spaces instead.
+    #[serde(rename = "Values in one line", default, deserialize_with = "optional_bool")]
+    pub values_in_one_line: Option<bool>,
     /// The expression pulling the date out of the line, with exactly one capturing group.
     #[serde(rename = "Date regex", default, deserialize_with = "optional_text")]
     pub date_regex: Option<String>,
@@ -729,7 +844,7 @@ mod tests {
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero,Note marks\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -776,7 +891,7 @@ mod tests {
 
 
     /// The header of the fund-assets table.
-    const ASSETS_HEADER: &str = "ID,Fund set,Currency set,Date set,Total assets,Total liabilities,Net assets,Value window,Total assets window,Total liabilities window,Net assets window,Drop set,Drop fund set,Table condition,Pair by abscissa,Value step,Date regex,Note marks,Remove from fund,Amount cast,Date cast\n";
+    const ASSETS_HEADER: &str = "ID,Fund set,Currency set,Date set,Total assets,Total liabilities,Net assets,Value window,Total assets window,Total liabilities window,Net assets window,Drop set,Drop fund set,Table condition,Pair by abscissa,Value step,Values in one line,Date regex,Note marks,Remove from fund,Amount cast,Date cast\n";
 
     mod fund_assets_args {
         use super::*;
@@ -801,6 +916,7 @@ mod tests {
             table_condition: &'a str,
             pair_by_abscissa: &'a str,
             value_step: &'a str,
+            values_in_one_line: &'a str,
             date_regex: &'a str,
             note_marks: &'a str,
             remove_from_fund: &'a str,
@@ -842,6 +958,7 @@ mod tests {
                     self.table_condition,
                     self.pair_by_abscissa,
                     self.value_step,
+                    self.values_in_one_line,
                     self.date_regex,
                     self.note_marks,
                     self.remove_from_fund,
@@ -978,6 +1095,18 @@ mod tests {
                 let row = Row { date_cast: name, ..Row::minimal() };
                 assert!(get_fund_assets_configs(repo_with(&[row]).path()).is_ok(), "{name}");
             }
+        }
+
+        /// La cella che dice che una riga di valori può portarne più d'uno. Assente vuol dire
+        /// **uno per riga**, che è come sono composti gli altri dieci prospetti misurati.
+        #[test]
+        fn values_in_one_line_is_read_and_absent_means_one_value_per_line() {
+            let row = Row { values_in_one_line: "TRUE", ..Row::minimal() };
+            let configs = get_fund_assets_configs(repo_with(&[row]).path()).unwrap();
+            assert_eq!(configs[0].row.values_in_one_line, Some(true));
+
+            let configs = get_fund_assets_configs(repo_with(&[Row::minimal()]).path()).unwrap();
+            assert_eq!(configs[0].row.values_in_one_line, None);
         }
 
         #[test]
@@ -1155,12 +1284,11 @@ mod tests {
         #[test]
         fn additional_args_join_onto_the_matching_pipe() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,FALSE,,TRUE,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,FALSE,,,\n"));
             let config = &get_investments_configs(repo.path()).unwrap()[0];
             let additional = config.additional.as_ref().unwrap();
             assert_eq!(additional.interpret_quantity_as_float, Some(true));
             assert_eq!(additional.interpret_cost_and_value_as_int, Some(false));
-            assert_eq!(additional.merge_previous, Some(true));
             assert_eq!(additional.geometrical_indexing, None);
         }
 
@@ -1175,7 +1303,7 @@ mod tests {
             let repo = with_one_pipe();
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,,,\n"),
+                &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,,\n"),
             );
             assert!(get_investments_configs(repo.path()).unwrap()[0].additional.is_some());
         }
@@ -1183,7 +1311,7 @@ mod tests {
         #[test]
         fn a_secondary_row_matching_no_pipe_is_rejected_with_its_line() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,,TRUE,,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,,TRUE,,,,\n"));
             let err = get_investments_configs(repo.path()).unwrap_err();
             let TableError::UnmatchedRow { line, id, .. } = err else { panic!("expected UnmatchedRow, got {err}") };
             assert_eq!((line, id.as_str()), (1, "GHOST-EN24(investments)/0"));
@@ -1194,7 +1322,7 @@ mod tests {
             let repo = with_one_pipe();
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,,,\nA-EN24(investments)/0,,,,FALSE,,,,,\n"),
+                &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,,\nA-EN24(investments)/0,,,,FALSE,,,,\n"),
             );
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(matches!(err, TableError::DuplicateRow { line: 2, .. }), "{err}");
@@ -1291,7 +1419,7 @@ mod tests {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,,,,,\n"));
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,TRUE,TRUE,FALSE\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,,,,\n"));
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(
                 matches!(err, TableError::DisabledSegmentConfigured { segment: "deserialize", .. }),

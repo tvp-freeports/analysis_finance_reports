@@ -521,6 +521,7 @@ pub fn py_get_groups(lines: &Bound<'_, PyAny>, treshold: f32, vertical: bool) ->
 #[pyo3(name = "get_table_coordinates", signature = (
     lines, table_cfg=None, algorithm_flags=None, collapse_alg=None,
     col_tolerance=0.0, row_tolerance=0.0, tolerance_mu=None, company_col=None, collapse=false,
+    collapse_direction=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_get_table_coordinates(
@@ -533,7 +534,17 @@ pub fn py_get_table_coordinates(
     tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
     company_col: Option<usize>,
     collapse: bool,
+    collapse_direction: Option<&str>,
 ) -> PyResult<Vec<(usize, usize)>> {
+    let collapse_direction = match collapse_direction.unwrap_or("down") {
+        "down" => position::SplittingDirection::Down,
+        "up" => position::SplittingDirection::Up,
+        other => {
+            return Err(value_error_msg(format!(
+                "collapse_direction must be 'down' or 'up', found '{other}'"
+            )));
+        }
+    };
     let config = TableCoordinatesConfig {
         table_config: table_cfg.map(|c| c.0.clone()),
         algorithm_flags: algorithm_flags.map(|f| f.0).unwrap_or(TablePosAlgorithm::Default),
@@ -543,6 +554,8 @@ pub fn py_get_table_coordinates(
         tolerance_unit: tolerance_mu.map(|u| u.native()).unwrap_or_default(),
         company_col,
         collapse,
+        collapse_direction,
+        collapse_cols: Vec::new(),
     };
     let lines = lines_from_py(lines)?;
     let coords = get_table_coordinates_from_lines(&lines, &config).map_err(value_error)?;

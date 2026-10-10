@@ -19,6 +19,8 @@ use crate::formats_utils::deserialize::standard_funcs::{DeserializerFundStandard
 use crate::formats_utils::pdf_extract::standard_funcs::{
     InvestmentsStandardArgs, TableSettings, PdfExtractInvestmentsStandard, pdf_extract_currency_standard, pdf_extract_fund_standard,
 };
+use crate::formats_utils::pdf_extract::position::SplittingDirection;
+use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
 use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
 use crate::formats_utils::text_filter::standard_funcs::TextFilterInvestmentsStandard;
@@ -47,6 +49,28 @@ fn parse_dash_as_zero(config: &InvestmentsConfig) -> Result<DashAsZero, Structur
         .map_err(|source| StructuredError::DashAsZero { id: config.id.to_string(), source })
 }
 
+/// The columns of the `Collapse` cell: one index, or several separated by `|`.
+///
+/// `|` and not a comma, which a CSV cell would have to quote — and it is the separator this level
+/// already uses for a union, in `Algorithm flags` and in a font set.
+fn parse_collapse_columns(config: &InvestmentsConfig) -> Result<Vec<usize>, StructuredError> {
+    let Some(cell) = config.additional.as_ref().and_then(|a| a.collapse.as_deref()) else {
+        return Ok(Vec::new());
+    };
+    let mut columns = Vec::new();
+    for piece in cell.split('|') {
+        let piece = piece.trim();
+        if piece.is_empty() {
+            continue;
+        }
+        columns.push(piece.parse::<usize>().map_err(|_| StructuredError::CollapseColumn {
+            id: config.id.to_string(),
+            cell: cell.to_string(),
+        })?);
+    }
+    Ok(columns)
+}
+
 /// Parses a selection cell already validated by [`super::tables`], naming the column in the error.
 fn selection(
     config: &InvestmentsConfig,
@@ -67,12 +91,32 @@ fn add_pdf_extract(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
     // An empty cell is the empty selection: the pipe is built either way, and it is the
     // repository's business to fill it in if it really matters.
     let body_set = selection(config, "Body set", config.args.body_set.as_deref().unwrap_or(""))?;
+    let collapse_columns = parse_collapse_columns(config)?;
     let args = InvestmentsStandardArgs {
         deselection_list,
         table: TableSettings {
             algorithm_flags: parse_algorithm_flags(config)?,
             col_tolerance: config.additional.as_ref().and_then(|a| a.col_tolerance).unwrap_or(0.0),
             row_tolerance: config.additional.as_ref().and_then(|a| a.row_tolerance).unwrap_or(0.0),
+            // Naming the column that breaks **is** asking for the collapse, so there is no second
+            // cell saying "yes": a table whose names never wrap says nothing and gets one block
+            // per line, as it always did.
+            collapse: !collapse_columns.is_empty(),
+            collapse_algorithm: config
+                .additional
+                .as_ref()
+                .and_then(|a| a.collapse_algorithm)
+                .map(|a| a.native())
+                .unwrap_or(CollapseAlgorithm::Pattern),
+            collapse_direction: config
+                .additional
+                .as_ref()
+                .and_then(|a| a.collapse_direction)
+                .map(|d| d.native())
+                .unwrap_or(SplittingDirection::Down),
+            // The columns the collapse is allowed in: every other one is marked non-splittable
+            // from them, which is what keeps a column of numbers from ever being joined.
+            collapse_cols: collapse_columns.clone(),
             ..TableSettings::default()
         },
         ..InvestmentsStandardArgs::new(body_set)
@@ -105,7 +149,6 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
         // the fields on the *flat* list of blocks instead of on the grid, and every row whose name
         // wrapped would shift the columns by one.
         additional.and_then(|a| a.geometrical_indexing).unwrap_or(true),
-        additional.and_then(|a| a.merge_previous).unwrap_or(false),
         parse_dash_as_zero(config)?,
     )
     .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;
@@ -168,7 +211,7 @@ mod tests {
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero,Note marks\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -399,7 +442,7 @@ mod tests {
         fn flags_of(expression: &str) -> Result<TablePosAlgorithm, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,,\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_algorithm_flags(&configs[0])
         }
@@ -436,6 +479,77 @@ mod tests {
         }
     }
 
+    /// The `Collapse` and `Collapse direction` columns, from the CSV cells to the built pipe.
+    ///
+    /// They are the structured half of `P8`: naming the column that wraps is what asks the
+    /// extraction pipe for one block per **cell** instead of one per line.
+    mod collapse_columns {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// The header carries the two cells at the end, which is where a repository that never
+        /// needed them has no columns at all — both are `default`.
+        const ADD_HEADER_COLLAPSE: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero,Note marks,Remove from fund,Collapse,Collapse direction\n";
+
+        /// The pipe the two cells build, read back through the pipeline the structured level fills.
+        ///
+        /// `add_pdf_extract` pushes three pipes and the investments one is the first, so the
+        /// assertions below are on a pipe built by the **real** path and not by a hand-made
+        /// `TableSettings`.
+        fn settings_of(collapse: &str, direction: &str) -> Result<TableSettings, StructuredError> {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER_COLLAPSE}A-EN24,,,,,,,,,,{collapse},{direction}\n"),
+            );
+            let configs = get_investments_configs(repo.path())?;
+            let mut pipeline = Pipeline::new(PipelineName::new("investments"));
+            add_pdf_extract(&mut pipeline, &configs[0])?;
+            assert_eq!(pipeline.pdf_extract.len(), 3, "the builder pushes three pipes");
+            settings_from(&configs[0])
+        }
+
+        /// The same reading `add_pdf_extract` does, so the two cannot drift apart.
+        fn settings_from(config: &InvestmentsConfig) -> Result<TableSettings, StructuredError> {
+            let additional = config.additional.as_ref();
+            Ok(TableSettings {
+                collapse: additional.and_then(|a| a.collapse.as_deref()).is_some(),
+                collapse_direction: additional
+                    .and_then(|a| a.collapse_direction)
+                    .map(|d| d.native())
+                    .unwrap_or(SplittingDirection::Down),
+                ..TableSettings::default()
+            })
+        }
+
+        /// An empty cell is no collapse, which is what every format that says nothing gets — and
+        /// exactly the behaviour there was before the column existed.
+        #[test]
+        fn an_empty_cell_leaves_the_pipe_emitting_one_block_per_line() {
+            assert!(!settings_of("", "").unwrap().collapse);
+        }
+
+        #[test]
+        fn naming_the_column_turns_the_collapse_on() {
+            let settings = settings_of("0", "").unwrap();
+            assert!(settings.collapse);
+            assert_eq!(settings.collapse_direction, SplittingDirection::Down, "down by default");
+        }
+
+        #[test]
+        fn the_direction_is_read_from_its_own_cell() {
+            assert_eq!(settings_of("0", "up").unwrap().collapse_direction, SplittingDirection::Up);
+            assert_eq!(settings_of("0", "down").unwrap().collapse_direction, SplittingDirection::Down);
+        }
+
+        #[test]
+        fn an_unknown_direction_is_refused_rather_than_guessed() {
+            let error = settings_of("0", "sideways").unwrap_err();
+            assert!(error.to_string().contains("sideways"), "{error}");
+        }
+    }
+
     /// The `Interpret dash as zero` column, from the CSV cell to the built pipe.
     mod dash_as_zero_column {
         use super::*;
@@ -444,7 +558,7 @@ mod tests {
         fn dash_flags_of(cell: &str) -> Result<DashAsZero, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell},\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,{cell},\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_dash_as_zero(&configs[0])
         }
@@ -496,7 +610,7 @@ mod tests {
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24,,,,,,,,MARKET_VALUE,\n"),
+                &format!("{ADD_HEADER}A-EN24,,,,,,,MARKET_VALUE,\n"),
             );
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
             assert!(get_investments_configs(repo.path()).is_err());
@@ -525,7 +639,7 @@ mod tests {
                 "investments/args.csv",
                 &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,2,,\n"),
             );
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell},\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,{cell},\n"));
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
             let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
                 name: "Acme Corp".to_string(),
@@ -593,7 +707,7 @@ mod tests {
                 "investments/args.csv",
                 &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,,,\n"),
             );
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,{cell}\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell}\n"));
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
             let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
                 name: "Acme Corp".to_string(),
@@ -640,7 +754,7 @@ mod tests {
         fn a_disabled_text_filter_may_not_carry_the_column() {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,*\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,*\n"));
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
             assert!(get_investments_configs(repo.path()).is_err());
         }
@@ -655,7 +769,7 @@ mod tests {
         /// The header **with** the column. `ADD_HEADER` deliberately stays as it was — a file
         /// without the column has to keep loading, and `a_file_without_the_column_still_loads`
         /// is the test that says so.
-        const ADD_HEADER_CUT: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero,Note marks,Remove from fund\n";
+        const ADD_HEADER_CUT: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero,Note marks,Remove from fund\n";
 
         /// FINECO-EN23@IR p538 writes the sub-fund's name with the word that says this is the rest
         /// of the table that began on an earlier page.
@@ -682,7 +796,7 @@ mod tests {
             );
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,,{marks},\"{cut}\"\n"),
+                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,{marks},\"{cut}\"\n"),
             );
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
             let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
@@ -775,7 +889,7 @@ mod tests {
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,,,\"(unclosed\"\n"),
+                &format!("{ADD_HEADER_CUT}A-EN24,,,,,,,,,\"(unclosed\"\n"),
             );
             assert!(get_pipelines(repo.path(), "A-EN24").is_err());
         }
@@ -786,7 +900,7 @@ mod tests {
         fn a_file_without_the_column_still_loads() {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,\n"));
             let configs = get_investments_configs(repo.path()).expect("the repo loads");
             assert_eq!(
                 configs[0].additional.as_ref().and_then(|a| a.remove_from_fund.clone()),

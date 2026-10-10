@@ -132,7 +132,7 @@ impl AmountCast {
     /// come off next, because `to_int` would refuse them too. Only then does the base cast run, and
     /// the magnitude is taken of what it returns — which also covers the plain minus sign, that the
     /// cast does read.
-    fn converter(self) -> NumConverter {
+    pub(crate) fn converter(self) -> NumConverter {
         Arc::new(move |text: &str| {
             let trimmed = text.trim();
             if self.dash_as_zero && (trimmed.is_empty() || ZERO_DASHES.contains(&trimmed)) {
@@ -160,6 +160,8 @@ pub enum DateCast {
     ItMonth,
     /// `FEBRUARY 28, 2023`: the month first, which none of the engine's converters reads.
     EnMonthFirst,
+    /// `31 de diciembre de 2024`, which is the only way MEDIOLANUM-ES24.A writes a date.
+    EsMonth,
 }
 
 impl FromStr for DateCast {
@@ -171,20 +173,23 @@ impl FromStr for DateCast {
             "en_month" => Ok(DateCast::EnMonth),
             "it_month" => Ok(DateCast::ItMonth),
             "en_month_first" => Ok(DateCast::EnMonthFirst),
+            "es_month" => Ok(DateCast::EsMonth),
             other => Err(format!(
-                "'{other}' is not a date cast: they are numeric, en_month, it_month, en_month_first"
+                "'{other}' is not a date cast: they are numeric, en_month, it_month, \
+                 en_month_first, es_month"
             )),
         }
     }
 }
 
 impl DateCast {
-    fn converter(self) -> fn(&str) -> Result<Date, CastError> {
+    pub(crate) fn converter(self) -> fn(&str) -> Result<Date, CastError> {
         match self {
             DateCast::Numeric => cast::to_date,
             DateCast::EnMonth => cast::to_date_with_en_month,
             DateCast::ItMonth => cast::to_date_with_it_month,
             DateCast::EnMonthFirst => cast::to_date_with_en_month_first,
+            DateCast::EsMonth => cast::to_date_with_es_month,
         }
     }
 }
@@ -259,6 +264,7 @@ pub fn get_pipelines(
             drop: optional_selection(&row.drop_set, &key, "Drop set")?,
             drop_funds: optional_selection(&row.drop_fund_set, &key, "Drop fund set")?,
             skip_column: row.value_step.unwrap_or(1),
+            values_in_one_line: row.values_in_one_line.unwrap_or(false),
             ..AssetsStandardArgs::new(
                 fund_set,
                 currency_set,

@@ -56,7 +56,9 @@ use crate::core::page::PageError;
 use crate::core::pipeline::{Extracted, FilterData, PipeError, TextFilterPipe};
 use crate::output::classes::fund::Fund;
 
-use super::standard_txt_blk_builders::standard_management_company_txt_blk_from_content;
+use super::standard_txt_blk_builders::{
+    standard_management_company_txt_blk, standard_management_company_txt_blk_from_content,
+};
 
 /// Failures of building or running a management-company reader.
 #[derive(Debug, thiserror::Error)]
@@ -233,18 +235,35 @@ impl TextFilterManagmentCompanyInLine {
         pdf_blks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, ManagmentCompanyError> {
-        let texts: Vec<&str> = pdf_blks
+        let candidates: Vec<(&PdfBlock, &str)> = pdf_blks
             .iter()
             .filter(|b| b.type_block == BlockType::MANAGEMENT_COMPANY)
-            .filter_map(|b| b.content.as_str())
+            .filter_map(|b| b.content.as_str().map(|text| (b, text)))
             .collect();
+        let texts: Vec<&str> = candidates.iter().map(|(_, text)| *text).collect();
         let chosen = self.among.choose(&texts).ok_or(ManagmentCompanyError::NoLine)?;
         let name = self
             .reader
             .read(chosen)
             .ok_or_else(|| ManagmentCompanyError::UnexpectedShape { line: chosen.to_string() })?;
         let funds = resolved_funds(data);
-        Ok(vec![standard_management_company_txt_blk_from_content(&name, &funds)])
+        // The originating block travels with the value **when it cannot contradict it**: that is
+        // the one rule `TextBlock::new` lays down, and it is why there is no constructor taking a
+        // block and a content at once. Where the reader took the line whole, block and value say
+        // the same thing and the provenance is kept; where it cut a name out of a sentence, the
+        // block would claim a provenance for a string the page does not carry.
+        //
+        // It is what makes this pipe and `TextFilterManagmentCompanyStandard` the **same** reading
+        // instead of two: that pipe always takes the line whole, so it always lands in the first
+        // branch.
+        let origin = candidates
+            .iter()
+            .find(|(_, text)| std::ptr::eq(*text, chosen) && *text == name.as_str())
+            .map(|(block, _)| *block);
+        Ok(vec![match origin {
+            Some(block) => standard_management_company_txt_blk(block.clone(), &funds),
+            None => standard_management_company_txt_blk_from_content(&name, &funds),
+        }])
     }
 }
 
@@ -488,6 +507,45 @@ mod tests {
             let blocks = [block("label Acme AM")];
             let got = pipe("label", "").call(&blocks, &FilterData::Previous(&previous)).unwrap();
             assert!(!got[0].metadata.is_empty(), "the managed funds did not reach the block");
+        }
+
+        /// `P9`: where the reader takes the line **whole**, the block travels with the value.
+        ///
+        /// It is what makes this pipe and `TextFilterManagmentCompanyStandard` one reading instead
+        /// of two — that pipe always takes the line whole — and it is why five `manco` pipelines
+        /// could stop being Python without a page fixture changing.
+        #[test]
+        fn the_whole_line_keeps_the_block_it_came_from() {
+            let blocks = [block("Fideuram Asset Management (Ireland) dac")];
+            let got = pipe("", "").call(&blocks, &FilterData::EMPTY).unwrap();
+            assert_eq!(name_of(&got), "Fideuram Asset Management (Ireland) dac");
+            assert_eq!(
+                got[0].pdf_block.as_deref(),
+                Some(&blocks[0]),
+                "the whole line and the value say the same thing, so the provenance is kept"
+            );
+        }
+
+        /// And where it cut a name out of a sentence, it does not.
+        ///
+        /// `TextBlock::new` inherits the content of the block it is given, so a block kept here
+        /// would claim a provenance for a string the page does not carry — which is the
+        /// contradiction that constructor exists to refuse.
+        #[test]
+        fn a_name_cut_out_of_a_line_carries_no_block() {
+            let blocks = [block("Società di Gestione del Risparmio ANIMA SGR S.p.A.")];
+            let got = pipe("Società di Gestione del Risparmio", "").call(&blocks, &FilterData::EMPTY).unwrap();
+            assert_eq!(name_of(&got), "ANIMA SGR S.p.A.");
+            assert!(got[0].pdf_block.is_none(), "the block says more than the value does");
+        }
+
+        /// The trimming alone is enough to make them differ, and that is the measured case.
+        #[test]
+        fn a_line_padded_with_spaces_carries_no_block_either() {
+            let blocks = [block("  Acme Asset Management  ")];
+            let got = pipe("", "").call(&blocks, &FilterData::EMPTY).unwrap();
+            assert_eq!(name_of(&got), "Acme Asset Management");
+            assert!(got[0].pdf_block.is_none(), "the value is trimmed and the block is not");
         }
 
         #[test]

@@ -225,10 +225,9 @@ fn table_meta_int(block: &PdfBlock, field: &str) -> Result<i64, StandardFuncsErr
     Ok(block.metadata_or_fail(field)?.int_or_fail(field)?)
 }
 
-/// Reads a required boolean metadata field of a table block.
-fn table_meta_bool(block: &PdfBlock, field: &str) -> Result<bool, StandardFuncsError> {
-    Ok(block.metadata_or_fail(field)?.bool_or_fail(field)?)
-}
+// There is no `table_meta_bool`: the only boolean a table block carried was `is-max-width`, and
+// the mechanism that read it is gone (`P8`). The extraction pipe still writes the field — it costs
+// nothing and leaves eighty page fixtures where they are — but nothing in this segment reads it.
 
 /// The text content of a table block.
 fn table_content(block: &PdfBlock) -> Result<String, StandardFuncsError> {
@@ -294,70 +293,8 @@ impl PdfBlocksTable {
         }
     }
 
-    /// Removes the block at `j` from both the flat list and the grid, recompacting the indices. If
-    /// the row is left empty it disappears and the following rows shift up by one.
-    fn pop(&mut self, j: usize) -> Result<(), StandardFuncsError> {
-        if j >= self.blks.len() {
-            return Err(StandardFuncsError::InconsistentTable {
-                message: format!("cannot pop block {j}: the table has {} blocks", self.blks.len()),
-            });
-        }
-        let blk = self.blks.remove(j);
-        let row_del = table_meta_int(&blk, "table-row")?;
-        let col_del = table_meta_int(&blk, "table-col")?;
-
-        let (row_idx, col_idx) = (row_del as usize, col_del as usize);
-        let cell = self
-            .indexes
-            .get_mut(row_idx)
-            .and_then(|row| row.get_mut(col_idx))
-            .ok_or_else(|| StandardFuncsError::InconsistentTable {
-                message: format!("block {j} claims cell ({row_del}, {col_del}), which does not exist"),
-            })?;
-
-        if let Some(position) = cell.iter().position(|&idx| idx == j) {
-            cell.remove(position);
-            for row in &mut self.indexes {
-                for col in row.iter_mut() {
-                    for idx in col.iter_mut() {
-                        if *idx > j {
-                            *idx -= 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        if self.indexes[row_idx].iter().all(Vec::is_empty) {
-            self.indexes.remove(row_idx);
-            for blk in &mut self.blks {
-                let row = table_meta_int(blk, "table-row")?;
-                if row > row_del {
-                    blk.metadata.insert("table-row".to_string(), BlockValue::Int(row - 1));
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// Merges the contents of blocks `j` and `i` — in the order they appear in the list, not the
-    /// order of the arguments — writing the result into `i` and removing `j`.
-    fn merge(&mut self, j: usize, i: usize) -> Result<(), StandardFuncsError> {
-        let (first, last) = if i < j { (i, j) } else { (j, i) };
-        if first >= self.blks.len() || last >= self.blks.len() {
-            return Err(StandardFuncsError::InconsistentTable {
-                message: format!(
-                    "cannot merge blocks {j} and {i}: the table has {} blocks",
-                    self.blks.len()
-                ),
-            });
-        }
-        let combined =
-            format!("{}{}", table_content(&self.blks[first])?, table_content(&self.blks[last])?);
-        self.blks[i].content = BlockValue::Str(combined);
-        self.pop(j)
-    }
 }
+
 
 /// Where the row being extracted is: its position in the flat list, its anchor cell in the grid,
 /// and the table's width.
@@ -507,9 +444,6 @@ pub struct TextFilterInvestmentsStandard {
     /// Whether the offsets are geometric — row and column with wrapping — or positions in the flat
     /// list.
     pub geometrical_indexes: bool,
-    /// Whether a cell split across two blocks merges into the **preceding** block or the following
-    /// one.
-    pub merge_prev: bool,
     /// Which numeric fields read a dash the report prints as the zero it means. Empty by default,
     /// which is no change at all: see [`crate::formats_utils::text_filter::dash_as_zero`].
     pub dash_as_zero: DashAsZero,
@@ -522,7 +456,7 @@ pub struct TextFilterInvestmentsStandard {
 }
 
 impl TextFilterInvestmentsStandard {
-    /// The eight parameters come from a formats repository's configuration columns, which is what
+    /// The seven parameters come from a formats repository's configuration columns, which is what
     /// builds this pipe.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -532,7 +466,6 @@ impl TextFilterInvestmentsStandard {
         acquisition_currency_pos: Option<i64>,
         acquisition_cost_pos: Option<i64>,
         geometrical_indexes: bool,
-        merge_prev: bool,
         dash_as_zero: DashAsZero,
     ) -> Result<Self, StandardFuncsError> {
         // The check fires **only** when both optional positions are present: with just one of them,
@@ -549,7 +482,6 @@ impl TextFilterInvestmentsStandard {
             acquisition_currency_pos,
             acquisition_cost_pos,
             geometrical_indexes,
-            merge_prev,
             dash_as_zero,
             note_marks: String::new(),
             remove_from_fund: FundNameCuts::default(),
@@ -666,8 +598,20 @@ impl TextFilterInvestmentsStandard {
         Ok(results)
     }
 
-    /// The loop over the table's rows: for each block, decide whether it is split onto the next
-    /// row, look for a target company in its text, and if one is found extract the row's fields.
+    /// The loop over the table's cells: for each block, look for a target company in its text, and
+    /// if one is found extract the row's fields.
+    ///
+    /// # What used to be here
+    ///
+    /// Until `P8` this loop also decided whether a cell was **split** across two blocks, and joined
+    /// them: it compared each block with the next, and where the two shared a column and the
+    /// probing row had a single occupied column — or two empty neighbours — it took the pair for one
+    /// cell, appended the texts and removed one block from the grid.
+    ///
+    /// That decision is geometry, and by `R23` geometry belongs to the `pdf_extract`. It is now
+    /// `tabularizer::collapse`'s, which the extraction pipe already called for the coordinates and
+    /// which now also joins the text, so a cell arrives here **whole**. The loop that remains reads
+    /// what it is given, which is why it is a `for` and no longer a `while` with a tail.
     fn run_loop(
         &self,
         pdf_blocks: &[PdfBlock],
@@ -677,84 +621,19 @@ impl TextFilterInvestmentsStandard {
         if pdf_blocks.is_empty() {
             return Ok(out);
         }
-        let mut table = PdfBlocksTable::new(pdf_blocks)?;
+        let table = PdfBlocksTable::new(pdf_blocks)?;
         let n_cols = table.n_cols() as i64;
 
-        let mut i: i64 = 0;
-        // Deliberately declared **outside** the loop: the tail below reuses it with whatever value
-        // the loop left — zero if the loop never ran — not with the column of the last block.
-        let mut col: i64 = 0;
-
-        while i < table.len() as i64 - 1 {
-            let mut split = false;
-            let (row, cell_width, mut content) = {
+        for i in 0..table.len() as i64 {
+            let (row, col, content) = {
                 let current = table.get_flat(i).ok_or(StandardFuncsError::InconsistentTable {
                     message: format!("block {i} disappeared from the table"),
                 })?;
-                col = table_meta_int(current, "table-col")?;
                 (
                     table_meta_int(current, "table-row")?,
-                    table_meta_bool(current, "is-max-width")?,
+                    table_meta_int(current, "table-col")?,
                     table_content(current)?,
                 )
-            };
-            let (next_row, next_col, next_content) = {
-                let next = table.get_flat(i + 1).ok_or(StandardFuncsError::InconsistentTable {
-                    message: format!("block {} disappeared from the table", i + 1),
-                })?;
-                (
-                    table_meta_int(next, "table-row")?,
-                    table_meta_int(next, "table-col")?,
-                    table_content(next)?,
-                )
-            };
-
-            if col == next_col {
-                let probe_row = if self.merge_prev { row } else { next_row };
-                let mut n_full_cols = 0;
-                let mut empty_adj = 0;
-                for c in 0..n_cols {
-                    if matches!(table.get_cell(probe_row, c), Cell::Empty) {
-                        if c == col - 1 || c == col + 1 {
-                            empty_adj += 1;
-                        }
-                    } else {
-                        n_full_cols += 1;
-                    }
-                }
-                if n_full_cols == 1 || empty_adj == 2 {
-                    split = true;
-                    if cell_width || content.ends_with(' ') || content.ends_with('\n') {
-                        content.push_str(&next_content);
-                    }
-                }
-            }
-
-            if let Some(company) = self.matched_company(&content, target_companies)? {
-                if split {
-                    let (current_idx, next_idx) = (i as usize, (i + 1) as usize);
-                    if self.merge_prev {
-                        table.merge(current_idx, next_idx)?;
-                    } else {
-                        table.merge(next_idx, current_idx)?;
-                    }
-                }
-                let anchor = RowAnchor { flat_index: i, base: (row, col), n_cols };
-                self.push_extracted_field(&mut out, &table, anchor, &content, &company)?;
-            }
-
-            i += 1;
-            if i >= table.len() as i64 - 1 {
-                break;
-            }
-        }
-
-        if i == table.len() as i64 - 1 {
-            let (row, content) = {
-                let last = table.get_flat(-1).ok_or(StandardFuncsError::InconsistentTable {
-                    message: "the table is empty".to_string(),
-                })?;
-                (table_meta_int(last, "table-row")?, table_content(last)?)
             };
             if let Some(company) = self.matched_company(&content, target_companies)? {
                 let anchor = RowAnchor { flat_index: i, base: (row, col), n_cols };
@@ -1545,7 +1424,7 @@ mod tests {
 
     /// The filter in its simplest configuration: only `market_value_pos`, geometric indices.
     fn simple_investments(market_value_pos: i64) -> TextFilterInvestmentsStandard {
-        TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, false, DashAsZero::empty())
+        TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, DashAsZero::empty())
             .expect("positions are consistent")
     }
 
@@ -1593,7 +1472,7 @@ mod tests {
         #[test]
         fn distinct_positions_are_accepted() {
             assert!(
-                TextFilterInvestmentsStandard::new(0, Some(1), Some(2), None, None, true, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(0, Some(1), Some(2), None, None, true, DashAsZero::empty())
                     .is_ok()
             );
         }
@@ -1609,7 +1488,6 @@ mod tests {
                         None,
                         None,
                         true,
-                        false,
                         DashAsZero::empty()
                     )
                     .is_err(),
@@ -1623,11 +1501,11 @@ mod tests {
             // The check fires only if *both* optional positions are present, so the collision with
             // `market_value_pos` goes unnoticed here.
             assert!(
-                TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, DashAsZero::empty())
                     .is_ok()
             );
             assert!(
-                TextFilterInvestmentsStandard::new(0, None, Some(0), None, None, true, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(0, None, Some(0), None, None, true, DashAsZero::empty())
                     .is_ok()
             );
         }
@@ -1635,7 +1513,7 @@ mod tests {
         #[test]
         fn the_optional_acquisition_positions_are_never_checked() {
             assert!(
-                TextFilterInvestmentsStandard::new(0, None, None, Some(0), Some(0), true, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(0, None, None, Some(0), Some(0), true, DashAsZero::empty())
                     .is_ok()
             );
         }
@@ -1662,7 +1540,7 @@ mod tests {
         }
 
         fn pipe(flags: DashAsZero) -> TextFilterInvestmentsStandard {
-            TextFilterInvestmentsStandard::new(1, Some(2), Some(3), None, None, true, false, flags)
+            TextFilterInvestmentsStandard::new(1, Some(2), Some(3), None, None, true, flags)
                 .expect("positions are consistent")
         }
 
@@ -1747,7 +1625,7 @@ mod tests {
                 table_row(0, 2, "-", false),
             ];
             let pipe =
-                TextFilterInvestmentsStandard::new(1, None, None, Some(2), None, true, false, DashAsZero::all())
+                TextFilterInvestmentsStandard::new(1, None, None, Some(2), None, true, DashAsZero::all())
                     .expect("positions are consistent");
             let out = pipe.call(&blks, &targets(&["Acme Corp"])).expect("the page parses");
             assert_eq!(
@@ -1788,7 +1666,7 @@ mod tests {
                 table_row(0, 3, "42", false),
             ];
             let filter =
-                TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, DashAsZero::empty())
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
 
@@ -1801,7 +1679,7 @@ mod tests {
             let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
             // `% net assets` points at column 5, which does not exist.
             let filter =
-                TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::Null));
@@ -1852,7 +1730,7 @@ mod tests {
                 table_row(1, 0, "next row", false),
             ];
             let filter =
-                TextFilterInvestmentsStandard::new(2, None, None, None, None, false, false, DashAsZero::empty())
+                TextFilterInvestmentsStandard::new(2, None, None, None, None, false, DashAsZero::empty())
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("next row")));
@@ -2170,7 +2048,7 @@ mod tests {
             fn a_flat_mode_miss_reports_a_block_position_instead_of_a_cell() {
                 let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
                 let filter =
-                    TextFilterInvestmentsStandard::new(9, None, None, None, None, false, false, DashAsZero::empty())
+                    TextFilterInvestmentsStandard::new(9, None, None, None, None, false, DashAsZero::empty())
                         .unwrap();
                 let records = skip_records(|| {
                     let _ = filter.call(&blks, &targets(&["Acme Corp"]));
@@ -2193,7 +2071,7 @@ mod tests {
             fn the_field_stays_null_and_the_row_survives() {
                 let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
                 let filter =
-                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false, DashAsZero::empty())
+                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
                         .unwrap();
                 let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
                 assert_eq!(out.len(), 1);
@@ -2206,7 +2084,7 @@ mod tests {
             fn a_debug_event_says_which_field_and_where_it_looked() {
                 let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
                 let filter =
-                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false, DashAsZero::empty())
+                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
                         .unwrap();
                 let records = records_matching(
                     || {
@@ -2231,7 +2109,7 @@ mod tests {
                     table_row(0, 2, "12,5", false),
                 ];
                 let filter =
-                    TextFilterInvestmentsStandard::new(1, None, Some(2), None, None, true, false, DashAsZero::empty())
+                    TextFilterInvestmentsStandard::new(1, None, Some(2), None, None, true, DashAsZero::empty())
                         .unwrap();
                 let records = records_matching(
                     || {
@@ -2440,53 +2318,33 @@ mod tests {
         }
     }
 
-    mod investments_split_cells {
+    /// What the removed mechanism used to do, now asked of the pipe that does it: a cell arrives
+    /// **whole**, and this filter neither joins nor splits.
+    ///
+    /// The joining itself is tested where it happens —
+    /// `pdf_extract::standard_funcs::tests::investments::collapse_into_cells` — on the geometry
+    /// that produces it. What is frozen here is that two blocks of the same column stay **two
+    /// rows**: the filter no longer guesses that they might be one.
+    mod a_cell_arrives_whole {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// A company name split across two consecutive blocks of the **same column**, with the
-        /// second half alone on row 1.
-        ///
-        /// "Alone" is what triggers the merge: a cell counts as split only if the probing row has a
-        /// **single** occupied column, or if both adjacent columns are empty. The market value
-        /// therefore sits on row 0, not row 1, which has to stay occupied by one block only.
-        fn split_table(first: &str, second: &str, is_max_width: bool) -> Vec<PdfBlock> {
-            vec![
-                table_row(0, 0, first, is_max_width),
-                table_row(1, 0, second, false),
+        #[test]
+        fn two_blocks_of_the_same_column_are_two_rows_and_neither_matches_the_joined_name() {
+            let blks = vec![
+                table_row(0, 0, "Acme ", true),
+                table_row(1, 0, "Corp", false),
                 table_row(0, 1, "1.000", false),
-            ]
-        }
-
-        #[test]
-        fn a_cell_flagged_max_width_is_joined_with_the_next_one_before_matching() {
-            let blks = split_table("Acme ", "Corp", true);
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out.len(), 1);
-            assert_eq!(
-                out[0].metadata.get("company match"),
-                Some(&BlockValue::from("Acme Corp"))
-            );
-        }
-
-        #[test]
-        fn a_cell_ending_in_a_space_is_joined_even_without_the_max_width_flag() {
-            let blks = split_table("Acme ", "Corp", false);
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out.len(), 1);
-        }
-
-        #[test]
-        fn a_cell_ending_in_a_newline_is_joined_too() {
-            let blks = split_table("Acme\n", "Corp", false);
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out.len(), 1);
-        }
-
-        #[test]
-        fn a_cell_that_neither_is_max_width_nor_ends_in_whitespace_is_not_joined() {
-            let blks = split_table("Acme", "Corp", false);
+            ];
             assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+        }
+
+        #[test]
+        fn a_cell_already_joined_upstream_matches_on_its_own() {
+            let blks = vec![table_row(0, 0, "Acme Corp", true), table_row(0, 1, "1.000", false)];
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out.len(), 1);
+            assert_eq!(out[0].metadata.get("company match"), Some(&BlockValue::from("Acme Corp")));
         }
 
         #[test]

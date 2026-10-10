@@ -32,7 +32,7 @@ use super::pdf_line::PdfLine;
 use super::relative::{OptionallyRelative, RelativeInfo};
 use super::select::pdf_line::PdfLineSet;
 use super::select::relative::{PdfLineSelection, RelativePdfLineSet, RelativeSelectPdfLineSet};
-use super::position::TableConfig;
+use super::position::{SplittingDirection, TableConfig};
 use super::tabularizer::collapse::CollapseAlgorithm;
 use super::tabularizer::coordinates::{CoordinateExtractionError, TablePosAlgorithm};
 use super::tabularizer::{TableCoordinatesConfig, TablePosMeasureUnit, get_table_coordinates_from_lines};
@@ -331,7 +331,17 @@ pub struct TableSettings {
     /// What the two tolerances are measured in: points, or ems of the line's own font size.
     pub tolerance_unit: TablePosMeasureUnit,
     /// Whether rows broken across several lines are collapsed back into one.
+    ///
+    /// With it on, the pipe emits **one block per cell** rather than one per line: the lines that
+    /// `collapse` put in the same `(row, column)` are joined by [`join_in_reading_order`]. Which
+    /// lines those are is decided entirely by
+    /// [`super::tabularizer::collapse::collapse_table_rows`] — this pipe adds no rule of its own.
     pub collapse: bool,
+    /// Which way a wrapped cell collapses. Only read together with the columns allowed to break.
+    pub collapse_direction: SplittingDirection,
+    /// The columns allowed to break across several lines. Several, because a page often carries
+    /// two tables side by side and then the column of names is two columns.
+    pub collapse_cols: Vec<usize>,
 }
 
 // Written out rather than derived, for the same reason as `TableCoordinatesConfig`'s: neither
@@ -346,6 +356,8 @@ impl Default for TableSettings {
             row_tolerance: 0.0,
             tolerance_unit: TablePosMeasureUnit::Em,
             collapse: false,
+            collapse_direction: SplittingDirection::Down,
+            collapse_cols: Vec::new(),
         }
     }
 }
@@ -375,6 +387,8 @@ impl TableSettings {
             tolerance_unit: self.tolerance_unit,
             company_col,
             collapse: self.collapse,
+            collapse_direction: self.collapse_direction,
+            collapse_cols: self.collapse_cols.clone(),
         }
     }
 }
@@ -453,19 +467,85 @@ impl PdfExtractInvestmentsStandard {
             .collect();
         let max_width = widths.iter().copied().fold(f32::MIN, f32::max);
 
-        Ok(rows
+        let block = |(table_row, table_col): (usize, usize), lines: &[&PdfLine], max_width: bool| {
+            let metadata = BTreeMap::from([
+                ("table-row".to_string(), BlockValue::from(table_row as i64)),
+                ("table-col".to_string(), BlockValue::from(table_col as i64)),
+                ("is-max-width".to_string(), BlockValue::from(max_width)),
+            ]);
+            PdfBlock::new(
+                BlockType::TABLE_BODY,
+                metadata,
+                BlockValue::from(concat_in_reading_order(lines).as_str()),
+            )
+        };
+
+        if !self.collapse_into_cells() {
+            return Ok(rows
+                .iter()
+                .enumerate()
+                .map(|(i, row)| block(coords[i], &[row], widths[i] == max_width))
+                .collect());
+        }
+
+        // One block per **cell**. Which lines share a cell is what `collapse` decided; the order
+        // inside the cell is the page's own, which is what `join_in_reading_order` reads.
+        //
+        // The cells come out in the order their **first** line appears, so a table that was
+        // already one line per cell comes out exactly as it did before.
+        let mut cells: Vec<((usize, usize), Vec<&PdfLine>, bool)> = Vec::new();
+        let mut seen: BTreeMap<(usize, usize), usize> = BTreeMap::new();
+        for (i, row) in rows.iter().enumerate() {
+            let is_max_width = widths[i] == max_width;
+            match seen.get(&coords[i]) {
+                Some(&at) => {
+                    cells[at].1.push(row);
+                    // A cell is as wide as its widest line: the field says whether the text
+                    // reached the page's widest, and a joined cell did if any of its lines did.
+                    cells[at].2 |= is_max_width;
+                }
+                None => {
+                    seen.insert(coords[i], cells.len());
+                    cells.push((coords[i], vec![row], is_max_width));
+                }
+            }
+        }
+        // The rows are **renumbered** to be contiguous from zero, because a run that collapsed
+        // onto its last row leaves its first row with no cell at all and the consumer of this
+        // metadata assumes contiguity: `PdfBlocksTable` builds its grid from the row values it
+        // finds and then indexes it by the number a block carries, so a gap would make the two
+        // disagree by one and every field of that row would be read from its neighbour.
+        //
+        // It is the same bookkeeping the mechanism this replaces did when it removed a block and
+        // left a row empty — kept here, where the rows are decided.
+        let renumbered: BTreeMap<usize, usize> = cells
             .iter()
+            .map(|((row, _), _, _)| *row)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
             .enumerate()
-            .map(|(i, row)| {
-                let (table_row, table_col) = coords[i];
-                let metadata = BTreeMap::from([
-                    ("table-row".to_string(), BlockValue::from(table_row as i64)),
-                    ("table-col".to_string(), BlockValue::from(table_col as i64)),
-                    ("is-max-width".to_string(), BlockValue::from(widths[i] == max_width)),
-                ]);
-                PdfBlock::new(BlockType::TABLE_BODY, metadata, BlockValue::from(row.text().as_str()))
-            })
+            .map(|(new, old)| (old, new))
+            .collect();
+        tracing::debug!(
+            cells = cells.len(),
+            lines = rows.len(),
+            table_rows = renumbered.len(),
+            "investments table collapsed into cells"
+        );
+        Ok(cells
+            .into_iter()
+            .map(|((row, col), lines, max)| block((renumbered[&row], col), &lines, max))
             .collect())
+    }
+
+    /// Whether this pipe emits one block per cell instead of one per line.
+    ///
+    /// It is `collapse` and nothing else: the flag means *rows broken across several lines are put
+    /// back together*, and a cell whose coordinates were merged while its text stayed in two blocks
+    /// would be half-collapsed — occupied yes, readable no, which is the state the old mechanism in
+    /// the `text_filter` existed to repair.
+    fn collapse_into_cells(&self) -> bool {
+        self.table.collapse
     }
 }
 
@@ -510,7 +590,15 @@ fn join_in_reading_order(lines: &[&PdfLine]) -> String {
     if let [only] = lines {
         return only.text().clone();
     }
-    let mut ordered: Vec<&&PdfLine> = lines.iter().collect();
+    in_reading_order(lines).iter().map(|line| line.text().trim()).collect::<Vec<_>>().join(" ").trim().to_string()
+}
+
+/// The same lines, sorted: rows top to bottom, and left to right inside a row.
+///
+/// Two lines belong to the same row when their vertical extents overlap. Written once because the
+/// two joins below differ only in what they put between the pieces.
+fn in_reading_order<'a>(lines: &[&'a PdfLine]) -> Vec<&'a PdfLine> {
+    let mut ordered: Vec<&'a PdfLine> = lines.to_vec();
     ordered.sort_by(|a, b| {
         let (a_box, b_box) = (a.bbox().as_tuple(), b.bbox().as_tuple());
         let same_row = a_box.1 < b_box.3 && b_box.1 < a_box.3;
@@ -520,7 +608,21 @@ fn join_in_reading_order(lines: &[&PdfLine]) -> String {
             a_box.1.partial_cmp(&b_box.1).unwrap_or(std::cmp::Ordering::Equal)
         }
     });
-    ordered.iter().map(|line| line.text().trim()).collect::<Vec<_>>().join(" ").trim().to_string()
+    ordered
+}
+
+/// The text of the lines of one collapsed cell, concatenated with **nothing** between them.
+///
+/// Not a space, and that is the measured choice. A PDF generator breaking a line at a word boundary
+/// leaves the space at the **end of the first piece**, and breaking it inside a word leaves none:
+/// `Acme Asset Managemen` + `t Company` is one word split in two, and anything inserted between
+/// them invents a space the page does not have. The page already says which case it is, so the
+/// faithful join is no join at all — which is also, exactly, what the mechanism this replaces did.
+fn concat_in_reading_order(lines: &[&PdfLine]) -> String {
+    if let [only] = lines {
+        return only.text().clone();
+    }
+    in_reading_order(lines).iter().map(|line| line.text().as_str()).collect::<Vec<_>>().concat()
 }
 
 /// The band a line belongs to: the one it overlaps most, or the nearest when it overlaps none.
@@ -541,6 +643,21 @@ fn band_of(line: &PdfLine, bands: &[(f32, f32)]) -> Option<usize> {
     }
     let distance = |band: &(f32, f32)| if x1 < band.0 { band.0 - x1 } else { x0 - band.1 };
     bands.iter().enumerate().min_by(|(_, a), (_, b)| distance(a).total_cmp(&distance(b))).map(|(i, _)| i)
+}
+
+/// The values a single line of a value window carries, told apart by the run of spaces between
+/// them.
+///
+/// **Two** spaces and not one, because a number never holds two in a row while the gap between two
+/// columns always does: the narrowest gap measured on MEDIOLANUM-EN24 p6 is five spaces, and the
+/// widest run inside a number is none. Empty pieces go, so the leading and trailing padding of the
+/// object — which is what makes the object as wide as the four columns it spans — costs nothing.
+///
+/// A line carrying one value comes back as that one value, so a window of ordinary cells reads the
+/// same with the flag on as with it off. Only the length of the list changes, which is what pairing
+/// by index counts.
+fn values_in_a_line(text: &str) -> Vec<String> {
+    text.split("  ").map(str::trim).filter(|piece| !piece.is_empty()).map(str::to_string).collect()
 }
 
 /// Whether a line stands under one of the columns a format asked to leave out.
@@ -610,6 +727,7 @@ pub struct PdfExtractAssetsStandard {
     drop: Option<PdfLineSelection>,
     drop_funds: Option<PdfLineSelection>,
     table: TableSettings,
+    values_in_one_line: bool,
 }
 
 /// The construction parameters of [`PdfExtractAssetsStandard`], grouped into a struct so the call
@@ -660,6 +778,25 @@ pub struct AssetsStandardArgs {
     /// columns do not pass through the tabularizer at all: each is a window hung off its own
     /// anchor, so nothing here touches them.
     pub table: TableSettings,
+    /// Whether **one** line of a value window may carry **several** values, told apart by the run
+    /// of spaces between them.
+    ///
+    /// Off by default, and only [`AssetsPairing::ByIndex`] reads it: pairing by abscissa matches a
+    /// line's box against a fund's band, and a box holding four numbers spans all four bands at
+    /// once, so there is nothing for it to decide.
+    ///
+    /// MEDIOLANUM-EN24 is why it exists. Its `CONDENSED STATEMENT OF FINANCIAL POSITION` prints
+    /// the ordinary rows as one text object per cell, but the three **total** rows are typeset
+    /// differently: `TOTAL ASSETS` puts all four of its numbers in a single object ninety-five
+    /// characters wide, and the net-assets row splits the same four across three objects, one plus
+    /// one plus two. Counting the objects therefore says nothing, and a window that finds one
+    /// value where the columns expect four leaves three sub-funds out of four without their totals.
+    ///
+    /// The pieces are matched to the columns **by index** and not by abscissa, which is a measured
+    /// choice and not a convenience: the characters of Times 8.04 are not of one width — a digit is
+    /// 4.02 points and a space 2.01 — so cutting the box up in proportion to the characters is
+    /// wrong by as much as sixteen points on a column seventy-one wide. The index is not wrong.
+    pub values_in_one_line: bool,
 }
 
 impl AssetsStandardArgs {
@@ -684,6 +821,7 @@ impl AssetsStandardArgs {
             drop: None,
             drop_funds: None,
             table: TableSettings::assets_funds(),
+            values_in_one_line: false,
         }
     }
 }
@@ -721,6 +859,7 @@ impl PdfExtractAssetsStandard {
             drop,
             drop_funds,
             table,
+            values_in_one_line,
         } = args;
         if !table_condition && currency_set.is_none() {
             return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "currency".to_string() });
@@ -738,6 +877,7 @@ impl PdfExtractAssetsStandard {
             drop,
             drop_funds,
             table,
+            values_in_one_line,
         })
     }
 
@@ -835,9 +975,12 @@ impl PdfExtractAssetsStandard {
         Ok((funds, currencies))
     }
 
-    /// The text of a column's cells, at only the indices `skip_column` asks for.
+    /// A column's values, at only the indices `skip_column` asks for.
+    ///
+    /// Takes the values already read off the lines rather than the lines themselves, because how
+    /// many values a line carries is [`Self::column_values`]'s business and not this one's.
     fn column_texts(
-        items: &[&PdfLine],
+        items: &[String],
         indices: &[usize],
         column: &str,
     ) -> Result<Vec<String>, PdfExtractStandardFuncsError> {
@@ -846,7 +989,7 @@ impl PdfExtractAssetsStandard {
             .map(|&i| {
                 items
                     .get(i)
-                    .map(|line| line.text().clone())
+                    .cloned()
                     .ok_or_else(|| PdfExtractStandardFuncsError::MismatchedAssetsColumn {
                         column: column.to_string(),
                         found: items.len(),
@@ -854,6 +997,21 @@ impl PdfExtractAssetsStandard {
                     })
             })
             .collect()
+    }
+
+    /// The values a window's lines carry, in the order the lines come in.
+    ///
+    /// One value per line is the rule, and the line's text goes through untouched — trailing
+    /// spaces included, because that is what every format reading this pipe has always been given
+    /// and the casts trim for themselves. With `values_in_one_line` a line may carry several, and
+    /// then each piece **is** trimmed: a piece is not a line, nothing has seen it before, and
+    /// leaving the gap it was cut from attached to it would serve no one. See
+    /// [`AssetsStandardArgs::values_in_one_line`].
+    fn column_values(&self, items: &[&PdfLine]) -> Vec<String> {
+        if !self.values_in_one_line {
+            return items.iter().map(|line| line.text().clone()).collect();
+        }
+        items.iter().flat_map(|line| values_in_a_line(line.text())).collect()
     }
 
     /// One value per fund column, matched by abscissa instead of by position.
@@ -1017,10 +1175,13 @@ impl PdfExtractAssetsStandard {
 
         let amounts = match self.pairing {
             AssetsPairing::ByIndex => {
-                let indices = range_0_to_len_step(tot_assets_items.len(), self.skip_column)?;
-                let tot_assets_text = Self::column_texts(&tot_assets_items, &indices, "tot_assets")?;
-                let liabilities_text = Self::column_texts(&liabilities_items, &indices, "liabilities")?;
-                let net_assets_text = Self::column_texts(&net_assets_items, &indices, "net_assets")?;
+                let tot_assets_values = self.column_values(&tot_assets_items);
+                let liabilities_values = self.column_values(&liabilities_items);
+                let net_assets_values = self.column_values(&net_assets_items);
+                let indices = range_0_to_len_step(tot_assets_values.len(), self.skip_column)?;
+                let tot_assets_text = Self::column_texts(&tot_assets_values, &indices, "tot_assets")?;
+                let liabilities_text = Self::column_texts(&liabilities_values, &indices, "liabilities")?;
+                let net_assets_text = Self::column_texts(&net_assets_values, &indices, "net_assets")?;
                 let n_out = [
                     fund_texts.len(),
                     currency_texts.len(),
@@ -1394,6 +1555,130 @@ mod tests {
         fn returns_nothing_when_the_body_set_selects_no_line() {
             let pipe = PdfExtractInvestmentsStandard::new(InvestmentsStandardArgs::new(text_sel("^absent$")));
             assert!(pipe.call(&table_page()).unwrap().is_empty());
+        }
+
+        /// `P8`: with `collapse` on, the pipe emits one block per **cell**, not per line.
+        ///
+        /// Which lines are one cell is `collapse`'s decision and nothing is added here — the pipe
+        /// groups by the coordinates it comes back with and joins the text in reading order. The
+        /// column that may collapse is the one `company_index` names, which is the configuration
+        /// `get_table_coordinates_from_lines` already built for it.
+        mod collapse_into_cells {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// A name wrapped onto a second line, with the values beside the first.
+            ///
+            /// The wrapped remainder is a line of its own in column zero: two consecutive entries
+            /// of the same column, which is the run `collapse_table_rows_by_pattern` closes.
+            ///
+            /// The break falls **inside a word**, which is the case that says how the pieces meet:
+            /// with nothing between them.
+            fn wrapped_name_page() -> Page {
+                page(vec![
+                    line("Acme Asset Managemen", (0.0, 0.0, 90.0, 10.0)),
+                    line("t Company", (0.0, 11.0, 40.0, 21.0)),
+                    line("100", (120.0, 11.0, 140.0, 21.0)),
+                    line("Beta Fund", (0.0, 40.0, 50.0, 50.0)),
+                    line("200", (120.0, 40.0, 140.0, 50.0)),
+                ])
+            }
+
+            fn pipe(collapse: bool, direction: SplittingDirection) -> PdfExtractInvestmentsStandard {
+                PdfExtractInvestmentsStandard::new(InvestmentsStandardArgs {
+                    company_index: Some(0),
+                    table: TableSettings {
+                        collapse,
+                        collapse_direction: direction,
+                        collapse_algorithm: CollapseAlgorithm::Pattern,
+                        ..TableSettings::default()
+                    },
+                    ..InvestmentsStandardArgs::new(text_sel(""))
+                })
+            }
+
+            fn contents(blocks: &[PdfBlock]) -> Vec<String> {
+                blocks.iter().map(|b| b.content.as_str().unwrap_or_default().to_string()).collect()
+            }
+
+            #[test]
+            fn without_it_every_line_is_its_own_block() {
+                let blocks = pipe(false, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
+                assert_eq!(blocks.len(), 5);
+                assert_eq!(contents(&blocks)[0], "Acme Asset Managemen");
+                assert_eq!(contents(&blocks)[1], "t Company");
+            }
+
+            #[test]
+            fn with_it_the_two_halves_are_one_block() {
+                let blocks = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
+                assert_eq!(blocks.len(), 4, "five lines, four cells");
+                assert_eq!(
+                    contents(&blocks)[0],
+                    "Acme Asset Management Company",
+                    "the page broke the word, so nothing goes between the pieces"
+                );
+            }
+
+            /// The cells come out in the order their **first** line appears, so a table that was
+            /// already one line per cell is untouched.
+            #[test]
+            fn a_table_with_no_wrapped_cell_comes_out_exactly_as_before() {
+                let without = pipe(false, SplittingDirection::Down).call(&table_page()).unwrap();
+                let with = pipe(true, SplittingDirection::Down).call(&table_page()).unwrap();
+                assert_eq!(without, with);
+            }
+
+            /// The direction decides **which row of the run** the joined cell lands on, and that is
+            /// what puts it beside the values that belong to it.
+            ///
+            /// On this page the values sit beside the name's **second** line, so `up` is the
+            /// direction that makes one row of it: name and amount come out sharing a `table-row`,
+            /// and with `down` they do not. It is the choice the old `merge_prev` made.
+            #[test]
+            fn the_direction_puts_the_cell_beside_its_own_values() {
+                let row_of = |blocks: &[PdfBlock], at: usize| metadata_of(&blocks[at], "table-row");
+
+                let up = pipe(true, SplittingDirection::Up).call(&wrapped_name_page()).unwrap();
+                assert_eq!(contents(&up)[0], "Acme Asset Management Company");
+                assert_eq!(contents(&up)[1], "100");
+                assert_eq!(row_of(&up, 0), row_of(&up, 1), "the name and its amount are one row");
+
+                let down = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
+                assert_eq!(contents(&down)[0], contents(&up)[0], "the same text either way");
+                assert_ne!(row_of(&down, 0), row_of(&down, 1));
+            }
+
+            /// The rows come out **contiguous from zero**, whichever way the run collapsed.
+            ///
+            /// A run that collapses onto its last row leaves its first row with no cell, and the
+            /// consumer of this metadata assumes contiguity: it builds its grid from the rows it
+            /// finds and then indexes it by the number a block carries. A gap would make the two
+            /// disagree by one, and every field of that row would be read from its neighbour — the
+            /// defect that cost CARNE-EN23 twenty-two rows before this was here.
+            #[test]
+            fn the_rows_are_renumbered_contiguously() {
+                for direction in [SplittingDirection::Down, SplittingDirection::Up] {
+                    let blocks = pipe(true, direction).call(&wrapped_name_page()).unwrap();
+                    let mut rows: Vec<i64> = blocks
+                        .iter()
+                        .map(|b| match metadata_of(b, "table-row") {
+                            BlockValue::Int(row) => row,
+                            other => panic!("table-row should be an integer, found {other:?}"),
+                        })
+                        .collect();
+                    rows.sort_unstable();
+                    rows.dedup();
+                    assert_eq!(rows, (0..rows.len() as i64).collect::<Vec<_>>(), "{direction:?}");
+                }
+            }
+
+            /// A joined cell is as wide as its widest line.
+            #[test]
+            fn is_max_width_is_true_when_any_line_of_the_cell_reached_it() {
+                let blocks = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
+                assert_eq!(metadata_of(&blocks[0], "is-max-width"), BlockValue::from(true));
+            }
         }
 
         #[test]
@@ -2042,6 +2327,119 @@ mod tests {
         /// Il caso misurato è FIDEURAM-EN23: la prima colonna in CHF e le altre tre in EUR, e
         /// tutte e quattro uscivano in CHF perché la valuta era un dato della pagina. AMUNDI-EN24
         /// ne porta un secondo, due colonne in USD e due in EUR.
+        /// `values_in_one_line`: le righe dei totali di MEDIOLANUM-EN24 p6, che portano **tutti**
+        /// i valori in un oggetto di testo solo — e quella del patrimonio netto in tre, `1 + 1 + 2`.
+        mod values_in_one_line {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// La forma misurata: due comparti affiancati, due periodi ciascuno, e le tre righe dei
+            /// valori scritte come la pagina le scrive — una in un oggetto, una in un oggetto, una
+            /// in tre.
+            fn one_object_per_row_page() -> Page {
+                page(vec![
+                    PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
+                    PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
+                    line("Total assets", (0.0, 30.0, 40.0, 40.0)),
+                    line("   1000     900     2000     1800  ", (100.0, 30.0, 260.0, 40.0)),
+                    line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
+                    line("   200     150     400     350  ", (100.0, 50.0, 260.0, 60.0)),
+                    line("Net assets", (0.0, 70.0, 40.0, 80.0)),
+                    // Il patrimonio netto in tre pezzi, uno più uno più due: contare gli oggetti
+                    // non dice quanti valori ci sono, ed è il motivo per cui si leggono gli spazi.
+                    line("800  ", (100.0, 70.0, 150.0, 80.0)),
+                    line("750  ", (160.0, 70.0, 200.0, 80.0)),
+                    line("1600     1450  ", (210.0, 70.0, 260.0, 80.0)),
+                ])
+            }
+
+            fn args(values_in_one_line: bool) -> AssetsStandardArgs {
+                AssetsStandardArgs { values_in_one_line, skip_column: 2, ..two_funds_args() }
+            }
+
+            fn amounts(blocks: &[PdfBlock]) -> Vec<(String, String, String, String)> {
+                blocks
+                    .iter()
+                    .map(|block| {
+                        let field = |name: &str| {
+                            block.metadata[name].as_str().expect("the pipe writes strings").to_string()
+                        };
+                        (field("fund"), field("tot_assets"), field("liabilities"), field("net_assets"))
+                    })
+                    .collect()
+            }
+
+            #[test]
+            fn a_run_of_two_spaces_is_what_tells_two_values_apart() {
+                assert_eq!(values_in_a_line("   1000     900  "), vec!["1000", "900"]);
+            }
+
+            #[test]
+            fn a_line_carrying_one_value_comes_back_as_that_one_value() {
+                assert_eq!(values_in_a_line(" 1,234,567 "), vec!["1,234,567"]);
+            }
+
+            /// Un numero non porta mai due spazi di fila, quindi uno spazio solo non divide niente:
+            /// è il caso del trattino che vale zero, ` - `.
+            #[test]
+            fn a_single_space_divides_nothing() {
+                assert_eq!(values_in_a_line(" - "), vec!["-"]);
+                assert_eq!(values_in_a_line("JUNE 30, 2025"), vec!["JUNE 30, 2025"]);
+            }
+
+            #[test]
+            fn the_padding_of_the_object_costs_nothing() {
+                assert_eq!(values_in_a_line("      "), Vec::<String>::new());
+            }
+
+            /// Acceso, i quattro pezzi di ogni riga si appaiano per indice alle quattro colonne, e
+            /// `Value step = 2` tiene le due del periodo corrente.
+            #[test]
+            fn the_pieces_pair_by_index_and_the_step_keeps_the_current_period() {
+                let pipe = PdfExtractAssetsStandard::build(args(true)).unwrap();
+                let blocks = pipe.call(&one_object_per_row_page()).unwrap();
+
+                assert_eq!(
+                    amounts(&blocks),
+                    vec![
+                        ("Alpha".to_string(), "1000".to_string(), "200".to_string(), "800".to_string()),
+                        ("Beta".to_string(), "2000".to_string(), "400".to_string(), "1600".to_string()),
+                    ]
+                );
+            }
+
+            /// Spento, la stessa pagina dà **un** comparto su due e gli mette in mano la riga
+            /// intera: è il difetto che il parametro corregge, detto come misura.
+            #[test]
+            fn without_it_the_whole_row_becomes_one_value_and_a_fund_is_lost() {
+                let pipe = PdfExtractAssetsStandard::build(args(false)).unwrap();
+                let blocks = pipe.call(&one_object_per_row_page()).unwrap();
+
+                assert_eq!(blocks.len(), 1, "un comparto su due");
+                assert_eq!(
+                    blocks[0].metadata["tot_assets"].as_str().unwrap(),
+                    "   1000     900     2000     1800  ",
+                    "la riga intera, non un numero"
+                );
+            }
+
+            /// L'invarianza, detta dove conta: su una pagina scritta un oggetto per cella il
+            /// parametro **non cambia niente**. È il motivo per cui le altre dieci righe della
+            /// tabella non lo nominano.
+            #[test]
+            fn on_a_page_of_ordinary_cells_it_changes_nothing() {
+                let with = PdfExtractAssetsStandard::build(AssetsStandardArgs {
+                    values_in_one_line: true,
+                    ..two_funds_args()
+                })
+                .unwrap();
+                let without = PdfExtractAssetsStandard::build(two_funds_args()).unwrap();
+                let page = two_funds_page(true);
+
+                assert_eq!(amounts(&with.call(&page).unwrap()), amounts(&without.call(&page).unwrap()));
+            }
+        }
+
         mod currency_by_column {
             use super::*;
             use pretty_assertions::assert_eq;

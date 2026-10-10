@@ -13,7 +13,7 @@ pub mod collapse;
 pub mod coordinates;
 
 use super::pdf_line::PdfLine;
-use super::position::{ColumnConfig, SplittingState, TableConfig};
+use super::position::{ColumnConfig, SplittingDirection, SplittingState, TableConfig};
 use collapse::CollapseAlgorithm;
 use coordinates::{CellGeometry, CoordinateExtractionError, TablePosAlgorithm};
 
@@ -67,6 +67,20 @@ pub struct TableCoordinatesConfig {
     /// when this actually takes effect.
     pub company_col: Option<usize>,
     pub collapse: bool,
+    /// Which way the company column's cells collapse: `Down` pulls a wrapped remainder **up** onto
+    /// the first row of its run, `Up` pushes the run onto its last row.
+    ///
+    /// Only read together with [`Self::company_col`], which is what builds the column
+    /// configuration. `Down` is what this branch has always produced, so leaving it alone changes
+    /// nothing.
+    pub collapse_direction: SplittingDirection,
+    /// The columns allowed to break across several lines, where there is more than one.
+    ///
+    /// A page often carries **two tables side by side**, and then the column of names is two
+    /// columns — on AMUNDI-EN24 p30 they are the second and the sixth of an eight-column grid.
+    /// [`Self::company_col`] names one and is what the Python surface passes; this names a set, and
+    /// the two are **united**: a configuration may use either.
+    pub collapse_cols: Vec<usize>,
 }
 
 // `Default` is written out rather than derived, because `TablePosAlgorithm` and `CollapseAlgorithm`
@@ -83,6 +97,8 @@ impl Default for TableCoordinatesConfig {
             tolerance_unit: TablePosMeasureUnit::Em,
             company_col: None,
             collapse: false,
+            collapse_direction: SplittingDirection::Down,
+            collapse_cols: Vec::new(),
         }
     }
 }
@@ -123,25 +139,57 @@ pub fn get_table_coordinates_from_lines(
 
     let coords = coordinates::get_table_coordinates(&cells, config.algorithm_flags, &table_config)?;
 
+    let collapse_cols: Vec<usize> =
+        config.company_col.into_iter().chain(config.collapse_cols.iter().copied()).collect();
     if table_config.cols.is_none()
-        && let Some(company_col) = config.company_col
+        && !collapse_cols.is_empty()
         && let Some(max_col) = coords.iter().map(|(_, col)| *col).max()
     {
         // Every column gets its own [`ColumnConfig`]. Sharing one value between columns would make
         // setting `splitting` on a single column change them all; here the values are copies, so
         // that cannot happen.
+        // Every other column is **nullable**: a row that carries only the name has all of them
+        // empty, and that is the shape `CollapseAlgorithm::Geometry` asks about — it splits a row
+        // only where every empty cell it holds is nullable. `Pattern` does not read the field, so
+        // saying it here costs nothing and is what makes the geometric algorithm usable from
+        // configuration at all.
         let mut cols = vec![
-            ColumnConfig { limits: None, splitting: Some(SplittingState::Disallow), nullable: None };
+            ColumnConfig {
+                limits: None,
+                splitting: Some(SplittingState::Disallow),
+                nullable: Some(true),
+            };
             max_col + 1
         ];
-        if let Some(col) = cols.get_mut(company_col) {
-            // `None` means "no constraint", which `collapse` reads as allowing a downward split.
-            col.splitting = None;
-        } else {
+        let mut found = 0;
+        for wanted in &collapse_cols {
+            match cols.get_mut(*wanted) {
+                Some(col) => {
+                    col.splitting = Some(SplittingState::Allow(config.collapse_direction));
+                    // The name's own column is **not** nullable: a row without a name is not a row
+                    // whose name wrapped, and letting it be split would join two investments.
+                    col.nullable = Some(false);
+                    found += 1;
+                }
+                // One of several columns missing is **not** a mistake: a configuration that names
+                // the two name-columns of a page carrying two tables side by side meets, on the
+                // same format, pages carrying one — and there the second column does not exist.
+                // AMUNDI-EN24 has forty-seven such pages, and a warning each was forty-seven lines
+                // of noise saying the page was narrower than it could have been.
+                None => tracing::debug!(
+                    collapse_col = wanted,
+                    columns = cols.len(),
+                    "this page has no such column: nothing collapses there"
+                ),
+            }
+        }
+        if found == 0 {
+            // **None** of them, though, is a configuration that cannot apply anywhere on this
+            // page, and that is worth saying out loud.
             tracing::warn!(
-                company_col,
+                ?collapse_cols,
                 columns = cols.len(),
-                "company_col is out of range for this table - ignored, every column stays non-splittable"
+                "no collapse column is in range for this table - ignored, every column stays non-splittable"
             );
         }
         table_config.cols = Some(cols);
@@ -161,7 +209,7 @@ pub fn get_table_coordinates_from_lines(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::formats_utils::pdf_extract::position::{RowConfig, SplittingDirection};
+    use crate::formats_utils::pdf_extract::position::RowConfig;
 
     /// A line with explicit bounding box and size: geometry and `font_size` are the only attributes
     /// the wrapper reads.

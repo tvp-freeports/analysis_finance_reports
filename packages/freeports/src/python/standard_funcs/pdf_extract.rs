@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use crate::formats_utils::pdf_extract::position::SplittingDirection;
 
 use crate::core::classes::BlockType;
 use crate::formats_utils::pdf_extract::standard_funcs::{
@@ -485,6 +486,7 @@ pub fn py_pdf_extract_sfdr_sign_standard(
     row_tolerance=0.0,
     tolerance_mu=None,
     collapse=false,
+    collapse_direction=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_pdf_extract_investments_standard(
@@ -500,6 +502,7 @@ pub fn py_pdf_extract_investments_standard(
     row_tolerance: f64,
     tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
     collapse: bool,
+    collapse_direction: Option<&str>,
 ) -> PyResult<PyPdfExtractPipe> {
     let _ = (manco_set, currency_set);
 
@@ -512,7 +515,7 @@ pub fn py_pdf_extract_investments_standard(
     let args = InvestmentsStandardArgs {
         body_set: selection_of("body_set", body_set)?,
         deselection_list,
-        table: table_settings(table_cfg, algorithm_flags, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse)?,
+        table: table_settings(table_cfg, algorithm_flags, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse, collapse_direction)?,
         company_index: company_index.map(|index| index as usize),
     };
     Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractInvestmentsStandard::new(args))))
@@ -530,7 +533,17 @@ fn table_settings(
     row_tolerance: f64,
     tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
     collapse: bool,
+    collapse_direction: Option<&str>,
 ) -> PyResult<TableSettings> {
+    let collapse_direction = match collapse_direction.unwrap_or("down") {
+        "down" => SplittingDirection::Down,
+        "up" => SplittingDirection::Up,
+        other => {
+            return Err(PyValueError::new_err(format!(
+                "collapse_direction must be 'down' or 'up', found '{other}'"
+            )));
+        }
+    };
     Ok(TableSettings {
         table_config: table_cfg.map(|c| c.native().clone()),
         algorithm_flags: flags_of(algorithm_flags)?,
@@ -539,6 +552,10 @@ fn table_settings(
         row_tolerance: row_tolerance as f32,
         tolerance_unit: tolerance_mu.map(|u| u.native()).unwrap_or_default(),
         collapse,
+        collapse_direction,
+        // The Python surface names one column, through `company_index`, and that is what every
+        // author module passes; the set is the structured level's way of saying two.
+        collapse_cols: Vec::new(),
     })
 }
 
@@ -657,6 +674,7 @@ fn column_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<AssetsColumn> {
     row_tolerance=0.0,
     tolerance_mu=None,
     collapse=false,
+    values_in_one_line=false,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_pdf_extract_assets_standard(
@@ -678,8 +696,10 @@ pub fn py_pdf_extract_assets_standard(
     row_tolerance: f64,
     tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
     collapse: bool,
+    values_in_one_line: bool,
 ) -> PyResult<PyPdfExtractPipe> {
     let args = AssetsStandardArgs {
+        values_in_one_line,
         fund_set: selection_of("fund_set", fund_set)?,
         currency_set: optional_selection_of("currency_set", currency_set)?,
         net_assets: column_of("net_assets", net_assets)?,
@@ -704,7 +724,7 @@ pub fn py_pdf_extract_assets_standard(
                 None => TableSettings::assets_funds().algorithm_flags,
                 Some(_) => flags_of(algorithm_flags)?,
             },
-            ..table_settings(table_cfg, None, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse)?
+            ..table_settings(table_cfg, None, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse, None)?
         },
     };
     let pipe = PdfExtractAssetsStandard::build(args).map_err(|e| {
