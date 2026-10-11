@@ -17,6 +17,7 @@ what you put in one and how you work on it. Why they live outside is {doc}`../..
 
 tutorials/index
 writing-a-format
+adding-a-datum/index
 dev-loop
 selections
 repository
@@ -28,6 +29,7 @@ advanced/index
 |---|---|
 | {doc}`tutorials/index` | walked-through examples: a first format, and diagnosing one that misbehaves |
 | {doc}`writing-a-format` | the whole path of adding support for a new report, as a checklist |
+| {doc}`adding-a-datum/index` | the format exists and reads its holdings: now add the next datum to it |
 | {doc}`dev-loop` | inspect-document → inspect-page → make-tests → test |
 | {doc}`selections` | how you say *where to look* on a page |
 | {doc}`repository` | the repository itself: layout, metadata, orchestration, versioning |

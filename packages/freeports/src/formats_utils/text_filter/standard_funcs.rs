@@ -52,6 +52,11 @@ pub enum StandardFuncsError {
     NoPdfBlocks,
     #[error("page classified both as {first:?} and as {second:?}")]
     ConflictingPageClass { first: String, second: String },
+    /// Two document-classification contributions of the same pipeline name two **different**
+    /// formats. `first` and `second` are the two pattern strings as written in the blocks, in the
+    /// order met.
+    #[error("document classified both as '{first}' and as '{second}'")]
+    ConflictingDocClass { first: String, second: String },
     #[error(transparent)]
     Value(#[from] crate::core::classes::value::BlockValueError),
     #[error("no currency found in text")]
@@ -115,21 +120,12 @@ pub struct TextFilterPageClassifyStandard;
 
 impl TextFilterPageClassifyStandard {
     pub fn call(&self, pdf_blks: &[PdfBlock]) -> Result<Vec<TextBlock>, StandardFuncsError> {
-        let last = pdf_blks.last().ok_or(StandardFuncsError::NoPdfBlocks)?;
-        let mut found: Option<&BlockValue> = None;
-        for blk in pdf_blks {
-            let page_type = blk.metadata_or_fail("page_type")?;
-            if !page_type.is_null() {
-                if let Some(existing) = found {
-                    return Err(StandardFuncsError::ConflictingPageClass {
-                        first: format!("{existing:?}"),
-                        second: format!("{page_type:?}"),
-                    });
-                }
-                found = Some(page_type);
-            }
-        }
-        let page_type = found.cloned().unwrap_or(BlockValue::Null);
+        let (page_type, last) = reduce_class_contributions(pdf_blks, "page_type", |first, second| {
+            Err(StandardFuncsError::ConflictingPageClass {
+                first: format!("{first:?}"),
+                second: format!("{second:?}"),
+            })
+        })?;
         // As for the page classifier: not being classified is the normal case on nearly every page,
         // and logging it would fill the file without saying anything.
         if !page_type.is_null() {
@@ -138,6 +134,34 @@ impl TextFilterPageClassifyStandard {
         let metadata = BTreeMap::from([("page_type".to_string(), page_type)]);
         Ok(vec![TextBlock::new(BlockType::PAGE_CLASS, metadata, last.clone())])
     }
+}
+
+/// The reduction shared by the two classification filters: reads `key` from every block, drops
+/// the nulls, and hands each later non-null value to `on_second` together with the one already
+/// kept, so that each classification decides for itself whether a repetition is a conflict.
+/// Returns the kept value (`Null` if none) and the last block, which the resulting text block
+/// points at.
+///
+/// No block at all is [`StandardFuncsError::NoPdfBlocks`]: the extraction pipes always emit one
+/// block each, so an empty list means a pipeline wired without them, not "nothing recognised".
+fn reduce_class_contributions<'a>(
+    pdf_blks: &'a [PdfBlock],
+    key: &str,
+    on_second: impl Fn(&BlockValue, &BlockValue) -> Result<(), StandardFuncsError>,
+) -> Result<(BlockValue, &'a PdfBlock), StandardFuncsError> {
+    let last = pdf_blks.last().ok_or(StandardFuncsError::NoPdfBlocks)?;
+    let mut found: Option<&BlockValue> = None;
+    for blk in pdf_blks {
+        let value = blk.metadata_or_fail(key)?;
+        if value.is_null() {
+            continue;
+        }
+        match found {
+            Some(existing) => on_second(existing, value)?,
+            None => found = Some(value),
+        }
+    }
+    Ok((found.cloned().unwrap_or(BlockValue::Null), last))
 }
 
 static ISO_CODE_CANDIDATE: Lazy<Regex> =
@@ -188,6 +212,45 @@ impl TextFilterPipe for TextFilterPageClassifyStandard {
     }
 }
 
+
+// ----------------------------------------------------------------------------------------------
+// TextFilterDocClassifyStandard
+// ----------------------------------------------------------------------------------------------
+/// Reduces a page's document-classification contributions to one `DOC_CLASS` text block: the
+/// nulls are dropped, equal values collapse into one, two different values are
+/// [`StandardFuncsError::ConflictingDocClass`]. Unlike the page twin, a value repeated is not a
+/// conflict — the §6 contract of the document classification deduplicates.
+pub struct TextFilterDocClassifyStandard;
+
+impl TextFilterDocClassifyStandard {
+    pub fn call(&self, pdf_blks: &[PdfBlock]) -> Result<Vec<TextBlock>, StandardFuncsError> {
+        let (format_pattern, last) = reduce_class_contributions(pdf_blks, "format_pattern", |first, second| {
+            if first == second {
+                return Ok(());
+            }
+            // The patterns as the author wrote them; a non-string value is the deserializer's
+            // error to report, and here only needs to stay recognisable.
+            let spelled = |value: &BlockValue| value.as_str().map_or_else(|| format!("{value:?}"), str::to_string);
+            Err(StandardFuncsError::ConflictingDocClass { first: spelled(first), second: spelled(second) })
+        })?;
+        let metadata = BTreeMap::from([("format_pattern".to_string(), format_pattern)]);
+        Ok(vec![TextBlock::new(BlockType::DOC_CLASS, metadata, last.clone())])
+    }
+}
+
+impl TextFilterPipe for TextFilterDocClassifyStandard {
+    fn name(&self) -> &str {
+        "TextFilterDocClassifyStandard"
+    }
+
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        _data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks).map_err(|e| e.into_pipe_error(self.name()))
+    }
+}
 
 // ----------------------------------------------------------------------------------------------
 // TextFilterInvestmentsStandard, with PdfBlocksTable inlined (its only real caller)
@@ -352,30 +415,6 @@ struct RowAnchor {
     n_cols: i64,
 }
 
-/// `R16` (`U3`): il richiamo di nota si toglie dalla coda del nome di un comparto.
-///
-/// Non e' un abbellimento. Le identita' dei fondi si confrontano dopo la normalizzazione profonda,
-/// che **non** tocca l'asterisco: `Global High Yield*` e `Global High Yield` restano due elementi
-/// diversi, quindi un nome che si porta dietro il richiamo non corrisponde a nessun fondo noto e la
-/// riga sparisce senza una parola.
-///
-/// `marks` e' l'insieme dei caratteri che valgono da richiamo, scritto di seguito (`"*†"`), e
-/// vuoto vuol dire «non toglierne nessuno» — cioe' il comportamento che il motore ha sempre avuto.
-/// Lo spazio prima del richiamo se ne va con lui: `ANIMA Brightview 2023-I *` su ANIMA-EN23 p63 lo
-/// scrive staccato, e li' l'asterisco e' perfino una riga a se'.
-fn strip_note_marks(name: &str, marks: &str) -> String {
-    if marks.is_empty() {
-        return name.to_string();
-    }
-    let marks: Vec<char> = marks.chars().collect();
-    let trimmed = name.trim_end();
-    let stripped = trimmed.trim_end_matches(|c| marks.contains(&c)).trim_end();
-    if stripped.len() != trimmed.len() {
-        tracing::debug!(fund = stripped, "footnote mark stripped from the fund name");
-    }
-    stripped.to_string()
-}
-
 /// Compiled patterns whose matches are cut out of a fund's name, carrying their own sources.
 ///
 /// A newtype and not a bare `Vec<Regex>` because [`TextFilterInvestmentsStandard`] derives
@@ -480,11 +519,9 @@ pub struct TextFilterInvestmentsStandard {
     /// Which numeric fields read a dash the report prints as the zero it means. Empty by default,
     /// which is no change at all: see [`crate::formats_utils::text_filter::dash_as_zero`].
     pub dash_as_zero: DashAsZero,
-    /// The characters that count as a footnote mark on the fund's name (`R16`). Empty by default,
-    /// which strips nothing: see [`strip_note_marks`].
-    note_marks: String,
-    /// Patterns cut out of the fund's name before it becomes the sub-fund's identity. Empty by
-    /// default, which cuts nothing: see [`Self::with_remove_from_fund_regexes`].
+    /// Patterns cut out of the fund's name before it becomes the sub-fund's identity — a footnote
+    /// mark at its end (`R16`) among them. Empty by default, which cuts nothing: see
+    /// [`Self::with_remove_from_fund_regexes`].
     remove_from_fund: FundNameCuts,
     /// The pattern that reads the **quantity out of the name cell**, for a report that prints the
     /// two in one cell.
@@ -529,20 +566,9 @@ impl TextFilterInvestmentsStandard {
             acquisition_cost_pos,
             geometrical_indexes,
             dash_as_zero,
-            note_marks: String::new(),
             remove_from_fund: FundNameCuts::default(),
             quantity_in_name: None,
         })
-    }
-
-    /// The same pipe, stripping these characters from the end of the fund's name (`R16`).
-    ///
-    /// A builder and not a ninth parameter of [`Self::new`], for the same reason
-    /// [`TextFilterAssetsStandard::with_note_marks`] is one: the formats that need it are two out
-    /// of twenty-six, and the other twenty-four should not have to write an empty string.
-    pub fn with_note_marks(mut self, note_marks: impl Into<String>) -> Self {
-        self.note_marks = note_marks.into();
-        self
     }
 
     /// The same pipe, cutting whatever these patterns match out of the fund's name.
@@ -555,9 +581,12 @@ impl TextFilterInvestmentsStandard {
     /// seventy-four on FINECO-EN23@IR). Normalisation does not save it: it drops the parentheses
     /// and keeps the word.
     ///
-    /// A builder and not a ninth parameter of [`Self::new`], for the same reason
-    /// [`Self::with_note_marks`] is one: the formats that need it are few, and the others should
-    /// not have to write an empty list.
+    /// It is also how a **footnote mark** (`R16`) comes off — a cut anchored at the end of the name,
+    /// `\s*[*]*\s*$`. Fund identities compare after deep normalisation, which does not remove an
+    /// asterisk, so a name keeping its mark matches no known fund.
+    ///
+    /// A builder and not a ninth parameter of [`Self::new`]: the formats that need it are few, and
+    /// the others should not have to write an empty list.
     pub fn with_remove_from_fund_regexes(
         mut self,
         patterns: &[String],
@@ -594,14 +623,8 @@ impl TextFilterInvestmentsStandard {
                 // `R16`: il richiamo di nota se ne va **qui**, prima che il nome diventi l'identita'
                 // del comparto. Piu' avanti non si puo' piu': il nome finisce nei metadati di ogni
                 // riga di questa pagina e in `funds.csv`, e le fasi dopo lo confrontano cosi' com'e'.
-                // Same order as `TextFilterAssetsStandard`: the patterns cut first, the footnote
-                // mark after. A mark sitting at the very end survives whatever the patterns take
-                // away from the middle, so cutting first never hides it.
                 let cleaned = match blk.content.as_str() {
-                    Some(name) if !self.remove_from_fund.is_empty() || !self.note_marks.is_empty() => {
-                        let cut = self.remove_from_fund.applied(name);
-                        Some(strip_note_marks(&cut, &self.note_marks))
-                    }
+                    Some(name) if !self.remove_from_fund.is_empty() => Some(self.remove_from_fund.applied(name)),
                     _ => None,
                 };
                 let blk = match cleaned {
@@ -1223,21 +1246,9 @@ impl TextFilterPipe for TextFilterManagmentCompanyStandard {
 pub struct TextFilterAssetsStandard {
     date_regex: Option<Regex>,
     remove_from_fund_regexes: Vec<Regex>,
-    note_marks: String,
 }
 
 impl TextFilterAssetsStandard {
-    /// The same filter, stripping these characters from the end of a fund's name (`R16`).
-    ///
-    /// It is not cosmetic. Fund identities compare after deep normalisation, and normalisation does
-    /// **not** remove an asterisk: `Global High Yield*` and `Global High Yield` are two different
-    /// elements, so a name carrying its footnote mark matches no known fund and the row disappears
-    /// without a word — the very case `R12` warns about.
-    pub fn with_note_marks(mut self, note_marks: impl Into<String>) -> Self {
-        self.note_marks = note_marks.into();
-        self
-    }
-
     pub fn new(
         date_regex: Option<&str>,
         remove_from_fund_regexes: Vec<String>,
@@ -1259,7 +1270,7 @@ impl TextFilterAssetsStandard {
             .transpose()?;
         let remove_from_fund_regexes =
             remove_from_fund_regexes.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { date_regex, remove_from_fund_regexes, note_marks: String::new() })
+        Ok(Self { date_regex, remove_from_fund_regexes })
     }
 
     pub fn call(
@@ -1276,7 +1287,6 @@ impl TextFilterAssetsStandard {
             for pattern in &self.remove_from_fund_regexes {
                 fund_name = pattern.replace_all(&fund_name, "");
             }
-            fund_name = strip_note_marks(&fund_name, &self.note_marks);
 
             if !known_funds.contains(&MatchFund::new(&fund_name)) {
                 tracing::trace!(fund = fund_name, "assets block skipped: fund not among the known funds");
@@ -1382,6 +1392,227 @@ mod tests {
             let blks = vec![first, last.clone()];
             let result = TextFilterPageClassifyStandard.call(&blks).unwrap();
             assert_eq!(result[0].pdf_block.as_deref(), Some(&last));
+        }
+    }
+
+    /// The document twin of `text_filter_page_classify`. Where the two differ — a repeated equal
+    /// value is one value here, a conflict there — the difference is the §6 contract of the
+    /// document classification ("si tolgono i None, si deduplica").
+    mod text_filter_doc_classify {
+        use super::*;
+
+        fn doc_class_block(pattern: Option<&str>) -> PdfBlock {
+            let metadata = BTreeMap::from([(
+                "format_pattern".to_string(),
+                pattern.map(BlockValue::from).unwrap_or(BlockValue::Null),
+            )]);
+            PdfBlock::new(BlockType::DOC_CLASS, metadata, "")
+        }
+
+        fn declared(blocks: &[TextBlock]) -> Option<&BlockValue> {
+            blocks[0].metadata.get("format_pattern")
+        }
+
+        mod reduction {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn a_single_null_contribution_yields_null() {
+                let result = TextFilterDocClassifyStandard.call(&[doc_class_block(None)]).unwrap();
+                assert_eq!(declared(&result), Some(&BlockValue::Null));
+            }
+
+            #[test]
+            fn only_null_contributions_yield_null() {
+                let blks = vec![doc_class_block(None), doc_class_block(None), doc_class_block(None)];
+                let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
+                assert_eq!(declared(&result), Some(&BlockValue::Null));
+            }
+
+            #[test]
+            fn a_single_value_is_reported() {
+                let result = TextFilterDocClassifyStandard.call(&[doc_class_block(Some("MEDIOLANUM"))]).unwrap();
+                assert_eq!(declared(&result), Some(&BlockValue::from("MEDIOLANUM")));
+            }
+
+            #[test]
+            fn the_nulls_around_a_single_value_are_dropped() {
+                let blks = vec![doc_class_block(None), doc_class_block(Some("MEDIOLANUM-IT24.*")), doc_class_block(None)];
+                let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
+                assert_eq!(declared(&result), Some(&BlockValue::from("MEDIOLANUM-IT24.*")));
+            }
+
+            #[test]
+            fn equal_values_repeated_collapse_into_one() {
+                let blks = vec![doc_class_block(Some("AMUNDI-EN24")), doc_class_block(Some("AMUNDI-EN24"))];
+                let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
+                assert_eq!(result.len(), 1);
+                assert_eq!(declared(&result), Some(&BlockValue::from("AMUNDI-EN24")));
+            }
+
+            #[test]
+            fn equal_values_separated_by_nulls_collapse_into_one() {
+                let blks = vec![
+                    doc_class_block(Some("AMUNDI-EN24")),
+                    doc_class_block(None),
+                    doc_class_block(Some("AMUNDI-EN24")),
+                ];
+                let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
+                assert_eq!(declared(&result), Some(&BlockValue::from("AMUNDI-EN24")));
+            }
+        }
+
+        mod conflicts {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn two_different_values_are_a_conflict_naming_both_in_order() {
+                let blks = vec![doc_class_block(Some("MEDIOLANUM-IT24.*")), doc_class_block(Some("AMUNDI-EN24"))];
+                let err = TextFilterDocClassifyStandard.call(&blks).unwrap_err();
+                match err {
+                    StandardFuncsError::ConflictingDocClass { first, second } => {
+                        assert_eq!(first, "MEDIOLANUM-IT24.*");
+                        assert_eq!(second, "AMUNDI-EN24");
+                    }
+                    other => panic!("expected ConflictingDocClass, got {other:?}"),
+                }
+            }
+
+            /// "Two distinct values" (§6), not "two incompatible ones": the reduction does not
+            /// reason about refinement — that is the engine's business, with `A` in hand.
+            #[test]
+            fn a_value_and_one_refining_it_are_still_a_conflict() {
+                let blks = vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(Some("MEDIOLANUM-IT24.A"))];
+                assert!(matches!(
+                    TextFilterDocClassifyStandard.call(&blks),
+                    Err(StandardFuncsError::ConflictingDocClass { .. })
+                ));
+            }
+
+            /// Collapsing the duplicates must not hide a third, different value.
+            #[test]
+            fn a_conflict_after_duplicates_is_still_detected() {
+                let blks = vec![
+                    doc_class_block(Some("AMUNDI-EN24")),
+                    doc_class_block(Some("AMUNDI-EN24")),
+                    doc_class_block(None),
+                    doc_class_block(Some("ANIMA_SGR-IT24")),
+                ];
+                let err = TextFilterDocClassifyStandard.call(&blks).unwrap_err();
+                match err {
+                    StandardFuncsError::ConflictingDocClass { first, second } => {
+                        assert_eq!((first.as_str(), second.as_str()), ("AMUNDI-EN24", "ANIMA_SGR-IT24"));
+                    }
+                    other => panic!("expected ConflictingDocClass, got {other:?}"),
+                }
+            }
+
+            #[test]
+            fn the_conflict_message_names_both_patterns() {
+                let blks = vec![doc_class_block(Some("MEDIOLANUM-IT24.*")), doc_class_block(Some("AMUNDI-EN24"))];
+                let message = TextFilterDocClassifyStandard.call(&blks).unwrap_err().to_string();
+                assert!(message.contains("MEDIOLANUM-IT24.*"), "{message}");
+                assert!(message.contains("AMUNDI-EN24"), "{message}");
+            }
+        }
+
+        mod output_shape {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn exactly_one_doc_class_text_block_comes_out() {
+                for blks in [
+                    vec![doc_class_block(None)],
+                    vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(None)],
+                    vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(Some("MEDIOLANUM"))],
+                ] {
+                    let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
+                    assert_eq!(result.len(), 1);
+                    assert_eq!(result[0].type_block, BlockType::DOC_CLASS);
+                }
+            }
+
+            #[test]
+            fn the_resulting_pdf_block_is_the_last_one_in_the_list_not_the_first() {
+                let first = doc_class_block(Some("MEDIOLANUM"));
+                let last = doc_class_block(None);
+                let result = TextFilterDocClassifyStandard.call(&[first, last.clone()]).unwrap();
+                assert_eq!(result[0].pdf_block.as_deref(), Some(&last));
+            }
+        }
+
+        /// Aligned with the page twin: a pipeline with no extraction pipe is a wiring mistake,
+        /// not "nothing recognised" — the extraction pipes always emit one block each.
+        mod empty_and_malformed_input {
+            use super::*;
+
+            #[test]
+            fn an_empty_list_of_pdf_blocks_is_an_error_as_for_the_page_twin() {
+                assert!(matches!(TextFilterDocClassifyStandard.call(&[]), Err(StandardFuncsError::NoPdfBlocks)));
+                assert!(matches!(TextFilterPageClassifyStandard.call(&[]), Err(StandardFuncsError::NoPdfBlocks)));
+            }
+
+            #[test]
+            fn a_block_without_the_format_pattern_key_is_a_value_error() {
+                let blks = vec![PdfBlock::new(BlockType::DOC_CLASS, BTreeMap::new(), "")];
+                assert!(matches!(TextFilterDocClassifyStandard.call(&blks), Err(StandardFuncsError::Value(_))));
+            }
+
+            /// A page-class block carries `page_type`, not `format_pattern`: mixing the two
+            /// classifications in one pipeline is caught, not read as "nothing".
+            #[test]
+            fn a_page_class_block_is_not_read_as_a_document_class() {
+                assert!(TextFilterDocClassifyStandard.call(&[page_class_block(Some("investments"))]).is_err());
+            }
+        }
+
+        mod as_a_text_filter_pipe {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_errors() {
+                assert_eq!(TextFilterDocClassifyStandard.name(), "TextFilterDocClassifyStandard");
+            }
+
+            #[test]
+            fn filtering_produces_the_same_block_as_the_direct_call() {
+                let blks = vec![doc_class_block(None), doc_class_block(Some("MEDIOLANUM"))];
+                assert_eq!(
+                    TextFilterDocClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap(),
+                    TextFilterDocClassifyStandard.call(&blks).unwrap()
+                );
+            }
+
+            #[test]
+            fn the_filter_data_is_ignored() {
+                let blks = vec![doc_class_block(Some("MEDIOLANUM"))];
+                let companies = targets(&["Acme"]);
+                assert_eq!(
+                    TextFilterDocClassifyStandard.filter(&blks, &FilterData::TargetCompanies(&companies)).unwrap(),
+                    TextFilterDocClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap()
+                );
+            }
+
+            #[test]
+            fn a_conflict_is_a_fatal_extraction_error_naming_the_pipe() {
+                let blks = vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(Some("AMUNDI"))];
+                let err = TextFilterDocClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap_err();
+                assert_eq!(err.pipe(), "TextFilterDocClassifyStandard");
+                assert!(matches!(err, PipeError::Extraction { .. }));
+                assert!(!err.is_page_failure());
+                assert!(err.to_string().contains("AMUNDI"), "{err}");
+            }
+
+            #[test]
+            fn an_empty_page_is_a_fatal_error_not_a_page_failure() {
+                let err = TextFilterDocClassifyStandard.filter(&[], &FilterData::EMPTY).unwrap_err();
+                assert_eq!(err.pipe(), "TextFilterDocClassifyStandard");
+                assert!(!err.is_page_failure());
+            }
         }
     }
 
@@ -2523,6 +2754,13 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
+        /// A footnote mark is a cut anchored at the end of the name.
+        fn marks(set: &str) -> TextFilterInvestmentsStandard {
+            simple_investments(1)
+                .with_remove_from_fund_regexes(&[format!(r"\s*[{set}]*\s*$")])
+                .expect("the test's own pattern")
+        }
+
         fn fund_block(name: &str) -> PdfBlock {
             PdfBlock::bare(BlockType::FUND_NAME, name)
         }
@@ -2541,14 +2779,14 @@ mod tests {
         }
 
         #[test]
-        fn without_the_parameter_the_mark_stays_where_the_report_wrote_it() {
+        fn without_a_cut_the_mark_stays_where_the_report_wrote_it() {
             let pipe = simple_investments(1);
             assert_eq!(fund_name_of(&pipe, "Alpha Fund*"), BlockValue::from("Alpha Fund*"));
         }
 
         #[test]
         fn the_declared_mark_goes_from_the_name() {
-            let pipe = simple_investments(1).with_note_marks("*");
+            let pipe = marks("*");
             assert_eq!(fund_name_of(&pipe, "Alpha Fund*"), BlockValue::from("Alpha Fund"));
         }
 
@@ -2556,7 +2794,7 @@ mod tests {
         /// `funds.csv` e `investments.csv` parlerebbero di due comparti diversi.
         #[test]
         fn the_fund_block_and_the_rows_agree_on_the_stripped_name() {
-            let pipe = simple_investments(1).with_note_marks("*");
+            let pipe = marks("*");
             let out = pipe.call(&page("Alpha Fund*"), &targets(&["Acme Corp"])).unwrap();
 
             assert_eq!(out[0].type_block, BlockType::FUND);
@@ -2567,20 +2805,20 @@ mod tests {
         /// CARNE-EN23 p39 scrive `Christian Equity*` attaccato, ANIMA-EN23 p63 `2023-I *` staccato.
         #[test]
         fn a_mark_separated_by_a_space_goes_too() {
-            let pipe = simple_investments(1).with_note_marks("*");
+            let pipe = marks("*");
             assert_eq!(fund_name_of(&pipe, "Alpha Fund *"), BlockValue::from("Alpha Fund"));
         }
 
         #[test]
         fn several_marks_can_be_declared_together() {
-            let pipe = simple_investments(1).with_note_marks("*\u{b9}");
+            let pipe = marks("*\u{b9}");
             assert_eq!(fund_name_of(&pipe, "Alpha Fund\u{b9}"), BlockValue::from("Alpha Fund"));
             assert_eq!(fund_name_of(&pipe, "Alpha Fund**"), BlockValue::from("Alpha Fund"));
         }
 
         #[test]
         fn a_name_that_carries_no_mark_is_left_exactly_as_it_is() {
-            let pipe = simple_investments(1).with_note_marks("*");
+            let pipe = marks("*");
             assert_eq!(fund_name_of(&pipe, "Alpha Fund"), BlockValue::from("Alpha Fund"));
         }
 
@@ -2588,7 +2826,7 @@ mod tests {
         /// con una nota.
         #[test]
         fn a_mark_in_the_middle_of_the_name_is_not_a_footnote() {
-            let pipe = simple_investments(1).with_note_marks("*");
+            let pipe = marks("*");
             assert_eq!(fund_name_of(&pipe, "A*B Fund"), BlockValue::from("A*B Fund"));
         }
 
@@ -2596,7 +2834,7 @@ mod tests {
         /// il tubo non deve ne' fallire ne' cambiarlo.
         #[test]
         fn a_fund_block_whose_content_is_not_text_passes_through_untouched() {
-            let pipe = simple_investments(1).with_note_marks("*");
+            let pipe = marks("*");
             let mut blks = vec![PdfBlock::new(BlockType::FUND_NAME, BTreeMap::new(), BlockValue::Int(7))];
             blks.extend(page("ignored").into_iter().skip(1));
 
@@ -3078,7 +3316,7 @@ mod tests {
             use super::*;
 
             #[test]
-            fn a_fund_carrying_its_footnote_mark_is_not_recognised_without_the_parameter() {
+            fn a_fund_carrying_its_footnote_mark_is_not_recognised_without_a_cut() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund*", "EUR", None)];
 
@@ -3088,8 +3326,8 @@ mod tests {
             }
 
             #[test]
-            fn the_same_fund_is_recognised_once_the_mark_is_declared() {
-                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap().with_note_marks("*");
+            fn the_same_fund_is_recognised_once_the_mark_is_cut() {
+                let filter = TextFilterAssetsStandard::new(None, vec![r"\s*[*]*\s*$".to_string()]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund*", "EUR", None)];
 
                 let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
@@ -3102,7 +3340,7 @@ mod tests {
             /// su ANIMA-EN23 p63, dove l'asterisco è perfino una riga a sé.
             #[test]
             fn a_mark_separated_by_a_space_goes_too() {
-                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap().with_note_marks("*†");
+                let filter = TextFilterAssetsStandard::new(None, vec![r"\s*[*†]*\s*$".to_string()]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund *", "EUR", None)];
 
                 let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
@@ -3113,7 +3351,7 @@ mod tests {
 
             #[test]
             fn a_name_that_carries_no_mark_is_left_exactly_as_it_is() {
-                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap().with_note_marks("*");
+                let filter = TextFilterAssetsStandard::new(None, vec![r"\s*[*]*\s*$".to_string()]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund", "EUR", None)];
 
                 let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();

@@ -1,4 +1,4 @@
-freeports.standard\_funcs.deserialize
+﻿freeports.standard\_funcs.deserialize
 =====================================
 
 .. automodule:: freeports.standard_funcs.deserialize
@@ -11,6 +11,7 @@ freeports.standard\_funcs.deserialize
    
       DeserializeSfdrArticleStandard
       DeserializerAssetsStandard
+      DeserializerDocClassifyStandard
       DeserializerFundStandard
       DeserializerInvestmentStandard
       DeserializerInvestmentsManagerFromManco

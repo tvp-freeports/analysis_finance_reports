@@ -12,6 +12,7 @@
 //! absent rather than demanding a `{}` that carries no information. An algorithm not listed there
 //! still requires its entry: a missing one is then a configuration mistake, not a default.
 
+pub mod assets_by_position;
 pub mod carryover;
 pub mod esg;
 pub mod grouped_lines;
@@ -60,10 +61,11 @@ const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
             "section",
             "page_number",
             "grouped_lines",
+            "assets_by_position",
         ]),
     (
         SegmentKind::TextFilter,
-        &["sfdr_annex", "manco", "manco_imposed", "inv_managers", "labelled_assets", "esg", "renaming"],
+        &["sfdr_annex", "manco", "manco_imposed", "inv_managers", "labelled_assets", "esg", "renaming", "assets"],
     ),
     (
         SegmentKind::Deserialize,
@@ -90,7 +92,7 @@ const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
 /// algorithm.
 const ARGLESS_NAMES: [(SegmentKind, &[&str]); 3] = [
     (SegmentKind::PdfExtract, &[]),
-    (SegmentKind::TextFilter, &["inv_managers"]),
+    (SegmentKind::TextFilter, &["inv_managers", "assets"]),
     (
         SegmentKind::Deserialize,
         &[

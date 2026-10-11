@@ -54,6 +54,9 @@ impl BlockType {
     pub const SFDR_ARTICLE: BlockType = BlockType(Cow::Borrowed("SFDR_ARTICLE"));
     /// A marker of the page's class.
     pub const PAGE_CLASS: BlockType = BlockType(Cow::Borrowed("PAGE_CLASS"));
+    /// A marker of the document's class: the (possibly partial) format a document-classification
+    /// pipe recognised on the page.
+    pub const DOC_CLASS: BlockType = BlockType(Cow::Borrowed("DOC_CLASS"));
     /// A fund, as the text block a standard fund filter produces.
     pub const FUND: BlockType = BlockType(Cow::Borrowed("FUND"));
     /// A management company, as the text block a standard filter produces.
@@ -75,6 +78,7 @@ impl BlockType {
         BlockType::TABLE_BODY,
         BlockType::SFDR_ARTICLE,
         BlockType::PAGE_CLASS,
+        BlockType::DOC_CLASS,
         BlockType::FUND,
         BlockType::MANAGEMENT_COMPANY,
         BlockType::INVESTMENTS_MANAGER,
@@ -248,6 +252,15 @@ mod tests {
             assert_eq!(BlockType::FUND.as_str(), "FUND");
             assert_eq!(BlockType::TABLE_BODY.as_str(), "TABLE_BODY");
             assert_eq!(BlockType::INVESTMENTS_MANAGER.as_str(), "INVESTMENTS_MANAGER");
+        }
+
+        /// The block of the document classification is a standard type of its own, distinct from
+        /// the page classification's.
+        #[test]
+        fn the_document_class_block_type_is_standard_and_named_doc_class() {
+            assert_eq!(BlockType::DOC_CLASS.as_str(), "DOC_CLASS");
+            assert!(BlockType::STANDARD.contains(&BlockType::DOC_CLASS));
+            assert_ne!(BlockType::DOC_CLASS, BlockType::PAGE_CLASS);
         }
 
         #[test]

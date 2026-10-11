@@ -4,12 +4,19 @@
 formats.
 
 The algorithm is fixed and lives in the library; you supply its parameters as columns of a CSV. The
-tables live under `content/algorithms/structured/`, in two groups:
+tables live under `content/algorithms/structured/`, one directory per datum:
 
-| Directory | For |
-|---|---|
-| `investments/` | extracting a fund's holdings |
-| `page_classify/` | classifying pages |
+| Directory | For | Required cells |
+|---|---|---|
+| `page_classify/` | classifying pages | all three |
+| `investments/` | a fund's holdings | the body selection and the market value's column |
+| `fund_assets/` | a statement of net assets | the fund column and the three amounts |
+| `manco/` | the management company | the label |
+| `sfdr/` | the periodic SFDR annex | the language |
+
+**A directory a repository does not need is a file it does not have.** Four of the five were added
+after the first, each when the same reading turned out to be the majority way of reading its datum —
+which is the condition for a datum to belong to this level at all.
 
 ## The `ID` column
 
@@ -51,17 +58,24 @@ pipe that says nothing behaves the way the library does.
 | `Column tolerance` | `pdf_extract` | number | `0` |
 | `Row tolerance` | `pdf_extract` | number | `0` |
 | `Geometrical indexing` | `text_filter` | `TRUE`/`FALSE` | `TRUE` |
-| `Merge previous` | `text_filter` | `TRUE`/`FALSE` | `FALSE` |
 | `Interpret dash as zero` | `text_filter` | flag expression | nothing substituted |
-| `Note marks` | `text_filter` | the characters, written one after the other | nothing stripped |
+| `Remove from fund` | `text_filter` | one regular expression | nothing cut |
 | `Interpret quantity as float` | `deserialize` | `TRUE`/`FALSE` | `FALSE` |
 | `Interpret cost and value as int` | `deserialize` | `TRUE`/`FALSE` | `TRUE` |
+| `Collapse` | `pdf_extract` | column indices, separated by `\|` | no column may break |
+| `Collapse direction` | `pdf_extract` | `down`/`up` | `down` |
+| `Collapse algorithm` | `pdf_extract` | `pattern`/`geometry` | `pattern` |
+| `Quantity in name` | `text_filter` | one regular expression | the quantity is a column |
 
 The two tolerances say how far apart two cells may sit and still count as the same column, or the
 same row. They are **independent**: leaving one empty means zero for that axis, never the other
 one's value. A table whose column of names breaks up because the names differ in length wants a
 wide column tolerance and a row tolerance of zero — one number for both would weld consecutive
 holdings into a single row while it was busy reuniting the names.
+
+A column the table does not take is refused when the repository loads, rather than ignored — a
+file written for an older engine would otherwise carry cells that silently do nothing. So is a
+column that only refines another one, filled without it.
 
 Each column belongs to one segment, and that matters: a pipe that switches a segment **off** in
 `partial_pipes.csv` and then fills in one of that segment's columns is rejected when the repository
@@ -72,15 +86,32 @@ loads. Declaring a segment off and configuring it is a contradiction, not someth
 How the table-coordinates algorithm finds the grid, when its default choices do not suit a layout:
 `RETURN_ROWS`, `BIG_CELL_RULE`, `USE_RULER_AREA`, `USE_TEST_POS`.
 
-### `Geometrical indexing` and `Merge previous`
+### The three `Collapse` cells
+
+A name too long for its column wraps, and the remainder arrives as a line of its own with its own
+coordinates. Naming the column that may break **is** asking for the collapse — with the cell filled
+the `pdf_extract` emits one block per **cell** instead of one per line — and the other two cells say
+how:
+
+- **`Collapse direction`** — `down` (the default) puts the pieces on the **first** row of the run,
+  `up` on the last. Pick the one that leaves the cell beside **its own values**;
+- **`Collapse algorithm`** — `pattern` (the default) takes every run of consecutive cells of the
+  column; `geometry` only the runs whose rows carry nothing but the name.
+
+Several columns, because a page often carries **two tables side by side** and then the column of
+names is two columns. The pieces are joined with nothing between them, which is not a choice: the
+page already says how they meet.
+
+{doc}`../adding-a-datum/parameters` shows the case on the page that produced it, together with the
+trap — a heading in the column of names is geometrically indistinguishable from a wrapped name, and
+a format whose headings share the body's face wants no collapse at all.
+
+### `Geometrical indexing`
 
 `Geometrical indexing` decides what the numeric columns of `args.csv` mean. `TRUE`, the default,
 makes them **linear distances on the grid**, wrapping into the next row when they exceed the table's
 width. `FALSE` makes them positions in the flat list of blocks — which shifts every field of any row
 whose company name wrapped onto two lines, so it is rarely what you want.
-
-`Merge previous` says which way a cell split across two blocks is put back together: into the
-**preceding** block (`TRUE`) or the following one.
 
 ### `Interpret dash as zero`
 
@@ -92,10 +123,10 @@ Where you have checked the report and the dash really does mean zero, this colum
 field at a time**:
 
 ```text
-ID,…,Merge previous,Interpret dash as zero
-AMUNDI-EN24,…,,MARKET_VALUE
-DANSKEINVEST-EN24,…,TRUE,MARKET_VALUE | PERC_NET_ASSETS
-MEDIOLANUM-EN24,…,,PERC_NET_ASSETS
+ID,…,Interpret dash as zero
+AMUNDI-EN24,…,MARKET_VALUE
+DANSKEINVEST-EN24,…,MARKET_VALUE | PERC_NET_ASSETS
+MEDIOLANUM-EN24,…,PERC_NET_ASSETS
 ```
 
 | Flag | Field |
@@ -128,23 +159,27 @@ which the engine notes at `debug` and not in the `.log.csv` ({doc}`../../user/lo
 ordinary, and a file that said so on every written-off holding would say nothing else. That is the
 point: the holding is in the output, where it was being dropped before.
 
-### `Note marks`
+### `Remove from fund`
 
-Some reports hang a footnote on a sub-fund's name in the heading of its own pages — `Sidera Funds
-SICAV – Christian Equity*`, `European Corporate Green Bond*` — and print the note at the foot of
-the page. The mark is part of the heading's text, in the same font and the same size as the name, so
-no selection can leave it out: it has to come off here, where the name is read.
+One regular expression whose matches are cut out of the sub-fund's name before it becomes the
+sub-fund's identity. One cell and not a list: several cuts are one alternation,
+`\(continued\)|\(cont\.\)`, and the space a cut leaves behind goes with it.
+
+The commonest use is the **footnote mark**. Some reports hang a footnote on a sub-fund's name in
+the heading of its own pages — `Sidera Funds SICAV – Christian Equity*`, `European Corporate Green
+Bond*` — and print the note at the foot of the page. The mark is part of the heading's text, in the
+same font and the same size as the name, so no selection can leave it out: it has to come off here,
+where the name is read, with a cut **anchored at the end**:
 
 ```text
-ID,…,Interpret dash as zero,Note marks
-CARNE-EN23,…,,*
-DANSKEINVEST-EN24,…,MARKET_VALUE | PERC_NET_ASSETS,*
+ID,…,Interpret dash as zero,Remove from fund
+CARNE-EN23,…,,\s*[*]+\s*$
+DANSKEINVEST-EN24,…,MARKET_VALUE | PERC_NET_ASSETS,\s*[*]+\s*$
 ```
 
-The cell is the **set of characters** that count as a mark, written one after the other and with no
-separator — `*`, or `*¹†` for a report that uses three. They come off the **end** of the name, one
-or several, together with any space before them: a report that writes `ANIMA Brightview 2023-I *`
-loses the space too, while `A*B Fund` keeps its asterisk, because that one is not a footnote.
+Anchored, because `A*B Fund` keeps its asterisk: that one is not a footnote. A report that uses
+several marks lists them in the class, `\s*[*¹†]+\s*$`; one that also writes `(continued)` on its
+continuation pages joins the two, `\(continued\)|\s*[*]+\s*$`.
 
 It is not cosmetic. The name this pipe publishes *is* the sub-fund's identity: it goes into
 `funds.csv`, into the `fund` field of every holding on the page, and it is what every later phase —

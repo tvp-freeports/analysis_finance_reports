@@ -113,6 +113,18 @@ pub enum SemistructuredError {
         #[source]
         source: native::carryover::CarryoverConfigError,
     },
+    #[error("segment '{segment}', algorithm 'assets_by_position': {source}")]
+    AssetsByPosition {
+        segment: &'static str,
+        #[source]
+        source: native::assets_by_position::AssetsByPositionError,
+    },
+    #[error("segment '{segment}', algorithm 'assets': {source}")]
+    AssetsFilter {
+        segment: &'static str,
+        #[source]
+        source: crate::formats_utils::text_filter::standard_funcs::StandardFuncsError,
+    },
     #[error("segment '{segment}', algorithm '{name}': {source}")]
     Selection {
         segment: &'static str,
@@ -374,6 +386,21 @@ fn build_native(
                     source,
                 })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::PdfExtract, "assets_by_position") => {
+            let input: native::assets_by_position::InputAssetsByPosition = parse_args(segment, name, arg)?;
+            let pipe = input
+                .build()
+                .map_err(|source| SemistructuredError::AssetsByPosition { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
+        }
+        (SegmentKind::TextFilter, "assets") => {
+            let input: native::assets_by_position::InputAssetsFilter =
+                if arg.is_null() { Default::default() } else { parse_args(segment, name, arg)? };
+            let pipe = input
+                .build()
+                .map_err(|source| SemistructuredError::AssetsFilter { segment: segment.file_stem(), source })?;
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "fund") => {
             let input: native::selected_text::InputSelectedText = parse_args(segment, name, arg)?;

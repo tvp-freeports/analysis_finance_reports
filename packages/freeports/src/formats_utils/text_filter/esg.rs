@@ -353,6 +353,21 @@ pub enum FundOf {
     /// The promise the page `n - offset` left, keyed by the **printed** page number this page
     /// carries in its metadata. See [`super::carryover::page`].
     PagePromise { field: String, page_key: String, offset: i64, separator: String },
+    /// The name is on **this** page, in a block this pipeline's own `pdf_extract` produced.
+    ///
+    /// The case of a report whose indicators sit on a page of their own and whose running head
+    /// names the sub-fund that page belongs to — BLACKROCK-EN25, where the four disclosures are
+    /// four pages apiece and every one of them carries its own title. None of the other three
+    /// variants can say that: `Promised` ties the whole document to one sub-fund, and
+    /// `PagePromise` ties this page to a *neighbouring* one by a distance that is a measurement of
+    /// one document rather than a rule of it.
+    ///
+    /// It is not a name resolved here but a plain value, because the page states it: there is
+    /// nothing to wait for. Reading it is the same rule
+    /// [`super::standard_funcs::TextFilterSfdrSignStandard`] already applies to the annex's
+    /// product name — the **first non-empty** block of the named type, and not simply the first,
+    /// because a format may read the title with two pipes of which only one applies to a page.
+    Blocks { block_type: BlockType },
 }
 
 impl FundOf {
@@ -374,6 +389,22 @@ impl FundOf {
                     "{field}{separator}{}",
                     page - offset
                 ))))
+            }
+            FundOf::Blocks { block_type } => {
+                let name = blocks
+                    .iter()
+                    .filter(|block| &block.type_block == block_type)
+                    .filter_map(|block| block.content.as_str())
+                    .map(str::trim)
+                    .find(|name| !name.is_empty());
+                let Some(name) = name else {
+                    tracing::warn!(
+                        "this page carries no '{block_type}' naming a fund: the indicators cannot \
+                         be tied to one and the rows are dropped"
+                    );
+                    return None;
+                };
+                Some(BlockValue::from(name))
             }
         }
     }
@@ -810,6 +841,59 @@ mod tests {
                 &fineco(),
             );
             assert!(got.is_empty());
+        }
+
+        /// BLACKROCK-EN25: the indicators have a page to themselves and its running head names
+        /// the sub-fund, so there is nothing to promise and nothing to compute from a distance.
+        #[test]
+        fn a_page_that_names_its_own_fund_needs_no_promise() {
+            let mut blocks = fineco();
+            blocks.push(PdfBlock::new(
+                BlockType::FUND_NAME,
+                BTreeMap::new(),
+                BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)"),
+            ));
+            let got = rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &blocks);
+            assert_eq!(got.len(), 2);
+            assert_eq!(fund_of(&got[0]), BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)"));
+        }
+
+        /// A format may read the title with two pipes of which only one applies to a page, and the
+        /// one that does not leaves an empty block behind. The first **non-empty** is the name.
+        #[test]
+        fn the_first_non_empty_fund_block_is_the_one_read() {
+            let mut blocks = fineco();
+            for content in ["   ", "", "ISHARES GREEN BOND INDEX FUND (IE)"] {
+                blocks.push(PdfBlock::new(
+                    BlockType::FUND_NAME,
+                    BTreeMap::new(),
+                    BlockValue::from(content),
+                ));
+            }
+            let got = rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &blocks);
+            assert_eq!(fund_of(&got[0]), BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)"));
+        }
+
+        /// The block type is the format's to name, because an author's `pdf_extract` writes a type
+        /// of its own as often as not.
+        #[test]
+        fn the_block_type_can_be_named_by_the_format() {
+            let mut blocks = fineco();
+            blocks.push(PdfBlock::new(
+                BlockType::new("ESG_TITLE"),
+                BTreeMap::new(),
+                BlockValue::from("A FUND"),
+            ));
+            assert!(rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &blocks).is_empty());
+            let got = rows(FundOf::Blocks { block_type: BlockType::new("ESG_TITLE") }, &blocks);
+            assert_eq!(fund_of(&got[0]), BlockValue::from("A FUND"));
+        }
+
+        /// No name on the page is no owner, and a row tied to the wrong sub-fund is worse than one
+        /// that is missing: the same answer `PagePromise` gives a page without its number.
+        #[test]
+        fn a_page_naming_no_fund_yields_no_row() {
+            assert!(rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &fineco()).is_empty());
         }
 
         /// ANIMA_SGR-IT24: the section answers in prose, so no row comes out and the question of

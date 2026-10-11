@@ -43,7 +43,7 @@ pub mod core {
     };
     pub use crate::core::promise::{Promise, PromiseError};
     pub use crate::core::promise_resolution::{FlatPromiseMap, PromiseMap};
-    pub use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage, SpreadPage};
+    pub use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage};
 }
 
 pub mod utils {
@@ -120,7 +120,8 @@ pub mod standard_funcs {
         pub use crate::formats_utils::pdf_extract::standard_funcs::{
             AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage,
             InvestmentsStandardArgs,
-            PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
+            PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractDocClassifyStandard,
+            PdfExtractInvestmentsStandard,
             PdfExtractPageClassifyStandard, PdfExtractStandardFuncsError,
             pdf_extract_currency_standard, pdf_extract_fund_standard, pdf_extract_managment_company_standard,
         };
@@ -129,7 +130,8 @@ pub mod standard_funcs {
     pub mod text_filter {
         //! Pipes that keep only the blocks belonging to the funds and fields being looked for.
         pub use crate::formats_utils::text_filter::standard_funcs::{
-            StandardFuncsError, TextFilterAssetsStandard, TextFilterInvestmentsStandard,
+            StandardFuncsError, TextFilterAssetsStandard, TextFilterDocClassifyStandard,
+            TextFilterInvestmentsStandard,
             TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
         };
     }
@@ -138,6 +140,7 @@ pub mod standard_funcs {
         //! Pipes that turn surviving blocks into the typed entities of [`super::super::output`].
         pub use crate::formats_utils::deserialize::standard_funcs::{
             DeserializeSfdrArticleStandard, DeserializeStandardFuncsError, DeserializerAssetsStandard,
+            DeserializerDocClassifyStandard,
             DeserializerFundStandard, DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
             DeserializerInvestmentsManagerStandard, DeserializerManagmentCompanyStandard,
             DeserializerPageClassifyStandard, Unbalanced,
@@ -152,6 +155,7 @@ pub mod formats_repo {
     //! exported here are its error type and the two format-recognition helpers, which a caller uses
     //! *before* it knows which format to load — mapping a document URL to a format name.
     pub use crate::formats_repo::LoadError;
+    pub use crate::formats_repo::format_pattern::{FormatPattern, FormatPatternError};
     pub use crate::formats_repo::load_pipelines;
     pub use crate::formats_repo::metadata::{MetadataError, get_formats, get_url_mapping, url_to_format};
 }

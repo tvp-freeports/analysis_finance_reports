@@ -9,7 +9,7 @@ use pyo3::types::PyString;
 use crate::core::classes::BlockType;
 use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
 use crate::formats_utils::text_filter::standard_funcs::{
-    StandardFuncsError, TextFilterAssetsStandard, TextFilterInvestmentsStandard,
+    StandardFuncsError, TextFilterAssetsStandard, TextFilterDocClassifyStandard, TextFilterInvestmentsStandard,
     TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
 };
 
@@ -45,6 +45,13 @@ pub fn py_text_filter_page_classify_standard() -> PyTextFilterPipe {
     PyTextFilterPipe::new(Arc::new(TextFilterPageClassifyStandard))
 }
 
+/// `TextFilterDocClassifyStandard()`.
+#[pyfunction]
+#[pyo3(name = "TextFilterDocClassifyStandard")]
+pub fn py_text_filter_doc_classify_standard() -> PyTextFilterPipe {
+    PyTextFilterPipe::new(Arc::new(TextFilterDocClassifyStandard))
+}
+
 /// `TextFilterManagmentCompanyStandard()`.
 #[pyfunction]
 #[pyo3(name = "TextFilterManagmentCompanyStandard")]
@@ -58,12 +65,9 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
 /// `Interpret dash as zero` column — `"MARKET_VALUE | PERC_NET_ASSETS"`, `"ALL"` — and `None` is
 /// the empty set, so an unstructured format that says nothing behaves as it always has.
 ///
-/// `note_marks` is the `Note marks` column of the same level: the characters that count as a
-/// footnote mark on the fund's name (`R16`), written one after the other. The default is the empty
-/// string, which strips nothing.
-///
 /// `remove_from_fund_regexes` is the `Remove from fund` column: patterns cut out of the fund's
-/// name before it becomes the sub-fund's identity, for the `(continued)` of a continuation page.
+/// name before it becomes the sub-fund's identity — the `(continued)` of a continuation page, or a
+/// footnote mark at its end (`R16`), `r"\s*[*]*\s*$"`.
 /// It accepts one pattern or an iterable of them, as a string or an already-compiled `re.Pattern`
 /// — from a compiled one only its source is taken, since the compilation happens inside the
 /// native type.
@@ -77,7 +81,6 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
     acquisition_cost_pos=None,
     geometrical_indexes=true,
     dash_as_zero=None,
-    note_marks="",
     remove_from_fund_regexes=None,
 ))]
 #[allow(clippy::too_many_arguments)]
@@ -89,7 +92,6 @@ pub fn py_text_filter_investments_standard(
     acquisition_cost_pos: Option<i64>,
     geometrical_indexes: bool,
     dash_as_zero: Option<&str>,
-    note_marks: &str,
     remove_from_fund_regexes: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyTextFilterPipe> {
     let dash_as_zero = match dash_as_zero {
@@ -121,7 +123,7 @@ pub fn py_text_filter_investments_standard(
             })
             .collect::<PyResult<Vec<String>>>()?,
     };
-    let pipe = pipe.with_note_marks(note_marks).with_remove_from_fund_regexes(&patterns).map_err(|e| {
+    let pipe = pipe.with_remove_from_fund_regexes(&patterns).map_err(|e| {
         tracing::error!(error = log_error(&e), "invalid remove_from_fund_regexes: {e}");
         PyValueError::new_err(e.to_string())
     })?;
@@ -182,11 +184,10 @@ pub fn py_text_filter_sfdr_sign_standard(
 /// compilation happens inside the native type, so from a compiled pattern only its source is taken.
 #[pyfunction]
 #[pyo3(name = "TextFilterAssetsStandard")]
-#[pyo3(signature = (date_regex=None, remove_from_fund_regexes=None, note_marks=""))]
+#[pyo3(signature = (date_regex=None, remove_from_fund_regexes=None))]
 pub fn py_text_filter_assets_standard(
     date_regex: Option<&Bound<'_, PyAny>>,
     remove_from_fund_regexes: Option<&Bound<'_, PyAny>>,
-    note_marks: &str,
 ) -> PyResult<PyTextFilterPipe> {
     let source_of = |object: &Bound<'_, PyAny>| -> PyResult<String> {
         if object.is_instance_of::<PyString>() { object.extract() } else { pattern_source(object) }
@@ -206,5 +207,5 @@ pub fn py_text_filter_assets_standard(
         tracing::error!(error = log_error(&e), "TextFilterAssetsStandard construction failed: {e}");
         PyValueError::new_err(e.to_string())
     })?;
-    Ok(PyTextFilterPipe::new(Arc::new(pipe.with_note_marks(note_marks))))
+    Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }

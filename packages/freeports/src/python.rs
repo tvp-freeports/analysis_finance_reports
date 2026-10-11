@@ -207,7 +207,8 @@ pub mod freeports {
             #[pymodule_export]
             use crate::python::standard_funcs::pdf_extract::{
                 PyAssetsColumn, py_pdf_extract_assets_standard, py_pdf_extract_currency_constant,
-                py_pdf_extract_currency_standard, py_pdf_extract_fund_standard,
+                py_pdf_extract_currency_standard, py_pdf_extract_doc_classify_standard,
+                py_pdf_extract_fund_standard,
                 py_pdf_extract_investments_standard, py_pdf_extract_labelled_value_standard,
                 py_pdf_extract_managment_company_standard, py_pdf_extract_page_classify_standard,
                 py_pdf_extract_section_standard, py_pdf_extract_sfdr_sign_standard,
@@ -218,7 +219,8 @@ pub mod freeports {
         mod text_filter {
             #[pymodule_export]
             use crate::python::standard_funcs::text_filter::{
-                py_text_filter_assets_standard, py_text_filter_investments_standard,
+                py_text_filter_assets_standard, py_text_filter_doc_classify_standard,
+                py_text_filter_investments_standard,
                 py_text_filter_managment_company_standard, py_text_filter_page_classify_standard,
                 py_text_filter_sfdr_sign_standard,
             };
@@ -229,6 +231,7 @@ pub mod freeports {
             #[pymodule_export]
             use crate::python::standard_funcs::deserialize::{
                 py_deserialize_sfdr_article_standard, py_deserializer_assets_standard,
+                py_deserializer_doc_classify_standard,
                 py_deserializer_fund_standard, py_deserializer_investment_standard,
                 py_deserializer_investments_manager_from_manco,
                 py_deserializer_investments_manager_standard,
@@ -798,6 +801,216 @@ mod tests {
                  assert b.content == datetime.date(2024, 2, 29), b.content",
             )
             .unwrap();
+        }
+    }
+    /// The three bricks of the document classification as a format author sees them (§6 of the
+    /// specification): built by hand, wired by hand into a pipeline, run on a page by hand. The
+    /// outcome of the pipeline is what §6 says — `None` dropped, duplicates collapsed, nothing or
+    /// **one** string — and that string is exactly what an author's own deserializer would return.
+    mod document_classify_shims {
+        use super::*;
+        use crate::formats_repo::format_pattern::FormatPattern;
+
+        /// Imports, a hand-written PyMuPDF page dict, and the hand-run pipeline with the §6 rule.
+        const PRELUDE: &str = r#"
+from freeports.standard_funcs.pdf_extract import PdfExtractDocClassifyStandard
+from freeports.standard_funcs.text_filter import TextFilterDocClassifyStandard
+from freeports.standard_funcs.deserialize import DeserializerDocClassifyStandard
+from freeports.utils.pdf_extract import PdfLineSelection
+
+def line(text, y, font='Arial', size=10.0):
+    bbox = (0.0, y, 200.0, y + size)
+    return {'dir': (1.0, 0.0), 'bbox': bbox,
+            'spans': [{'font': font, 'size': size, 'text': text, 'bbox': bbox}]}
+
+COVER = {'width': 300.0, 'height': 300.0, 'blocks': [{'type': 0, 'lines': [
+    line('Relazione di gestione', 0.0, font='TrebuchetMS', size=26.0),
+    line('Mediolanum Gestione Fondi SGR', 40.0),
+    line('Mediolanum Best Brands', 60.0),
+]}]}
+EMPTY_PAGE = {'width': 300.0, 'height': 300.0, 'blocks': []}
+
+def sel(text):
+    return PdfLineSelection(text=text)
+
+def run_pipeline(page, pdf_extract):
+    text_filter = [TextFilterDocClassifyStandard()]
+    deserialize = [DeserializerDocClassifyStandard()]
+    blocks = [b for pipe in pdf_extract for b in pipe(page)]
+    texts = [t for pipe in text_filter for t in pipe(blocks, [])]
+    return [pipe(t) for pipe in deserialize for t in texts]
+
+def outcome(page, pdf_extract):
+    values = {r for r in run_pipeline(page, pdf_extract) if r is not None}
+    assert len(values) <= 1, values
+    return next(iter(values), None)
+
+def raises(exc_type, fn, *args):
+    try:
+        fn(*args)
+    except exc_type as e:
+        return str(e)
+    raise AssertionError(f'expected {exc_type.__name__}')
+"#;
+
+        fn run_with_prelude(code: &str) -> PyResult<()> {
+            run(&format!("{PRELUDE}\n{code}"))
+        }
+
+        mod names_and_shapes {
+            use super::*;
+
+            #[test]
+            fn the_three_are_importable_under_the_names_of_the_specification() {
+                run_with_prelude("pass").unwrap();
+            }
+
+            #[test]
+            fn each_pipe_reports_its_own_name() {
+                run_with_prelude(
+                    "assert PdfExtractDocClassifyStandard([], 'MEDIOLANUM').name == 'PdfExtractDocClassifyStandard'\n\
+                     assert TextFilterDocClassifyStandard().name == 'TextFilterDocClassifyStandard'\n\
+                     assert DeserializerDocClassifyStandard().name == 'DeserializerDocClassifyStandard'",
+                )
+                .unwrap();
+            }
+
+            /// They are the native wrappers, so that the loader unwraps them instead of calling
+            /// back into Python for every block.
+            #[test]
+            fn they_are_the_three_native_pipe_wrappers() {
+                run_with_prelude(
+                    "assert type(PdfExtractDocClassifyStandard([], 'MEDIOLANUM')).__name__ == 'PdfExtractPipe'\n\
+                     assert type(TextFilterDocClassifyStandard()).__name__ == 'TextFilterPipe'\n\
+                     assert type(DeserializerDocClassifyStandard()).__name__ == 'DeserializePipe'",
+                )
+                .unwrap();
+            }
+
+            #[test]
+            fn importing_them_brings_in_no_native_or_internals_layer() {
+                run_with_prelude(
+                    "import sys, freeports\n\
+                     assert not hasattr(freeports, '_native') and not hasattr(freeports, '_internals')\n\
+                     assert not [m for m in sys.modules if m.startswith('freeports._')], sorted(sys.modules)",
+                )
+                .unwrap();
+            }
+        }
+
+        mod construction {
+            use super::*;
+
+            #[test]
+            fn the_arguments_can_be_given_by_keyword() {
+                run_with_prelude("PdfExtractDocClassifyStandard(selections=[sel('x')], pattern='MEDIOLANUM')").unwrap();
+            }
+
+            #[test]
+            fn a_single_selection_is_accepted_as_well_as_a_list() {
+                run_with_prelude(
+                    "assert outcome(COVER, [PdfExtractDocClassifyStandard(sel('Mediolanum Gestione'), 'MEDIOLANUM')]) == 'MEDIOLANUM'",
+                )
+                .unwrap();
+            }
+
+            /// The message is the grammar's own diagnosis, unchanged: the author reads why.
+            #[test]
+            fn an_invalid_pattern_is_a_value_error_with_the_format_pattern_message() {
+                let expected = "-IT24".parse::<FormatPattern>().unwrap_err().to_string();
+                run_with_prelude(&format!(
+                    "message = raises(ValueError, PdfExtractDocClassifyStandard, [], '-IT24')\n\
+                     assert message == {expected:?}, message"
+                ))
+                .unwrap();
+            }
+
+            /// `*` as entity is a model of the YAML only (§1.4): from Python arrive values.
+            #[test]
+            fn a_template_is_not_accepted_as_a_pattern() {
+                run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, [], '*-EN23')").unwrap();
+            }
+
+            #[test]
+            fn something_that_is_not_a_selection_is_a_value_error() {
+                run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, ['Mediolanum'], 'MEDIOLANUM')").unwrap();
+                run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, 3, 'MEDIOLANUM')").unwrap();
+            }
+        }
+
+        /// The hand-run pipeline on a test page, end to end.
+        mod full_round_trip {
+            use super::*;
+
+            #[test]
+            fn a_partial_pattern_comes_out_as_its_string() {
+                run_with_prelude(
+                    "r = outcome(COVER, [PdfExtractDocClassifyStandard([sel('^Relazione di gestione$'), sel('Mediolanum Gestione')], 'MEDIOLANUM-IT24.*')])\n\
+                     assert r == 'MEDIOLANUM-IT24.*', r\n\
+                     assert type(r) is str, type(r)",
+                )
+                .unwrap();
+            }
+
+            #[test]
+            fn a_complete_pattern_comes_out_beside_a_pipe_that_does_not_match() {
+                run_with_prelude(
+                    "r = outcome(COVER, [\n\
+                     \x20   PdfExtractDocClassifyStandard([sel('Amundi')], 'AMUNDI-EN24'),\n\
+                     \x20   PdfExtractDocClassifyStandard([sel('Relazione'), sel('Best Brands')], 'MEDIOLANUM-IT24.A'),\n\
+                     ])\n\
+                     assert r == 'MEDIOLANUM-IT24.A', r",
+                )
+                .unwrap();
+            }
+
+            #[test]
+            fn nothing_found_comes_out_as_none() {
+                run_with_prelude(
+                    "assert run_pipeline(COVER, [PdfExtractDocClassifyStandard([sel('Amundi')], 'AMUNDI')]) == [None]\n\
+                     assert outcome(COVER, [PdfExtractDocClassifyStandard([sel('Relazione'), sel('Annual Report')], 'MEDIOLANUM-EN')]) is None",
+                )
+                .unwrap();
+            }
+
+            /// The unconditional step: no selection, always the pattern — even on an image cover.
+            #[test]
+            fn zero_selections_always_come_out_as_the_pattern() {
+                run_with_prelude(
+                    "assert outcome(COVER, [PdfExtractDocClassifyStandard([], 'ASTERIA-EN23')]) == 'ASTERIA-EN23'\n\
+                     assert outcome(EMPTY_PAGE, [PdfExtractDocClassifyStandard([], 'ASTERIA-EN23')]) == 'ASTERIA-EN23'",
+                )
+                .unwrap();
+            }
+
+            #[test]
+            fn two_pipes_recognising_the_same_pattern_give_it_once() {
+                run_with_prelude(
+                    "r = run_pipeline(COVER, [\n\
+                     \x20   PdfExtractDocClassifyStandard([sel('Relazione')], 'MEDIOLANUM'),\n\
+                     \x20   PdfExtractDocClassifyStandard([sel('Mediolanum Gestione')], 'MEDIOLANUM'),\n\
+                     ])\n\
+                     assert r == ['MEDIOLANUM'], r",
+                )
+                .unwrap();
+            }
+
+            #[test]
+            fn two_pipes_recognising_different_patterns_raise_naming_both() {
+                run_with_prelude(
+                    "m = raises(RuntimeError, run_pipeline, COVER, [\n\
+                     \x20   PdfExtractDocClassifyStandard([sel('Relazione')], 'MEDIOLANUM-IT24.*'),\n\
+                     \x20   PdfExtractDocClassifyStandard([sel('Mediolanum')], 'FIDEURAM-IT23@*'),\n\
+                     ])\n\
+                     assert 'MEDIOLANUM-IT24.*' in m and 'FIDEURAM-IT23@*' in m, m",
+                )
+                .unwrap();
+            }
+
+            #[test]
+            fn the_filter_given_no_block_raises() {
+                run_with_prelude("raises(RuntimeError, TextFilterDocClassifyStandard(), [], [])").unwrap();
+            }
         }
     }
 }

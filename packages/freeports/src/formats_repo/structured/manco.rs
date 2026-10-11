@@ -3,28 +3,29 @@
 //! Fourteen of the collection's twenty-six formats read the management company the same way — a
 //! **label** declares it, the value is next to it, and a crop takes the name out of the line — and
 //! that is the majority of a data type read by one algorithm, which is the condition for belonging
-//! to this level. Twelve of the fourteen are rows of this table; the two that are not have a
-//! `text_filter` of a different kind, for which see the end of this page.
+//! to this level. Eleven of the fourteen are rows of this table; the three that are not have a
+//! `text_filter` of a different kind, for which see the end of this page — AMUNDI-IT24 among them,
+//! whose report does not declare the company at all, so the format imposes the name with the
+//! semistructured `manco_imposed`.
 //!
 //! # The row is a default: one cell, and one or two more
 //!
 //! Only `Label set` is required. Everything else is what a page adds to the common shape, and the
-//! shape is common enough that eight of the twelve are a label and a crop:
+//! shape is common enough that eight of the eleven are a label and a crop:
 //!
-//! | cell | what it is for | how many of the twelve |
+//! | cell | what it is for | how many of the eleven |
 //! |---|---|---|
-//! | `Label set` | the label, in the compact grammar | twelve |
+//! | `Label set` | the label, in the compact grammar | eleven |
 //! | `After` · `Before` | the crop: the name is inside the line, between two words (`R23`) | five · four |
 //! | `Also investments manager` | the same company runs the investments of every sub-fund (`R15`) | seven |
 //! | `Where` · `Take` · `Reach` · `Stop set` | the value is below the label, or there are several | two · one · one · one |
 //! | `Among` | `U6`: the page names two companies with their periods, and the one at closing wins | one |
-//! | `Imposed name` | `R3`: the report does not say, so the format declares — **with** a warning | one |
 //!
 //! # Why the label is a compact string here and a mapping in YAML
 //!
 //! A CSV cell cannot hold a mapping, so the cells of this table are written in the compact grammar —
 //! which, since the mapping became the form to write in YAML, is a deliberate step back for this
-//! one level. It is affordable because a label is short: ten of the twelve are a font, a size and
+//! one level. It is affordable because a label is short: nine of the eleven are a font, a size and
 //! an anchored text, and the two that are not — CARNE-EN23's area-bounded window and
 //! EURIZON-EN23's band between two headings — are dense cells and are the price of having the data
 //! type in one place. A format that prefers the mapping writes a YAML block instead: the two levels
@@ -37,7 +38,7 @@
 //! sentence that also delegates to somebody else, and that reading is a different algorithm with
 //! ten knobs of its own. They stay semistructured, and that is the right place for them.
 //!
-//! # What the thirteen pages are like
+//! # What the twelve pages are like
 //!
 //! A CSV cell carries no prose, so the measurements that chose these rows are written here — as
 //! `fund_assets.rs` and `sfdr.rs` do for theirs. They are also the argument that the row is
@@ -46,7 +47,6 @@
 //! | format | what the page does, and what the row answers with |
 //! |---|---|
 //! | AMUNDI-EN24 | `C01`: the investment manager here does **not** fall back on the management company — pages 8-9 say so, and it is `IM-2` — so the row leaves `Also investments manager` empty |
-//! | AMUNDI-IT24 | `C02`: the report **does not declare** the company. `Amundi SGR S.p.A.` appears three times and never in its role — the registered office, the 100% ownership, the remuneration policy — so reading the output datum there would rest it on a coincidence of words. The name is therefore **imposed** by the format, with its warning (`R3`), and the label only says **on which page** to declare it: `^SOMMARIO`, the summary, which every document of this format has exactly one of |
 //! | ANIMA-EN23 · FIDEURAM-IT24 | the label is above the value, so what the filter is handed is a **window built around the value** and not the label — the case `window(..)` exists for. Nothing is cropped afterwards, and the text block carries the PDF block it came from (`P9`). ANIMA-EN23's label is `Manager, Promoter and Distributor`: the comma inside the anchor is safe, because a window's four numbers are read **from the right** |
 //! | ANIMA_SGR-IT24 | the name is inside the line — `… Societa di Gestione del Risparmio S.p.A. …` — in the running head of **every** page, and the face is the union of the three variants the format uses (`R8`) |
 //! | ANIMA_SICAV-EN24 | `C03`/`C12`: the name is the whole line below the label, so the reading is a `strip` and not a crop — neither `After` nor `Before` |
@@ -73,7 +73,7 @@ use crate::formats_utils::pdf_extract::labelled_value::{
 };
 use crate::formats_utils::pdf_extract::section::SectionEnd;
 use crate::formats_utils::text_filter::managment_company::{
-    AmongLines, TextFilterManagmentCompanyImposed, TextFilterManagmentCompanyInLine,
+    AmongLines, TextFilterManagmentCompanyInLine,
 };
 use crate::input::document::selection::pdfline_selection_from_str;
 
@@ -146,7 +146,7 @@ fn extraction(id: &str, row: &MancoArgsRow) -> Result<PdfExtractLabelledValueSta
     args.take = take;
     // A window only where the row asked for one, so that the side it did not name keeps the
     // default its placement carries rather than an arbitrary zero — the same rule the YAML form
-    // follows. `Across` is not a column: none of the twelve measured pipelines sets it.
+    // follows. `Across` is not a column: none of the eleven measured pipelines sets it.
     if let Some(reach) = row.reach {
         let default = LabelledValueWindow::default_for(placement);
         args.window = Some(LabelledValueWindow { reach: Some(reach), across: default.across });
@@ -157,14 +157,11 @@ fn extraction(id: &str, row: &MancoArgsRow) -> Result<PdfExtractLabelledValueSta
     Ok(PdfExtractLabelledValueStandard::new(args))
 }
 
-/// The `text_filter` pipe the row describes: the crop, or the declared name.
+/// The `text_filter` pipe the row describes: the crop.
 fn filtering(
     id: &str,
     row: &MancoArgsRow,
 ) -> Result<Arc<dyn crate::core::pipeline::TextFilterPipe>, StructuredError> {
-    if let Some(name) = &row.imposed_name {
-        return Ok(Arc::new(TextFilterManagmentCompanyImposed::new(name.clone())));
-    }
     let among = match row.among.as_deref().map(str::trim) {
         None | Some("") | Some("first") => AmongLines::First,
         Some("most_recent") => AmongLines::MostRecent,

@@ -15,11 +15,11 @@
 //! # The windows, which are where the formats really differ
 //!
 //! Each amount is read in a window hung off its own label: the label's box, moved by `(dx, dy)` of
-//! its own size and scaled by `(width, height)`. `Value window` sets all three at once, which is
-//! what five of the eight measured statements want, and the three per-column cells override it
-//! where they differ — ANIMA-EN23 and FINECO-EN23@LUX need a different window for the total than
-//! for the other two, because their `Total assets` label sits on the same line as its number while
-//! the others sit above theirs.
+//! its own size and scaled by `(width, height)`, one cell per amount. There is no cell setting the
+//! three at once: it would be a second way of writing what the three already say, and where a row
+//! wrote both one of them was silently ignored. ANIMA-EN23 and FINECO-EN23@LUX need a different
+//! window for the total than for the other two, because their `Total assets` label sits on the same
+//! line as its number while the others sit above theirs.
 //!
 //! # The casts are named, not written
 //!
@@ -197,19 +197,17 @@ impl DateCast {
 /// The pipeline a fund-assets row belongs to when its id names none.
 pub const FUND_ASSETS_PIPELINE: &str = "fund_assets";
 
-/// Builds one amount's window: the row's own override if it has one, else the shared cell, else the
-/// engine's default.
+/// Builds one amount's window: the row's own cell if it has one, else the engine's default.
 fn column(
     anchor: &str,
     window: Option<ValueWindow>,
-    shared: Option<ValueWindow>,
     id: &str,
     name: &'static str,
 ) -> Result<AssetsColumn, StructuredError> {
     let selection = pdfline_selection_from_str(anchor)
         .map_err(|source| StructuredError::LineSelection { id: id.to_string(), column: name, source })?;
     let mut built = AssetsColumn::new(selection);
-    if let Some(ValueWindow { dx, dy, width, height }) = window.or(shared) {
+    if let Some(ValueWindow { dx, dy, width, height }) = window {
         built.vector = (dx, dy);
         built.width = width;
         built.height = height;
@@ -256,21 +254,18 @@ pub fn get_pipelines(
         let args = AssetsStandardArgs {
             date,
             table_condition: row.table_condition.unwrap_or(false),
-            pairing: if row.pair_by_abscissa.unwrap_or(false) {
-                AssetsPairing::ByAbscissa
-            } else {
-                AssetsPairing::ByIndex
-            },
+            // By abscissa, always: a number goes with the fund whose column it stands under. A
+            // statement that can only be paired by position is the semistructured
+            // `assets_by_position`.
+            pairing: AssetsPairing::ByAbscissa,
             drop: optional_selection(&row.drop_set, &key, "Drop set")?,
             drop_funds: optional_selection(&row.drop_fund_set, &key, "Drop fund set")?,
-            skip_column: row.value_step.unwrap_or(1),
-            values_in_one_line: row.values_in_one_line.unwrap_or(false),
             ..AssetsStandardArgs::new(
                 fund_set,
                 currency_set,
-                column(&row.net_assets, row.net_assets_window, row.value_window, &key, "Net assets")?,
-                column(&row.liabilities, row.liabilities_window, row.value_window, &key, "Total liabilities")?,
-                column(&row.tot_assets, row.tot_assets_window, row.value_window, &key, "Total assets")?,
+                column(&row.net_assets, row.net_assets_window, &key, "Net assets")?,
+                column(&row.liabilities, row.liabilities_window, &key, "Total liabilities")?,
+                column(&row.tot_assets, row.tot_assets_window, &key, "Total assets")?,
             )
         };
 
@@ -278,8 +273,7 @@ pub fn get_pipelines(
         // investments table does it.
         let cuts: Vec<String> = row.remove_from_fund.clone().into_iter().collect();
         let filter = TextFilterAssetsStandard::new(row.date_regex.as_deref(), cuts)
-            .map_err(|source| StructuredError::TextFilter { id: key.clone(), source })?
-            .with_note_marks(row.note_marks.clone().unwrap_or_default());
+            .map_err(|source| StructuredError::TextFilter { id: key.clone(), source })?;
 
         let deserializer = DeserializerAssetsStandard::with_converters(
             row.amount_cast.unwrap_or_default().converter(),
@@ -445,36 +439,27 @@ mod tests {
         }
     }
 
-    mod the_window_precedence {
+    mod the_window {
         use super::*;
         use pretty_assertions::assert_eq;
 
         const OWN: ValueWindow = ValueWindow { dx: 1.0, dy: 2.0, width: 3.0, height: 4.0 };
-        const SHARED: ValueWindow = ValueWindow { dx: 9.0, dy: 9.0, width: 9.0, height: 9.0 };
 
-        fn built(own: Option<ValueWindow>, shared: Option<ValueWindow>) -> AssetsColumn {
-            column("ArialMT", own, shared, "A-EN24", "Total assets").expect("a valid anchor")
+        fn built(own: Option<ValueWindow>) -> AssetsColumn {
+            column("ArialMT", own, "A-EN24", "Total assets").expect("a valid anchor")
         }
 
         #[test]
-        fn with_neither_the_engines_own_default_stands() {
-            let column = built(None, None);
+        fn without_a_cell_the_engines_own_default_stands() {
+            let column = built(None);
             let engine_default = AssetsColumn::new(pdfline_selection_from_str("ArialMT").unwrap());
             assert_eq!(column.vector, engine_default.vector);
             assert_eq!((column.width, column.height), (engine_default.width, engine_default.height));
         }
 
         #[test]
-        fn the_shared_cell_applies_when_the_column_states_nothing() {
-            let column = built(None, Some(SHARED));
-            assert_eq!(column.vector, (9.0, 9.0));
-        }
-
-        #[test]
-        fn the_columns_own_cell_wins_over_the_shared_one() {
-            // ANIMA-EN23 and FINECO-EN23@LUX need a different window for the total than for the
-            // other two, which is the reason both cells exist.
-            let column = built(Some(OWN), Some(SHARED));
+        fn the_columns_own_cell_is_the_window() {
+            let column = built(Some(OWN));
             assert_eq!(column.vector, (1.0, 2.0));
             assert_eq!((column.width, column.height), (3.0, 4.0));
         }
@@ -488,7 +473,7 @@ mod tests {
             //
             // `expect_err` would want `Debug` on `AssetsColumn`, which has none, so the error is
             // taken with an explicit match.
-            let error = match column("Arial[0]", None, None, "A-EN24", "Net assets") {
+            let error = match column("Arial[0]", None, "A-EN24", "Net assets") {
                 Ok(_) => panic!("expected a refusal, got a column"),
                 Err(error) => error,
             };

@@ -4,9 +4,11 @@
 //! away. The original dict is kept on the page for the pipes that expect it, but nothing downstream
 //! has to know a PDF reader was involved.
 
+pub mod lazy;
 pub mod page_dict;
 pub mod selection;
 
+pub use lazy::{LazyDocument, resolve_page_number};
 pub use page_dict::{PageDict, PageDictBlock, PageDictLine, PageDictSpan, pdfimages_from_pagedict, pdflines_from_pagedict};
 pub use selection::{
     FontCriterion, InputAreaSpec, InputBound, InputPdfLineSet, InputWindowSpec, LineSelectionError,
@@ -63,60 +65,55 @@ fn read_pages(
     path: &Path,
     auto_rotate: bool,
 ) -> Result<Vec<Page>, DocumentError> {
-    {
-        let path_str = path.to_string_lossy().to_string();
-        let doc = fitz.call_method1("open", (path_str,)).map_err(|e| open_error(path, e))?;
-        let page_count = doc.len().map_err(|e| open_error(path, e))?;
+    let path_str = path.to_string_lossy().to_string();
+    let doc = fitz.call_method1("open", (path_str,)).map_err(|e| open_error(path, e))?;
+    let page_count = doc.len().map_err(|e| open_error(path, e))?;
 
-        let mut pages = Vec::with_capacity(page_count);
-        for i in 0..page_count {
-            // [`Page::number`] is 1-based, while PyMuPDF indexes pages from zero.
-            let page_number = u32::try_from(i + 1).expect("a pdf with more than u32::MAX pages does not occur in practice");
-            // Groups the sub-steps below — load, extract, parse, build — under one span per page,
-            // so their events share a `page` coordinate under the same field name the engine's own
-            // page span uses later.
-            let page_span = tracing::info_span!("page", page = page_number);
-            let _page_guard = page_span.enter();
+    let pages = (0..page_count).map(|index| convert_page(&doc, index, auto_rotate)).collect::<Result<Vec<_>, _>>()?;
 
-            let py_page = doc.call_method1("load_page", (i,)).map_err(|e| DocumentError::Page {
-                number: page_number,
-                source: PageError::ParseFail { message: e.to_string() },
-            })?;
-            let text_dict = py_page.call_method1("get_text", ("dict",)).map_err(|e| DocumentError::Page {
-                number: page_number,
-                source: PageError::ParseFail { message: e.to_string() },
-            })?;
-            let dict = text_dict.cast::<PyDict>().map_err(|e| DocumentError::Page {
-                number: page_number,
-                source: PageError::ParseFail { message: e.to_string() },
-            })?;
+    tracing::info!(path = %path.display(), page_count = pages.len(), "document loaded");
+    Ok(pages)
+}
 
-            let page_dict = PageDict::from_py(dict).map_err(|source| DocumentError::Page { number: page_number, source })?;
-            let lines = pdflines_from_pagedict(&page_dict, auto_rotate);
-            let images = pdfimages_from_pagedict(&page_dict);
-            let raw = dict.clone().into_any().unbind();
-            let drawings = pdfdrawings_from_page(&py_page);
+/// Converts the page at 0-based `index` of an open PyMuPDF document into a native [`Page`].
+///
+/// The one conversion of a page, shared by [`load_document_pages`] and
+/// [`LazyDocument::page`]: a page read either way has to be the same page.
+fn convert_page(doc: &Bound<'_, PyAny>, index: usize, auto_rotate: bool) -> Result<Page, DocumentError> {
+    // [`Page::number`] is 1-based, while PyMuPDF indexes pages from zero.
+    let page_number = u32::try_from(index + 1).expect("a pdf with more than u32::MAX pages does not occur in practice");
+    // Groups the sub-steps below — load, extract, parse, build — under one span per page, so their
+    // events share a `page` coordinate under the same field name the engine's own page span uses
+    // later.
+    let page_span = tracing::info_span!("page", page = page_number);
+    let _page_guard = page_span.enter();
 
-            // The page's first line of text, not just the counts: at `-vv` this one line per page
-            // becomes an index of the document to navigate by, instead of a thousand
-            // indistinguishable rows.
-            tracing::debug!(
-                found = %lines.first().map(|line| line.text().clone()).unwrap_or_default(),
-                line_count = lines.len(),
-                image_count = images.len(),
-                drawing_count = drawings.len(),
-                "page loaded"
-            );
-            pages.push(
-                Page::new(page_number, (page_dict.width, page_dict.height), lines, images)
-                    .with_drawings(drawings)
-                    .with_raw(raw),
-            );
-        }
+    let parse_fail = |e: &dyn std::fmt::Display| DocumentError::Page {
+        number: page_number,
+        source: PageError::ParseFail { message: e.to_string() },
+    };
+    let py_page = doc.call_method1("load_page", (index,)).map_err(|e| parse_fail(&e))?;
+    let text_dict = py_page.call_method1("get_text", ("dict",)).map_err(|e| parse_fail(&e))?;
+    let dict = text_dict.cast::<PyDict>().map_err(|e| parse_fail(&e))?;
 
-        tracing::info!(path = %path.display(), page_count = pages.len(), "document loaded");
-        Ok(pages)
-    }
+    let page_dict = PageDict::from_py(dict).map_err(|source| DocumentError::Page { number: page_number, source })?;
+    let lines = pdflines_from_pagedict(&page_dict, auto_rotate);
+    let images = pdfimages_from_pagedict(&page_dict);
+    let raw = dict.clone().into_any().unbind();
+    let drawings = pdfdrawings_from_page(&py_page);
+
+    // The page's first line of text, not just the counts: at `-vv` this one line per page becomes
+    // an index of the document to navigate by, instead of a thousand indistinguishable rows.
+    tracing::debug!(
+        found = %lines.first().map(|line| line.text().clone()).unwrap_or_default(),
+        line_count = lines.len(),
+        image_count = images.len(),
+        drawing_count = drawings.len(),
+        "page loaded"
+    );
+    Ok(Page::new(page_number, (page_dict.width, page_dict.height), lines, images)
+        .with_drawings(drawings)
+        .with_raw(raw))
 }
 
 /// Reads the page's vector paths through `page.get_drawings()`, reduced to [`PageDrawing`].

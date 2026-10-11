@@ -127,10 +127,7 @@ fn text_filter_input(config: &SfdrConfig) -> InputSfdrAnnexTextFilter {
             config
                 .prefixes
                 .iter()
-                .map(|(text, is_pattern)| match is_pattern {
-                    true => PrefixSpec::Pattern { pattern: text.clone() },
-                    false => PrefixSpec::Literal(text.clone()),
-                })
+                .map(|pattern| PrefixSpec::Pattern { pattern: pattern.clone() })
                 .collect(),
         ),
     };
@@ -181,7 +178,7 @@ mod tests {
     use super::super::tables::SfdrArgsRow;
     use crate::formats_repo::id_format::ComputedId;
 
-    fn config(language: &str, joined: Option<bool>, prepend: Option<&str>, prefixes: &[(&str, bool)]) -> SfdrConfig {
+    fn config(language: &str, joined: Option<bool>, prepend: Option<&str>, prefixes: &[&str]) -> SfdrConfig {
         SfdrConfig {
             id: ComputedId {
                 format: "A-FORMAT".to_string(),
@@ -194,7 +191,7 @@ mod tests {
                 product_joined: joined,
                 product_prepend: prepend.map(str::to_string),
             },
-            prefixes: prefixes.iter().map(|(t, p)| (t.to_string(), *p)).collect(),
+            prefixes: prefixes.iter().map(|t| t.to_string()).collect(),
         }
     }
 
@@ -258,16 +255,11 @@ mod tests {
         }
 
         #[test]
-        fn each_row_keeps_its_kind_and_its_place() {
-            let input = text_filter_input(&config(
-                "ITALIAN",
-                None,
-                None,
-                &[("Nome del prodotto: ", false), (" \\(.*\\)", true)],
-            ));
+        fn each_row_keeps_its_place() {
+            let input = text_filter_input(&config("ITALIAN", None, None, &["Nome del prodotto: ", " \\(.*\\)"]));
             let specs = input.product_prefix.expect("two rows are a list");
             assert_eq!(specs.len(), 2);
-            assert!(matches!(&specs[0], PrefixSpec::Literal(text) if text == "Nome del prodotto: "));
+            assert!(matches!(&specs[0], PrefixSpec::Pattern { pattern } if pattern == "Nome del prodotto: "));
             assert!(matches!(&specs[1], PrefixSpec::Pattern { pattern } if pattern == " \\(.*\\)"));
         }
     }

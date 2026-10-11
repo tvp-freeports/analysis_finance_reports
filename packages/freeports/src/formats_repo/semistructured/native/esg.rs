@@ -9,6 +9,7 @@
 
 use serde::Deserialize;
 
+use crate::core::classes::BlockType;
 use crate::formats_utils::deserialize::esg::DeserializerEsgIndicator;
 use crate::formats_utils::text_filter::esg::{EsgError, FundOf, MARKER, NUMBER, Reader, TextFilterEsg};
 
@@ -45,6 +46,10 @@ fn one() -> i64 {
 
 fn colon() -> String {
     ":".to_string()
+}
+
+fn fund_name_block() -> String {
+    "FUND_NAME".to_string()
 }
 
 /// Which of the three shapes the page writes its indicators in.
@@ -125,6 +130,13 @@ pub enum InputFundOf {
         #[serde(default = "page_separator")]
         separator: String,
     },
+    /// The name is on **this** page, in a block this pipeline's own `pdf_extract` wrote. For a
+    /// report whose indicators have a page to themselves and whose running head names its
+    /// sub-fund; `FUND_NAME` is what the `fund` algorithm writes, so the cell is usually absent.
+    Blocks {
+        #[serde(default = "fund_name_block")]
+        block_type: String,
+    },
 }
 
 /// The `text_filter` of an ESG indicators pipeline.
@@ -164,6 +176,9 @@ pub fn text_filter(input: &InputEsg) -> Result<TextFilterEsg, EsgConfigError> {
             offset: *offset,
             separator: separator.clone(),
         },
+        Some(InputFundOf::Blocks { block_type }) => {
+            FundOf::Blocks { block_type: BlockType::new(block_type.clone()) }
+        }
     };
     Ok(TextFilterEsg::new(reader, fund))
 }

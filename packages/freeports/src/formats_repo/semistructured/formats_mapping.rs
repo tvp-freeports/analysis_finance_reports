@@ -64,6 +64,17 @@ pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, F
     }
     let mut reader = csv::Reader::from_path(&path)
         .map_err(|e| FormatsMappingError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    let headers = reader
+        .headers()
+        .map_err(|e| FormatsMappingError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    let known = crate::formats_repo::csv_columns::declared::<RawRow>();
+    if let Some(column) = crate::formats_repo::csv_columns::first_unknown(headers.iter(), known) {
+        return Err(FormatsMappingError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: crate::formats_repo::csv_columns::unknown_column_message(column, known),
+        });
+    }
 
     let mut counters: std::collections::HashMap<(String, String), u32> = std::collections::HashMap::new();
     let mut rows = Vec::new();

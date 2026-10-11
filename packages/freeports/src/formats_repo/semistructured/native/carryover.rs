@@ -90,10 +90,9 @@ pub struct InputLabelledAssets {
     pub fund: Option<InputFundFrom>,
     #[serde(default = "fund_key")]
     pub fund_key: String,
-    /// `TextFilterAssetsStandard`'s three parameters, with the names the structured table uses.
+    /// `TextFilterAssetsStandard`'s two parameters, with the names the structured table uses. A
+    /// footnote mark (`R16`) is one more `remove_from_fund` pattern, anchored at the end.
     pub date_regex: Option<String>,
-    #[serde(default)]
-    pub note_marks: String,
     #[serde(default)]
     pub remove_from_fund: Vec<String>,
     /// The fields the **page before** promised, which this page resumes. Absent means this page is
@@ -151,8 +150,7 @@ fn fund_from(input: &InputLabelledAssets) -> Result<FundFrom, CarryoverConfigErr
 
 /// Builds the `labelled_assets` pipe.
 pub fn text_filter(input: &InputLabelledAssets) -> Result<TextFilterLabelledAssets, CarryoverConfigError> {
-    let assets = TextFilterAssetsStandard::new(input.date_regex.as_deref(), input.remove_from_fund.clone())?
-        .with_note_marks(input.note_marks.clone());
+    let assets = TextFilterAssetsStandard::new(input.date_regex.as_deref(), input.remove_from_fund.clone())?;
     let resume = if input.resume.is_empty() {
         None
     } else {

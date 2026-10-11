@@ -9,7 +9,7 @@ segment of which pipeline:
 
 ```text
 ID,pdf_extract,text_filter,deserialize
-AMUNDI-IT24(investments),standard_cost_curr,,
+AMUNDI-IT24(investments),investments,,
 ```
 
 An empty cell leaves that segment unspecified at this level, so another level can supply it.

@@ -7,7 +7,8 @@ use pyo3::prelude::*;
 use crate::commons::date::Date;
 use crate::formats_utils::deserialize::cast::{self, CastError};
 use crate::formats_utils::deserialize::standard_funcs::{
-    DateConverter, DeserializeSfdrArticleStandard, DeserializerAssetsStandard, DeserializerFundStandard,
+    DateConverter, DeserializeSfdrArticleStandard, DeserializerAssetsStandard, DeserializerDocClassifyStandard,
+    DeserializerFundStandard,
     Unbalanced,
     DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
     DeserializerInvestmentsManagerStandard, DeserializerManagmentCompanyStandard,
@@ -23,6 +24,14 @@ use crate::core::tracing_setup::log_error;
 #[pyo3(name = "DeserializerPageClassifyStandard")]
 pub fn py_deserializer_page_classify_standard() -> PyDeserializePipe {
     PyDeserializePipe::new(Arc::new(DeserializerPageClassifyStandard))
+}
+
+/// `DeserializerDocClassifyStandard()`: called on a text block, returns the pattern's string or
+/// `None` — the same form an author's deserializer returns.
+#[pyfunction]
+#[pyo3(name = "DeserializerDocClassifyStandard")]
+pub fn py_deserializer_doc_classify_standard() -> PyDeserializePipe {
+    PyDeserializePipe::new(Arc::new(DeserializerDocClassifyStandard))
 }
 
 /// `DeserializerFundStandard()`.

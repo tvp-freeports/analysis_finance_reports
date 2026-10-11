@@ -72,6 +72,22 @@ use super::relative::RelativeInfo;
 use super::select::relative::PdfLineSelection;
 use super::standard_funcs::PdfExtractStandardFuncsError;
 
+/// The space of a **symbol font**, which a PDF maps into the private-use area together with the
+/// rest of the font: `U+F020` is byte `0x20` in Wingdings, and it is a space in every sense except
+/// Unicode's own.
+///
+/// `str::trim` does not remove it, because `char::is_whitespace` answers for Unicode and not for a
+/// font's encoding. A disclosure that writes its answer as *space, tick* in one text object —
+/// BLACKROCK-EN25 writes all four of its own that way — therefore arrives here as a line whose
+/// first character is not a mark, and goes unread: four articles lost with no trace but the pipe's
+/// own warning.
+const SYMBOL_SPACE: char = '\u{F020}';
+
+/// Whitespace, plus the symbol-font space above.
+fn is_space(character: char) -> bool {
+    character.is_whitespace() || character == SYMBOL_SPACE
+}
+
 /// Which of the two boxes carries the tick.
 ///
 /// Named for the **question**, not for the article, because the pipe does not know what the question
@@ -167,7 +183,7 @@ impl Default for SfdrMarks {
     /// The measured table: every tick and every empty box seen in 838 disclosures.
     fn default() -> Self {
         Self {
-            ticked: "Xx\u{2713}\u{2714}\u{2717}\u{2718}\u{2612}\u{25A0}\u{F0FE}\u{F0FC}"
+            ticked: "Xx\u{2713}\u{2714}\u{2717}\u{2718}\u{2612}\u{25A0}\u{F0FE}\u{F0FC}\u{F0FD}"
                 .chars()
                 .collect(),
             blank: "\u{2610}\u{25A1}\u{2022}\u{26AB}\u{F06C}\u{F0A7}\u{F0B7}\u{F0A8}\u{F06F}"
@@ -473,12 +489,12 @@ impl PdfExtractSfdrSignStandard {
         if !self.inside(row, x0, centre_y) {
             return None;
         }
-        let text = line.text().trim();
+        let text = line.text().trim_matches(is_space);
         let first = text.chars().next()?;
         let font = line.font().inner();
         // A mark is the whole line, or its head followed by a space: `X`, `X Oui`, `X No`. Anything
         // else beginning with an `x` is a word.
-        let heads_the_line = text.chars().count() == 1 || text.chars().nth(1).is_some_and(char::is_whitespace);
+        let heads_the_line = text.chars().count() == 1 || text.chars().nth(1).is_some_and(is_space);
         if !heads_the_line || !self.args.marks.is_ticked(first, font) {
             return None;
         }
@@ -766,6 +782,39 @@ mod tests {
             let mut lines = skeleton();
             lines.push(glyph("Helvetica", "\u{2022}", 80.0, 21.0));
             assert!(read(args(), &page(lines)).is_empty());
+        }
+
+        /// BLACKROCK-EN25 writes the answer as **two characters in one text object**: the symbol
+        /// font's own space and then the mark. `U+F020` is not Unicode whitespace, so `trim` left
+        /// it in place and the line's first character was not a mark — all four of the report's
+        /// disclosures went unread, with nothing but the pipe's warning to say so.
+        #[test]
+        fn a_mark_behind_the_symbol_font_s_own_space_is_still_the_mark() {
+            let mut lines = skeleton();
+            lines.push(glyph("Wingdings", "\u{F020}\u{F0FD}", 280.0, 21.0));
+            assert_eq!(metadata(&read(args(), &page(lines))[0], "answer"), "negative");
+        }
+
+        /// And the guard that the space was there for still holds: a word beginning with an `x` is
+        /// a word, whichever kind of space does or does not follow it.
+        #[test]
+        fn a_word_beginning_with_a_mark_is_still_a_word() {
+            let mut lines = skeleton();
+            lines.push(glyph("Arial", "Xerox", 280.0, 21.0));
+            assert!(read(args(), &page(lines)).is_empty());
+        }
+
+        /// Wingdings draws four marks on four consecutive codepoints — `U+F0FC` a check, `U+F0FD`
+        /// a cross, `U+F0FE` a boxed check, `U+F0FF` a boxed cross — and the table had the first
+        /// and the third. BlackRock's annex answers with the second, which is the same statement:
+        /// the plain cross `U+2717` and the boxed one `U+2612` are already ticks, so a cross in a
+        /// dingbat font is not a different kind of answer, it is the same answer in a font the
+        /// table had not met.
+        #[test]
+        fn the_wingdings_cross_is_a_tick() {
+            let mut lines = skeleton();
+            lines.push(glyph("Wingdings", "\u{F0FD}", 280.0, 21.0));
+            assert_eq!(metadata(&read(args(), &page(lines))[0], "answer"), "negative");
         }
 
         #[test]

@@ -27,8 +27,11 @@
 //! - [`orchestration`] — the schedule and page-class tables;
 //! - [`structured`], [`semistructured`], [`unstructured`] — one subtree each.
 //!
-//! [`id_format`] reads nothing: it is the grammar of identifiers the others share.
+//! [`id_format`] reads nothing: it is the grammar of identifiers the others share; [`format_pattern`]
+//! is the grammar of partial format names built on top of it.
 
+pub mod csv_columns;
+pub mod format_pattern;
 pub mod id_format;
 pub mod metadata;
 pub mod orchestration;

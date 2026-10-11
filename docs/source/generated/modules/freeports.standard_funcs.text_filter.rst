@@ -10,6 +10,7 @@
    .. autosummary::
    
       TextFilterAssetsStandard
+      TextFilterDocClassifyStandard
       TextFilterInvestmentsStandard
       TextFilterManagmentCompanyStandard
       TextFilterPageClassifyStandard

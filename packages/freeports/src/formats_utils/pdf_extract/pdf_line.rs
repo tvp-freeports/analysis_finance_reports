@@ -85,22 +85,6 @@ impl PdfLine {
         Self { font: Font::new(font), font_size, text: text.to_string(), bbox: Rectangle::new(x0, y0, x1, y1) }
     }
 
-    /// The same line with its box moved by `(dx, dy)`.
-    ///
-    /// Built field by field rather than through [`Self::new`] on purpose: the font has already been
-    /// through [`Font::new`], and normalising a normalised name is not something this type
-    /// promises. Moving a line is what reading a **spread** needs — see `Page::spread_with` — and
-    /// nothing else in the engine moves one.
-    pub fn moved_by(&self, dx: f32, dy: f32) -> Self {
-        let (x0, y0, x1, y1) = self.bbox.as_tuple();
-        Self {
-            font: self.font.clone(),
-            font_size: self.font_size,
-            text: self.text.clone(),
-            bbox: Rectangle::new(x0 + dx, y0 + dy, x1 + dx, y1 + dy),
-        }
-    }
-
     pub fn font(&self) -> &Font {
         &self.font
     }

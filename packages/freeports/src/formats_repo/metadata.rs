@@ -30,6 +30,11 @@ pub enum MetadataError {
     DuplicateFormatName(String),
     #[error("format name '{0}' does not match the expected format name pattern")]
     InvalidFormatName(String),
+    /// A synthesised name containing `*`, which is reserved for partial format patterns and
+    /// templates (`MEDIOLANUM-IT24.*`, `*-EN23`): a format declared that way would be
+    /// indistinguishable from a partial.
+    #[error("format name '{0}' contains '*', which is reserved for partial format patterns")]
+    WildcardInFormatName(String),
     #[error("{path}, line {line}: unknown format name: {name}")]
     UnknownFormatName { path: PathBuf, line: usize, name: String },
 }
@@ -112,6 +117,16 @@ fn read_rows<T: serde::de::DeserializeOwned>(
     file_name: &str,
 ) -> Result<(PathBuf, Vec<T>), MetadataError> {
     let (path, mut reader) = open_csv(formats_repo_dir, file_name)?;
+    let headers =
+        reader.headers().map_err(|e| MetadataError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    let known = super::csv_columns::declared::<T>();
+    if let Some(column) = super::csv_columns::first_unknown(headers.iter(), known) {
+        return Err(MetadataError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: super::csv_columns::unknown_column_message(column, known),
+        });
+    }
     let mut rows = Vec::new();
     for (i, record) in reader.deserialize::<T>().enumerate() {
         rows.push(record.map_err(|e| row_error(&path, i + 1, &e))?);
@@ -121,14 +136,20 @@ fn read_rows<T: serde::de::DeserializeOwned>(
 
 /// The format names the repository declares, in the order they appear in the format list.
 ///
-/// Every synthesised name is checked against the format-name grammar and against the names already
-/// seen: two rows synthesising the same name are a configuration error.
+/// Every synthesised name is checked for the `*` reserved to partial patterns, against the
+/// format-name grammar and against the names already seen: two rows synthesising the same name are
+/// a configuration error.
 pub fn get_formats(formats_repo_dir: &Path) -> Result<Vec<String>, MetadataError> {
     let (_, rows): (_, Vec<FormatRow>) = read_rows(formats_repo_dir, "formats.csv")?;
     let mut seen = HashSet::new();
     let mut names = Vec::with_capacity(rows.len());
     for row in rows {
         let name = row.format_name();
+        // Checked before the grammar, which accepts some names with `*` and rejects others: either
+        // way the reserved wildcard is the more precise diagnosis.
+        if name.contains('*') {
+            return Err(MetadataError::WildcardInFormatName(name));
+        }
         // The grammar accepts the bare name, with neither pipeline nor index, which is what the
         // format list declares.
         if !id_matches(&name, IdFormat::ExpandableNoIndex) {
@@ -302,6 +323,58 @@ mod tests {
             let dir = repo(&[("formats.csv", "Name,Locale,Year,Country,Version\nAMUNDI,en,24,,\n")]);
             let err = get_formats(dir.path()).unwrap_err();
             assert!(matches!(err, MetadataError::InvalidFormatName(name) if name == "AMUNDI-en24"));
+        }
+
+        /// R11: `*` is reserved for partial patterns and templates, wherever it lands in the name.
+        mod reserved_wildcard {
+            use super::*;
+
+            fn wildcard_error(row: &str) -> MetadataError {
+                let dir = repo(&[("formats.csv", &format!("Name,Locale,Year,Country,Version\n{row}\n"))]);
+                get_formats(dir.path()).unwrap_err()
+            }
+
+            #[test]
+            fn a_star_as_the_whole_name_column_is_rejected() {
+                // `*-EN23` matches today's grammar, whose entity opens with `.+`.
+                let err = wildcard_error("*,EN,23,,");
+                assert!(matches!(&err, MetadataError::WildcardInFormatName(name) if name == "*-EN23"), "{err}");
+            }
+
+            #[test]
+            fn a_star_inside_the_name_column_is_rejected() {
+                let err = wildcard_error("MEDIO*LANUM,IT,24,,");
+                assert!(
+                    matches!(&err, MetadataError::WildcardInFormatName(name) if name == "MEDIO*LANUM-IT24"),
+                    "{err}"
+                );
+            }
+
+            #[test]
+            fn a_star_as_the_version_is_rejected() {
+                // `X-EN23.*` matches today's grammar, whose variant is `[^./]+`.
+                let err = wildcard_error("X,EN,23,,*");
+                assert!(matches!(&err, MetadataError::WildcardInFormatName(name) if name == "X-EN23.*"), "{err}");
+            }
+
+            #[test]
+            fn a_star_as_the_country_is_rejected_as_a_wildcard_too() {
+                // `X-EN23@*` already fails the grammar; the more precise diagnosis wins.
+                let err = wildcard_error("X,EN,23,*,");
+                assert!(matches!(&err, MetadataError::WildcardInFormatName(name) if name == "X-EN23@*"), "{err}");
+            }
+
+            #[test]
+            fn the_message_says_the_star_is_reserved() {
+                let message = wildcard_error("*,EN,23,,").to_string();
+                assert!(message.contains("*-EN23") && message.contains("'*'"), "{message}");
+            }
+
+            #[test]
+            fn a_name_without_a_star_is_unaffected() {
+                let dir = repo(&[("formats.csv", "Name,Locale,Year,Country,Version\nX,EN,23,LUX,A\n")]);
+                assert_eq!(get_formats(dir.path()).unwrap(), vec!["X-EN23@LUX.A".to_string()]);
+            }
         }
 
         #[test]

@@ -43,6 +43,7 @@ use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::classes::{BlockType, TextBlock};
 use crate::core::pipeline::{DeserializePipe, Extracted, PipeError};
 use crate::core::schedule::PageClass;
+use crate::formats_repo::format_pattern::{FormatPattern, FormatPatternError};
 use crate::formats_utils::deserialize::cast::{self, CastError};
 use crate::output::classes::OutputClassError;
 use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
@@ -58,6 +59,12 @@ pub enum DeserializeStandardFuncsError {
     Value(#[from] BlockValueError),
     #[error("page_type is a {found}, not a string naming a page class")]
     PageTypeNotAString { found: &'static str },
+    /// The document class is neither null nor a string.
+    #[error("format_pattern is a {found}, not a string naming a format pattern")]
+    DocClassNotAString { found: &'static str },
+    /// The document class is a string that does not read as a format pattern; the source says why.
+    #[error("format_pattern is not a format pattern: {0}")]
+    InvalidDocClass(#[source] FormatPatternError),
     /// A required metadata field is missing or has an unusable type.
     #[error("required field '{field}' is missing")]
     MissingField { field: &'static str },
@@ -122,6 +129,50 @@ impl DeserializePipe for DeserializerPageClassifyStandard {
     }
 }
 
+
+// ----------------------------------------------------------------------------------------------
+// DeserializerDocClassifyStandard
+// ----------------------------------------------------------------------------------------------
+/// Reads the `format_pattern` a [`TextFilterDocClassifyStandard`] wrote and turns it into the
+/// typed document class: `None` for null, the [`FormatPattern`] for a string that reads as one.
+///
+/// [`TextFilterDocClassifyStandard`]: crate::formats_utils::text_filter::standard_funcs::TextFilterDocClassifyStandard
+pub struct DeserializerDocClassifyStandard;
+
+impl DeserializerDocClassifyStandard {
+    pub fn call(&self, txt_blk: &TextBlock) -> Result<BlockValue, DeserializeStandardFuncsError> {
+        Ok(txt_blk.metadata_or_fail("format_pattern")?.clone())
+    }
+
+    /// The `format_pattern` read by [`DeserializerDocClassifyStandard::call`], read as a pattern.
+    ///
+    /// A null value is "nothing recognised", an `Ok(None)` as for the page twin. A string that
+    /// does not read as a pattern is an error carrying the grammar's diagnosis, never a guess: it
+    /// can only come from an author's pipe, and the author has to learn why.
+    pub fn call_doc_class(
+        &self,
+        txt_blk: &TextBlock,
+    ) -> Result<Option<FormatPattern>, DeserializeStandardFuncsError> {
+        match self.call(txt_blk)? {
+            BlockValue::Null => Ok(None),
+            BlockValue::Str(text) => {
+                text.parse().map(Some).map_err(DeserializeStandardFuncsError::InvalidDocClass)
+            }
+            other => Err(DeserializeStandardFuncsError::DocClassNotAString { found: other.kind() }),
+        }
+    }
+}
+
+impl DeserializePipe for DeserializerDocClassifyStandard {
+    fn name(&self) -> &str {
+        "DeserializerDocClassifyStandard"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let class = self.call_doc_class(block).map_err(|e| e.into_pipe_error(self.name()))?;
+        Ok(vec![Extracted::DocClass(class)])
+    }
+}
 
 // ----------------------------------------------------------------------------------------------
 // DeserializerFundStandard / DeserializerInvestmentStandard
@@ -1854,6 +1905,180 @@ mod tests {
         fn a_missing_page_type_key_is_an_error() {
             let txt = TextBlock::from_content(BlockType::PAGE_CLASS, BTreeMap::new(), "");
             assert!(DeserializerPageClassifyStandard.call(&txt).is_err());
+        }
+    }
+
+    /// The document twin of `deserializer_page_classify`: the string becomes a [`FormatPattern`],
+    /// and a string that is not one is an error saying why (§6: "un errore, non un tentativo di
+    /// indovinare").
+    mod deserializer_doc_classify {
+        use super::*;
+        use crate::core::pipeline::{DeserializePipe, Extracted, PipeError};
+
+        fn block_with(format_pattern: BlockValue) -> TextBlock {
+            let metadata = BTreeMap::from([("format_pattern".to_string(), format_pattern)]);
+            TextBlock::from_content(BlockType::DOC_CLASS, metadata, "")
+        }
+
+        fn pattern(text: &str) -> FormatPattern {
+            text.parse().expect("the fixture pattern must be valid")
+        }
+
+        mod raw_value {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn reads_a_present_format_pattern() {
+                let result = DeserializerDocClassifyStandard.call(&block_with(BlockValue::from("MEDIOLANUM"))).unwrap();
+                assert_eq!(result, BlockValue::from("MEDIOLANUM"));
+            }
+
+            #[test]
+            fn a_present_but_null_format_pattern_is_ok_not_an_error() {
+                let result = DeserializerDocClassifyStandard.call(&block_with(BlockValue::Null)).unwrap();
+                assert_eq!(result, BlockValue::Null);
+            }
+
+            #[test]
+            fn a_missing_format_pattern_key_is_an_error() {
+                let txt = TextBlock::from_content(BlockType::DOC_CLASS, BTreeMap::new(), "");
+                assert!(matches!(
+                    DeserializerDocClassifyStandard.call(&txt),
+                    Err(DeserializeStandardFuncsError::Value(_))
+                ));
+            }
+        }
+
+        mod typed_value {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn null_is_no_document_class() {
+                assert_eq!(DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::Null)).unwrap(), None);
+            }
+
+            #[test]
+            fn a_truncated_partial_becomes_its_pattern() {
+                let result = DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::from("MEDIOLANUM-IT"))).unwrap();
+                assert_eq!(result, Some(pattern("MEDIOLANUM-IT")));
+            }
+
+            #[test]
+            fn an_explicit_partial_becomes_its_pattern() {
+                let result =
+                    DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::from("FIDEURAM-IT23@*"))).unwrap();
+                assert_eq!(result, Some(pattern("FIDEURAM-IT23@*")));
+                assert!(!result.unwrap().is_complete());
+            }
+
+            #[test]
+            fn a_complete_name_becomes_a_complete_pattern() {
+                let result =
+                    DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::from("MEDIOLANUM-IT24.A"))).unwrap();
+                assert_eq!(result, Some(pattern("MEDIOLANUM-IT24.A")));
+                assert!(result.unwrap().is_complete());
+            }
+
+            #[test]
+            fn a_string_that_is_not_a_pattern_is_an_error_carrying_the_parse_failure() {
+                let expected = "-IT24".parse::<FormatPattern>().unwrap_err();
+                let err = DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::from("-IT24"))).unwrap_err();
+                match &err {
+                    DeserializeStandardFuncsError::InvalidDocClass(source) => assert_eq!(source, &expected),
+                    other => panic!("expected InvalidDocClass, got {other:?}"),
+                }
+            }
+
+            /// The message is what an author reads: it must say why, not only that.
+            #[test]
+            fn the_error_message_says_why_the_string_is_not_a_pattern() {
+                let reason = "MEDIOLANUM-24".parse::<FormatPattern>().unwrap_err().to_string();
+                let message = DeserializerDocClassifyStandard
+                    .call_doc_class(&block_with(BlockValue::from("MEDIOLANUM-24")))
+                    .unwrap_err()
+                    .to_string();
+                assert!(message.contains(&reason), "{message:?} should contain {reason:?}");
+            }
+
+            /// `*` as entity is a YAML-only model (§1.4): from a pipe arrive values, not models.
+            #[test]
+            fn a_template_is_not_a_pattern() {
+                assert!(matches!(
+                    DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::from("*-EN23"))),
+                    Err(DeserializeStandardFuncsError::InvalidDocClass(_))
+                ));
+            }
+
+            #[test]
+            fn an_empty_string_is_not_a_pattern() {
+                assert!(matches!(
+                    DeserializerDocClassifyStandard.call_doc_class(&block_with(BlockValue::from(""))),
+                    Err(DeserializeStandardFuncsError::InvalidDocClass(_))
+                ));
+            }
+
+            #[test]
+            fn a_value_of_another_type_is_an_error_naming_the_type() {
+                for value in [BlockValue::from(3i64), BlockValue::Bool(true), BlockValue::List(vec![])] {
+                    let kind = value.kind();
+                    let err = DeserializerDocClassifyStandard.call_doc_class(&block_with(value)).unwrap_err();
+                    match err {
+                        DeserializeStandardFuncsError::DocClassNotAString { found } => assert_eq!(found, kind),
+                        other => panic!("expected DocClassNotAString, got {other:?}"),
+                    }
+                }
+            }
+        }
+
+        mod as_a_deserialize_pipe {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_errors() {
+                assert_eq!(DeserializerDocClassifyStandard.name(), "DeserializerDocClassifyStandard");
+            }
+
+            #[test]
+            fn a_pattern_becomes_one_doc_class_result() {
+                let out = DeserializerDocClassifyStandard.deserialize(&block_with(BlockValue::from("MEDIOLANUM-IT24.*"))).unwrap();
+                assert_eq!(out, vec![Extracted::DocClass(Some(pattern("MEDIOLANUM-IT24.*")))]);
+            }
+
+            /// Exactly one result even for "nothing": the explicit `DocClass(None)`, as the page
+            /// twin's `PageClass(None)` — not an empty vector.
+            #[test]
+            fn null_becomes_an_explicit_empty_doc_class() {
+                let out = DeserializerDocClassifyStandard.deserialize(&block_with(BlockValue::Null)).unwrap();
+                assert_eq!(out, vec![Extracted::DocClass(None)]);
+            }
+
+            #[test]
+            fn an_invalid_pattern_is_a_fatal_extraction_error_naming_the_pipe_and_the_reason() {
+                let reason = "-IT24".parse::<FormatPattern>().unwrap_err().to_string();
+                let err = DeserializerDocClassifyStandard.deserialize(&block_with(BlockValue::from("-IT24"))).unwrap_err();
+                assert_eq!(err.pipe(), "DeserializerDocClassifyStandard");
+                assert!(matches!(err, PipeError::Extraction { .. }));
+                assert!(!err.is_page_failure());
+                assert!(err.to_string().contains(&reason), "{err}");
+            }
+
+            #[test]
+            fn a_value_of_the_wrong_type_is_an_extraction_error_naming_the_pipe() {
+                let err = DeserializerDocClassifyStandard.deserialize(&block_with(BlockValue::from(3i64))).unwrap_err();
+                assert_eq!(err.pipe(), "DeserializerDocClassifyStandard");
+                assert!(matches!(err, PipeError::Extraction { .. }));
+            }
+
+            #[test]
+            fn a_missing_key_is_a_value_error_not_a_page_failure() {
+                let block = TextBlock::from_content(BlockType::DOC_CLASS, BTreeMap::new(), "");
+                let err = DeserializerDocClassifyStandard.deserialize(&block).unwrap_err();
+                assert!(matches!(err, PipeError::Value { .. }));
+                assert!(!err.is_page_failure());
+            }
         }
     }
 

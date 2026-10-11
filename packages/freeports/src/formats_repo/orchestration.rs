@@ -23,6 +23,7 @@ use serde::Deserialize;
 use crate::core::pipeline::PipelineName;
 use crate::core::schedule::{PageClass, Schedule, ScheduleStep};
 
+use super::csv_columns;
 use super::id_format::{IdFormat, derive_format_name, derive_pipeline_name, id_matches};
 
 pub const CONTENT_DIR: &str = "content";
@@ -60,10 +61,6 @@ struct ScheduleRow {
     format_name: String,
     page_type: String,
     filter_next_iteration: String,
-    /// Whether this class's pages are the **left facing of a spread**: two facing pages carrying
-    /// one table between them, read as one page. Optional like the flag before it, and absent on
-    /// every row of every repository but one.
-    spread: String,
 }
 
 /// A row of the mapping table.
@@ -97,6 +94,18 @@ fn row_error(path: &Path, line: usize, error: &csv::Error) -> OrchestrationError
     OrchestrationError::MalformedRow { path: path.to_path_buf(), line, reason: message }
 }
 
+/// Refuses a header the table does not take: see [`csv_columns`].
+fn check_known_columns(path: &Path, headers: &csv::StringRecord, known: &[&str]) -> Result<(), OrchestrationError> {
+    match csv_columns::first_unknown(headers.iter(), known) {
+        Some(column) => Err(OrchestrationError::MalformedRow {
+            path: path.to_path_buf(),
+            line: 0,
+            reason: csv_columns::unknown_column_message(column, known),
+        }),
+        None => Ok(()),
+    }
+}
+
 /// Reads an orchestration table into typed rows.
 ///
 /// Flexible row lengths are enabled **only** for the file whose last column really is optional
@@ -115,6 +124,10 @@ fn read_rows<T: serde::de::DeserializeOwned>(
         .flexible(flexible)
         .from_path(&path)
         .map_err(|e| OrchestrationError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    let headers = reader
+        .headers()
+        .map_err(|e| OrchestrationError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    check_known_columns(&path, headers, csv_columns::declared::<T>())?;
     let mut rows = Vec::new();
     for (i, record) in reader.deserialize::<T>().enumerate() {
         rows.push(record.map_err(|e| row_error(&path, i + 1, &e))?);
@@ -143,13 +156,11 @@ fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleR
             .position(|h| h == name)
             .ok_or_else(|| OrchestrationError::MissingColumn { path: path.clone(), column: name.to_string() })
     };
+    // Read by index rather than through a row type, so the known columns are written out here.
+    check_known_columns(&path, &headers, &["Format name", "Page type", "Filter next iteration"])?;
     let format_name_idx = column("Format name")?;
     let page_type_idx = column("Page type")?;
     let filter_idx = column("Filter next iteration")?;
-    // Optional **as a column**, not only as a cell: a repository written before spreads existed has
-    // no such column, and must keep loading. The two columns before it are required, so this is the
-    // only one looked up this way.
-    let spread_idx = headers.iter().position(|h| h == "Spread");
 
     let mut rows = Vec::new();
     for (i, record) in reader.records().enumerate() {
@@ -158,7 +169,6 @@ fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleR
             format_name: record.get(format_name_idx).unwrap_or("").to_string(),
             page_type: record.get(page_type_idx).unwrap_or("").to_string(),
             filter_next_iteration: record.get(filter_idx).unwrap_or("").to_string(),
-            spread: spread_idx.and_then(|idx| record.get(idx)).unwrap_or("").to_string(),
         });
     }
     Ok((path, rows))
@@ -228,17 +238,13 @@ pub fn get_schedule(
     }
 
     let mut steps = vec![ScheduleStep::new()];
-    let mut spreads = Vec::new();
     for (i, row) in matching {
         steps.last_mut().expect("lo schedule ha sempre almeno uno step").push(PageClass::new(&row.page_type));
-        if parse_flag(&path, i + 1, &row.spread)? {
-            spreads.push(PageClass::new(&row.page_type));
-        }
         if parse_flag(&path, i + 1, &row.filter_next_iteration)? {
             steps.push(ScheduleStep::new());
         }
     }
-    let schedule = Schedule::new(steps).with_spreads(spreads);
+    let schedule = Schedule::new(steps);
     tracing::debug!(step_count = schedule.steps().len(), "built schedule");
     Ok(schedule)
 }
@@ -417,6 +423,20 @@ mod tests {
             ]);
             let schedule = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
             assert_eq!(schedule.steps().len(), 1);
+        }
+
+        /// A column the engine does not read — the `Spread` of an older repository — is refused
+        /// rather than ignored: its cells would otherwise say something nobody hears.
+        #[test]
+        fn an_unknown_column_is_refused_naming_it() {
+            let csv = "Format name,Page type,Filter next iteration,Spread\nA-EN24,investments,,TRUE\n";
+            let d = repo(&[
+                ("algorithms_schedule.csv", csv),
+                ("mapping.csv", MAPPING_CSV),
+                ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
+            ]);
+            let error = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap_err();
+            assert!(error.to_string().contains("unknown column 'Spread'"), "{error}");
         }
 
         #[test]

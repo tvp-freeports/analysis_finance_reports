@@ -8,10 +8,11 @@ use pyo3::exceptions::PyValueError;
 use crate::formats_utils::pdf_extract::position::SplittingDirection;
 
 use crate::core::classes::BlockType;
+use crate::formats_repo::format_pattern::{FormatPattern, FormatPatternError};
 use crate::formats_utils::pdf_extract::standard_funcs::{
     AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
-    PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
-    PdfExtractPageClassifyStandard, pdf_extract_currency_standard,
+    PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractDocClassifyStandard,
+    PdfExtractInvestmentsStandard, PdfExtractPageClassifyStandard, pdf_extract_currency_standard,
     pdf_extract_fund_standard, pdf_extract_managment_company_standard,
 };
 use crate::formats_utils::pdf_extract::labelled_value::{
@@ -347,6 +348,24 @@ pub fn py_pdf_extract_page_classify_standard(
 ) -> PyResult<PyPdfExtractPipe> {
     let header_sets = selections_of("header_sets", header_sets)?;
     Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractPageClassifyStandard::new(header_sets, page_type))))
+}
+
+/// The document classifier: the page says the document is of `pattern` if **every** selection
+/// finds something. `pattern` is a (possibly partial) format name; one that does not read as a
+/// pattern is a `ValueError` carrying the reason.
+#[pyfunction]
+#[pyo3(name = "PdfExtractDocClassifyStandard")]
+#[pyo3(signature = (selections, pattern))]
+pub fn py_pdf_extract_doc_classify_standard(
+    selections: &Bound<'_, PyAny>,
+    pattern: &str,
+) -> PyResult<PyPdfExtractPipe> {
+    let selections = selections_of("selections", selections)?;
+    let pattern: FormatPattern = pattern.parse().map_err(|e: FormatPatternError| {
+        tracing::error!(error = log_error(&e), "PdfExtractDocClassifyStandard construction failed: {e}");
+        PyValueError::new_err(e.to_string())
+    })?;
+    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractDocClassifyStandard::new(selections, pattern))))
 }
 
 /// A currency known in advance, without looking at the page at all.

@@ -179,65 +179,6 @@ impl Page {
     pub fn raw(&self) -> Option<&Py<PyAny>> {
         self.raw.as_ref()
     }
-
-    /// The two facings of a **spread** as one page: this page, plus `right`'s content moved across
-    /// by this page's width.
-    ///
-    /// A spread is one table printed over two facing pages, and the two facings carry different
-    /// halves of it. AMUNDI-EN24's statement of net assets is the measured case: the left facing
-    /// has the title and the column of row labels (`Assets`, `Liabilities`, `Net asset value`), the
-    /// right facing has four more sub-funds at **exactly the same ordinates** and no labels at all,
-    /// because the labels are on the facing opposite. Read page by page, the right facing yields
-    /// nothing and sixty-two of eighty-seven sub-funds have no row.
-    ///
-    /// Moving `right` across instead of carrying the labels over is what makes every existing pipe
-    /// work unchanged: the ordinates are already shared, so after the move the table is one table
-    /// again, each row is one row, and a window hung off a label reaches the whole of it.
-    ///
-    /// The merged page keeps **this** page's number, because that is the page a reader opens to
-    /// check a row, and this page's `drawings` and `images` are joined by `right`'s, moved too.
-    ///
-    /// # It carries no PyMuPDF dict
-    ///
-    /// `raw` is `None`, and deliberately: there is no dict for a page that does not exist in the
-    /// document, and building one by merging two would mean rewriting every bounding box of a
-    /// structure this module does not own. A pipe written by a format author reads the dict rather
-    /// than the native page, so **a spread class must be read by native pipes**; an author pipe
-    /// handed one fails with `the page carries no PyMuPDF dictionary`, which is the honest answer —
-    /// the alternative, handing it the left facing's dict, would silently give it half the table,
-    /// which is the very defect a spread exists to remove.
-    pub fn spread_with(&self, right: &Page) -> Page {
-        let across = self.size.0;
-        let moved_box = |rectangle: &Rectangle| {
-            let (x0, y0, x1, y1) = rectangle.as_tuple();
-            Rectangle::new(x0 + across, y0, x1 + across, y1)
-        };
-
-        let mut lines = self.lines.clone();
-        lines.extend(right.lines.iter().map(|line| line.moved_by(across, 0.0)));
-
-        let mut images = self.images.clone();
-        images.extend(right.images.iter().map(|image| PageImage {
-            bbox: moved_box(&image.bbox),
-            ext: image.ext.clone(),
-            data: image.data.clone(),
-        }));
-
-        let mut drawings = self.drawings.clone();
-        drawings.extend(right.drawings.iter().map(|drawing| PageDrawing {
-            bbox: moved_box(&drawing.bbox),
-            ..drawing.clone()
-        }));
-
-        Page {
-            number: self.number,
-            size: (self.size.0 + right.size.0, self.size.1.max(right.size.1)),
-            lines,
-            images,
-            drawings,
-            raw: None,
-        }
-    }
 }
 
 /// A document: its identity, the format it should be read with, and its pages.

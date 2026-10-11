@@ -12,6 +12,7 @@
       PdfExtractAssetsStandard
       PdfExtractCurrencyConstant
       PdfExtractCurrencyStandard
+      PdfExtractDocClassifyStandard
       PdfExtractFundStandard
       PdfExtractInvestmentsStandard
       PdfExtractLabelledValueStandard

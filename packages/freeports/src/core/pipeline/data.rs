@@ -19,6 +19,7 @@ use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::page::PageError;
 use crate::core::promise_resolution::PromiseMap;
 use crate::core::schedule::PageClass;
+use crate::formats_repo::format_pattern::FormatPattern;
 use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
 use crate::output::classes::fund::Fund;
 use crate::output::classes::fund_assets::FundAssets;
@@ -218,6 +219,9 @@ pub enum Extracted {
     /// The outcome of the classification pipeline: the page's class, or `None` if the pipe could
     /// not classify it.
     PageClass(Option<PageClass>),
+    /// The outcome of a document-classification pipeline: the (possibly partial) format it
+    /// recognised, or `None` if it recognised nothing.
+    DocClass(Option<FormatPattern>),
 }
 
 impl Extracted {
@@ -229,6 +233,18 @@ impl Extracted {
     pub fn as_page_class(&self) -> Option<&Option<PageClass>> {
         match self {
             Extracted::PageClass(class) => Some(class),
+            _ => None,
+        }
+    }
+
+    /// The document class, if this result comes from a document-classification pipeline.
+    ///
+    /// As for [`Self::as_page_class`], `Some(None)` is "a classification happened, and it found
+    /// nothing", `None` is "this result is not a document classification".
+    #[allow(clippy::option_option)]
+    pub fn as_doc_class(&self) -> Option<&Option<FormatPattern>> {
+        match self {
+            Extracted::DocClass(class) => Some(class),
             _ => None,
         }
     }
@@ -550,6 +566,29 @@ mod tests {
         }
 
         #[test]
+        fn a_doc_class_result_exposes_its_pattern() {
+            let pattern: FormatPattern = "MEDIOLANUM-IT24.*".parse().unwrap();
+            let e = Extracted::DocClass(Some(pattern.clone()));
+            assert_eq!(e.as_doc_class(), Some(&Some(pattern)));
+        }
+
+        /// As for the page class: `Some(None)` is "a document classification happened, and found
+        /// nothing", `None` is "not a document classification at all".
+        #[test]
+        fn an_unrecognised_document_is_still_a_doc_class_result() {
+            let e = Extracted::DocClass(None);
+            assert_eq!(e.as_doc_class(), Some(&None));
+            assert!(e.as_page_class().is_none());
+            assert!(e.as_promises().is_none());
+        }
+
+        #[test]
+        fn a_page_class_is_not_a_doc_class() {
+            assert!(Extracted::PageClass(None).as_doc_class().is_none());
+            assert!(Extracted::PageClass(Some(PageClass::new("investments"))).as_doc_class().is_none());
+        }
+
+        #[test]
         fn a_promises_result_is_not_a_page_class() {
             let e = Extracted::Promises(PromiseEntries::new());
             assert!(e.as_page_class().is_none());
@@ -661,7 +700,7 @@ mod tests {
                 .expect("fixed, valid fixture")
         }
 
-        /// One specimen of each of the twelve [`Extracted`] variants, in declaration order. The
+        /// One specimen of each of the thirteen [`Extracted`] variants, in declaration order. The
         /// exhaustiveness checks below iterate over this list, the same way `BlockValue`'s tests
         /// do.
         fn one_of_each() -> Vec<Extracted> {
@@ -678,10 +717,11 @@ mod tests {
                 Extracted::InvestmentsManager(investments_manager()),
                 Extracted::Promises(PromiseEntries::new()),
                 Extracted::PageClass(None),
+                Extracted::DocClass(Some("MEDIOLANUM-IT24.*".parse().expect("a valid pattern"))),
             ]
         }
 
-        /// The same twelve variants, but with **every promisable field still pending**.
+        /// The same thirteen variants, but with **every promisable field still pending**.
         ///
         /// This is the state in which an [`Extracted`] really crosses a process boundary: a worker
         /// serialises what it produced and the parent fulfils the promises afterwards, once, over
@@ -738,6 +778,7 @@ mod tests {
                     [("fund_name", promise("other")), ("isin", BlockValue::Int(1))].into_iter().collect(),
                 ),
                 Extracted::PageClass(Some(PageClass::new("investments"))),
+                Extracted::DocClass(Some("MEDIOLANUM-IT24.A".parse().expect("a valid pattern"))),
             ]
         }
 
@@ -811,12 +852,13 @@ mod tests {
                     assert_eq!(e.as_bond().is_some(), matches!(e, Extracted::Bond(_)), "{e:?}");
                     assert_eq!(e.as_promises().is_some(), matches!(e, Extracted::Promises(_)), "{e:?}");
                     assert_eq!(e.as_page_class().is_some(), matches!(e, Extracted::PageClass(_)), "{e:?}");
+                    assert_eq!(e.as_doc_class().is_some(), matches!(e, Extracted::DocClass(_)), "{e:?}");
                 }
             }
         }
 
         /// An [`Extracted`] travels back from a worker process to the parent serialised as JSON.
-        /// Reuses `one_of_each`, so a thirteenth variant enters the round trip automatically
+        /// Reuses `one_of_each`, so a fourteenth variant enters the round trip automatically
         /// instead of staying silently uncovered.
         mod serde_round_trip {
             use super::*;
@@ -845,7 +887,7 @@ mod tests {
             }
 
             /// How many fields of an entity are still waiting for a promise. Written as an
-            /// exhaustive match so that a thirteenth variant has to be answered for here too.
+            /// exhaustive match so that a fourteenth variant has to be answered for here too.
             fn pending_count(e: &Extracted) -> usize {
                 use crate::core::promisable::PromisableFields;
                 match e {
@@ -859,7 +901,7 @@ mod tests {
                     Extracted::FundMerge(v) => v.pending().len(),
                     Extracted::ManagementCompany(v) => v.pending().len(),
                     Extracted::InvestmentsManager(v) => v.pending().len(),
-                    Extracted::Promises(_) | Extracted::PageClass(_) => 0,
+                    Extracted::Promises(_) | Extracted::PageClass(_) | Extracted::DocClass(_) => 0,
                 }
             }
 
@@ -876,6 +918,7 @@ mod tests {
                                 e,
                                 Extracted::Promises(_)
                                     | Extracted::PageClass(_)
+                                    | Extracted::DocClass(_)
                                     | Extracted::ManagementCompany(_)
                                     | Extracted::InvestmentsManager(_)
                             ),
@@ -923,6 +966,22 @@ mod tests {
             }
 
             #[test]
+            fn a_doc_class_survives_absent_partial_and_complete() {
+                for value in [None, Some("MEDIOLANUM"), Some("FIDEURAM-IT23@*"), Some("X-EN23@*.*"), Some("MEDIOLANUM-IT24.A")] {
+                    let e = Extracted::DocClass(value.map(|text| text.parse().expect("a valid pattern")));
+                    assert_eq!(round_trip(&e), e, "doc class {value:?} did not survive");
+                }
+            }
+
+            /// The pattern travels as its canonical string, not as a structure of slots.
+            #[test]
+            fn a_doc_class_is_serialised_with_its_pattern_as_a_string() {
+                let e = Extracted::DocClass(Some("MEDIOLANUM-IT24.*".parse().unwrap()));
+                let json = serde_json::to_string(&e).unwrap();
+                assert!(json.contains("\"MEDIOLANUM-IT24.*\""), "{json}");
+            }
+
+            #[test]
             fn a_page_class_survives_both_when_present_and_when_absent() {
                 for value in [None, Some(PageClass::new("investments"))] {
                     let e = Extracted::PageClass(value.clone());
@@ -931,7 +990,7 @@ mod tests {
             }
         }
 
-        /// The exhaustive `match` — with no `_ =>` arm — over all twelve variants: a thirteenth
+        /// The exhaustive `match` — with no `_ =>` arm — over all thirteen variants: a fourteenth
         /// added without touching this test is reported by the compiler right here.
         mod exhaustive_match {
             use super::*;
@@ -951,6 +1010,7 @@ mod tests {
                     Extracted::InvestmentsManager(_) => "investments_manager",
                     Extracted::Promises(_) => "promises",
                     Extracted::PageClass(_) => "page_class",
+                    Extracted::DocClass(_) => "doc_class",
                 }
             }
 
@@ -969,6 +1029,7 @@ mod tests {
                     "investments_manager",
                     "promises",
                     "page_class",
+                    "doc_class",
                 ];
                 let labels: Vec<&str> = one_of_each().iter().map(label).collect();
                 assert_eq!(labels, expected);

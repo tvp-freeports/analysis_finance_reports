@@ -25,6 +25,7 @@ use crate::commons::sets::Container;
 use crate::core::classes::{BlockType, BlockValue, PdfBlock};
 use crate::core::page::Page;
 use crate::core::pipeline::{PdfExtractPipe, PipeError};
+use crate::formats_repo::format_pattern::FormatPattern;
 
 use super::commons::{CommonsError, SelectedText, extract_text_pdf_block_or_fail_page, select_expected_text};
 use super::labelled_value::{LabelledValueArgs, PdfExtractLabelledValueStandard};
@@ -80,6 +81,20 @@ impl PdfExtractStandardFuncsError {
 fn select<'a>(selection: &PdfLineSelection, lines: &'a [PdfLine]) -> Vec<&'a PdfLine> {
     let set = selection.clone().contextualize(lines);
     lines.iter().filter(|line| set.contains(line)).collect()
+}
+
+/// The recognition rule shared by the two classifiers: `Some` only if **every** selection finds at
+/// least one line, carrying the text of the first line the first selection found — what one
+/// searches for inside the PDF when a recognition looks wrong. With no selection at all the rule
+/// holds vacuously and the text is empty.
+fn first_line_if_every_selection_matches(selections: &[PdfLineSelection], lines: &[PdfLine]) -> Option<String> {
+    let mut first_line = None;
+    for selection in selections {
+        let found = select(selection, lines);
+        let line = found.first()?;
+        first_line.get_or_insert_with(|| line.text().clone());
+    }
+    Some(first_line.unwrap_or_default())
 }
 
 /// Like [`select`], but returns the already-contextualised set, for where the selection has to be
@@ -216,17 +231,12 @@ impl PdfExtractPageClassifyStandard {
         // matching is the normal case — every page class is tried against every page — and says
         // nothing, while the text of a recognised header is exactly what one searches for inside
         // the PDF.
-        let matched = self.header_sets.iter().all(|hs| !select(hs, &page.lines).is_empty());
-        if matched {
-            let header = self
-                .header_sets
-                .first()
-                .and_then(|hs| select(hs, &page.lines).first().map(|line| line.text().clone()))
-                .unwrap_or_default();
+        let header = first_line_if_every_selection_matches(&self.header_sets, &page.lines);
+        if let Some(header) = &header {
             tracing::debug!(coord_ref_2 = %self.page_type, found = %header, "page class recognized by its header");
         }
         let page_type =
-            if matched { BlockValue::from(self.page_type.as_str()) } else { BlockValue::Null };
+            if header.is_some() { BlockValue::from(self.page_type.as_str()) } else { BlockValue::Null };
         let metadata = BTreeMap::from([("page_type".to_string(), page_type)]);
         Ok(vec![PdfBlock::new(BlockType::PAGE_CLASS, metadata, BlockValue::from(""))])
     }
@@ -242,6 +252,50 @@ impl PdfExtractPipe for PdfExtractPageClassifyStandard {
     }
 }
 
+
+// ----------------------------------------------------------------------------------------------
+// PdfExtractDocClassifyStandard
+// ----------------------------------------------------------------------------------------------
+/// Document classifier: the page says the document is of the declared (possibly partial) format
+/// only if **every** selection finds at least one line. With no selection at all it always does —
+/// the unconditional step of the declarative classification.
+///
+/// Always emits exactly one `DOC_CLASS` block, with `metadata["format_pattern"]` either the
+/// pattern's canonical string or `Null`, for the same reason as [`PdfExtractPageClassifyStandard`]:
+/// the downstream segment expects one block per pipe.
+pub struct PdfExtractDocClassifyStandard {
+    selections: Vec<PdfLineSelection>,
+    pattern: FormatPattern,
+}
+
+impl PdfExtractDocClassifyStandard {
+    pub fn new(selections: Vec<PdfLineSelection>, pattern: FormatPattern) -> Self {
+        Self { selections, pattern }
+    }
+
+    pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
+        // Logged only on recognition, as for the page twin: each step is tried on its page and
+        // most do not match.
+        let line = first_line_if_every_selection_matches(&self.selections, &page.lines);
+        if let Some(line) = &line {
+            tracing::debug!(coord_ref_2 = %self.pattern, found = %line, "document class recognized by its lines");
+        }
+        let format_pattern =
+            if line.is_some() { BlockValue::from(self.pattern.to_string()) } else { BlockValue::Null };
+        let metadata = BTreeMap::from([("format_pattern".to_string(), format_pattern)]);
+        Ok(vec![PdfBlock::new(BlockType::DOC_CLASS, metadata, BlockValue::from(""))])
+    }
+}
+
+impl PdfExtractPipe for PdfExtractDocClassifyStandard {
+    fn name(&self) -> &str {
+        "PdfExtractDocClassifyStandard"
+    }
+
+    fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
+        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+    }
+}
 
 // ----------------------------------------------------------------------------------------------
 // PdfExtractCurrencyConstant
@@ -1387,6 +1441,189 @@ mod tests {
             let pipe = PdfExtractPageClassifyStandard::new(vec![text_sel("Header one")], "investments");
             let blocks = pipe.call(&page(Vec::new())).unwrap();
             assert_eq!(metadata_of(&blocks[0], "page_type"), BlockValue::Null);
+        }
+    }
+
+    /// The document twin of `page_classify`: the same rule (every selection finds a line), a
+    /// different block — `DOC_CLASS`, carrying a format pattern in `format_pattern`.
+    mod doc_classify {
+        use super::*;
+
+        fn pattern(text: &str) -> FormatPattern {
+            text.parse().expect("the fixture pattern must be valid")
+        }
+
+        /// A cover page: a title in one font, the management company in another.
+        fn cover() -> Page {
+            page(vec![
+                PdfLine::new("TrebuchetMS", 26.0, "Relazione di gestione", (0.0, 0.0, 200.0, 26.0)),
+                PdfLine::new("Arial", 10.0, "Mediolanum Gestione Fondi SGR", (0.0, 40.0, 200.0, 50.0)),
+                PdfLine::new("Arial", 10.0, "Mediolanum Best Brands", (0.0, 60.0, 200.0, 70.0)),
+            ])
+        }
+
+        fn declared(blocks: &[PdfBlock]) -> BlockValue {
+            metadata_of(&blocks[0], "format_pattern")
+        }
+
+        mod matching {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn a_single_selection_that_finds_a_line_declares_the_pattern() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum Gestione")], pattern("MEDIOLANUM"));
+                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("MEDIOLANUM"));
+            }
+
+            #[test]
+            fn a_single_selection_that_finds_nothing_declares_null() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Amundi")], pattern("AMUNDI"));
+                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::Null);
+            }
+
+            #[test]
+            fn several_selections_all_finding_a_line_declare_the_pattern() {
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("^Relazione di gestione$"), text_sel("Mediolanum Gestione"), font_sel("TrebuchetMS")],
+                    pattern("MEDIOLANUM-IT24.*"),
+                );
+                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("MEDIOLANUM-IT24.*"));
+            }
+
+            /// The criteria of a step are an AND (§2.1): one missing selection is enough to say no,
+            /// wherever it sits in the list.
+            #[test]
+            fn one_missing_selection_among_several_declares_null_wherever_it_sits() {
+                let found = || text_sel("Mediolanum Gestione");
+                let missing = || text_sel("Annual Report");
+                for selections in [vec![missing(), found()], vec![found(), missing()], vec![found(), missing(), found()]] {
+                    let pipe = PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM-EN"));
+                    assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::Null);
+                }
+            }
+
+            /// "At least one line": a selection finding several is as good as one finding one.
+            #[test]
+            fn a_selection_finding_several_lines_counts_as_found() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("^Mediolanum")], pattern("MEDIOLANUM"));
+                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("MEDIOLANUM"));
+            }
+
+            /// A YAML step with no criteria is unconditional (§3.2): the pipe with no selection is
+            /// its building block, so it always declares its pattern.
+            #[test]
+            fn zero_selections_always_declare_the_pattern() {
+                let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern("ASTERIA-EN23"));
+                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("ASTERIA-EN23"));
+            }
+
+            /// Even on a page with no text at all — an image cover.
+            #[test]
+            fn zero_selections_declare_the_pattern_on_an_empty_page_too() {
+                let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern("ASTERIA-EN23"));
+                assert_eq!(declared(&pipe.call(&page(Vec::new())).unwrap()), BlockValue::from("ASTERIA-EN23"));
+            }
+
+            #[test]
+            fn an_empty_page_never_matches_a_non_empty_selection() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum")], pattern("MEDIOLANUM"));
+                assert_eq!(declared(&pipe.call(&page(Vec::new())).unwrap()), BlockValue::Null);
+            }
+        }
+
+        mod block_shape {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// The downstream segment expects one block per pipe, as for the page twin.
+            #[test]
+            fn always_emits_exactly_one_block_whatever_the_outcome() {
+                for selections in [vec![text_sel("Mediolanum")], vec![text_sel("absent")], Vec::new()] {
+                    let pipe = PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM"));
+                    assert_eq!(pipe.call(&cover()).unwrap().len(), 1);
+                    assert_eq!(pipe.call(&page(Vec::new())).unwrap().len(), 1);
+                }
+            }
+
+            #[test]
+            fn the_block_is_a_doc_class_block_with_empty_content_when_it_matches() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum")], pattern("MEDIOLANUM"));
+                let blocks = pipe.call(&cover()).unwrap();
+                assert_eq!(blocks[0].type_block, BlockType::DOC_CLASS);
+                assert_eq!(blocks[0].content, BlockValue::from(""));
+            }
+
+            #[test]
+            fn the_block_is_a_doc_class_block_when_it_does_not_match_either() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("absent")], pattern("MEDIOLANUM"));
+                let blocks = pipe.call(&cover()).unwrap();
+                assert_eq!(blocks[0].type_block, BlockType::DOC_CLASS);
+                assert!(blocks[0].metadata.contains_key("format_pattern"), "the key is there, null, not missing");
+            }
+
+            /// It is not the page twin's block: the two classifications must never be mistaken for
+            /// each other downstream.
+            #[test]
+            fn it_writes_no_page_type() {
+                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum")], pattern("MEDIOLANUM"));
+                let blocks = pipe.call(&cover()).unwrap();
+                assert_ne!(blocks[0].type_block, BlockType::PAGE_CLASS);
+                assert!(!blocks[0].metadata.contains_key("page_type"));
+            }
+        }
+
+        /// The pattern travels as its canonical string — the one `FormatPattern` reads back — so
+        /// that the deserializer can read it again and Python sees what an author would write.
+        mod pattern_spelling {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn every_form_of_pattern_is_written_in_its_canonical_spelling() {
+                for text in [
+                    "MEDIOLANUM",
+                    "MEDIOLANUM-IT",
+                    "MEDIOLANUM-IT24",
+                    "MEDIOLANUM-IT24.A",
+                    "MEDIOLANUM-IT24.*",
+                    "FIDEURAM-IT23@*",
+                    "FIDEURAM-IT23@LUX",
+                    "X-EN23@*.*",
+                    "X-EN23@LUX.B",
+                ] {
+                    let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern(text));
+                    assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from(text), "{text}");
+                }
+            }
+
+            #[test]
+            fn the_written_string_reads_back_as_the_same_pattern() {
+                let original = pattern("X-EN23@*.B");
+                let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), original.clone());
+                let written = declared(&pipe.call(&cover()).unwrap());
+                let back: FormatPattern = written.as_str().expect("a string").parse().unwrap();
+                assert_eq!(back, original);
+            }
+        }
+
+        mod as_a_pdf_extract_pipe {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_errors() {
+                let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern("MEDIOLANUM"));
+                assert_eq!(PdfExtractPipe::name(&pipe), "PdfExtractDocClassifyStandard");
+            }
+
+            #[test]
+            fn extracting_produces_the_same_blocks_as_the_direct_call() {
+                for selections in [vec![text_sel("Mediolanum")], vec![text_sel("absent")], Vec::new()] {
+                    let pipe = PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM"));
+                    assert_eq!(pipe.extract(&cover()).unwrap(), pipe.call(&cover()).unwrap());
+                }
+            }
         }
     }
 

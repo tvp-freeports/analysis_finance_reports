@@ -300,6 +300,11 @@ pub fn extracted_to_py<'py>(py: Python<'py>, extracted: &Extracted) -> PyResult<
             Some(class) => class.as_str().into_pyobject(py)?.into_any(),
             None => py.None().into_bound(py),
         },
+        // The same form an author's deserializer returns: the pattern's canonical string, or None.
+        Extracted::DocClass(class) => match class {
+            Some(pattern) => pattern.to_string().into_pyobject(py)?.into_any(),
+            None => py.None().into_bound(py),
+        },
         Extracted::Promises(entries) => promises_to_py(py, entries)?,
         Extracted::Fund(v) => Bound::new(py, PyFund::from(v.clone()))?.into_any(),
         Extracted::Equity(v) => Bound::new(py, PyEquity::from(v.clone()))?.into_any(),

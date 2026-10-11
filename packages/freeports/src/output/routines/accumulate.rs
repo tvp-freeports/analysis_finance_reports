@@ -300,7 +300,7 @@ fn pour_job(
             let _page_guard = page_span.enter();
             for result in &page.results {
                 match result {
-                    Extracted::Promises(_) | Extracted::PageClass(_) => {}
+                    Extracted::Promises(_) | Extracted::PageClass(_) | Extracted::DocClass(_) => {}
 
                     Extracted::Fund(fund) => {
                         for fund in resolve(fund.clone(), flat)? {
