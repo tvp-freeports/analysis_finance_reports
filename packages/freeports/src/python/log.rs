@@ -173,7 +173,12 @@ pub fn py_warn_imposed(field: &str, value: &Bound<'_, PyAny>, reason: &str) -> P
     emit!(
         warn,
         crate::core::tracing_setup::imposed_message(field, &value, reason),
-        Coords { coord_ref_1: None, coord_ref_2: Some(field), coord_1: None, coord_2: None }
+        Coords {
+            coord_ref_1: None,
+            coord_ref_2: Some(field),
+            coord_1: None,
+            coord_2: None
+        }
     );
     Ok(())
 }
@@ -186,8 +191,8 @@ mod tests {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::{Layer, Registry};
 
-    use crate::core::tracing_setup::capture::{events, one_event as one, Record};
-    use crate::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+    use crate::core::tracing_setup::capture::{Record, events, one_event as one};
+    use crate::core::tracing_setup::{CsvLogLayer, csv_event_filter};
 
     mod levels {
         use super::*;
@@ -240,7 +245,15 @@ mod tests {
 
         #[test]
         fn the_four_given_coordinates_are_recorded() {
-            let record = one(|| py_warn("said", Some("anchor"), Some("field"), Some("row 3"), Some("col 5")));
+            let record = one(|| {
+                py_warn(
+                    "said",
+                    Some("anchor"),
+                    Some("field"),
+                    Some("row 3"),
+                    Some("col 5"),
+                )
+            });
             assert_eq!(record.field("coord_ref_1"), Some("anchor"));
             assert_eq!(record.field("coord_ref_2"), Some("field"));
             assert_eq!(record.field("coord_1"), Some("row 3"));
@@ -280,7 +293,8 @@ mod tests {
 
         #[test]
         fn it_warns_with_the_one_settled_wording() {
-            let record = imposed(|py| pyo3::types::PyString::new(py, "Amundi SGR S.p.A.").into_any());
+            let record =
+                imposed(|py| pyo3::types::PyString::new(py, "Amundi SGR S.p.A.").into_any());
             assert_eq!(record.level, Some(Level::WARN));
             assert_eq!(
                 record.message,
@@ -299,7 +313,11 @@ mod tests {
         #[test]
         fn a_value_that_is_not_a_string_is_printed_as_python_prints_it() {
             let record = imposed(|py| 42i64.into_pyobject(py).expect("an int").into_any());
-            assert!(record.message.contains("imposed as \"42\""), "found {:?}", record.message);
+            assert!(
+                record.message.contains("imposed as \"42\""),
+                "found {:?}",
+                record.message
+            );
         }
     }
 
@@ -351,20 +369,26 @@ mod tests {
         #[test]
         fn an_event_inherits_report_page_and_activity_without_being_given_them() {
             let rows = csv_rows(|| {
-                inside_the_engine_spans(|| py_warn("the residual went to the manco", None, None, None, None))
+                inside_the_engine_spans(|| {
+                    py_warn("the residual went to the manco", None, None, None, None)
+                })
             });
             assert_eq!(rows.len(), 1);
             let row = &rows[0];
             assert_eq!(row[0], "EURIZON 2023", "Report");
             assert_eq!(row[1], "54", "Page");
-            assert_eq!(row[2], "document[EURIZON 2023]/page[54]/pipeline[investments]", "Activity");
+            assert_eq!(
+                row[2], "document[EURIZON 2023]/page[54]/pipeline[investments]",
+                "Activity"
+            );
             assert_eq!(row[7], "WARN", "Level");
             assert_eq!(row[8], "the residual went to the manco", "Message");
         }
 
         #[test]
         fn the_coordinate_columns_of_an_event_without_coordinates_stay_empty() {
-            let rows = csv_rows(|| inside_the_engine_spans(|| py_warn("said", None, None, None, None)));
+            let rows =
+                csv_rows(|| inside_the_engine_spans(|| py_warn("said", None, None, None, None)));
             assert_eq!(&rows[0][3..7], ["", "", "", ""]);
         }
 
@@ -372,7 +396,13 @@ mod tests {
         fn the_four_coordinates_fill_their_own_columns() {
             let rows = csv_rows(|| {
                 inside_the_engine_spans(|| {
-                    py_error("the accounting equation does not balance", Some("Total"), Some("net_assets"), Some("row 12"), Some("col 3"))
+                    py_error(
+                        "the accounting equation does not balance",
+                        Some("Total"),
+                        Some("net_assets"),
+                        Some("row 12"),
+                        Some("col 3"),
+                    )
                 })
             });
             assert_eq!(&rows[0][3..7], ["Total", "net_assets", "row 12", "col 3"]);
@@ -393,7 +423,10 @@ mod tests {
                 })
             });
             assert_eq!(rows.len(), 2);
-            assert_eq!(rows.iter().map(|r| r[7].as_str()).collect::<Vec<_>>(), ["ERROR", "WARN"]);
+            assert_eq!(
+                rows.iter().map(|r| r[7].as_str()).collect::<Vec<_>>(),
+                ["ERROR", "WARN"]
+            );
         }
 
         /// Outside a page, with no coordinate of its own, an event has nothing to anchor it: it
@@ -407,7 +440,15 @@ mod tests {
 
         #[test]
         fn a_coordinate_alone_is_enough_to_write_a_row() {
-            let rows = csv_rows(|| py_warn("outside any page", Some("the table header"), None, None, None));
+            let rows = csv_rows(|| {
+                py_warn(
+                    "outside any page",
+                    Some("the table header"),
+                    None,
+                    None,
+                    None,
+                )
+            });
             assert_eq!(rows.len(), 1);
             assert_eq!(rows[0][3], "the table header");
         }

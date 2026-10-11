@@ -50,7 +50,11 @@ pub enum SegmentKind {
 
 impl SegmentKind {
     /// The three segments, in the order a pipeline applies them.
-    pub const ALL: [SegmentKind; 3] = [SegmentKind::PdfExtract, SegmentKind::TextFilter, SegmentKind::Deserialize];
+    pub const ALL: [SegmentKind; 3] = [
+        SegmentKind::PdfExtract,
+        SegmentKind::TextFilter,
+        SegmentKind::Deserialize,
+    ];
 
     /// The name the segment goes by in the repository's files.
     pub fn file_stem(self) -> &'static str {
@@ -163,21 +167,42 @@ pub enum SemistructuredError {
         #[source]
         source: NativeError,
     },
-    #[error("segment '{segment}', algorithm '{name}': the args are not a mapping the algorithm can read: {message}")]
-    MalformedArgs { segment: &'static str, name: String, message: String },
-    #[error("segment '{segment}': no native or author-provided algorithm named '{name}' is registered")]
+    #[error(
+        "segment '{segment}', algorithm '{name}': the args are not a mapping the algorithm can read: {message}"
+    )]
+    MalformedArgs {
+        segment: &'static str,
+        name: String,
+        message: String,
+    },
+    #[error(
+        "segment '{segment}': no native or author-provided algorithm named '{name}' is registered"
+    )]
     UnknownAlgorithm { segment: &'static str, name: String },
     /// A name defined both natively and by the author. See the module documentation.
     #[error("segment '{segment}': '{name}' is defined both natively and by the author's module")]
     AmbiguousAlgorithm { segment: &'static str, name: String },
     #[error("segment '{segment}': author-provided '{name}' is not callable")]
     AuthorAlgorithmNotCallable { segment: &'static str, name: String },
-    #[error("segment '{segment}': author-provided '{name}' has no matching '{expected_class}' class")]
-    AuthorAlgorithmMissingInputClass { segment: &'static str, name: String, expected_class: String },
+    #[error(
+        "segment '{segment}': author-provided '{name}' has no matching '{expected_class}' class"
+    )]
+    AuthorAlgorithmMissingInputClass {
+        segment: &'static str,
+        name: String,
+        expected_class: String,
+    },
     #[error("failed to load the author module for segment '{segment}' at {path}: {message}")]
-    AuthorModuleLoad { segment: &'static str, path: PathBuf, message: String },
+    AuthorModuleLoad {
+        segment: &'static str,
+        path: PathBuf,
+        message: String,
+    },
     #[error("segment '{segment}': {message}")]
-    Python { segment: &'static str, message: String },
+    Python {
+        segment: &'static str,
+        message: String,
+    },
 }
 
 /// The path of a segment's author-written module.
@@ -205,7 +230,10 @@ pub fn input_class_name(name: &str) -> String {
 /// Where the algorithm a mapping cell asks for comes from.
 enum AlgorithmSource {
     Native,
-    Author { func: Py<PyAny>, input_class: Py<PyAny> },
+    Author {
+        func: Py<PyAny>,
+        input_class: Py<PyAny>,
+    },
 }
 
 /// Imports a segment's author module, if it exists.
@@ -221,22 +249,38 @@ fn load_author_module<'py>(
     let load = || -> PyResult<Bound<'py, PyAny>> {
         let util = py.import("importlib.util")?;
         let runtime_name = format!("_local_extensions_{}", segment.file_stem());
-        let spec = util.call_method1("spec_from_file_location", (&runtime_name, path.to_string_lossy().as_ref()))?;
+        let spec = util.call_method1(
+            "spec_from_file_location",
+            (&runtime_name, path.to_string_lossy().as_ref()),
+        )?;
         let module = util.call_method1("module_from_spec", (&spec,))?;
-        py.import("sys")?.getattr("modules")?.set_item(&runtime_name, &module)?;
-        spec.getattr("loader")?.call_method1("exec_module", (&module,))?;
+        py.import("sys")?
+            .getattr("modules")?
+            .set_item(&runtime_name, &module)?;
+        spec.getattr("loader")?
+            .call_method1("exec_module", (&module,))?;
         Ok(module)
     };
     match load() {
         Ok(module) => {
-            tracing::debug!(segment = segment.file_stem(), "loaded the author's local extension module");
+            tracing::debug!(
+                segment = segment.file_stem(),
+                "loaded the author's local extension module"
+            );
             Ok(Some(module))
         }
         Err(error) => {
             let message = error.to_string();
-            tracing::error!(segment = segment.file_stem(), "failed to load local extension: {message}");
+            tracing::error!(
+                segment = segment.file_stem(),
+                "failed to load local extension: {message}"
+            );
             error.print(py);
-            Err(SemistructuredError::AuthorModuleLoad { segment: segment.file_stem(), path, message })
+            Err(SemistructuredError::AuthorModuleLoad {
+                segment: segment.file_stem(),
+                path,
+                message,
+            })
         }
     }
 }
@@ -252,7 +296,10 @@ fn resolve(
         return if native::contains(segment, name) {
             Ok(AlgorithmSource::Native)
         } else {
-            Err(SemistructuredError::UnknownAlgorithm { segment: segment.file_stem(), name: name.to_string() })
+            Err(SemistructuredError::UnknownAlgorithm {
+                segment: segment.file_stem(),
+                name: name.to_string(),
+            })
         };
     };
 
@@ -272,7 +319,10 @@ fn resolve(
     }
 
     let Ok(func) = module.getattr(name) else {
-        return Err(SemistructuredError::UnknownAlgorithm { segment: segment.file_stem(), name: name.to_string() });
+        return Err(SemistructuredError::UnknownAlgorithm {
+            segment: segment.file_stem(),
+            name: name.to_string(),
+        });
     };
     if !func.is_callable() {
         return Err(SemistructuredError::AuthorAlgorithmNotCallable {
@@ -288,7 +338,10 @@ fn resolve(
             expected_class,
         }
     })?;
-    Ok(AlgorithmSource::Author { func: func.unbind(), input_class: input_class.unbind() })
+    Ok(AlgorithmSource::Author {
+        func: func.unbind(),
+        input_class: input_class.unbind(),
+    })
 }
 
 /// The pipes an algorithm produces for a segment, already in the form the engine uses.
@@ -332,48 +385,68 @@ fn build_native(
     match (segment, name) {
         (SegmentKind::PdfExtract, "investments") => {
             let input: native::InputInvestments =
-                serde_yaml::from_value(arg.clone()).map_err(|e| SemistructuredError::MalformedArgs {
+                serde_yaml::from_value(arg.clone()).map_err(|e| {
+                    SemistructuredError::MalformedArgs {
+                        segment: segment.file_stem(),
+                        name: name.to_string(),
+                        message: e.to_string(),
+                    }
+                })?;
+            let pipes =
+                native::investments(&input).map_err(|source| SemistructuredError::Native {
                     segment: segment.file_stem(),
                     name: name.to_string(),
-                    message: e.to_string(),
+                    source,
                 })?;
-            let pipes = native::investments(&input).map_err(|source| {
-                SemistructuredError::Native { segment: segment.file_stem(), name: name.to_string(), source }
-            })?;
             Ok(SegmentPipes::PdfExtract(pipes))
         }
         (SegmentKind::PdfExtract, "currency_constant") => {
             let input: native::InputCurrencyConstant = parse_args(segment, name, arg)?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(
-                crate::formats_utils::pdf_extract::standard_funcs::PdfExtractCurrencyConstant::new(input.currency),
+                crate::formats_utils::pdf_extract::standard_funcs::PdfExtractCurrencyConstant::new(
+                    input.currency,
+                ),
             )]))
         }
         (SegmentKind::PdfExtract, "sfdr_annex") => {
-            let input: native::sfdr_annex::InputSfdrAnnexPdfExtract = parse_args(segment, name, arg)?;
+            let input: native::sfdr_annex::InputSfdrAnnexPdfExtract =
+                parse_args(segment, name, arg)?;
             let pipes = native::sfdr_annex::pdf_extract(&input).map_err(|source| {
-                SemistructuredError::SfdrAnnex { segment: segment.file_stem(), source }
+                SemistructuredError::SfdrAnnex {
+                    segment: segment.file_stem(),
+                    source,
+                }
             })?;
             Ok(SegmentPipes::PdfExtract(pipes))
         }
         (SegmentKind::PdfExtract, "labelled_value") => {
             let input: native::labelled_value::InputLabelledValue = parse_args(segment, name, arg)?;
-            let pipe = input.build().map_err(|source| {
-                SemistructuredError::LabelledValue { segment: segment.file_stem(), source }
-            })?;
+            let pipe = input
+                .build()
+                .map_err(|source| SemistructuredError::LabelledValue {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "section") => {
             let input: native::section::InputSection = parse_args(segment, name, arg)?;
             let pipe = input
                 .pipe()
-                .map_err(|source| SemistructuredError::Section { segment: segment.file_stem(), source })?;
+                .map_err(|source| SemistructuredError::Section {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![pipe]))
         }
         (SegmentKind::PdfExtract, "grouped_lines") => {
             let input: native::grouped_lines::InputGroupedLines = parse_args(segment, name, arg)?;
             let pipe = input
                 .build()
-                .map_err(|source| SemistructuredError::GroupedLines { segment: segment.file_stem(), source })?;
+                .map_err(|source| SemistructuredError::GroupedLines {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "page_number") => {
@@ -388,42 +461,60 @@ fn build_native(
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "assets_by_position") => {
-            let input: native::assets_by_position::InputAssetsByPosition = parse_args(segment, name, arg)?;
+            let input: native::assets_by_position::InputAssetsByPosition =
+                parse_args(segment, name, arg)?;
             let pipe = input
                 .build()
-                .map_err(|source| SemistructuredError::AssetsByPosition { segment: segment.file_stem(), source })?;
+                .map_err(|source| SemistructuredError::AssetsByPosition {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "assets") => {
-            let input: native::assets_by_position::InputAssetsFilter =
-                if arg.is_null() { Default::default() } else { parse_args(segment, name, arg)? };
+            let input: native::assets_by_position::InputAssetsFilter = if arg.is_null() {
+                Default::default()
+            } else {
+                parse_args(segment, name, arg)?
+            };
             let pipe = input
                 .build()
-                .map_err(|source| SemistructuredError::AssetsFilter { segment: segment.file_stem(), source })?;
+                .map_err(|source| SemistructuredError::AssetsFilter {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "fund") => {
             let input: native::selected_text::InputSelectedText = parse_args(segment, name, arg)?;
-            let pipe = input.fund().map_err(|source| SemistructuredError::Selection {
-                segment: segment.file_stem(),
-                name: "fund",
-                source,
-            })?;
+            let pipe = input
+                .fund()
+                .map_err(|source| SemistructuredError::Selection {
+                    segment: segment.file_stem(),
+                    name: "fund",
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::PdfExtract, "currency") => {
             let input: native::selected_text::InputSelectedText = parse_args(segment, name, arg)?;
-            let pipe = input.currency().map_err(|source| SemistructuredError::Selection {
-                segment: segment.file_stem(),
-                name: "currency",
-                source,
-            })?;
+            let pipe = input
+                .currency()
+                .map_err(|source| SemistructuredError::Selection {
+                    segment: segment.file_stem(),
+                    name: "currency",
+                    source,
+                })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "sfdr_annex") => {
-            let input: native::sfdr_annex::InputSfdrAnnexTextFilter = parse_args(segment, name, arg)?;
+            let input: native::sfdr_annex::InputSfdrAnnexTextFilter =
+                parse_args(segment, name, arg)?;
             let pipes = native::sfdr_annex::text_filter(&input).map_err(|source| {
-                SemistructuredError::SfdrAnnex { segment: segment.file_stem(), source }
+                SemistructuredError::SfdrAnnex {
+                    segment: segment.file_stem(),
+                    source,
+                }
             })?;
             Ok(SegmentPipes::TextFilter(pipes))
         }
@@ -444,7 +535,10 @@ fn build_native(
                 }
             })?;
             let pipe = TextFilterManagmentCompanyInLine::new(&input.after, &input.before, among)
-                .map_err(|source| SemistructuredError::Manco { segment: segment.file_stem(), source })?;
+                .map_err(|source| SemistructuredError::Manco {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "inv_managers") => {
@@ -454,14 +548,20 @@ fn build_native(
                 parse_args(segment, name, arg)?
             };
             let pipe = native::inv_managers::text_filter(&input).map_err(|source| {
-                SemistructuredError::InvManagers { segment: segment.file_stem(), source }
+                SemistructuredError::InvManagers {
+                    segment: segment.file_stem(),
+                    source,
+                }
             })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "renaming") => {
             let input: native::renaming::InputRenaming = parse_args(segment, name, arg)?;
             let pipe = native::renaming::text_filter(&input).map_err(|source| {
-                SemistructuredError::Renaming { segment: segment.file_stem(), source }
+                SemistructuredError::Renaming {
+                    segment: segment.file_stem(),
+                    source,
+                }
             })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
@@ -472,16 +572,20 @@ fn build_native(
                 parse_args(segment, name, arg)?
             };
             let pipe = native::renaming::deserialize(&input).map_err(|source| {
-                SemistructuredError::Renaming { segment: segment.file_stem(), source }
+                SemistructuredError::Renaming {
+                    segment: segment.file_stem(),
+                    source,
+                }
             })?;
             Ok(SegmentPipes::Deserialize(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "esg") => {
             let input: native::esg::InputEsg = parse_args(segment, name, arg)?;
-            let pipe = native::esg::text_filter(&input).map_err(|source| SemistructuredError::Esg {
-                segment: segment.file_stem(),
-                source,
-            })?;
+            let pipe =
+                native::esg::text_filter(&input).map_err(|source| SemistructuredError::Esg {
+                    segment: segment.file_stem(),
+                    source,
+                })?;
             Ok(SegmentPipes::TextFilter(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "labelled_assets") => {
@@ -513,17 +617,26 @@ fn build_native(
                 parse_args(segment, name, arg)?
             };
             let pipe = native::carryover::assets(&input).map_err(|source| {
-                SemistructuredError::Carryover { segment: segment.file_stem(), name: "assets", source }
+                SemistructuredError::Carryover {
+                    segment: segment.file_stem(),
+                    name: "assets",
+                    source,
+                }
             })?;
             Ok(SegmentPipes::Deserialize(vec![Arc::new(pipe)]))
         }
         (SegmentKind::TextFilter, "manco_imposed") => {
             let input: native::InputMancoImposed = parse_args(segment, name, arg)?;
-            Ok(SegmentPipes::TextFilter(vec![Arc::new(TextFilterManagmentCompanyImposed::new(input.name))]))
+            Ok(SegmentPipes::TextFilter(vec![Arc::new(
+                TextFilterManagmentCompanyImposed::new(input.name),
+            )]))
         }
         (SegmentKind::Deserialize, "investment") => {
-            let input: native::InputInvestment =
-                if arg.is_null() { native::InputInvestment::default() } else { parse_args(segment, name, arg)? };
+            let input: native::InputInvestment = if arg.is_null() {
+                native::InputInvestment::default()
+            } else {
+                parse_args(segment, name, arg)?
+            };
             Ok(SegmentPipes::Deserialize(vec![Arc::new(input.build())]))
         }
         (SegmentKind::Deserialize, other) => match native::argless_deserialize(other) {
@@ -588,7 +701,10 @@ fn build_author(
     input_class: &Py<PyAny>,
     arg: &serde_yaml::Value,
 ) -> Result<SegmentPipes, SemistructuredError> {
-    let python_error = |message: String| SemistructuredError::Python { segment: segment.file_stem(), message };
+    let python_error = |message: String| SemistructuredError::Python {
+        segment: segment.file_stem(),
+        message,
+    };
 
     let call = || -> PyResult<Vec<Py<PyAny>>> {
         let py_arg = yaml_to_py(py, arg)?;
@@ -606,7 +722,11 @@ fn build_author(
     };
     let callables = call().map_err(|e| {
         let message = e.to_string();
-        tracing::error!(segment = segment.file_stem(), algorithm = name, "author algorithm raised: {message}");
+        tracing::error!(
+            segment = segment.file_stem(),
+            algorithm = name,
+            "author algorithm raised: {message}"
+        );
         e.print(py);
         python_error(message)
     })?;
@@ -658,8 +778,11 @@ pub fn get_pipelines(
 
     let mut args_by_segment = HashMap::new();
     for segment in SegmentKind::ALL {
-        let loaded = args::load(formats_repo_dir, segment)
-            .map_err(|source| SemistructuredError::Args { segment: segment.file_stem(), source })?;
+        let loaded =
+            args::load(formats_repo_dir, segment).map_err(|source| SemistructuredError::Args {
+                segment: segment.file_stem(),
+                source,
+            })?;
         args_by_segment.insert(segment, loaded);
     }
 
@@ -671,7 +794,9 @@ pub fn get_pipelines(
     Python::attach(|py| -> Result<(), SemistructuredError> {
         for row in &rows {
             for segment in SegmentKind::ALL {
-                let Some(name) = segment.cell(row) else { continue };
+                let Some(name) = segment.cell(row) else {
+                    continue;
+                };
                 // The name is resolved **before** its arguments are looked up: a cell naming an
                 // algorithm that does not exist is a typo, and saying so is more useful than
                 // reporting the missing YAML entry that follows from it.
@@ -684,23 +809,40 @@ pub fn get_pipelines(
                 let selected = match args::lookup(args, format_name, &row.pipeline_name) {
                     Ok(value) => value,
                     Err(error) => {
-                        if matches!(error, args::ArgsError::MissingArgs { .. }) && native::is_argless(segment, name) {
+                        if matches!(error, args::ArgsError::MissingArgs { .. })
+                            && native::is_argless(segment, name)
+                        {
                             &serde_yaml::Value::Null
                         } else {
-                            return Err(SemistructuredError::Args { segment: segment.file_stem(), source: error });
+                            return Err(SemistructuredError::Args {
+                                segment: segment.file_stem(),
+                                source: error,
+                            });
                         }
                     }
                 };
                 let algorithm_id = args::algorithm_id(format_name, &row.pipeline_name);
-                let already = *emitted.get(&(row.pipeline_name.clone(), segment)).unwrap_or(&0);
-                let arg = args::positional(selected, already, &algorithm_id)
-                    .map_err(|source| SemistructuredError::Args { segment: segment.file_stem(), source })?;
+                let already = *emitted
+                    .get(&(row.pipeline_name.clone(), segment))
+                    .unwrap_or(&0);
+                let arg = args::positional(selected, already, &algorithm_id).map_err(|source| {
+                    SemistructuredError::Args {
+                        segment: segment.file_stem(),
+                        source,
+                    }
+                })?;
 
                 let pipes = match source {
                     AlgorithmSource::Native => build_native(segment, name, arg)?,
-                    AlgorithmSource::Author { func, input_class } => {
-                        build_author(py, segment, name, &row.pipeline_name, &func, &input_class, arg)?
-                    }
+                    AlgorithmSource::Author { func, input_class } => build_author(
+                        py,
+                        segment,
+                        name,
+                        &row.pipeline_name,
+                        &func,
+                        &input_class,
+                        arg,
+                    )?,
                 };
                 tracing::debug!(
                     pipeline = row.pipeline_name.as_str(),
@@ -709,7 +851,9 @@ pub fn get_pipelines(
                     pipe_count = pipes.len(),
                     "resolved a semistructured algorithm"
                 );
-                *emitted.entry((row.pipeline_name.clone(), segment)).or_insert(0) += pipes.len();
+                *emitted
+                    .entry((row.pipeline_name.clone(), segment))
+                    .or_insert(0) += pipes.len();
 
                 let pipeline_name = PipelineName::new(&row.pipeline_name);
                 let pipeline = pipelines
@@ -721,7 +865,10 @@ pub fn get_pipelines(
         Ok(())
     })?;
 
-    tracing::debug!(pipeline_count = pipelines.len(), "built semistructured pipelines");
+    tracing::debug!(
+        pipeline_count = pipelines.len(),
+        "built semistructured pipelines"
+    );
     Ok(pipelines)
 }
 
@@ -762,7 +909,11 @@ A-EN24(investments):
         }
 
         fn write(&self, relative: &str, content: &str) -> &Self {
-            let path = self.dir.path().join(formats_mapping::SEMISTRUCTURED_DIR).join(relative);
+            let path = self
+                .dir
+                .path()
+                .join(formats_mapping::SEMISTRUCTURED_DIR)
+                .join(relative);
             fs::create_dir_all(path.parent().expect("a parent")).expect("parent dir");
             fs::write(path, content).expect("write file");
             self
@@ -786,7 +937,14 @@ A-EN24(investments):
 
         #[test]
         fn all_lists_the_three_segments_in_pipeline_order() {
-            assert_eq!(SegmentKind::ALL, [SegmentKind::PdfExtract, SegmentKind::TextFilter, SegmentKind::Deserialize]);
+            assert_eq!(
+                SegmentKind::ALL,
+                [
+                    SegmentKind::PdfExtract,
+                    SegmentKind::TextFilter,
+                    SegmentKind::Deserialize
+                ]
+            );
         }
     }
 
@@ -822,7 +980,10 @@ A-EN24(investments):
         fn the_bare_format_key_is_a_fallback_only_for_the_unnamed_pipeline() {
             let args = yaml("A-EN24: {x: 1}\n");
             assert!(args::lookup(&args, "A-EN24", "").is_ok());
-            assert!(matches!(args::lookup(&args, "A-EN24", "inv"), Err(ArgsError::MissingArgs { .. })));
+            assert!(matches!(
+                args::lookup(&args, "A-EN24", "inv"),
+                Err(ArgsError::MissingArgs { .. })
+            ));
         }
 
         #[test]
@@ -857,10 +1018,23 @@ A-EN24(investments):
         #[test]
         fn a_missing_yaml_file_is_an_error_even_for_an_unused_segment() {
             let repo = Repo::new();
-            fs::remove_file(repo.path().join(formats_mapping::SEMISTRUCTURED_DIR).join("args/deserialize.yaml"))
-                .unwrap();
+            fs::remove_file(
+                repo.path()
+                    .join(formats_mapping::SEMISTRUCTURED_DIR)
+                    .join("args/deserialize.yaml"),
+            )
+            .unwrap();
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, SemistructuredError::Args { segment: "deserialize", .. }), "{err}");
+            assert!(
+                matches!(
+                    err,
+                    SemistructuredError::Args {
+                        segment: "deserialize",
+                        ..
+                    }
+                ),
+                "{err}"
+            );
         }
     }
 
@@ -903,7 +1077,10 @@ A-EN24(investments):
             for segment in SegmentKind::ALL {
                 for name in ["fund", "managment_company", "investment"] {
                     if native::is_argless(segment, name) {
-                        assert!(native::contains(segment, name), "{name} is argless but not registered");
+                        assert!(
+                            native::contains(segment, name),
+                            "{name} is argless but not registered"
+                        );
                     }
                 }
             }
@@ -912,7 +1089,10 @@ A-EN24(investments):
         #[test]
         fn a_configurable_native_is_not_argless() {
             assert!(!native::is_argless(SegmentKind::PdfExtract, "investments"));
-            assert!(!native::is_argless(SegmentKind::PdfExtract, "currency_constant"));
+            assert!(!native::is_argless(
+                SegmentKind::PdfExtract,
+                "currency_constant"
+            ));
         }
 
         /// The deserialize names that have an **arm of their own** in [`build_native`] and are
@@ -930,7 +1110,10 @@ A-EN24(investments):
                 if CONFIGURABLE_DESERIALIZERS.contains(name) {
                     continue;
                 }
-                assert!(native::argless_deserialize(name).is_some(), "{name} has no builder");
+                assert!(
+                    native::argless_deserialize(name).is_some(),
+                    "{name} has no builder"
+                );
             }
         }
 
@@ -939,7 +1122,10 @@ A-EN24(investments):
         #[test]
         fn every_configurable_deserialize_name_has_an_arm_of_its_own() {
             for name in CONFIGURABLE_DESERIALIZERS {
-                assert!(native::contains(SegmentKind::Deserialize, name), "{name} is not registered");
+                assert!(
+                    native::contains(SegmentKind::Deserialize, name),
+                    "{name} is not registered"
+                );
                 let built = build_native(SegmentKind::Deserialize, name, &serde_yaml::Value::Null);
                 // Either it builds from nothing, or it refuses the empty configuration by name:
                 // both answers prove the arm is there. A name with no arm falls through to the
@@ -962,7 +1148,10 @@ A-EN24(investments):
         /// A repository whose only row names one argless deserializer and nothing else.
         fn repo_with(cell: &str) -> Repo {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(manco),,,{cell}\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(manco),,,{cell}\n"),
+            );
             repo
         }
 
@@ -976,16 +1165,30 @@ A-EN24(investments):
 
         #[test]
         fn each_of_the_argless_deserializers_builds_from_a_bare_cell() {
-            for name in ["fund", "managment_company", "investments_manager", "investments_manager_from_manco", "page_classify", "sfdr_article"] {
+            for name in [
+                "fund",
+                "managment_company",
+                "investments_manager",
+                "investments_manager_from_manco",
+                "page_classify",
+                "sfdr_article",
+            ] {
                 let pipelines = get_pipelines(repo_with(name).path(), "A-EN24").unwrap();
-                assert_eq!(pipelines[&PipelineName::new("manco")].deserialize.len(), 1, "{name}");
+                assert_eq!(
+                    pipelines[&PipelineName::new("manco")].deserialize.len(),
+                    1,
+                    "{name}"
+                );
             }
         }
 
         #[test]
         fn the_investment_deserializer_takes_its_flags_when_they_are_given() {
             let repo = repo_with("investment");
-            repo.write("args/deserialize.yaml", "A-EN24(manco):\n  quantity_interpret_float: true\n");
+            repo.write(
+                "args/deserialize.yaml",
+                "A-EN24(manco):\n  quantity_interpret_float: true\n",
+            );
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             assert_eq!(pipelines[&PipelineName::new("manco")].deserialize.len(), 1);
         }
@@ -999,24 +1202,56 @@ A-EN24(investments):
         #[test]
         fn an_unregistered_deserialize_name_is_still_rejected() {
             let err = get_pipelines(repo_with("not_an_algorithm").path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, SemistructuredError::UnknownAlgorithm { segment: "deserialize", .. }), "{err}");
+            assert!(
+                matches!(
+                    err,
+                    SemistructuredError::UnknownAlgorithm {
+                        segment: "deserialize",
+                        ..
+                    }
+                ),
+                "{err}"
+            );
         }
 
         #[test]
         fn a_constant_currency_pipe_is_built_from_its_one_field() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),currency_constant,,\n"));
-            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  currency: CHF\n");
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),currency_constant,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  currency: CHF\n",
+            );
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 1);
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                1
+            );
         }
 
         #[test]
         fn a_constant_currency_pipe_without_its_entry_is_an_error_not_a_default() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),currency_constant,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),currency_constant,,\n"),
+            );
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, SemistructuredError::Args { segment: "pdf_extract", .. }), "{err}");
+            assert!(
+                matches!(
+                    err,
+                    SemistructuredError::Args {
+                        segment: "pdf_extract",
+                        ..
+                    }
+                ),
+                "{err}"
+            );
         }
     }
 
@@ -1026,13 +1261,20 @@ A-EN24(investments):
 
         #[test]
         fn a_format_with_no_rows_defines_no_pipeline() {
-            assert!(get_pipelines(Repo::new().path(), "A-EN24").unwrap().is_empty());
+            assert!(
+                get_pipelines(Repo::new().path(), "A-EN24")
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn investments_contributes_three_pdf_extract_pipes() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             let pipeline = &pipelines[&PipelineName::new("investments")];
@@ -1045,7 +1287,9 @@ A-EN24(investments):
         #[test]
         fn the_currency_is_either_declared_or_read_and_never_both() {
             let args = |currency: &str| {
-                format!("A-EN24(investments):\n  body_set:\n    font: Tahoma\n  subfund_set:\n    font: Arial-BoldMT\n{currency}")
+                format!(
+                    "A-EN24(investments):\n  body_set:\n    font: Tahoma\n  subfund_set:\n    font: Arial-BoldMT\n{currency}"
+                )
             };
             let built = |currency: &str| {
                 let repo = Repo::new();
@@ -1059,14 +1303,30 @@ A-EN24(investments):
 
             // declared
             let pipelines = built("  currency: EUR\n").expect("a declared currency");
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 3);
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                3
+            );
             // read off the page
-            let pipelines = built("  currency_set:\n    text: '(expressed in'\n").expect("a read currency");
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 3);
+            let pipelines =
+                built("  currency_set:\n    text: '(expressed in'\n").expect("a read currency");
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                3
+            );
 
             for currency in ["", "  currency: EUR\n  currency_set:\n    text: x\n"] {
                 let error = built(currency).expect_err("neither or both is refused");
-                assert!(error.to_string().contains("exactly one of 'currency' and 'currency_set'"), "{error}");
+                assert!(
+                    error
+                        .to_string()
+                        .contains("exactly one of 'currency' and 'currency_set'"),
+                    "{error}"
+                );
             }
         }
 
@@ -1075,7 +1335,10 @@ A-EN24(investments):
         #[test]
         fn the_subfund_may_be_joined_and_the_company_column_named() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             repo.write(
                 "args/pdf_extract.yaml",
                 concat!(
@@ -1088,13 +1351,21 @@ A-EN24(investments):
                 ),
             );
             let pipelines = get_pipelines(repo.path(), "A-EN24").expect("the three cells are read");
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 3);
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                3
+            );
         }
 
         #[test]
         fn an_unknown_cell_of_the_investments_entry_is_refused() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             repo.write(
                 "args/pdf_extract.yaml",
                 "A-EN24(investments):\n  body_set:\n    font: Tahoma\n  subfund_set:\n    font: X\n  currency: EUR\n  manco_set:\n    font: Y\n",
@@ -1106,10 +1377,16 @@ A-EN24(investments):
         #[test]
         fn the_pipeline_is_named_after_the_row_it_comes_from() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
-            assert_eq!(pipelines.keys().collect::<Vec<_>>(), vec![&PipelineName::new("investments")]);
+            assert_eq!(
+                pipelines.keys().collect::<Vec<_>>(),
+                vec![&PipelineName::new("investments")]
+            );
         }
 
         #[test]
@@ -1122,7 +1399,12 @@ A-EN24(investments):
             // A single scalar argument: both rows share it, so the pipes come to six.
             repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 6);
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                6
+            );
         }
 
         #[test]
@@ -1144,33 +1426,63 @@ A-EN24(investments):
         #[test]
         fn a_missing_args_entry_for_a_requested_algorithm_is_an_error() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, SemistructuredError::Args { segment: "pdf_extract", .. }), "{err}");
+            assert!(
+                matches!(
+                    err,
+                    SemistructuredError::Args {
+                        segment: "pdf_extract",
+                        ..
+                    }
+                ),
+                "{err}"
+            );
         }
 
         #[test]
         fn malformed_args_for_a_native_algorithm_name_the_algorithm() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
-            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  body_set: {font: A}\n");
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  body_set: {font: A}\n",
+            );
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(&err, SemistructuredError::MalformedArgs { name, .. } if name == "investments"), "{err}");
+            assert!(
+                matches!(&err, SemistructuredError::MalformedArgs { name, .. } if name == "investments"),
+                "{err}"
+            );
         }
 
         #[test]
         fn an_unknown_algorithm_name_is_rejected() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),nope,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),nope,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", "A-EN24(investments): {}\n");
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(&err, SemistructuredError::UnknownAlgorithm { name, .. } if name == "nope"), "{err}");
+            assert!(
+                matches!(&err, SemistructuredError::UnknownAlgorithm { name, .. } if name == "nope"),
+                "{err}"
+            );
         }
 
         #[test]
         fn an_unknown_currency_in_the_args_is_reported_as_malformed_args() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             repo.write(
                 "args/pdf_extract.yaml",
                 "A-EN24(investments):\n  body_set: {font: A}\n  subfund_set: {font: B}\n  currency: XYZ\n",
@@ -1184,16 +1496,28 @@ A-EN24(investments):
         #[test]
         fn the_algorithm_flags_of_the_args_reach_the_pipe() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
-            repo.write("args/pdf_extract.yaml", &format!("{INVESTMENTS_ARGS}  algorithm_flags: USE_RULER_AREA\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                &format!("{INVESTMENTS_ARGS}  algorithm_flags: USE_RULER_AREA\n"),
+            );
             assert!(get_pipelines(repo.path(), "A-EN24").is_ok());
         }
 
         #[test]
         fn an_unknown_algorithm_flag_is_rejected_naming_the_field() {
             let repo = Repo::new();
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
-            repo.write("args/pdf_extract.yaml", &format!("{INVESTMENTS_ARGS}  algorithm_flags: NOPE\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                &format!("{INVESTMENTS_ARGS}  algorithm_flags: NOPE\n"),
+            );
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
             assert!(matches!(err, SemistructuredError::Native { .. }), "{err}");
         }
@@ -1225,30 +1549,58 @@ def my_algo(arg):
         #[test]
         fn an_author_algorithm_is_resolved_and_wrapped() {
             let repo = repo_with_author(AUTHOR_MODULE);
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"));
-            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  threshold: 5\n");
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  threshold: 5\n",
+            );
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 1);
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                1
+            );
         }
 
         #[test]
         fn an_author_algorithm_returning_several_pipes_contributes_all_of_them() {
-            let module = format!("{AUTHOR_MODULE}\ndef pair(arg):\n    return [my_algo(arg), my_algo(arg)]\n\nInputPair = InputMyAlgo\n");
+            let module = format!(
+                "{AUTHOR_MODULE}\ndef pair(arg):\n    return [my_algo(arg), my_algo(arg)]\n\nInputPair = InputMyAlgo\n"
+            );
             let repo = repo_with_author(&module);
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),pair,,\n"));
-            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  threshold: 5\n");
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),pair,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  threshold: 5\n",
+            );
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
-            assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 2);
+            assert_eq!(
+                pipelines[&PipelineName::new("investments")]
+                    .pdf_extract
+                    .len(),
+                2
+            );
         }
 
         #[test]
         fn an_author_algorithm_without_its_input_class_is_rejected() {
             let module = "def lonely(arg):\n    return lambda page: []\n";
             let repo = repo_with_author(module);
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),lonely,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),lonely,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", "A-EN24(investments): {}\n");
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            let SemistructuredError::AuthorAlgorithmMissingInputClass { expected_class, .. } = err else {
+            let SemistructuredError::AuthorAlgorithmMissingInputClass { expected_class, .. } = err
+            else {
                 panic!("expected AuthorAlgorithmMissingInputClass")
             };
             assert_eq!(expected_class, "InputLonely");
@@ -1257,7 +1609,10 @@ def my_algo(arg):
         #[test]
         fn a_non_callable_author_attribute_is_rejected() {
             let repo = repo_with_author("not_a_func = 1\nInputNotAFunc = dict\n");
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),not_a_func,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),not_a_func,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", "A-EN24(investments): {}\n");
             assert!(matches!(
                 get_pipelines(repo.path(), "A-EN24"),
@@ -1268,18 +1623,31 @@ def my_algo(arg):
         #[test]
         fn a_name_defined_both_natively_and_by_the_author_is_a_hard_error() {
             let repo = repo_with_author("def investments(arg):\n    return lambda page: []\n");
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),investments,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", INVESTMENTS_ARGS);
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(&err, SemistructuredError::AmbiguousAlgorithm { name, .. } if name == "investments"), "{err}");
+            assert!(
+                matches!(&err, SemistructuredError::AmbiguousAlgorithm { name, .. } if name == "investments"),
+                "{err}"
+            );
         }
 
         #[test]
         fn the_collision_check_fires_even_when_another_algorithm_is_the_one_requested() {
-            let module = format!("{AUTHOR_MODULE}\ndef investments(arg):\n    return lambda page: []\n");
+            let module =
+                format!("{AUTHOR_MODULE}\ndef investments(arg):\n    return lambda page: []\n");
             let repo = repo_with_author(&module);
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"));
-            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  threshold: 5\n");
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  threshold: 5\n",
+            );
             assert!(matches!(
                 get_pipelines(repo.path(), "A-EN24"),
                 Err(SemistructuredError::AmbiguousAlgorithm { .. })
@@ -1289,10 +1657,16 @@ def my_algo(arg):
         #[test]
         fn an_author_module_that_fails_to_import_reports_its_path() {
             let repo = repo_with_author("raise RuntimeError('boom')\n");
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),whatever,,\n"));
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),whatever,,\n"),
+            );
             repo.write("args/pdf_extract.yaml", "A-EN24(investments): {}\n");
             let err = get_pipelines(repo.path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, SemistructuredError::AuthorModuleLoad { .. }), "{err}");
+            assert!(
+                matches!(err, SemistructuredError::AuthorModuleLoad { .. }),
+                "{err}"
+            );
         }
 
         #[test]
@@ -1302,8 +1676,14 @@ def my_algo(arg):
             use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 
             let repo = repo_with_author(AUTHOR_MODULE);
-            repo.write("formats_mapping.csv", &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"));
-            repo.write("args/pdf_extract.yaml", "A-EN24(investments):\n  threshold: 5\n");
+            repo.write(
+                "formats_mapping.csv",
+                &format!("{MAPPING_HEADER}A-EN24(investments),my_algo,,\n"),
+            );
+            repo.write(
+                "args/pdf_extract.yaml",
+                "A-EN24(investments):\n  threshold: 5\n",
+            );
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             let pipeline = &pipelines[&PipelineName::new("investments")];
 
@@ -1312,9 +1692,20 @@ def my_algo(arg):
                     .eval(pyo3::ffi::c_str!("{'blocks': []}"), None, None)
                     .expect("page dict")
                     .unbind();
-                let page = Page::new(1, (10.0, 10.0), vec![PdfLine::new("A", 10.0, "x", (0.0, 0.0, 1.0, 1.0))], Vec::new())
-                    .with_raw(raw);
-                let blocks: Vec<PdfBlock> = pipeline.pdf_extract.iter().next().unwrap().extract(&page).unwrap();
+                let page = Page::new(
+                    1,
+                    (10.0, 10.0),
+                    vec![PdfLine::new("A", 10.0, "x", (0.0, 0.0, 1.0, 1.0))],
+                    Vec::new(),
+                )
+                .with_raw(raw);
+                let blocks: Vec<PdfBlock> = pipeline
+                    .pdf_extract
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .extract(&page)
+                    .unwrap();
                 assert_eq!(blocks[0].metadata.get("t"), Some(&BlockValue::from(5i64)));
             });
         }

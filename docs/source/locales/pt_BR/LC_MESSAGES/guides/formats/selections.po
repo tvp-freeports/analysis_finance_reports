@@ -81,12 +81,9 @@ msgstr "o texto da linha casa com isto, com `^` e `$` como âncoras"
 
 #: ../../source/guides/formats/selections.md:23
 msgid ""
-"The size range is not fussiness: a PDF's nominal 7-point body text is rarely exactly "
-"7.0, and a range is how you say \"the body face\" rather than \"this one line\"."
+"The size range is not fussiness: a PDF's nominal 7-point body text is rarely exactly 7.0, and a range is how you say \"the body face\" rather than \"this one line\". The same holds across documents of one format: a title set at 26.00 points in one PDF is 26.03 in the next, and a single size is matched within a thousandth of a point."
 msgstr ""
-"A faixa de corpo não é frescura: num PDF, o texto de corpo nominalmente de 7 pontos "
-"raramente é exatamente 7,0, e uma faixa é o jeito de dizer \"o font do texto\" em vez"
-" de \"esta linha aqui\"."
+"A faixa de corpo não é frescura: num PDF, o texto de corpo nominalmente de 7 pontos raramente é exatamente 7,0, e uma faixa é o jeito de dizer \"o font do texto\" em vez de \"esta linha aqui\". O mesmo vale entre documentos de um mesmo formato: um título composto em 26,00 pontos num PDF está em 26,03 no seguinte, e um corpo único é comparado com tolerância de um milésimo de ponto."
 
 #: ../../source/guides/formats/selections.md:26
 msgid "Composing selections, and building one relative to another"
@@ -145,6 +142,12 @@ msgstr ""
 "As âncoras de texto são comparadas **ao pé da letra**, com `^` e `$` querendo dizer "
 "início e fim — de modo que prefixo, sufixo, substring e exato são todos exprimíveis, "
 "e mais nada é."
+
+#: ../../source/guides/formats/selections.md:54
+msgid ""
+"The line is matched **as the PDF spells it**, without trimming. Many title lines end in a space — `'SIDERA FUNDS '`, `'CHALLENGE FUNDS '` — and on those `'^SIDERA FUNDS$'` finds nothing. Unless you have seen the exact line in `inspect-page`, anchor at the start only."
+msgstr ""
+"A linha é comparada **do jeito que o PDF a escreve**, sem aparar espaços. Muitas linhas de título terminam com um espaço — `'SIDERA FUNDS '`, `'CHALLENGE FUNDS '` — e nelas `'^SIDERA FUNDS$'` não encontra nada. A menos que você tenha visto a linha exata no `inspect-page`, use só a âncora de início, `^`."
 
 #: ../../source/guides/formats/selections.md:57
 #, python-brace-format

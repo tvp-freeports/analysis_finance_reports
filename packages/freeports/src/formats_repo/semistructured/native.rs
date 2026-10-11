@@ -31,27 +31,31 @@ use serde::Deserialize;
 
 use crate::commons::consts::Currency;
 use crate::core::pipeline::{DeserializePipe, PdfExtractPipe};
-use crate::formats_utils::text_filter::managment_company::AmongLines;
 use crate::formats_utils::deserialize::standard_funcs::{
     DeserializeSfdrArticleStandard, DeserializerFundStandard, DeserializerInvestmentStandard,
     DeserializerInvestmentsManagerFromManco, DeserializerInvestmentsManagerStandard,
     DeserializerManagmentCompanyStandard, DeserializerPageClassifyStandard,
 };
+use crate::formats_utils::pdf_extract::position::SplittingDirection;
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    InvestmentsStandardArgs, TableSettings, PdfExtractCurrencyConstant,
-    PdfExtractInvestmentsStandard, PdfExtractStandardFuncsError, pdf_extract_currency_standard,
+    InvestmentsStandardArgs, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
+    PdfExtractStandardFuncsError, TableSettings, pdf_extract_currency_standard,
     pdf_extract_fund_standard,
 };
-use crate::formats_utils::pdf_extract::position::SplittingDirection;
 use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
-use crate::input::document::selection::{InputPdfLineSet, LineSelectionError, pdfline_selection_from_dict};
+use crate::formats_utils::text_filter::managment_company::AmongLines;
+use crate::input::document::selection::{
+    InputPdfLineSet, LineSelectionError, pdfline_selection_from_dict,
+};
 
 use super::SegmentKind;
 
 /// The native names of each segment.
 const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
-    (SegmentKind::PdfExtract, &[
+    (
+        SegmentKind::PdfExtract,
+        &[
             "investments",
             "currency_constant",
             "sfdr_annex",
@@ -62,10 +66,20 @@ const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
             "page_number",
             "grouped_lines",
             "assets_by_position",
-        ]),
+        ],
+    ),
     (
         SegmentKind::TextFilter,
-        &["sfdr_annex", "manco", "manco_imposed", "inv_managers", "labelled_assets", "esg", "renaming", "assets"],
+        &[
+            "sfdr_annex",
+            "manco",
+            "manco_imposed",
+            "inv_managers",
+            "labelled_assets",
+            "esg",
+            "renaming",
+            "assets",
+        ],
     ),
     (
         SegmentKind::Deserialize,
@@ -116,7 +130,11 @@ const ARGLESS_NAMES: [(SegmentKind, &[&str]); 3] = [
 
 /// The native names registered for a segment.
 pub fn names(segment: SegmentKind) -> &'static [&'static str] {
-    NATIVE_NAMES.iter().find(|(kind, _)| *kind == segment).map(|(_, names)| *names).unwrap_or(&[])
+    NATIVE_NAMES
+        .iter()
+        .find(|(kind, _)| *kind == segment)
+        .map(|(_, names)| *names)
+        .unwrap_or(&[])
 }
 
 /// Whether `name` is a native algorithm of `segment`.
@@ -127,7 +145,10 @@ pub fn contains(segment: SegmentKind, name: &str) -> bool {
 /// Whether `name` is a native algorithm of `segment` that takes no arguments, and whose YAML entry
 /// may therefore be missing.
 pub fn is_argless(segment: SegmentKind, name: &str) -> bool {
-    ARGLESS_NAMES.iter().find(|(kind, _)| *kind == segment).is_some_and(|(_, names)| names.contains(&name))
+    ARGLESS_NAMES
+        .iter()
+        .find(|(kind, _)| *kind == segment)
+        .is_some_and(|(_, names)| names.contains(&name))
 }
 
 /// The YAML configuration of the management-company reader.
@@ -238,7 +259,9 @@ pub enum NativeError {
     /// The currency is either declared or read, and a configuration saying both says one of them
     /// for nothing — while one saying neither leaves the holdings without a currency, which the
     /// output schema requires.
-    #[error("exactly one of 'currency' and 'currency_set': the currency is either declared by the format or read off the page")]
+    #[error(
+        "exactly one of 'currency' and 'currency_set': the currency is either declared by the format or read off the page"
+    )]
     Currency,
 }
 
@@ -250,7 +273,8 @@ pub enum NativeError {
 /// it at all, in which case the format declares it and the pipe warns (`R3`).
 pub fn investments(input: &InputInvestments) -> Result<Vec<Arc<dyn PdfExtractPipe>>, NativeError> {
     let selection = |field: &'static str, spec: &InputPdfLineSet| {
-        pdfline_selection_from_dict(spec).map_err(|source| NativeError::LineSelection { field, source })
+        pdfline_selection_from_dict(spec)
+            .map_err(|source| NativeError::LineSelection { field, source })
     };
     let flags = |field: &'static str, expression: &Option<String>| match expression {
         None => Ok(TablePosAlgorithm::Default),
@@ -267,7 +291,9 @@ pub fn investments(input: &InputInvestments) -> Result<Vec<Arc<dyn PdfExtractPip
         "down" => SplittingDirection::Down,
         "up" => SplittingDirection::Up,
         other => {
-            return Err(NativeError::CollapseDirection { found: other.to_string() });
+            return Err(NativeError::CollapseDirection {
+                found: other.to_string(),
+            });
         }
     };
 
@@ -299,15 +325,19 @@ pub fn investments(input: &InputInvestments) -> Result<Vec<Arc<dyn PdfExtractPip
     // configuration that says both says one of them for nothing.
     let currency: Arc<dyn PdfExtractPipe> = match (input.currency, &input.currency_set) {
         (Some(currency), None) => Arc::new(PdfExtractCurrencyConstant::new(currency)),
-        (None, Some(spec)) => {
-            Arc::new(pdf_extract_currency_standard(selection("currency_set", spec)?))
-        }
+        (None, Some(spec)) => Arc::new(pdf_extract_currency_standard(selection(
+            "currency_set",
+            spec,
+        )?)),
         _ => return Err(NativeError::Currency),
     };
 
-    Ok(vec![Arc::new(PdfExtractInvestmentsStandard::new(args)), Arc::new(fund), currency])
+    Ok(vec![
+        Arc::new(PdfExtractInvestmentsStandard::new(args)),
+        Arc::new(fund),
+        currency,
+    ])
 }
-
 
 /// The `deserialize` pipe of an argument-less native name.
 ///
@@ -345,8 +375,10 @@ impl InputInvestment {
     pub fn build(&self) -> DeserializerInvestmentStandard {
         let standard = DeserializerInvestmentStandard::default();
         DeserializerInvestmentStandard::new(
-            self.cost_and_value_interpret_int.unwrap_or(standard.cost_and_value_interpret_int()),
-            self.quantity_interpret_float.unwrap_or(standard.quantity_interpret_float()),
+            self.cost_and_value_interpret_int
+                .unwrap_or(standard.cost_and_value_interpret_int()),
+            self.quantity_interpret_float
+                .unwrap_or(standard.quantity_interpret_float()),
         )
     }
 }

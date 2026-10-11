@@ -125,7 +125,12 @@ impl Named {
                 "a sentence pattern".to_string(),
             ));
         };
-        Ok(Self { pattern, old, current, when })
+        Ok(Self {
+            pattern,
+            old,
+            current,
+            when,
+        })
     }
 
     /// The group's text, or the empty string: an index resolved at build time cannot be absent, and
@@ -145,8 +150,14 @@ pub struct Patterns {
 impl Patterns {
     fn new(renamed: &[String], merged: &[String]) -> Result<Self, RenamingError> {
         Ok(Self {
-            renamed: renamed.iter().map(|p| compiled(p)).collect::<Result<_, _>>()?,
-            merged: merged.iter().map(|p| compiled(p)).collect::<Result<_, _>>()?,
+            renamed: renamed
+                .iter()
+                .map(|p| compiled(p))
+                .collect::<Result<_, _>>()?,
+            merged: merged
+                .iter()
+                .map(|p| compiled(p))
+                .collect::<Result<_, _>>()?,
         })
     }
 
@@ -208,7 +219,10 @@ impl Reader {
             connector,
             date: compiled(date)?,
             date_intro: compiled(date_intro)?,
-            strip: strip.iter().map(|p| compiled(p)).collect::<Result<_, _>>()?,
+            strip: strip
+                .iter()
+                .map(|p| compiled(p))
+                .collect::<Result<_, _>>()?,
             note_marks,
         })
     }
@@ -229,7 +243,10 @@ impl Reader {
         Ok(Reader::Sentence {
             patterns,
             group_key,
-            strip: strip.iter().map(|p| compiled(p)).collect::<Result<_, _>>()?,
+            strip: strip
+                .iter()
+                .map(|p| compiled(p))
+                .collect::<Result<_, _>>()?,
             note_marks,
         })
     }
@@ -237,7 +254,14 @@ impl Reader {
     /// The changes the page declares, in the order it writes them.
     pub fn call(&self, blocks: &[PdfBlock]) -> Vec<Change> {
         match self {
-            Reader::Listed { patterns, connector, date, date_intro, strip, note_marks } => {
+            Reader::Listed {
+                patterns,
+                connector,
+                date,
+                date_intro,
+                strip,
+                note_marks,
+            } => {
                 let mut out = Vec::new();
                 let mut scope: Option<(Option<String>, bool)> = None;
                 for block in blocks {
@@ -248,7 +272,8 @@ impl Reader {
                     if text.contains(connector.as_str()) && scope.is_some() {
                         let (when, merge) = scope.clone().expect("just checked");
                         if let Some(change) = listed_change(
-                            &text, when, merge, block, connector, date, date_intro, strip, note_marks,
+                            &text, when, merge, block, connector, date, date_intro, strip,
+                            note_marks,
                         ) {
                             out.push(change);
                         }
@@ -258,7 +283,12 @@ impl Reader {
                 }
                 out
             }
-            Reader::Sentence { patterns, group_key, strip, note_marks } => {
+            Reader::Sentence {
+                patterns,
+                group_key,
+                strip,
+                note_marks,
+            } => {
                 let mut out = Vec::new();
                 for entry in entries(blocks, group_key) {
                     let text = entry
@@ -272,7 +302,11 @@ impl Reader {
                         for caps in named.pattern.captures_iter(&text) {
                             out.push(Change {
                                 old_name: clean(named.group(&caps, named.old), note_marks, strip),
-                                current_name: clean(named.group(&caps, named.current), note_marks, strip),
+                                current_name: clean(
+                                    named.group(&caps, named.current),
+                                    note_marks,
+                                    strip,
+                                ),
                                 when: named.group(&caps, named.when).trim().to_string(),
                                 merge: *merge,
                                 block: (*first).clone(),
@@ -297,7 +331,9 @@ fn opens(text: &str, patterns: &Patterns, date: &Regex) -> Option<(Option<String
             if pattern.find(text).is_none() {
                 continue;
             }
-            let when = date.find(text).map(|(start, end)| text[start..end].to_string());
+            let when = date
+                .find(text)
+                .map(|(start, end)| text[start..end].to_string());
             return Some((when, merge));
         }
     }
@@ -353,7 +389,9 @@ fn entries<'a>(blocks: &'a [PdfBlock], group_key: &str) -> Vec<Vec<&'a PdfBlock>
         if out.is_empty() || (group.is_some() && Some(group.clone()) != previous) {
             out.push(Vec::new());
         }
-        out.last_mut().expect("a paragraph was just pushed if there was none").push(block);
+        out.last_mut()
+            .expect("a paragraph was just pushed if there was none")
+            .push(block);
         previous = Some(group);
     }
     out
@@ -373,7 +411,9 @@ fn clean(text: &str, note_marks: &str, strip: &[Regex]) -> String {
     if note_marks.is_empty() {
         return name;
     }
-    name.trim_end_matches(|c| note_marks.contains(c)).trim().to_string()
+    name.trim_end_matches(|c| note_marks.contains(c))
+        .trim()
+        .to_string()
 }
 
 fn text_of(block: &PdfBlock) -> String {
@@ -410,7 +450,10 @@ pub struct TextFilterRenaming {
 
 impl TextFilterRenaming {
     pub fn new(reader: Reader, of_interest: OfInterest) -> Self {
-        Self { reader, of_interest }
+        Self {
+            reader,
+            of_interest,
+        }
     }
 
     pub fn call(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Vec<TextBlock> {
@@ -427,8 +470,14 @@ impl TextFilterRenaming {
             .filter(|change| self.is_of_interest(change, &funds))
             .map(|change| {
                 let metadata = [
-                    ("old_name".to_string(), BlockValue::from(change.old_name.as_str())),
-                    ("current_name".to_string(), BlockValue::from(change.current_name.as_str())),
+                    (
+                        "old_name".to_string(),
+                        BlockValue::from(change.old_name.as_str()),
+                    ),
+                    (
+                        "current_name".to_string(),
+                        BlockValue::from(change.current_name.as_str()),
+                    ),
                     ("when".to_string(), BlockValue::from(change.when.as_str())),
                     ("merge".to_string(), BlockValue::Bool(change.merge)),
                 ]
@@ -455,7 +504,11 @@ impl TextFilterPipe for TextFilterRenaming {
         "TextFilterRenaming"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
         Ok(self.call(blocks, data))
     }
 }
@@ -469,7 +522,13 @@ mod tests {
     fn lines(texts: &[&str]) -> Vec<PdfBlock> {
         texts
             .iter()
-            .map(|text| PdfBlock::new(BlockType::RELEVANT_BLOCK, BTreeMap::new(), BlockValue::from(*text)))
+            .map(|text| {
+                PdfBlock::new(
+                    BlockType::RELEVANT_BLOCK,
+                    BTreeMap::new(),
+                    BlockValue::from(*text),
+                )
+            })
             .collect()
     }
 
@@ -522,7 +581,12 @@ mod tests {
             assert_eq!(
                 read(&amundi(), &blocks),
                 vec![
-                    ("Pioneer US Bond".into(), "US Bond".into(), "15 March 2024".into(), false),
+                    (
+                        "Pioneer US Bond".into(),
+                        "US Bond".into(),
+                        "15 March 2024".into(),
+                        false
+                    ),
                     (
                         "Pioneer US Corporate Bond".into(),
                         "US Corporate Bond".into(),
@@ -544,7 +608,12 @@ mod tests {
             ]);
             assert_eq!(
                 read(&amundi(), &blocks),
-                vec![("Pioneer US Bond".into(), "US Bond".into(), "15 March 2024".into(), false)]
+                vec![(
+                    "Pioneer US Bond".into(),
+                    "US Bond".into(),
+                    "15 March 2024".into(),
+                    false
+                )]
             );
         }
 
@@ -585,14 +654,28 @@ mod tests {
             ]);
             assert_eq!(
                 read(&amundi(), &blocks),
-                vec![("Pioneer US Bond".into(), "US Bond".into(), "15 March 2024".into(), false)]
+                vec![(
+                    "Pioneer US Bond".into(),
+                    "US Bond".into(),
+                    "15 March 2024".into(),
+                    false
+                )]
             );
         }
 
         #[test]
         fn an_empty_connector_is_refused_when_the_reader_is_built() {
             assert!(
-                Reader::listed(&[], &[], String::new(), DATE, DATE_INTRO, &[], String::new()).is_err()
+                Reader::listed(
+                    &[],
+                    &[],
+                    String::new(),
+                    DATE,
+                    DATE_INTRO,
+                    &[],
+                    String::new()
+                )
+                .is_err()
             );
         }
     }
@@ -628,7 +711,12 @@ mod tests {
             ]);
             assert_eq!(
                 read(&danske(), &blocks),
-                vec![("India".into(), "Global Emerging Markets".into(), "21 February 2025".into(), true)]
+                vec![(
+                    "India".into(),
+                    "Global Emerging Markets".into(),
+                    "21 February 2025".into(),
+                    true
+                )]
             );
         }
 
@@ -677,7 +765,10 @@ mod tests {
                 &[],
                 String::new(),
             );
-            assert!(matches!(refused.err(), Some(RenamingError::MissingGroups(_))));
+            assert!(matches!(
+                refused.err(),
+                Some(RenamingError::MissingGroups(_))
+            ));
         }
     }
 
@@ -694,8 +785,10 @@ mod tests {
         }
 
         fn kept(of_interest: OfInterest, funds: &[&str]) -> Vec<TextBlock> {
-            let previous: Vec<Extracted> =
-                funds.iter().map(|name| Extracted::Fund(Fund::new(name))).collect();
+            let previous: Vec<Extracted> = funds
+                .iter()
+                .map(|name| Extracted::Fund(Fund::new(name)))
+                .collect();
             TextFilterRenaming::new(amundi(), of_interest)
                 .call(&blocks(), &FilterData::Previous(&previous))
         }
@@ -704,7 +797,10 @@ mod tests {
         fn by_default_the_new_name_is_the_one_that_has_to_match() {
             let got = kept(OfInterest::Current, &["US Bond"]);
             assert_eq!(got.len(), 1);
-            assert_eq!(got[0].metadata["old_name"].as_str(), Some("Pioneer US Bond"));
+            assert_eq!(
+                got[0].metadata["old_name"].as_str(),
+                Some("Pioneer US Bond")
+            );
             assert_eq!(got[0].metadata["merge"], BlockValue::Bool(false));
         }
 

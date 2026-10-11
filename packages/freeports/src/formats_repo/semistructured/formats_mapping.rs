@@ -18,11 +18,19 @@ pub enum FormatsMappingError {
     #[error("missing formats-repository CSV file: {0}")]
     MissingCsv(PathBuf),
     #[error("{path}: malformed row at line {line}: {reason}")]
-    MalformedRow { path: PathBuf, line: usize, reason: String },
+    MalformedRow {
+        path: PathBuf,
+        line: usize,
+        reason: String,
+    },
     #[error("{path}: missing required column '{column}'")]
     MissingColumn { path: PathBuf, column: String },
     #[error("{path}, line {line}: ID '{id}' does not match the expected ID pattern")]
-    InvalidId { path: PathBuf, line: usize, id: String },
+    InvalidId {
+        path: PathBuf,
+        line: usize,
+        id: String,
+    },
 }
 
 /// A row of the mapping table, as it sits on disk.
@@ -53,20 +61,36 @@ pub struct MappingRow {
 
 /// An empty cell is "no algorithm", not "an algorithm with no name".
 fn cell(raw: &str) -> Option<String> {
-    if raw.is_empty() { None } else { Some(raw.to_string()) }
+    if raw.is_empty() {
+        None
+    } else {
+        Some(raw.to_string())
+    }
 }
 
 /// Every row of the file, in the order they appear.
-pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, FormatsMappingError> {
-    let path = formats_repo_dir.join(SEMISTRUCTURED_DIR).join("formats_mapping.csv");
+pub fn get_formats_mapping(
+    formats_repo_dir: &Path,
+) -> Result<Vec<MappingRow>, FormatsMappingError> {
+    let path = formats_repo_dir
+        .join(SEMISTRUCTURED_DIR)
+        .join("formats_mapping.csv");
     if !path.is_file() {
         return Err(FormatsMappingError::MissingCsv(path));
     }
-    let mut reader = csv::Reader::from_path(&path)
-        .map_err(|e| FormatsMappingError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    let mut reader =
+        csv::Reader::from_path(&path).map_err(|e| FormatsMappingError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: e.to_string(),
+        })?;
     let headers = reader
         .headers()
-        .map_err(|e| FormatsMappingError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+        .map_err(|e| FormatsMappingError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: e.to_string(),
+        })?;
     let known = crate::formats_repo::csv_columns::declared::<RawRow>();
     if let Some(column) = crate::formats_repo::csv_columns::first_unknown(headers.iter(), known) {
         return Err(FormatsMappingError::MalformedRow {
@@ -76,7 +100,8 @@ pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, F
         });
     }
 
-    let mut counters: std::collections::HashMap<(String, String), u32> = std::collections::HashMap::new();
+    let mut counters: std::collections::HashMap<(String, String), u32> =
+        std::collections::HashMap::new();
     let mut rows = Vec::new();
     for (i, record) in reader.deserialize::<RawRow>().enumerate() {
         let line = i + 1;
@@ -85,20 +110,33 @@ pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, F
             if let Some(rest) = message.split("missing field `").nth(1)
                 && let Some(column) = rest.split('`').next()
             {
-                return FormatsMappingError::MissingColumn { path: path.clone(), column: column.to_string() };
+                return FormatsMappingError::MissingColumn {
+                    path: path.clone(),
+                    column: column.to_string(),
+                };
             }
-            FormatsMappingError::MalformedRow { path: path.clone(), line, reason: message }
+            FormatsMappingError::MalformedRow {
+                path: path.clone(),
+                line,
+                reason: message,
+            }
         })?;
 
         if !id_matches(&raw.id, IdFormat::ExpandableNoIndex) {
-            return Err(FormatsMappingError::InvalidId { path, line, id: raw.id });
+            return Err(FormatsMappingError::InvalidId {
+                path,
+                line,
+                id: raw.id,
+            });
         }
         let format_name = derive_format_name(&raw.id);
         // As in the orchestration mapping, and unlike the page-classify overwrite: an id with no
         // `(pipeline)` group belongs to the unnamed pipeline.
         let pipeline_name = derive_pipeline_name(&raw.id, Some("")).unwrap_or_default();
 
-        let counter = counters.entry((format_name.clone(), pipeline_name.clone())).or_insert(0);
+        let counter = counters
+            .entry((format_name.clone(), pipeline_name.clone()))
+            .or_insert(0);
         let pipe_index = *counter;
         *counter += 1;
 
@@ -118,8 +156,14 @@ pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, F
 ///
 /// A format that does not appear at all is not an error: it simply does not use the semistructured
 /// level. A missing file, or a malformed row **of any format**, is.
-pub fn rows_for_format(formats_repo_dir: &Path, format_name: &str) -> Result<Vec<MappingRow>, FormatsMappingError> {
-    Ok(get_formats_mapping(formats_repo_dir)?.into_iter().filter(|r| r.format_name == format_name).collect())
+pub fn rows_for_format(
+    formats_repo_dir: &Path,
+    format_name: &str,
+) -> Result<Vec<MappingRow>, FormatsMappingError> {
+    Ok(get_formats_mapping(formats_repo_dir)?
+        .into_iter()
+        .filter(|r| r.format_name == format_name)
+        .collect())
 }
 
 #[cfg(test)]
@@ -133,7 +177,13 @@ mod tests {
     fn repo(csv: &str) -> TempDir {
         let dir = TempDir::new().expect("temp dir");
         fs::create_dir_all(dir.path().join(SEMISTRUCTURED_DIR)).expect("semistructured dir");
-        fs::write(dir.path().join(SEMISTRUCTURED_DIR).join("formats_mapping.csv"), csv).expect("write csv");
+        fs::write(
+            dir.path()
+                .join(SEMISTRUCTURED_DIR)
+                .join("formats_mapping.csv"),
+            csv,
+        )
+        .expect("write csv");
         dir
     }
 
@@ -160,28 +210,42 @@ mod tests {
         #[test]
         fn an_id_without_a_pipeline_group_belongs_to_the_unnamed_pipeline() {
             let dir = repo(&format!("{HEADER}A-EN24,x,,\n"));
-            assert_eq!(get_formats_mapping(dir.path()).unwrap()[0].pipeline_name, "");
+            assert_eq!(
+                get_formats_mapping(dir.path()).unwrap()[0].pipeline_name,
+                ""
+            );
         }
 
         #[test]
         fn rows_of_one_group_are_numbered_from_zero() {
             let dir = repo(&format!("{HEADER}A-EN24(inv),x,,\nA-EN24(inv),y,,\n"));
             let rows = get_formats_mapping(dir.path()).unwrap();
-            assert_eq!(rows.iter().map(|r| r.pipe_index).collect::<Vec<_>>(), vec![0, 1]);
+            assert_eq!(
+                rows.iter().map(|r| r.pipe_index).collect::<Vec<_>>(),
+                vec![0, 1]
+            );
         }
 
         #[test]
         fn interleaved_rows_of_another_format_do_not_disturb_the_numbering() {
-            let dir = repo(&format!("{HEADER}A-EN24(inv),x,,\nB-EN24(inv),x,,\nA-EN24(inv),y,,\n"));
+            let dir = repo(&format!(
+                "{HEADER}A-EN24(inv),x,,\nB-EN24(inv),x,,\nA-EN24(inv),y,,\n"
+            ));
             let rows = get_formats_mapping(dir.path()).unwrap();
-            assert_eq!(rows.iter().map(|r| r.pipe_index).collect::<Vec<_>>(), vec![0, 0, 1]);
+            assert_eq!(
+                rows.iter().map(|r| r.pipe_index).collect::<Vec<_>>(),
+                vec![0, 0, 1]
+            );
         }
 
         #[test]
         fn each_pipeline_of_a_format_has_its_own_counter() {
             let dir = repo(&format!("{HEADER}A-EN24(inv),x,,\nA-EN24(manco),x,,\n"));
             let rows = get_formats_mapping(dir.path()).unwrap();
-            assert_eq!(rows.iter().map(|r| r.pipe_index).collect::<Vec<_>>(), vec![0, 0]);
+            assert_eq!(
+                rows.iter().map(|r| r.pipe_index).collect::<Vec<_>>(),
+                vec![0, 0]
+            );
         }
 
         #[test]
@@ -196,28 +260,40 @@ mod tests {
         #[test]
         fn a_missing_file_is_reported_with_its_path() {
             let dir = TempDir::new().unwrap();
-            assert!(matches!(get_formats_mapping(dir.path()), Err(FormatsMappingError::MissingCsv(_))));
+            assert!(matches!(
+                get_formats_mapping(dir.path()),
+                Err(FormatsMappingError::MissingCsv(_))
+            ));
         }
 
         #[test]
         fn an_id_carrying_an_index_is_rejected_with_its_line() {
             let dir = repo(&format!("{HEADER}A-EN24(inv),x,,\nA-EN24(inv)/1,x,,\n"));
             let err = get_formats_mapping(dir.path()).unwrap_err();
-            assert!(matches!(err, FormatsMappingError::InvalidId { line: 2, .. }), "{err}");
+            assert!(
+                matches!(err, FormatsMappingError::InvalidId { line: 2, .. }),
+                "{err}"
+            );
         }
 
         #[test]
         fn a_missing_column_names_it() {
             let dir = repo("ID,pdf_extract\nA-EN24,x\n");
             let err = get_formats_mapping(dir.path()).unwrap_err();
-            assert!(matches!(err, FormatsMappingError::MissingColumn { .. }), "{err}");
+            assert!(
+                matches!(err, FormatsMappingError::MissingColumn { .. }),
+                "{err}"
+            );
         }
 
         #[test]
         fn a_short_row_reports_its_line() {
             let dir = repo(&format!("{HEADER}A-EN24,x,,\nA-EN24,x\n"));
             let err = get_formats_mapping(dir.path()).unwrap_err();
-            assert!(matches!(err, FormatsMappingError::MalformedRow { line: 2, .. }), "{err}");
+            assert!(
+                matches!(err, FormatsMappingError::MalformedRow { line: 2, .. }),
+                "{err}"
+            );
         }
     }
 

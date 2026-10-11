@@ -27,16 +27,20 @@ use crate::core::page::Page;
 use crate::core::pipeline::{PdfExtractPipe, PipeError};
 use crate::formats_repo::format_pattern::FormatPattern;
 
-use super::commons::{CommonsError, SelectedText, extract_text_pdf_block_or_fail_page, select_expected_text};
+use super::commons::{
+    CommonsError, SelectedText, extract_text_pdf_block_or_fail_page, select_expected_text,
+};
 use super::labelled_value::{LabelledValueArgs, PdfExtractLabelledValueStandard};
 use super::pdf_line::PdfLine;
+use super::position::{SplittingDirection, TableConfig};
 use super::relative::{OptionallyRelative, RelativeInfo};
 use super::select::pdf_line::PdfLineSet;
 use super::select::relative::{PdfLineSelection, RelativePdfLineSet, RelativeSelectPdfLineSet};
-use super::position::{SplittingDirection, TableConfig};
 use super::tabularizer::collapse::CollapseAlgorithm;
 use super::tabularizer::coordinates::{CoordinateExtractionError, TablePosAlgorithm};
-use super::tabularizer::{TableCoordinatesConfig, TablePosMeasureUnit, get_table_coordinates_from_lines};
+use super::tabularizer::{
+    TableCoordinatesConfig, TablePosMeasureUnit, get_table_coordinates_from_lines,
+};
 
 /// Failures of the standard `pdf_extract` pipes.
 ///
@@ -58,7 +62,11 @@ pub enum PdfExtractStandardFuncsError {
     ZeroSkipColumn,
     /// The three columns of an assets block have different lengths.
     #[error("assets column \"{column}\" has {found} entries, expected at least {expected}")]
-    MismatchedAssetsColumn { column: String, found: usize, expected: usize },
+    MismatchedAssetsColumn {
+        column: String,
+        found: usize,
+        expected: usize,
+    },
     /// There is no currency token to split off the tail of the fund name.
     #[error("fund column \"{column}\" carries no currency token to split off")]
     MissingCurrencyToken { column: String },
@@ -88,7 +96,10 @@ fn select<'a>(selection: &PdfLineSelection, lines: &'a [PdfLine]) -> Vec<&'a Pdf
 /// line, carrying the text of the first line the first selection found — what one searches for
 /// inside the PDF when a recognition looks wrong. With no selection at all the rule holds vacuously
 /// and the text is empty.
-pub(crate) fn first_line_if_every_selection_matches(selections: &[PdfLineSelection], lines: &[PdfLine]) -> Option<String> {
+pub(crate) fn first_line_if_every_selection_matches(
+    selections: &[PdfLineSelection],
+    lines: &[PdfLine],
+) -> Option<String> {
     let mut first_line = None;
     for selection in selections {
         let found = select(selection, lines);
@@ -103,7 +114,6 @@ pub(crate) fn first_line_if_every_selection_matches(selections: &[PdfLineSelecti
 fn contextualized(selection: &PdfLineSelection, lines: &[PdfLine]) -> PdfLineSet {
     selection.clone().contextualize(lines)
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // ExtractTextPdfBlockOrFailPage and the three factories over it
@@ -133,8 +143,17 @@ pub struct ExtractTextPdfBlockOrFailPage {
 }
 
 impl ExtractTextPdfBlockOrFailPage {
-    pub fn new(selection: PdfLineSelection, name: impl Into<String>, type_block: BlockType) -> Self {
-        Self { selection, name: name.into(), type_block, text: SelectedText::FirstLine }
+    pub fn new(
+        selection: PdfLineSelection,
+        name: impl Into<String>,
+        type_block: BlockType,
+    ) -> Self {
+        Self {
+            selection,
+            name: name.into(),
+            type_block,
+            text: SelectedText::FirstLine,
+        }
     }
 
     /// The same pipe reading **every** selected line, joined by `separator`.
@@ -143,7 +162,9 @@ impl ExtractTextPdfBlockOrFailPage {
     /// one at the end of the first piece and the squeezing makes the two layouts agree; a name split
     /// **inside a word** passes `""`.
     pub fn joining(mut self, separator: impl Into<String>) -> Self {
-        self.text = SelectedText::EveryLine { separator: separator.into() };
+        self.text = SelectedText::EveryLine {
+            separator: separator.into(),
+        };
         self
     }
 
@@ -165,7 +186,8 @@ impl PdfExtractPipe for ExtractTextPdfBlockOrFailPage {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
 
@@ -199,14 +221,15 @@ pub fn pdf_extract_currency_standard(selection: PdfLineSelection) -> ExtractText
 /// The spelling `managment` is kept: it is the string that appears in logs and error messages, and
 /// in the configuration of every existing formats repository, so correcting it would be an
 /// observable change.
-pub fn pdf_extract_managment_company_standard(selection: PdfLineSelection) -> PdfExtractLabelledValueStandard {
+pub fn pdf_extract_managment_company_standard(
+    selection: PdfLineSelection,
+) -> PdfExtractLabelledValueStandard {
     PdfExtractLabelledValueStandard::new(LabelledValueArgs::new(
         selection,
         BlockType::MANAGEMENT_COMPANY,
         "managment company",
     ))
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // PdfExtractPageClassifyStandard
@@ -224,7 +247,10 @@ pub struct PdfExtractPageClassifyStandard {
 
 impl PdfExtractPageClassifyStandard {
     pub fn new(header_sets: Vec<PdfLineSelection>, page_type: impl Into<String>) -> Self {
-        Self { header_sets, page_type: page_type.into() }
+        Self {
+            header_sets,
+            page_type: page_type.into(),
+        }
     }
 
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
@@ -236,10 +262,17 @@ impl PdfExtractPageClassifyStandard {
         if let Some(header) = &header {
             tracing::debug!(coord_ref_2 = %self.page_type, found = %header, "page class recognized by its header");
         }
-        let page_type =
-            if header.is_some() { BlockValue::from(self.page_type.as_str()) } else { BlockValue::Null };
+        let page_type = if header.is_some() {
+            BlockValue::from(self.page_type.as_str())
+        } else {
+            BlockValue::Null
+        };
         let metadata = BTreeMap::from([("page_type".to_string(), page_type)]);
-        Ok(vec![PdfBlock::new(BlockType::PAGE_CLASS, metadata, BlockValue::from(""))])
+        Ok(vec![PdfBlock::new(
+            BlockType::PAGE_CLASS,
+            metadata,
+            BlockValue::from(""),
+        )])
     }
 }
 
@@ -249,10 +282,10 @@ impl PdfExtractPipe for PdfExtractPageClassifyStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // PdfExtractDocClassifyStandard
@@ -271,7 +304,10 @@ pub struct PdfExtractDocClassifyStandard {
 
 impl PdfExtractDocClassifyStandard {
     pub fn new(selections: Vec<PdfLineSelection>, pattern: FormatPattern) -> Self {
-        Self { selections, pattern }
+        Self {
+            selections,
+            pattern,
+        }
     }
 
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
@@ -281,10 +317,17 @@ impl PdfExtractDocClassifyStandard {
         if let Some(line) = &line {
             tracing::debug!(coord_ref_2 = %self.pattern, found = %line, "document class recognized by its lines");
         }
-        let format_pattern =
-            if line.is_some() { BlockValue::from(self.pattern.to_string()) } else { BlockValue::Null };
+        let format_pattern = if line.is_some() {
+            BlockValue::from(self.pattern.to_string())
+        } else {
+            BlockValue::Null
+        };
         let metadata = BTreeMap::from([("format_pattern".to_string(), format_pattern)]);
-        Ok(vec![PdfBlock::new(BlockType::DOC_CLASS, metadata, BlockValue::from(""))])
+        Ok(vec![PdfBlock::new(
+            BlockType::DOC_CLASS,
+            metadata,
+            BlockValue::from(""),
+        )])
     }
 }
 
@@ -294,7 +337,8 @@ impl PdfExtractPipe for PdfExtractDocClassifyStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
 
@@ -328,7 +372,11 @@ pub struct PdfExtractCurrencyConstant {
 impl PdfExtractCurrencyConstant {
     pub fn new(currency: Currency) -> Self {
         let block = PdfBlock::bare(BlockType::CURRENCY_STATEMENT, currency.code());
-        Self { currency, block, warned: std::sync::atomic::AtomicBool::new(false) }
+        Self {
+            currency,
+            block,
+            warned: std::sync::atomic::AtomicBool::new(false),
+        }
     }
 
     pub fn currency(&self) -> Currency {
@@ -358,7 +406,6 @@ impl PdfExtractPipe for PdfExtractCurrencyConstant {
         Ok(self.call(page))
     }
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // TableSettings
@@ -486,8 +533,18 @@ impl InvestmentsStandardArgs {
 
 impl PdfExtractInvestmentsStandard {
     pub fn new(args: InvestmentsStandardArgs) -> Self {
-        let InvestmentsStandardArgs { body_set, deselection_list, table, company_index } = args;
-        Self { body_set, deselection_list, table, company_index }
+        let InvestmentsStandardArgs {
+            body_set,
+            deselection_list,
+            table,
+            company_index,
+        } = args;
+        Self {
+            body_set,
+            deselection_list,
+            table,
+            company_index,
+        }
     }
 
     /// The table settings this pipe was built with.
@@ -500,13 +557,19 @@ impl PdfExtractInvestmentsStandard {
         for deselection in &self.deselection_list {
             set = set / contextualized(deselection, &page.lines);
         }
-        let rows: Vec<PdfLine> = page.lines.iter().filter(|line| set.contains(line)).cloned().collect();
+        let rows: Vec<PdfLine> = page
+            .lines
+            .iter()
+            .filter(|line| set.contains(line))
+            .cloned()
+            .collect();
         if rows.is_empty() {
             tracing::debug!("investments body set selected no line, nothing to tabularize");
             return Ok(Vec::new());
         }
 
-        let coords = get_table_coordinates_from_lines(&rows, &self.table.config(self.company_index))?;
+        let coords =
+            get_table_coordinates_from_lines(&rows, &self.table.config(self.company_index))?;
         tracing::debug!(
             found = %rows.first().map(|line| line.text().clone()).unwrap_or_default(),
             lines = rows.len(),
@@ -530,7 +593,11 @@ impl PdfExtractInvestmentsStandard {
         };
 
         if !self.collapse_into_cells() {
-            return Ok(rows.iter().enumerate().map(|(i, row)| block(coords[i], &[row])).collect());
+            return Ok(rows
+                .iter()
+                .enumerate()
+                .map(|(i, row)| block(coords[i], &[row]))
+                .collect());
         }
 
         // One block per **cell**. Which lines share a cell is what `collapse` decided; the order
@@ -594,10 +661,10 @@ impl PdfExtractPipe for PdfExtractInvestmentsStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // PdfExtractAssetsStandard
@@ -629,7 +696,13 @@ fn join_in_reading_order(lines: &[&PdfLine]) -> String {
     if let [only] = lines {
         return only.text().clone();
     }
-    in_reading_order(lines).iter().map(|line| line.text().trim()).collect::<Vec<_>>().join(" ").trim().to_string()
+    in_reading_order(lines)
+        .iter()
+        .map(|line| line.text().trim())
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .to_string()
 }
 
 /// The same lines, sorted: rows top to bottom, and left to right inside a row.
@@ -642,9 +715,15 @@ fn in_reading_order<'a>(lines: &[&'a PdfLine]) -> Vec<&'a PdfLine> {
         let (a_box, b_box) = (a.bbox().as_tuple(), b.bbox().as_tuple());
         let same_row = a_box.1 < b_box.3 && b_box.1 < a_box.3;
         if same_row {
-            a_box.0.partial_cmp(&b_box.0).unwrap_or(std::cmp::Ordering::Equal)
+            a_box
+                .0
+                .partial_cmp(&b_box.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
         } else {
-            a_box.1.partial_cmp(&b_box.1).unwrap_or(std::cmp::Ordering::Equal)
+            a_box
+                .1
+                .partial_cmp(&b_box.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
         }
     });
     ordered
@@ -661,7 +740,11 @@ fn concat_in_reading_order(lines: &[&PdfLine]) -> String {
     if let [only] = lines {
         return only.text().clone();
     }
-    in_reading_order(lines).iter().map(|line| line.text().as_str()).collect::<Vec<_>>().concat()
+    in_reading_order(lines)
+        .iter()
+        .map(|line| line.text().as_str())
+        .collect::<Vec<_>>()
+        .concat()
 }
 
 /// The band a line belongs to: the one it overlaps most, or the nearest when it overlaps none.
@@ -680,8 +763,18 @@ fn band_of(line: &PdfLine, bands: &[(f32, f32)]) -> Option<usize> {
     if let Some((index, _)) = widest {
         return Some(index);
     }
-    let distance = |band: &(f32, f32)| if x1 < band.0 { band.0 - x1 } else { x0 - band.1 };
-    bands.iter().enumerate().min_by(|(_, a), (_, b)| distance(a).total_cmp(&distance(b))).map(|(i, _)| i)
+    let distance = |band: &(f32, f32)| {
+        if x1 < band.0 {
+            band.0 - x1
+        } else {
+            x0 - band.1
+        }
+    };
+    bands
+        .iter()
+        .enumerate()
+        .min_by(|(_, a), (_, b)| distance(a).total_cmp(&distance(b)))
+        .map(|(i, _)| i)
 }
 
 /// The values a single line of a value window carries, told apart by the run of spaces between
@@ -696,14 +789,20 @@ fn band_of(line: &PdfLine, bands: &[(f32, f32)]) -> Option<usize> {
 /// same with the flag on as with it off. Only the length of the list changes, which is what pairing
 /// by index counts.
 fn values_in_a_line(text: &str) -> Vec<String> {
-    text.split("  ").map(str::trim).filter(|piece| !piece.is_empty()).map(str::to_string).collect()
+    text.split("  ")
+        .map(str::trim)
+        .filter(|piece| !piece.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 /// Whether a line stands under one of the columns a format asked to leave out.
 fn falls_in(line: &PdfLine, bands: &[(f32, f32)]) -> bool {
     let (x0, _, x1, _) = line.bbox().as_tuple();
     let centre = (x0 + x1) / 2.0;
-    bands.iter().any(|(left, right)| centre >= *left && centre <= *right)
+    bands
+        .iter()
+        .any(|(left, right)| centre >= *left && centre <= *right)
 }
 
 /// How a number is matched to the fund it belongs to.
@@ -742,7 +841,12 @@ pub struct AssetsColumn {
 impl AssetsColumn {
     /// The usual defaults: an offset of `(1.2, 0.0)` and multipliers of `(100.0, 1.3)`.
     pub fn new(anchor: PdfLineSelection) -> Self {
-        Self { anchor, vector: (1.2, 0.0), width: 100.0, height: 1.3 }
+        Self {
+            anchor,
+            vector: (1.2, 0.0),
+            width: 100.0,
+            height: 1.3,
+        }
     }
 }
 
@@ -901,7 +1005,9 @@ impl PdfExtractAssetsStandard {
             values_in_one_line,
         } = args;
         if !table_condition && currency_set.is_none() {
-            return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "currency".to_string() });
+            return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound {
+                name: "currency".to_string(),
+            });
         }
         Ok(Self {
             fund_set,
@@ -923,7 +1029,11 @@ impl PdfExtractAssetsStandard {
     /// The page's lines minus the whitespace-only ones.
     fn meaningful_lines(page: &Page) -> Vec<PdfLine> {
         let set = PdfLineSet::select_text("") / PdfLineSet::select_text("^ $");
-        page.lines.iter().filter(|line| set.contains(line)).cloned().collect()
+        page.lines
+            .iter()
+            .filter(|line| set.contains(line))
+            .cloned()
+            .collect()
     }
 
     /// The lines falling inside the moving window anchored to `column.anchor`.
@@ -934,8 +1044,9 @@ impl PdfExtractAssetsStandard {
             column.width,
             column.height,
         );
-        let selection: PdfLineSelection =
-            OptionallyRelative::Relative(RelativePdfLineSet::from_leaf(OptionallyRelative::Relative(leaf)));
+        let selection: PdfLineSelection = OptionallyRelative::Relative(
+            RelativePdfLineSet::from_leaf(OptionallyRelative::Relative(leaf)),
+        );
         select(&selection, lines)
     }
 
@@ -947,7 +1058,10 @@ impl PdfExtractAssetsStandard {
     /// abscissa matches numbers against, and a column dropped from one and kept in the other is a
     /// statement whose numbers belong to the wrong funds. They were two functions doing the same
     /// grouping until a format needed to drop a column from both.
-    fn fund_columns(&self, lines: &[PdfLine]) -> Result<Vec<FundColumn>, PdfExtractStandardFuncsError> {
+    fn fund_columns(
+        &self,
+        lines: &[PdfLine],
+    ) -> Result<Vec<FundColumn>, PdfExtractStandardFuncsError> {
         let funds: Vec<PdfLine> = select(&self.fund_set, lines).into_iter().cloned().collect();
         if funds.is_empty() {
             return Ok(Vec::new());
@@ -955,16 +1069,30 @@ impl PdfExtractAssetsStandard {
         let coords = get_table_coordinates_from_lines(&funds, &self.table.config(None))?;
         let cols: Vec<usize> = coords.iter().map(|(_, col)| *col).collect();
         let n_cols = cols.iter().copied().max().map(|m| m + 1).unwrap_or(0);
-        let unwanted = self.drop_funds.as_ref().map(|selection| contextualized(selection, lines));
+        let unwanted = self
+            .drop_funds
+            .as_ref()
+            .map(|selection| contextualized(selection, lines));
         Ok((0..n_cols)
             .map(|col| {
-                let members: Vec<&PdfLine> =
-                    funds.iter().zip(cols.iter()).filter(|(_, c)| **c == col).map(|(line, _)| line).collect();
-                let text = members.iter().map(|line| line.text().trim()).collect::<Vec<_>>().join(" ");
-                let band = members.iter().fold((f32::INFINITY, f32::NEG_INFINITY), |(left, right), line| {
-                    let (x0, _, x1, _) = line.bbox().as_tuple();
-                    (left.min(x0), right.max(x1))
-                });
+                let members: Vec<&PdfLine> = funds
+                    .iter()
+                    .zip(cols.iter())
+                    .filter(|(_, c)| **c == col)
+                    .map(|(line, _)| line)
+                    .collect();
+                let text = members
+                    .iter()
+                    .map(|line| line.text().trim())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let band = members.iter().fold(
+                    (f32::INFINITY, f32::NEG_INFINITY),
+                    |(left, right), line| {
+                        let (x0, _, x1, _) = line.bbox().as_tuple();
+                        (left.min(x0), right.max(x1))
+                    },
+                );
                 let dropped = unwanted
                     .as_ref()
                     .is_some_and(|set| members.iter().any(|line| set.contains(line)));
@@ -973,7 +1101,11 @@ impl PdfExtractAssetsStandard {
                     // only way to tell is to read which one went.
                     tracing::debug!(column = %text, "fund column dropped: drop_funds names it");
                 }
-                FundColumn { text, band, dropped }
+                FundColumn {
+                    text,
+                    band,
+                    dropped,
+                }
             })
             .collect())
     }
@@ -984,7 +1116,9 @@ impl PdfExtractAssetsStandard {
     /// one of the two is the datum. The selection names the **header** of the columns to leave out
     /// — `30/06/2023`, say — and every number standing under one of them is dropped with it.
     fn dropped_bands(&self, lines: &[PdfLine]) -> Vec<(f32, f32)> {
-        let Some(selection) = &self.drop else { return Vec::new() };
+        let Some(selection) = &self.drop else {
+            return Vec::new();
+        };
         let set = contextualized(selection, lines);
         lines
             .iter()
@@ -1026,14 +1160,13 @@ impl PdfExtractAssetsStandard {
         indices
             .iter()
             .map(|&i| {
-                items
-                    .get(i)
-                    .cloned()
-                    .ok_or_else(|| PdfExtractStandardFuncsError::MismatchedAssetsColumn {
+                items.get(i).cloned().ok_or_else(|| {
+                    PdfExtractStandardFuncsError::MismatchedAssetsColumn {
                         column: column.to_string(),
                         found: items.len(),
                         expected: i + 1,
-                    })
+                    }
+                })
             })
             .collect()
     }
@@ -1050,7 +1183,10 @@ impl PdfExtractAssetsStandard {
         if !self.values_in_one_line {
             return items.iter().map(|line| line.text().clone()).collect();
         }
-        items.iter().flat_map(|line| values_in_a_line(line.text())).collect()
+        items
+            .iter()
+            .flat_map(|line| values_in_a_line(line.text()))
+            .collect()
     }
 
     /// One value per fund column, matched by abscissa instead of by position.
@@ -1060,7 +1196,9 @@ impl PdfExtractAssetsStandard {
     fn by_abscissa(items: &[&PdfLine], bands: &[(f32, f32)], column: &str) -> Vec<Option<String>> {
         let mut out: Vec<Option<String>> = vec![None; bands.len()];
         for item in items {
-            let Some(index) = band_of(item, bands) else { continue };
+            let Some(index) = band_of(item, bands) else {
+                continue;
+            };
             if out[index].is_some() {
                 tracing::debug!(
                     column,
@@ -1100,12 +1238,17 @@ impl PdfExtractAssetsStandard {
         // **nearest** band — the rule that lets a number sit outside the column it belongs to — so a
         // leftover would be claimed by whichever surviving column is closest, and, coming first in
         // the page, would keep the place of the real one.
-        let taken: Vec<&PdfLine> =
-            lines.iter().filter(|line| currency_set.contains(line) && !falls_in(line, gone)).collect();
+        let taken: Vec<&PdfLine> = lines
+            .iter()
+            .filter(|line| currency_set.contains(line) && !falls_in(line, gone))
+            .collect();
         let [first, rest @ ..] = taken.as_slice() else {
             // The same failure as before: a statement whose currency the format says is on the
             // page, and is not.
-            return Ok(vec![select_expected_text(&currency_set, lines, "currency")?; funds]);
+            return Ok(vec![
+                select_expected_text(&currency_set, lines, "currency")?;
+                funds
+            ]);
         };
         if rest.is_empty() {
             return Ok(vec![first.text().clone(); funds]);
@@ -1163,18 +1306,31 @@ impl PdfExtractAssetsStandard {
         // The fund columns first, because a column `drop_funds` takes away also takes away the
         // numbers standing in its band — otherwise pairing by index would shift every fund after it
         // onto its neighbour's figures.
-        let columns = if self.table_condition { self.fund_columns(&lines)? } else { Vec::new() };
+        let columns = if self.table_condition {
+            self.fund_columns(&lines)?
+        } else {
+            Vec::new()
+        };
         let kept: Vec<&FundColumn> = columns.iter().filter(|column| !column.dropped).collect();
         // The bands of the columns that are not funds at all. Everything standing in one of them is
         // gone, the currency included — which is where the two drops differ, and why they are two
         // parameters: `drop` says *these numbers are not data* and leaves the column a fund, so a
         // currency printed over it still describes a fund that stays.
-        let gone: Vec<(f32, f32)> =
-            columns.iter().filter(|column| column.dropped).map(|column| column.band).collect();
-        let dropped: Vec<(f32, f32)> =
-            self.dropped_bands(&lines).into_iter().chain(gone.iter().copied()).collect();
+        let gone: Vec<(f32, f32)> = columns
+            .iter()
+            .filter(|column| column.dropped)
+            .map(|column| column.band)
+            .collect();
+        let dropped: Vec<(f32, f32)> = self
+            .dropped_bands(&lines)
+            .into_iter()
+            .chain(gone.iter().copied())
+            .collect();
         let take = |column: &AssetsColumn| -> Vec<&PdfLine> {
-            Self::select_column(column, &lines).into_iter().filter(|line| !falls_in(line, &dropped)).collect()
+            Self::select_column(column, &lines)
+                .into_iter()
+                .filter(|line| !falls_in(line, &dropped))
+                .collect()
         };
         let tot_assets_items = take(&self.tot_assets);
         let liabilities_items = take(&self.liabilities);
@@ -1184,8 +1340,10 @@ impl PdfExtractAssetsStandard {
             let fund_set = contextualized(&self.fund_set, &lines);
             let fund = select_expected_text(&fund_set, &lines, "fund")?;
             // The constructor guarantees the currency selection is present in this branch.
-            let currency_selection =
-                self.currency_set.as_ref().expect("build rejects a missing currency_set when table_condition is false");
+            let currency_selection = self
+                .currency_set
+                .as_ref()
+                .expect("build rejects a missing currency_set when table_condition is false");
             let currency_set = contextualized(currency_selection, &lines);
             let currency = select_expected_text(&currency_set, &lines, "currency")?;
             (vec![fund], vec![currency])
@@ -1218,9 +1376,12 @@ impl PdfExtractAssetsStandard {
                 let liabilities_values = self.column_values(&liabilities_items);
                 let net_assets_values = self.column_values(&net_assets_items);
                 let indices = range_0_to_len_step(tot_assets_values.len(), self.skip_column)?;
-                let tot_assets_text = Self::column_texts(&tot_assets_values, &indices, "tot_assets")?;
-                let liabilities_text = Self::column_texts(&liabilities_values, &indices, "liabilities")?;
-                let net_assets_text = Self::column_texts(&net_assets_values, &indices, "net_assets")?;
+                let tot_assets_text =
+                    Self::column_texts(&tot_assets_values, &indices, "tot_assets")?;
+                let liabilities_text =
+                    Self::column_texts(&liabilities_values, &indices, "liabilities")?;
+                let net_assets_text =
+                    Self::column_texts(&net_assets_values, &indices, "net_assets")?;
                 let n_out = [
                     fund_texts.len(),
                     currency_texts.len(),
@@ -1276,7 +1437,8 @@ impl PdfExtractAssetsStandard {
 
         let mut blocks = Vec::with_capacity(amounts.len());
         for (i, tot_assets, liabilities, net_assets) in amounts {
-            let (Some(tot_assets), Some(liabilities), Some(net_assets)) = (tot_assets, liabilities, net_assets)
+            let (Some(tot_assets), Some(liabilities), Some(net_assets)) =
+                (tot_assets, liabilities, net_assets)
             else {
                 // A hole rather than a shift: the fund is named, one of its three numbers is not
                 // under its column, and saying so is the whole reason to pair by abscissa.
@@ -1288,15 +1450,35 @@ impl PdfExtractAssetsStandard {
             };
             let metadata = BTreeMap::from([
                 ("fund".to_string(), BlockValue::from(fund_texts[i].as_str())),
-                ("currency".to_string(), BlockValue::from(currency_texts[i].as_str())),
-                ("tot_assets".to_string(), BlockValue::from(tot_assets.as_str())),
-                ("liabilities".to_string(), BlockValue::from(liabilities.as_str())),
-                ("net_assets".to_string(), BlockValue::from(net_assets.as_str())),
+                (
+                    "currency".to_string(),
+                    BlockValue::from(currency_texts[i].as_str()),
+                ),
+                (
+                    "tot_assets".to_string(),
+                    BlockValue::from(tot_assets.as_str()),
+                ),
+                (
+                    "liabilities".to_string(),
+                    BlockValue::from(liabilities.as_str()),
+                ),
+                (
+                    "net_assets".to_string(),
+                    BlockValue::from(net_assets.as_str()),
+                ),
                 ("date".to_string(), date.clone()),
             ]);
-            blocks.push(PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, BlockValue::from("")));
+            blocks.push(PdfBlock::new(
+                BlockType::RELEVANT_BLOCK,
+                metadata,
+                BlockValue::from(""),
+            ));
         }
-        tracing::debug!(entries = blocks.len(), table_condition = self.table_condition, "assets extracted");
+        tracing::debug!(
+            entries = blocks.len(),
+            table_condition = self.table_condition,
+            "assets extracted"
+        );
 
         Ok(blocks)
     }
@@ -1308,7 +1490,8 @@ impl PdfExtractPipe for PdfExtractAssetsStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
 
@@ -1343,28 +1526,53 @@ mod tests {
 
         #[test]
         fn builds_one_block_with_the_text_of_the_first_matching_line() {
-            let pipe = ExtractTextPdfBlockOrFailPage::new(text_sel("^Alpha$"), "thing", BlockType::FUND_NAME);
-            let blocks = pipe.call(&page(vec![line("Alpha", (0.0, 0.0, 10.0, 10.0))])).unwrap();
+            let pipe = ExtractTextPdfBlockOrFailPage::new(
+                text_sel("^Alpha$"),
+                "thing",
+                BlockType::FUND_NAME,
+            );
+            let blocks = pipe
+                .call(&page(vec![line("Alpha", (0.0, 0.0, 10.0, 10.0))]))
+                .unwrap();
             assert_eq!(blocks, vec![PdfBlock::bare(BlockType::FUND_NAME, "Alpha")]);
         }
 
         #[test]
         fn fails_the_page_when_nothing_matches() {
-            let pipe = ExtractTextPdfBlockOrFailPage::new(text_sel("^Nope$"), "thing", BlockType::FUND_NAME);
-            let err = pipe.call(&page(vec![line("Alpha", (0.0, 0.0, 10.0, 10.0))])).unwrap_err();
-            assert!(matches!(err, PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })));
+            let pipe = ExtractTextPdfBlockOrFailPage::new(
+                text_sel("^Nope$"),
+                "thing",
+                BlockType::FUND_NAME,
+            );
+            let err = pipe
+                .call(&page(vec![line("Alpha", (0.0, 0.0, 10.0, 10.0))]))
+                .unwrap_err();
+            assert!(matches!(
+                err,
+                PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
+            ));
         }
 
         #[test]
         fn a_page_failure_stays_non_fatal_once_translated_for_the_engine() {
-            let pipe = ExtractTextPdfBlockOrFailPage::new(text_sel("^Nope$"), "thing", BlockType::FUND_NAME);
-            let err = pipe.extract(&page(vec![line("Alpha", (0.0, 0.0, 10.0, 10.0))])).unwrap_err();
+            let pipe = ExtractTextPdfBlockOrFailPage::new(
+                text_sel("^Nope$"),
+                "thing",
+                BlockType::FUND_NAME,
+            );
+            let err = pipe
+                .extract(&page(vec![line("Alpha", (0.0, 0.0, 10.0, 10.0))]))
+                .unwrap_err();
             assert!(err.is_page_failure());
         }
 
         #[test]
         fn the_pipe_name_is_the_field_name_it_extracts() {
-            let pipe = ExtractTextPdfBlockOrFailPage::new(text_sel("^Alpha$"), "thing", BlockType::FUND_NAME);
+            let pipe = ExtractTextPdfBlockOrFailPage::new(
+                text_sel("^Alpha$"),
+                "thing",
+                BlockType::FUND_NAME,
+            );
             assert_eq!(PdfExtractPipe::name(&pipe), "thing");
         }
 
@@ -1375,7 +1583,9 @@ mod tests {
             fn fund_uses_the_fund_name_block_type_and_name() {
                 let pipe = pdf_extract_fund_standard(text_sel("^X$"));
                 assert_eq!(PdfExtractPipe::name(&pipe), "fund");
-                let blocks = pipe.call(&page(vec![line("X", (0.0, 0.0, 10.0, 10.0))])).unwrap();
+                let blocks = pipe
+                    .call(&page(vec![line("X", (0.0, 0.0, 10.0, 10.0))]))
+                    .unwrap();
                 assert_eq!(blocks[0].type_block, BlockType::FUND_NAME);
             }
 
@@ -1383,7 +1593,9 @@ mod tests {
             fn currency_uses_the_currency_statement_block_type_and_name() {
                 let pipe = pdf_extract_currency_standard(text_sel("^X$"));
                 assert_eq!(PdfExtractPipe::name(&pipe), "currency");
-                let blocks = pipe.call(&page(vec![line("X", (0.0, 0.0, 10.0, 10.0))])).unwrap();
+                let blocks = pipe
+                    .call(&page(vec![line("X", (0.0, 0.0, 10.0, 10.0))]))
+                    .unwrap();
                 assert_eq!(blocks[0].type_block, BlockType::CURRENCY_STATEMENT);
             }
 
@@ -1397,19 +1609,31 @@ mod tests {
         use super::*;
 
         fn sample() -> Page {
-            page(vec![line("Header one", (0.0, 0.0, 60.0, 10.0)), line("Header two", (0.0, 20.0, 60.0, 30.0))])
+            page(vec![
+                line("Header one", (0.0, 0.0, 60.0, 10.0)),
+                line("Header two", (0.0, 20.0, 60.0, 30.0)),
+            ])
         }
 
         #[test]
         fn declares_the_page_type_when_every_header_set_matches() {
-            let pipe = PdfExtractPageClassifyStandard::new(vec![text_sel("Header one"), text_sel("Header two")], "investments");
+            let pipe = PdfExtractPageClassifyStandard::new(
+                vec![text_sel("Header one"), text_sel("Header two")],
+                "investments",
+            );
             let blocks = pipe.call(&sample()).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "page_type"), BlockValue::from("investments"));
+            assert_eq!(
+                metadata_of(&blocks[0], "page_type"),
+                BlockValue::from("investments")
+            );
         }
 
         #[test]
         fn declares_nothing_when_one_header_set_is_missing() {
-            let pipe = PdfExtractPageClassifyStandard::new(vec![text_sel("Header one"), text_sel("Header three")], "investments");
+            let pipe = PdfExtractPageClassifyStandard::new(
+                vec![text_sel("Header one"), text_sel("Header three")],
+                "investments",
+            );
             let blocks = pipe.call(&sample()).unwrap();
             assert_eq!(metadata_of(&blocks[0], "page_type"), BlockValue::Null);
         }
@@ -1418,7 +1642,10 @@ mod tests {
         fn an_empty_list_of_header_sets_always_matches() {
             let pipe = PdfExtractPageClassifyStandard::new(Vec::new(), "anything");
             let blocks = pipe.call(&page(Vec::new())).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "page_type"), BlockValue::from("anything"));
+            assert_eq!(
+                metadata_of(&blocks[0], "page_type"),
+                BlockValue::from("anything")
+            );
         }
 
         #[test]
@@ -1431,7 +1658,8 @@ mod tests {
 
         #[test]
         fn the_block_is_a_page_class_block_with_empty_content() {
-            let pipe = PdfExtractPageClassifyStandard::new(vec![text_sel("Header one")], "investments");
+            let pipe =
+                PdfExtractPageClassifyStandard::new(vec![text_sel("Header one")], "investments");
             let blocks = pipe.call(&sample()).unwrap();
             assert_eq!(blocks[0].type_block, BlockType::PAGE_CLASS);
             assert_eq!(blocks[0].content, BlockValue::from(""));
@@ -1439,7 +1667,8 @@ mod tests {
 
         #[test]
         fn an_empty_page_never_matches_a_non_empty_header_set() {
-            let pipe = PdfExtractPageClassifyStandard::new(vec![text_sel("Header one")], "investments");
+            let pipe =
+                PdfExtractPageClassifyStandard::new(vec![text_sel("Header one")], "investments");
             let blocks = pipe.call(&page(Vec::new())).unwrap();
             assert_eq!(metadata_of(&blocks[0], "page_type"), BlockValue::Null);
         }
@@ -1457,9 +1686,24 @@ mod tests {
         /// A cover page: a title in one font, the management company in another.
         fn cover() -> Page {
             page(vec![
-                PdfLine::new("TrebuchetMS", 26.0, "Relazione di gestione", (0.0, 0.0, 200.0, 26.0)),
-                PdfLine::new("Arial", 10.0, "Mediolanum Gestione Fondi SGR", (0.0, 40.0, 200.0, 50.0)),
-                PdfLine::new("Arial", 10.0, "Mediolanum Best Brands", (0.0, 60.0, 200.0, 70.0)),
+                PdfLine::new(
+                    "TrebuchetMS",
+                    26.0,
+                    "Relazione di gestione",
+                    (0.0, 0.0, 200.0, 26.0),
+                ),
+                PdfLine::new(
+                    "Arial",
+                    10.0,
+                    "Mediolanum Gestione Fondi SGR",
+                    (0.0, 40.0, 200.0, 50.0),
+                ),
+                PdfLine::new(
+                    "Arial",
+                    10.0,
+                    "Mediolanum Best Brands",
+                    (0.0, 60.0, 200.0, 70.0),
+                ),
             ])
         }
 
@@ -1473,23 +1717,37 @@ mod tests {
 
             #[test]
             fn a_single_selection_that_finds_a_line_declares_the_pattern() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum Gestione")], pattern("MEDIOLANUM"));
-                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("MEDIOLANUM"));
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("Mediolanum Gestione")],
+                    pattern("MEDIOLANUM"),
+                );
+                assert_eq!(
+                    declared(&pipe.call(&cover()).unwrap()),
+                    BlockValue::from("MEDIOLANUM")
+                );
             }
 
             #[test]
             fn a_single_selection_that_finds_nothing_declares_null() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Amundi")], pattern("AMUNDI"));
+                let pipe =
+                    PdfExtractDocClassifyStandard::new(vec![text_sel("Amundi")], pattern("AMUNDI"));
                 assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::Null);
             }
 
             #[test]
             fn several_selections_all_finding_a_line_declare_the_pattern() {
                 let pipe = PdfExtractDocClassifyStandard::new(
-                    vec![text_sel("^Relazione di gestione$"), text_sel("Mediolanum Gestione"), font_sel("TrebuchetMS")],
+                    vec![
+                        text_sel("^Relazione di gestione$"),
+                        text_sel("Mediolanum Gestione"),
+                        font_sel("TrebuchetMS"),
+                    ],
                     pattern("MEDIOLANUM-IT24.*"),
                 );
-                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("MEDIOLANUM-IT24.*"));
+                assert_eq!(
+                    declared(&pipe.call(&cover()).unwrap()),
+                    BlockValue::from("MEDIOLANUM-IT24.*")
+                );
             }
 
             /// The criteria of a step are an AND (§2.1): one missing selection is enough to say no,
@@ -1498,8 +1756,13 @@ mod tests {
             fn one_missing_selection_among_several_declares_null_wherever_it_sits() {
                 let found = || text_sel("Mediolanum Gestione");
                 let missing = || text_sel("Annual Report");
-                for selections in [vec![missing(), found()], vec![found(), missing()], vec![found(), missing(), found()]] {
-                    let pipe = PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM-EN"));
+                for selections in [
+                    vec![missing(), found()],
+                    vec![found(), missing()],
+                    vec![found(), missing(), found()],
+                ] {
+                    let pipe =
+                        PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM-EN"));
                     assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::Null);
                 }
             }
@@ -1507,8 +1770,14 @@ mod tests {
             /// "At least one line": a selection finding several is as good as one finding one.
             #[test]
             fn a_selection_finding_several_lines_counts_as_found() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("^Mediolanum")], pattern("MEDIOLANUM"));
-                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("MEDIOLANUM"));
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("^Mediolanum")],
+                    pattern("MEDIOLANUM"),
+                );
+                assert_eq!(
+                    declared(&pipe.call(&cover()).unwrap()),
+                    BlockValue::from("MEDIOLANUM")
+                );
             }
 
             /// A YAML step with no criteria is unconditional (§3.2): the pipe with no selection is
@@ -1516,20 +1785,32 @@ mod tests {
             #[test]
             fn zero_selections_always_declare_the_pattern() {
                 let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern("ASTERIA-EN23"));
-                assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from("ASTERIA-EN23"));
+                assert_eq!(
+                    declared(&pipe.call(&cover()).unwrap()),
+                    BlockValue::from("ASTERIA-EN23")
+                );
             }
 
             /// Even on a page with no text at all — an image cover.
             #[test]
             fn zero_selections_declare_the_pattern_on_an_empty_page_too() {
                 let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern("ASTERIA-EN23"));
-                assert_eq!(declared(&pipe.call(&page(Vec::new())).unwrap()), BlockValue::from("ASTERIA-EN23"));
+                assert_eq!(
+                    declared(&pipe.call(&page(Vec::new())).unwrap()),
+                    BlockValue::from("ASTERIA-EN23")
+                );
             }
 
             #[test]
             fn an_empty_page_never_matches_a_non_empty_selection() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum")], pattern("MEDIOLANUM"));
-                assert_eq!(declared(&pipe.call(&page(Vec::new())).unwrap()), BlockValue::Null);
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("Mediolanum")],
+                    pattern("MEDIOLANUM"),
+                );
+                assert_eq!(
+                    declared(&pipe.call(&page(Vec::new())).unwrap()),
+                    BlockValue::Null
+                );
             }
         }
 
@@ -1540,8 +1821,13 @@ mod tests {
             /// The downstream segment expects one block per pipe, as for the page twin.
             #[test]
             fn always_emits_exactly_one_block_whatever_the_outcome() {
-                for selections in [vec![text_sel("Mediolanum")], vec![text_sel("absent")], Vec::new()] {
-                    let pipe = PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM"));
+                for selections in [
+                    vec![text_sel("Mediolanum")],
+                    vec![text_sel("absent")],
+                    Vec::new(),
+                ] {
+                    let pipe =
+                        PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM"));
                     assert_eq!(pipe.call(&cover()).unwrap().len(), 1);
                     assert_eq!(pipe.call(&page(Vec::new())).unwrap().len(), 1);
                 }
@@ -1549,7 +1835,10 @@ mod tests {
 
             #[test]
             fn the_block_is_a_doc_class_block_with_empty_content_when_it_matches() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum")], pattern("MEDIOLANUM"));
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("Mediolanum")],
+                    pattern("MEDIOLANUM"),
+                );
                 let blocks = pipe.call(&cover()).unwrap();
                 assert_eq!(blocks[0].type_block, BlockType::DOC_CLASS);
                 assert_eq!(blocks[0].content, BlockValue::from(""));
@@ -1557,17 +1846,26 @@ mod tests {
 
             #[test]
             fn the_block_is_a_doc_class_block_when_it_does_not_match_either() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("absent")], pattern("MEDIOLANUM"));
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("absent")],
+                    pattern("MEDIOLANUM"),
+                );
                 let blocks = pipe.call(&cover()).unwrap();
                 assert_eq!(blocks[0].type_block, BlockType::DOC_CLASS);
-                assert!(blocks[0].metadata.contains_key("format_pattern"), "the key is there, null, not missing");
+                assert!(
+                    blocks[0].metadata.contains_key("format_pattern"),
+                    "the key is there, null, not missing"
+                );
             }
 
             /// It is not the page twin's block: the two classifications must never be mistaken for
             /// each other downstream.
             #[test]
             fn it_writes_no_page_type() {
-                let pipe = PdfExtractDocClassifyStandard::new(vec![text_sel("Mediolanum")], pattern("MEDIOLANUM"));
+                let pipe = PdfExtractDocClassifyStandard::new(
+                    vec![text_sel("Mediolanum")],
+                    pattern("MEDIOLANUM"),
+                );
                 let blocks = pipe.call(&cover()).unwrap();
                 assert_ne!(blocks[0].type_block, BlockType::PAGE_CLASS);
                 assert!(!blocks[0].metadata.contains_key("page_type"));
@@ -1594,7 +1892,11 @@ mod tests {
                     "X-EN23@LUX.B",
                 ] {
                     let pipe = PdfExtractDocClassifyStandard::new(Vec::new(), pattern(text));
-                    assert_eq!(declared(&pipe.call(&cover()).unwrap()), BlockValue::from(text), "{text}");
+                    assert_eq!(
+                        declared(&pipe.call(&cover()).unwrap()),
+                        BlockValue::from(text),
+                        "{text}"
+                    );
                 }
             }
 
@@ -1620,9 +1922,17 @@ mod tests {
 
             #[test]
             fn extracting_produces_the_same_blocks_as_the_direct_call() {
-                for selections in [vec![text_sel("Mediolanum")], vec![text_sel("absent")], Vec::new()] {
-                    let pipe = PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM"));
-                    assert_eq!(pipe.extract(&cover()).unwrap(), pipe.call(&cover()).unwrap());
+                for selections in [
+                    vec![text_sel("Mediolanum")],
+                    vec![text_sel("absent")],
+                    Vec::new(),
+                ] {
+                    let pipe =
+                        PdfExtractDocClassifyStandard::new(selections, pattern("MEDIOLANUM"));
+                    assert_eq!(
+                        pipe.extract(&cover()).unwrap(),
+                        pipe.call(&cover()).unwrap()
+                    );
                 }
             }
         }
@@ -1634,20 +1944,33 @@ mod tests {
         #[test]
         fn emits_the_currency_code_regardless_of_the_page() {
             let pipe = PdfExtractCurrencyConstant::new(Currency::USD);
-            for p in [page(Vec::new()), page(vec![line("noise", (0.0, 0.0, 10.0, 10.0))])] {
+            for p in [
+                page(Vec::new()),
+                page(vec![line("noise", (0.0, 0.0, 10.0, 10.0))]),
+            ] {
                 let blocks = pipe.call(&p);
-                assert_eq!(blocks, vec![PdfBlock::bare(BlockType::CURRENCY_STATEMENT, "USD")]);
+                assert_eq!(
+                    blocks,
+                    vec![PdfBlock::bare(BlockType::CURRENCY_STATEMENT, "USD")]
+                );
             }
         }
 
         #[test]
         fn exposes_the_currency_it_was_built_with() {
-            assert_eq!(PdfExtractCurrencyConstant::new(Currency::EUR).currency(), Currency::EUR);
+            assert_eq!(
+                PdfExtractCurrencyConstant::new(Currency::EUR).currency(),
+                Currency::EUR
+            );
         }
 
         #[test]
         fn never_fails() {
-            assert!(PdfExtractCurrencyConstant::new(Currency::EUR).extract(&page(Vec::new())).is_ok());
+            assert!(
+                PdfExtractCurrencyConstant::new(Currency::EUR)
+                    .extract(&page(Vec::new()))
+                    .is_ok()
+            );
         }
 
         /// R3: a value the engine decided instead of reading must not reach the output in silence.
@@ -1663,7 +1986,9 @@ mod tests {
                 });
                 assert_eq!(record.level, Some(tracing::Level::WARN));
                 assert!(
-                    record.message.starts_with("currency was not read: imposed as \"EUR\""),
+                    record
+                        .message
+                        .starts_with("currency was not read: imposed as \"EUR\""),
                     "found {:?}",
                     record.message
                 );
@@ -1767,7 +2092,10 @@ mod tests {
         /// a reader.
         #[test]
         fn a_block_carries_its_two_coordinates_and_nothing_else() {
-            let p = page(vec![line("narrow", (0.0, 0.0, 10.0, 10.0)), line("wide", (0.0, 20.0, 90.0, 30.0))]);
+            let p = page(vec![
+                line("narrow", (0.0, 0.0, 10.0, 10.0)),
+                line("wide", (0.0, 20.0, 90.0, 30.0)),
+            ]);
             for block in body_pipe().call(&p).unwrap() {
                 assert_eq!(
                     block.metadata.keys().collect::<Vec<_>>(),
@@ -1779,7 +2107,9 @@ mod tests {
 
         #[test]
         fn returns_nothing_when_the_body_set_selects_no_line() {
-            let pipe = PdfExtractInvestmentsStandard::new(InvestmentsStandardArgs::new(text_sel("^absent$")));
+            let pipe = PdfExtractInvestmentsStandard::new(InvestmentsStandardArgs::new(text_sel(
+                "^absent$",
+            )));
             assert!(pipe.call(&table_page()).unwrap().is_empty());
         }
 
@@ -1810,7 +2140,10 @@ mod tests {
                 ])
             }
 
-            fn pipe(collapse: bool, direction: SplittingDirection) -> PdfExtractInvestmentsStandard {
+            fn pipe(
+                collapse: bool,
+                direction: SplittingDirection,
+            ) -> PdfExtractInvestmentsStandard {
                 PdfExtractInvestmentsStandard::new(InvestmentsStandardArgs {
                     company_index: Some(0),
                     table: TableSettings {
@@ -1824,12 +2157,17 @@ mod tests {
             }
 
             fn contents(blocks: &[PdfBlock]) -> Vec<String> {
-                blocks.iter().map(|b| b.content.as_str().unwrap_or_default().to_string()).collect()
+                blocks
+                    .iter()
+                    .map(|b| b.content.as_str().unwrap_or_default().to_string())
+                    .collect()
             }
 
             #[test]
             fn without_it_every_line_is_its_own_block() {
-                let blocks = pipe(false, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
+                let blocks = pipe(false, SplittingDirection::Down)
+                    .call(&wrapped_name_page())
+                    .unwrap();
                 assert_eq!(blocks.len(), 5);
                 assert_eq!(contents(&blocks)[0], "Acme Asset Managemen");
                 assert_eq!(contents(&blocks)[1], "t Company");
@@ -1837,7 +2175,9 @@ mod tests {
 
             #[test]
             fn with_it_the_two_halves_are_one_block() {
-                let blocks = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
+                let blocks = pipe(true, SplittingDirection::Down)
+                    .call(&wrapped_name_page())
+                    .unwrap();
                 assert_eq!(blocks.len(), 4, "five lines, four cells");
                 assert_eq!(
                     contents(&blocks)[0],
@@ -1850,8 +2190,12 @@ mod tests {
             /// already one line per cell is untouched.
             #[test]
             fn a_table_with_no_wrapped_cell_comes_out_exactly_as_before() {
-                let without = pipe(false, SplittingDirection::Down).call(&table_page()).unwrap();
-                let with = pipe(true, SplittingDirection::Down).call(&table_page()).unwrap();
+                let without = pipe(false, SplittingDirection::Down)
+                    .call(&table_page())
+                    .unwrap();
+                let with = pipe(true, SplittingDirection::Down)
+                    .call(&table_page())
+                    .unwrap();
                 assert_eq!(without, with);
             }
 
@@ -1865,13 +2209,25 @@ mod tests {
             fn the_direction_puts_the_cell_beside_its_own_values() {
                 let row_of = |blocks: &[PdfBlock], at: usize| metadata_of(&blocks[at], "table-row");
 
-                let up = pipe(true, SplittingDirection::Up).call(&wrapped_name_page()).unwrap();
+                let up = pipe(true, SplittingDirection::Up)
+                    .call(&wrapped_name_page())
+                    .unwrap();
                 assert_eq!(contents(&up)[0], "Acme Asset Management Company");
                 assert_eq!(contents(&up)[1], "100");
-                assert_eq!(row_of(&up, 0), row_of(&up, 1), "the name and its amount are one row");
+                assert_eq!(
+                    row_of(&up, 0),
+                    row_of(&up, 1),
+                    "the name and its amount are one row"
+                );
 
-                let down = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
-                assert_eq!(contents(&down)[0], contents(&up)[0], "the same text either way");
+                let down = pipe(true, SplittingDirection::Down)
+                    .call(&wrapped_name_page())
+                    .unwrap();
+                assert_eq!(
+                    contents(&down)[0],
+                    contents(&up)[0],
+                    "the same text either way"
+                );
                 assert_ne!(row_of(&down, 0), row_of(&down, 1));
             }
 
@@ -1895,15 +2251,24 @@ mod tests {
                         .collect();
                     rows.sort_unstable();
                     rows.dedup();
-                    assert_eq!(rows, (0..rows.len() as i64).collect::<Vec<_>>(), "{direction:?}");
+                    assert_eq!(
+                        rows,
+                        (0..rows.len() as i64).collect::<Vec<_>>(),
+                        "{direction:?}"
+                    );
                 }
             }
 
             /// A joined cell carries the same two keys as any other block.
             #[test]
             fn a_joined_cell_carries_its_two_coordinates() {
-                let blocks = pipe(true, SplittingDirection::Down).call(&wrapped_name_page()).unwrap();
-                assert_eq!(blocks[0].metadata.keys().collect::<Vec<_>>(), ["table-col", "table-row"]);
+                let blocks = pipe(true, SplittingDirection::Down)
+                    .call(&wrapped_name_page())
+                    .unwrap();
+                assert_eq!(
+                    blocks[0].metadata.keys().collect::<Vec<_>>(),
+                    ["table-col", "table-row"]
+                );
             }
         }
 
@@ -1918,7 +2283,9 @@ mod tests {
                 deselection_list: vec![text_sel("^r0c0$")],
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            let blocks = PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap();
+            let blocks = PdfExtractInvestmentsStandard::new(args)
+                .call(&table_page())
+                .unwrap();
             assert_eq!(blocks.len(), 3);
             assert!(blocks.iter().all(|b| b.content != BlockValue::from("r0c0")));
         }
@@ -1929,7 +2296,9 @@ mod tests {
                 deselection_list: vec![text_sel("^r0c0$"), text_sel("^r1c1$")],
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            let blocks = PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap();
+            let blocks = PdfExtractInvestmentsStandard::new(args)
+                .call(&table_page())
+                .unwrap();
             assert_eq!(blocks.len(), 2);
         }
 
@@ -1939,7 +2308,12 @@ mod tests {
                 deselection_list: vec![text_sel("")],
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            assert!(PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap().is_empty());
+            assert!(
+                PdfExtractInvestmentsStandard::new(args)
+                    .call(&table_page())
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         /// The columns of `table_page` are centred 30 points apart, so a tolerance either side of
@@ -1966,14 +2340,21 @@ mod tests {
         fn a_tolerance_below_the_column_gap_leaves_the_columns_apart() {
             assert_eq!(
                 columns_with_tolerance(5.0),
-                vec![BlockValue::from(0i64), BlockValue::from(1i64), BlockValue::from(0i64), BlockValue::from(1i64)]
+                vec![
+                    BlockValue::from(0i64),
+                    BlockValue::from(1i64),
+                    BlockValue::from(0i64),
+                    BlockValue::from(1i64)
+                ]
             );
         }
 
         #[test]
         fn a_tolerance_above_the_column_gap_merges_them_into_one() {
             assert!(
-                columns_with_tolerance(40.0).iter().all(|col| *col == BlockValue::from(0i64)),
+                columns_with_tolerance(40.0)
+                    .iter()
+                    .all(|col| *col == BlockValue::from(0i64)),
                 "a tolerance wider than the gap must reach the tabularizer and collapse the columns"
             );
         }
@@ -1991,7 +2372,9 @@ mod tests {
                 },
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            let blocks = PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap();
+            let blocks = PdfExtractInvestmentsStandard::new(args)
+                .call(&table_page())
+                .unwrap();
             let coords: Vec<_> = blocks
                 .iter()
                 .map(|b| (metadata_of(b, "table-row"), metadata_of(b, "table-col")))
@@ -2019,7 +2402,9 @@ mod tests {
                 },
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            let blocks = PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap();
+            let blocks = PdfExtractInvestmentsStandard::new(args)
+                .call(&table_page())
+                .unwrap();
             let coords: Vec<_> = blocks
                 .iter()
                 .map(|b| (metadata_of(b, "table-row"), metadata_of(b, "table-col")))
@@ -2038,23 +2423,41 @@ mod tests {
         #[test]
         fn the_table_settings_are_readable_back() {
             let args = InvestmentsStandardArgs {
-                table: TableSettings { col_tolerance: 7.5, ..TableSettings::default() },
+                table: TableSettings {
+                    col_tolerance: 7.5,
+                    ..TableSettings::default()
+                },
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            assert_eq!(PdfExtractInvestmentsStandard::new(args).table().col_tolerance, 7.5);
+            assert_eq!(
+                PdfExtractInvestmentsStandard::new(args)
+                    .table()
+                    .col_tolerance,
+                7.5
+            );
         }
 
         #[test]
         fn a_column_mismatch_from_the_positioning_algorithm_surfaces_as_an_error() {
             // Lines whose width is incompatible with a fixed column count: forcing the count out of
             // range through `company_index` is enough to check that the error travels up.
-            let args = InvestmentsStandardArgs { company_index: Some(0), ..InvestmentsStandardArgs::new(text_sel("")) };
-            assert!(PdfExtractInvestmentsStandard::new(args).call(&table_page()).is_ok());
+            let args = InvestmentsStandardArgs {
+                company_index: Some(0),
+                ..InvestmentsStandardArgs::new(text_sel(""))
+            };
+            assert!(
+                PdfExtractInvestmentsStandard::new(args)
+                    .call(&table_page())
+                    .is_ok()
+            );
         }
 
         #[test]
         fn the_pipe_name_identifies_it_in_error_messages() {
-            assert_eq!(PdfExtractPipe::name(&body_pipe()), "PdfExtractInvestmentsStandard");
+            assert_eq!(
+                PdfExtractPipe::name(&body_pipe()),
+                "PdfExtractInvestmentsStandard"
+            );
         }
     }
 
@@ -2142,13 +2545,25 @@ mod tests {
         /// `Beta` tiene i suoi numeri.
         #[test]
         fn pairing_by_abscissa_leaves_a_hole_instead_of_shifting() {
-            let args = AssetsStandardArgs { pairing: AssetsPairing::ByAbscissa, ..two_funds_args() };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&two_funds_page(false)).unwrap();
+            let args = AssetsStandardArgs {
+                pairing: AssetsPairing::ByAbscissa,
+                ..two_funds_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&two_funds_page(false))
+                .unwrap();
 
             assert_eq!(blocks.len(), 1);
             assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Beta"));
-            assert_eq!(metadata_of(&blocks[0], "liabilities"), BlockValue::from("400"));
-            assert_eq!(metadata_of(&blocks[0], "net_assets"), BlockValue::from("1600"));
+            assert_eq!(
+                metadata_of(&blocks[0], "liabilities"),
+                BlockValue::from("400")
+            );
+            assert_eq!(
+                metadata_of(&blocks[0], "net_assets"),
+                BlockValue::from("1600")
+            );
         }
 
         /// **La misura che giustifica il parametro.** Tutte le celle ci sono, e l'appaiamento per
@@ -2163,19 +2578,36 @@ mod tests {
                 .unwrap()
                 .call(&two_funds_page(true))
                 .unwrap();
-            let args = AssetsStandardArgs { pairing: AssetsPairing::ByAbscissa, ..two_funds_args() };
-            let by_abscissa =
-                PdfExtractAssetsStandard::build(args).unwrap().call(&two_funds_page(true)).unwrap();
+            let args = AssetsStandardArgs {
+                pairing: AssetsPairing::ByAbscissa,
+                ..two_funds_args()
+            };
+            let by_abscissa = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&two_funds_page(true))
+                .unwrap();
 
             assert_eq!(by_index.len(), 2);
             assert_eq!(by_abscissa.len(), 2);
             // Per indice: `Alpha` si prende il passivo di `Beta`, perché quella riga viene prima.
             assert_eq!(metadata_of(&by_index[0], "fund"), BlockValue::from("Alpha"));
-            assert_eq!(metadata_of(&by_index[0], "liabilities"), BlockValue::from("400"));
+            assert_eq!(
+                metadata_of(&by_index[0], "liabilities"),
+                BlockValue::from("400")
+            );
             // Per ascissa: ciascuno il suo.
-            assert_eq!(metadata_of(&by_abscissa[0], "fund"), BlockValue::from("Alpha"));
-            assert_eq!(metadata_of(&by_abscissa[0], "liabilities"), BlockValue::from("200"));
-            assert_eq!(metadata_of(&by_abscissa[1], "liabilities"), BlockValue::from("400"));
+            assert_eq!(
+                metadata_of(&by_abscissa[0], "fund"),
+                BlockValue::from("Alpha")
+            );
+            assert_eq!(
+                metadata_of(&by_abscissa[0], "liabilities"),
+                BlockValue::from("200")
+            );
+            assert_eq!(
+                metadata_of(&by_abscissa[1], "liabilities"),
+                BlockValue::from("400")
+            );
         }
 
         /// E dove l'ordine della pagina **è** quello delle colonne, le due strade coincidono: è la
@@ -2195,9 +2627,18 @@ mod tests {
                 line("800", (110.0, 70.0, 160.0, 80.0)),
                 line("1600", (210.0, 70.0, 260.0, 80.0)),
             ]);
-            let by_index = PdfExtractAssetsStandard::build(two_funds_args()).unwrap().call(&ordered).unwrap();
-            let args = AssetsStandardArgs { pairing: AssetsPairing::ByAbscissa, ..two_funds_args() };
-            let by_abscissa = PdfExtractAssetsStandard::build(args).unwrap().call(&ordered).unwrap();
+            let by_index = PdfExtractAssetsStandard::build(two_funds_args())
+                .unwrap()
+                .call(&ordered)
+                .unwrap();
+            let args = AssetsStandardArgs {
+                pairing: AssetsPairing::ByAbscissa,
+                ..two_funds_args()
+            };
+            let by_abscissa = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&ordered)
+                .unwrap();
 
             assert_eq!(by_index, by_abscissa);
             assert_eq!(by_index.len(), 2);
@@ -2230,11 +2671,20 @@ mod tests {
                 drop: Some(text_sel("^30/06/2023$")),
                 ..simple_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
 
             assert_eq!(blocks.len(), 1);
-            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
-            assert_eq!(metadata_of(&blocks[0], "liabilities"), BlockValue::from("200"));
+            assert_eq!(
+                metadata_of(&blocks[0], "tot_assets"),
+                BlockValue::from("1000")
+            );
+            assert_eq!(
+                metadata_of(&blocks[0], "liabilities"),
+                BlockValue::from("200")
+            );
         }
 
         /// Una pagina con tre colonne di comparto, la terza delle quali è il **totale
@@ -2243,7 +2693,12 @@ mod tests {
             page(vec![
                 PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
                 PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
-                PdfLine::new("Head", 10.0, "COMBINED STATEMENT", (300.0, 0.0, 360.0, 10.0)),
+                PdfLine::new(
+                    "Head",
+                    10.0,
+                    "COMBINED STATEMENT",
+                    (300.0, 0.0, 360.0, 10.0),
+                ),
                 line("Total assets", (0.0, 30.0, 40.0, 40.0)),
                 line("1000", (110.0, 30.0, 160.0, 40.0)),
                 line("2000", (210.0, 30.0, 260.0, 40.0)),
@@ -2275,13 +2730,22 @@ mod tests {
                 drop_funds: Some(text_sel("^COMBINED")),
                 ..umbrella_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&umbrella_page()).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&umbrella_page())
+                .unwrap();
 
             assert_eq!(blocks.len(), 2);
             assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Alpha"));
-            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
+            assert_eq!(
+                metadata_of(&blocks[0], "tot_assets"),
+                BlockValue::from("1000")
+            );
             assert_eq!(metadata_of(&blocks[1], "fund"), BlockValue::from("Beta"));
-            assert_eq!(metadata_of(&blocks[1], "tot_assets"), BlockValue::from("2000"));
+            assert_eq!(
+                metadata_of(&blocks[1], "tot_assets"),
+                BlockValue::from("2000")
+            );
         }
 
         /// **La misura che giustifica il parametro.** `drop` toglieva i numeri e lasciava il nome,
@@ -2294,13 +2758,19 @@ mod tests {
                 drop: Some(text_sel("^COMBINED")),
                 ..umbrella_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&umbrella_page()).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&umbrella_page())
+                .unwrap();
 
             // Due righe e non tre: la terza colonna è nei nomi, i suoi numeri no, quindi `A4` la
             // lascia cadere **dicendolo**. Con `drop_funds` non c'è niente da dire.
             assert_eq!(blocks.len(), 2);
             let names: Vec<BlockValue> = blocks.iter().map(|b| metadata_of(b, "fund")).collect();
-            assert_eq!(names, vec![BlockValue::from("Alpha"), BlockValue::from("Beta")]);
+            assert_eq!(
+                names,
+                vec![BlockValue::from("Alpha"), BlockValue::from("Beta")]
+            );
         }
 
         /// Per indice la colonna scartata non sposta i comparti che la seguono, che è la ragione
@@ -2308,7 +2778,12 @@ mod tests {
         #[test]
         fn a_dropped_column_does_not_shift_the_funds_after_it() {
             let lines = vec![
-                PdfLine::new("Head", 10.0, "COMBINED STATEMENT", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new(
+                    "Head",
+                    10.0,
+                    "COMBINED STATEMENT",
+                    (100.0, 0.0, 160.0, 10.0),
+                ),
                 PdfLine::new("Head", 10.0, "Alpha", (200.0, 0.0, 260.0, 10.0)),
                 line("Total assets", (0.0, 30.0, 40.0, 40.0)),
                 line("3000", (110.0, 30.0, 160.0, 40.0)),
@@ -2324,13 +2799,22 @@ mod tests {
                 drop_funds: Some(text_sel("^COMBINED")),
                 ..umbrella_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
 
             assert_eq!(blocks.len(), 1);
             assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Alpha"));
             // I numeri di `Alpha`, non quelli dell'ombrello scalati di una posizione.
-            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
-            assert_eq!(metadata_of(&blocks[0], "net_assets"), BlockValue::from("800"));
+            assert_eq!(
+                metadata_of(&blocks[0], "tot_assets"),
+                BlockValue::from("1000")
+            );
+            assert_eq!(
+                metadata_of(&blocks[0], "net_assets"),
+                BlockValue::from("800")
+            );
         }
 
         /// La valuta per colonna segue le colonne **rimaste**: appaiata a quelle di prima sarebbe
@@ -2338,7 +2822,12 @@ mod tests {
         #[test]
         fn the_per_column_currency_follows_the_columns_that_are_kept() {
             let lines = vec![
-                PdfLine::new("Head", 10.0, "COMBINED STATEMENT", (100.0, 0.0, 160.0, 10.0)),
+                PdfLine::new(
+                    "Head",
+                    10.0,
+                    "COMBINED STATEMENT",
+                    (100.0, 0.0, 160.0, 10.0),
+                ),
                 PdfLine::new("Head", 10.0, "Alpha", (200.0, 0.0, 260.0, 10.0)),
                 PdfLine::new("Curr", 10.0, "CHF", (110.0, 15.0, 160.0, 25.0)),
                 PdfLine::new("Curr", 10.0, "EUR", (210.0, 15.0, 260.0, 25.0)),
@@ -2360,7 +2849,10 @@ mod tests {
                 drop_funds: Some(text_sel("^COMBINED")),
                 ..simple_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
 
             assert_eq!(blocks.len(), 1);
             assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Alpha"));
@@ -2388,26 +2880,42 @@ mod tests {
                 pairing: AssetsPairing::ByAbscissa,
                 ..simple_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
 
             // Una banda sola, quindi il secondo numero cade sulla stessa e il primo resta: la riga
             // è giusta per caso, e su una pagina a più comparti non lo sarebbe.
             assert_eq!(blocks.len(), 1);
-            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
+            assert_eq!(
+                metadata_of(&blocks[0], "tot_assets"),
+                BlockValue::from("1000")
+            );
         }
 
         #[test]
         fn build_rejects_a_missing_currency_set_outside_table_mode() {
-            let args = AssetsStandardArgs { currency_set: None, ..simple_args() };
+            let args = AssetsStandardArgs {
+                currency_set: None,
+                ..simple_args()
+            };
             let err = PdfExtractAssetsStandard::build(args)
                 .err()
                 .expect("build must reject a missing currency_set outside table mode");
-            assert!(matches!(err, PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { .. }));
+            assert!(matches!(
+                err,
+                PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { .. }
+            ));
         }
 
         #[test]
         fn build_accepts_a_missing_currency_set_in_table_mode() {
-            let args = AssetsStandardArgs { currency_set: None, table_condition: true, ..simple_args() };
+            let args = AssetsStandardArgs {
+                currency_set: None,
+                table_condition: true,
+                ..simple_args()
+            };
             assert!(PdfExtractAssetsStandard::build(args).is_ok());
         }
 
@@ -2416,15 +2924,27 @@ mod tests {
             let blocks = simple_pipe().call(&simple_page()).unwrap();
             assert_eq!(blocks.len(), 1);
             assert_eq!(blocks[0].type_block, BlockType::RELEVANT_BLOCK);
-            assert_eq!(metadata_of(&blocks[0], "tot_assets"), BlockValue::from("1000"));
-            assert_eq!(metadata_of(&blocks[0], "liabilities"), BlockValue::from("200"));
-            assert_eq!(metadata_of(&blocks[0], "net_assets"), BlockValue::from("800"));
+            assert_eq!(
+                metadata_of(&blocks[0], "tot_assets"),
+                BlockValue::from("1000")
+            );
+            assert_eq!(
+                metadata_of(&blocks[0], "liabilities"),
+                BlockValue::from("200")
+            );
+            assert_eq!(
+                metadata_of(&blocks[0], "net_assets"),
+                BlockValue::from("800")
+            );
         }
 
         #[test]
         fn carries_the_fund_name_and_the_currency() {
             let blocks = simple_pipe().call(&simple_page()).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "fund"), BlockValue::from("Fund Alpha"));
+            assert_eq!(
+                metadata_of(&blocks[0], "fund"),
+                BlockValue::from("Fund Alpha")
+            );
             assert_eq!(metadata_of(&blocks[0], "currency"), BlockValue::from("EUR"));
         }
 
@@ -2438,10 +2958,16 @@ mod tests {
         fn a_configured_candidate_fills_the_date_metadata() {
             let mut lines = simple_page().lines;
             lines.push(line("31/12/2024", (0.0, 90.0, 40.0, 100.0)));
-            let args = AssetsStandardArgs { date: vec![text_sel("^31/12/2024$")], ..simple_args() };
+            let args = AssetsStandardArgs {
+                date: vec![text_sel("^31/12/2024$")],
+                ..simple_args()
+            };
             let pipe = PdfExtractAssetsStandard::build(args).unwrap();
             let blocks = pipe.call(&page(lines)).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("31/12/2024"));
+            assert_eq!(
+                metadata_of(&blocks[0], "date"),
+                BlockValue::from("31/12/2024")
+            );
         }
 
         /// `R5`: si preferisce la data **della colonna**, vicina al numero; la testata di pagina è
@@ -2450,14 +2976,26 @@ mod tests {
         #[test]
         fn the_first_candidate_that_takes_something_wins_whatever_the_page_order() {
             let mut lines = simple_page().lines;
-            lines.push(line("Annual report as of 31 December 2023", (0.0, 1.0, 200.0, 8.0)));
+            lines.push(line(
+                "Annual report as of 31 December 2023",
+                (0.0, 1.0, 200.0, 8.0),
+            ));
             lines.push(line("31.12.2023", (150.0, 90.0, 200.0, 100.0)));
             let args = AssetsStandardArgs {
-                date: vec![text_sel("^31.12.2023$"), text_sel("^Annual report as of 31 December 2023$")],
+                date: vec![
+                    text_sel("^31.12.2023$"),
+                    text_sel("^Annual report as of 31 December 2023$"),
+                ],
                 ..simple_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("31.12.2023"));
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
+            assert_eq!(
+                metadata_of(&blocks[0], "date"),
+                BlockValue::from("31.12.2023")
+            );
         }
 
         /// Lo stesso insieme di candidati, sull'altro ordine: il secondo vale quando il primo non
@@ -2465,12 +3003,21 @@ mod tests {
         #[test]
         fn the_next_candidate_is_tried_when_the_first_takes_nothing() {
             let mut lines = simple_page().lines;
-            lines.push(line("Annual report as of 31 December 2023", (0.0, 1.0, 200.0, 8.0)));
+            lines.push(line(
+                "Annual report as of 31 December 2023",
+                (0.0, 1.0, 200.0, 8.0),
+            ));
             let args = AssetsStandardArgs {
-                date: vec![text_sel("^31.12.2023$"), text_sel("^Annual report as of 31 December 2023$")],
+                date: vec![
+                    text_sel("^31.12.2023$"),
+                    text_sel("^Annual report as of 31 December 2023$"),
+                ],
                 ..simple_args()
             };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
             assert_eq!(
                 metadata_of(&blocks[0], "date"),
                 BlockValue::from("Annual report as of 31 December 2023")
@@ -2482,12 +3029,36 @@ mod tests {
         #[test]
         fn a_candidate_joins_the_fragments_it_takes_left_to_right() {
             let mut lines = simple_page().lines;
-            lines.push(PdfLine::new("Narrow", 12.0, "D", (453.9, 44.6, 461.1, 56.6)));
-            lines.push(PdfLine::new("Narrow", 9.0, "ECEMBER", (461.0, 47.4, 497.5, 56.4)));
-            lines.push(PdfLine::new("Narrow", 12.0, "31, 2024", (497.5, 44.6, 538.6, 56.6)));
-            let args = AssetsStandardArgs { date: vec![font_sel("Narrow")], ..simple_args() };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("D ECEMBER 31, 2024"));
+            lines.push(PdfLine::new(
+                "Narrow",
+                12.0,
+                "D",
+                (453.9, 44.6, 461.1, 56.6),
+            ));
+            lines.push(PdfLine::new(
+                "Narrow",
+                9.0,
+                "ECEMBER",
+                (461.0, 47.4, 497.5, 56.4),
+            ));
+            lines.push(PdfLine::new(
+                "Narrow",
+                12.0,
+                "31, 2024",
+                (497.5, 44.6, 538.6, 56.6),
+            ));
+            let args = AssetsStandardArgs {
+                date: vec![font_sel("Narrow")],
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
+            assert_eq!(
+                metadata_of(&blocks[0], "date"),
+                BlockValue::from("D ECEMBER 31, 2024")
+            );
         }
 
         /// Un valore che va a capo resta nell'ordine in cui si legge: le due righe non si
@@ -2495,19 +3066,44 @@ mod tests {
         #[test]
         fn a_candidate_that_wraps_onto_the_next_line_keeps_the_reading_order() {
             let mut lines = simple_page().lines;
-            lines.push(PdfLine::new("Narrow", 10.0, "31 dicembre", (400.0, 90.0, 460.0, 100.0)));
-            lines.push(PdfLine::new("Narrow", 10.0, "2024", (100.0, 104.0, 140.0, 114.0)));
-            let args = AssetsStandardArgs { date: vec![font_sel("Narrow")], ..simple_args() };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&page(lines)).unwrap();
-            assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::from("31 dicembre 2024"));
+            lines.push(PdfLine::new(
+                "Narrow",
+                10.0,
+                "31 dicembre",
+                (400.0, 90.0, 460.0, 100.0),
+            ));
+            lines.push(PdfLine::new(
+                "Narrow",
+                10.0,
+                "2024",
+                (100.0, 104.0, 140.0, 114.0),
+            ));
+            let args = AssetsStandardArgs {
+                date: vec![font_sel("Narrow")],
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&page(lines))
+                .unwrap();
+            assert_eq!(
+                metadata_of(&blocks[0], "date"),
+                BlockValue::from("31 dicembre 2024")
+            );
         }
 
         /// `R25` e la risposta **B**: un formato che dichiara la data e non la trova avvisa e tiene
         /// la riga. Prima costava **la pagina intera**, cioè ogni altro comparto del prospetto.
         #[test]
         fn candidates_that_all_come_up_empty_warn_and_keep_the_row() {
-            let args = AssetsStandardArgs { date: vec![text_sel("^nowhere on this page$")], ..simple_args() };
-            let blocks = PdfExtractAssetsStandard::build(args).unwrap().call(&simple_page()).unwrap();
+            let args = AssetsStandardArgs {
+                date: vec![text_sel("^nowhere on this page$")],
+                ..simple_args()
+            };
+            let blocks = PdfExtractAssetsStandard::build(args)
+                .unwrap()
+                .call(&simple_page())
+                .unwrap();
             assert_eq!(metadata_of(&blocks[0], "date"), BlockValue::Null);
         }
 
@@ -2515,14 +3111,29 @@ mod tests {
         fn a_missing_fund_name_is_reported_as_expected_text_not_found() {
             // This branch raises a not-found error and **not** a page-parse failure: it is fatal
             // for the document rather than a skipped page.
-            let p = page(simple_page().lines.into_iter().filter(|l| l.text() != "Fund Alpha").collect());
+            let p = page(
+                simple_page()
+                    .lines
+                    .into_iter()
+                    .filter(|l| l.text() != "Fund Alpha")
+                    .collect(),
+            );
             let err = simple_pipe().call(&p).unwrap_err();
-            assert!(matches!(err, PdfExtractStandardFuncsError::Commons(CommonsError::ExpectedTextNotFound { .. })));
+            assert!(matches!(
+                err,
+                PdfExtractStandardFuncsError::Commons(CommonsError::ExpectedTextNotFound { .. })
+            ));
         }
 
         #[test]
         fn a_missing_fund_name_is_not_a_skipped_page_once_translated_for_the_engine() {
-            let p = page(simple_page().lines.into_iter().filter(|l| l.text() != "Fund Alpha").collect());
+            let p = page(
+                simple_page()
+                    .lines
+                    .into_iter()
+                    .filter(|l| l.text() != "Fund Alpha")
+                    .collect(),
+            );
             let err = simple_pipe().extract(&p).unwrap_err();
             assert!(!err.is_page_failure());
         }
@@ -2537,13 +3148,24 @@ mod tests {
 
         #[test]
         fn a_zero_skip_column_is_rejected() {
-            let pipe = PdfExtractAssetsStandard::build(AssetsStandardArgs { skip_column: 0, ..simple_args() }).unwrap();
-            assert!(matches!(pipe.call(&simple_page()), Err(PdfExtractStandardFuncsError::ZeroSkipColumn)));
+            let pipe = PdfExtractAssetsStandard::build(AssetsStandardArgs {
+                skip_column: 0,
+                ..simple_args()
+            })
+            .unwrap();
+            assert!(matches!(
+                pipe.call(&simple_page()),
+                Err(PdfExtractStandardFuncsError::ZeroSkipColumn)
+            ));
         }
 
         #[test]
         fn a_negative_skip_column_yields_no_block_like_an_empty_python_range() {
-            let pipe = PdfExtractAssetsStandard::build(AssetsStandardArgs { skip_column: -1, ..simple_args() }).unwrap();
+            let pipe = PdfExtractAssetsStandard::build(AssetsStandardArgs {
+                skip_column: -1,
+                ..simple_args()
+            })
+            .unwrap();
             assert!(pipe.call(&simple_page()).unwrap().is_empty());
         }
 
@@ -2567,9 +3189,15 @@ mod tests {
                     PdfLine::new("Head", 10.0, "Alpha", (100.0, 0.0, 160.0, 10.0)),
                     PdfLine::new("Head", 10.0, "Beta", (200.0, 0.0, 260.0, 10.0)),
                     line("Total assets", (0.0, 30.0, 40.0, 40.0)),
-                    line("   1000     900     2000     1800  ", (100.0, 30.0, 260.0, 40.0)),
+                    line(
+                        "   1000     900     2000     1800  ",
+                        (100.0, 30.0, 260.0, 40.0),
+                    ),
                     line("Liabilities", (0.0, 50.0, 40.0, 60.0)),
-                    line("   200     150     400     350  ", (100.0, 50.0, 260.0, 60.0)),
+                    line(
+                        "   200     150     400     350  ",
+                        (100.0, 50.0, 260.0, 60.0),
+                    ),
                     line("Net assets", (0.0, 70.0, 40.0, 80.0)),
                     // Il patrimonio netto in tre pezzi, uno più uno più due: contare gli oggetti
                     // non dice quanti valori ci sono, ed è il motivo per cui si leggono gli spazi.
@@ -2580,7 +3208,11 @@ mod tests {
             }
 
             fn args(values_in_one_line: bool) -> AssetsStandardArgs {
-                AssetsStandardArgs { values_in_one_line, skip_column: 2, ..two_funds_args() }
+                AssetsStandardArgs {
+                    values_in_one_line,
+                    skip_column: 2,
+                    ..two_funds_args()
+                }
             }
 
             fn amounts(blocks: &[PdfBlock]) -> Vec<(String, String, String, String)> {
@@ -2588,9 +3220,17 @@ mod tests {
                     .iter()
                     .map(|block| {
                         let field = |name: &str| {
-                            block.metadata[name].as_str().expect("the pipe writes strings").to_string()
+                            block.metadata[name]
+                                .as_str()
+                                .expect("the pipe writes strings")
+                                .to_string()
                         };
-                        (field("fund"), field("tot_assets"), field("liabilities"), field("net_assets"))
+                        (
+                            field("fund"),
+                            field("tot_assets"),
+                            field("liabilities"),
+                            field("net_assets"),
+                        )
                     })
                     .collect()
             }
@@ -2628,8 +3268,18 @@ mod tests {
                 assert_eq!(
                     amounts(&blocks),
                     vec![
-                        ("Alpha".to_string(), "1000".to_string(), "200".to_string(), "800".to_string()),
-                        ("Beta".to_string(), "2000".to_string(), "400".to_string(), "1600".to_string()),
+                        (
+                            "Alpha".to_string(),
+                            "1000".to_string(),
+                            "200".to_string(),
+                            "800".to_string()
+                        ),
+                        (
+                            "Beta".to_string(),
+                            "2000".to_string(),
+                            "400".to_string(),
+                            "1600".to_string()
+                        ),
                     ]
                 );
             }
@@ -2662,7 +3312,10 @@ mod tests {
                 let without = PdfExtractAssetsStandard::build(two_funds_args()).unwrap();
                 let page = two_funds_page(true);
 
-                assert_eq!(amounts(&with.call(&page).unwrap()), amounts(&without.call(&page).unwrap()));
+                assert_eq!(
+                    amounts(&with.call(&page).unwrap()),
+                    amounts(&without.call(&page).unwrap())
+                );
             }
         }
 
@@ -2718,7 +3371,10 @@ mod tests {
             }
 
             fn currencies_of(page: &Page) -> Vec<BlockValue> {
-                let blocks = PdfExtractAssetsStandard::build(args()).unwrap().call(page).unwrap();
+                let blocks = PdfExtractAssetsStandard::build(args())
+                    .unwrap()
+                    .call(page)
+                    .unwrap();
                 blocks.iter().map(|b| metadata_of(b, "currency")).collect()
             }
 
@@ -2778,7 +3434,10 @@ mod tests {
             /// valuta è in pagina e non c'è.
             #[test]
             fn a_currency_selection_matching_nothing_still_fails() {
-                let args = AssetsStandardArgs { currency_set: Some(font_sel("Missing")), ..args() };
+                let args = AssetsStandardArgs {
+                    currency_set: Some(font_sel("Missing")),
+                    ..args()
+                };
                 let error = PdfExtractAssetsStandard::build(args)
                     .unwrap()
                     .call(&page_with_two_currencies("EUR"))
@@ -2807,7 +3466,10 @@ mod tests {
 
             #[test]
             fn a_zero_step_is_an_error() {
-                assert!(matches!(range_0_to_len_step(3, 0), Err(PdfExtractStandardFuncsError::ZeroSkipColumn)));
+                assert!(matches!(
+                    range_0_to_len_step(3, 0),
+                    Err(PdfExtractStandardFuncsError::ZeroSkipColumn)
+                ));
             }
 
             #[test]
@@ -2822,7 +3484,10 @@ mod tests {
             #[test]
             fn splits_the_last_word_off_each_fund_name() {
                 let (funds, currencies) =
-                    PdfExtractAssetsStandard::split_trailing_currencies(vec!["Fund Alpha EUR".to_string()]).unwrap();
+                    PdfExtractAssetsStandard::split_trailing_currencies(vec![
+                        "Fund Alpha EUR".to_string(),
+                    ])
+                    .unwrap();
                 assert_eq!(funds, vec!["Fund Alpha".to_string()]);
                 assert_eq!(currencies, vec!["EUR".to_string()]);
             }
@@ -2830,24 +3495,31 @@ mod tests {
             #[test]
             fn a_single_word_leaves_an_empty_fund_name() {
                 let (funds, currencies) =
-                    PdfExtractAssetsStandard::split_trailing_currencies(vec!["EUR".to_string()]).unwrap();
+                    PdfExtractAssetsStandard::split_trailing_currencies(vec!["EUR".to_string()])
+                        .unwrap();
                 assert_eq!(funds, vec![String::new()]);
                 assert_eq!(currencies, vec!["EUR".to_string()]);
             }
 
             #[test]
             fn an_empty_column_has_no_currency_token_to_split() {
-                let err = PdfExtractAssetsStandard::split_trailing_currencies(vec!["   ".to_string()]).unwrap_err();
-                assert!(matches!(err, PdfExtractStandardFuncsError::MissingCurrencyToken { .. }));
+                let err =
+                    PdfExtractAssetsStandard::split_trailing_currencies(vec!["   ".to_string()])
+                        .unwrap_err();
+                assert!(matches!(
+                    err,
+                    PdfExtractStandardFuncsError::MissingCurrencyToken { .. }
+                ));
             }
 
             #[test]
             fn handles_several_columns_independently() {
-                let (funds, currencies) = PdfExtractAssetsStandard::split_trailing_currencies(vec![
-                    "Fund A USD".to_string(),
-                    "Fund B GBP".to_string(),
-                ])
-                .unwrap();
+                let (funds, currencies) =
+                    PdfExtractAssetsStandard::split_trailing_currencies(vec![
+                        "Fund A USD".to_string(),
+                        "Fund B GBP".to_string(),
+                    ])
+                    .unwrap();
                 assert_eq!(funds, vec!["Fund A".to_string(), "Fund B".to_string()]);
                 assert_eq!(currencies, vec!["USD".to_string(), "GBP".to_string()]);
             }

@@ -23,9 +23,9 @@ use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
 use crate::cli::parallelism_config::{ParallelismConfig, Workers};
 use crate::cli::partial_config::MergedConfig;
 use crate::core::tracing_setup::Verbosity;
+use crate::core::tracing_setup::log_error;
 use crate::formats_repo::metadata::{get_formats, url_to_format};
 use crate::output::routines::write::{OutFlags, OutStructureMode};
-use crate::core::tracing_setup::log_error;
 
 /// A resolved configuration crosses a process boundary to a worker job, as JSON — the only reason
 /// it is serializable. No configuration source reads this struct; they all produce a partial one.
@@ -57,7 +57,11 @@ pub enum FreeportsConfigError {
     #[error("conflicting formats detected across report urls: {detected:?}")]
     ConflictingDetectedFormats { detected: Vec<String> },
     #[error("report at index {specifier_index} specifies neither a url nor a path")]
-    InputNotSpecified { specifier_index: usize, #[source] source: DocumentSpecError },
+    InputNotSpecified {
+        specifier_index: usize,
+        #[source]
+        source: DocumentSpecError,
+    },
     #[error("the specified path {} does not exist", path.display())]
     DocumentPathDoesNotExist { path: PathBuf },
     #[error("the specified directory {} does not exist", path.display())]
@@ -68,7 +72,11 @@ pub enum FreeportsConfigError {
     OutPathParentDoesNotExist { path: PathBuf },
 }
 
-fn detect_format(reports: &[DocumentSpec], explicit: Option<&str>, formats_repo_path: Option<&std::path::Path>) -> Result<String, FreeportsConfigError> {
+fn detect_format(
+    reports: &[DocumentSpec],
+    explicit: Option<&str>,
+    formats_repo_path: Option<&std::path::Path>,
+) -> Result<String, FreeportsConfigError> {
     let mut detected: Option<String> = None;
     if let Some(repo) = formats_repo_path {
         let format_names = get_formats(repo).map_err(|e| {
@@ -80,20 +88,26 @@ fn detect_format(reports: &[DocumentSpec], explicit: Option<&str>, formats_repo_
         })?;
         for report in reports {
             let Some(url) = &report.url else { continue };
-            match url_to_format(repo, &format_names, url) {
-                Ok(Some(found)) => {
-                    match &detected {
-                        None => detected = Some(found),
-                        Some(current) if *current != found => {
-                            return Err(FreeportsConfigError::ConflictingDetectedFormats {
-                                detected: vec![current.clone(), found],
-                            });
-                        }
-                        Some(_) => {}
+            // Phase 9 makes the URL mapping's result a possibly partial pattern; combining it with
+            // the other sources is phase 11's (§7). Until then it is compared by its text.
+            match url_to_format(repo, &format_names, url)
+                .map(|found| found.map(|pattern| pattern.to_string()))
+            {
+                Ok(Some(found)) => match &detected {
+                    None => detected = Some(found),
+                    Some(current) if *current != found => {
+                        return Err(FreeportsConfigError::ConflictingDetectedFormats {
+                            detected: vec![current.clone(), found],
+                        });
                     }
-                }
+                    Some(_) => {}
+                },
                 Ok(None) => {}
-                Err(e) => tracing::warn!(error = log_error(&e), url, "cannot detect format from this report url: {e}"),
+                Err(e) => tracing::warn!(
+                    error = log_error(&e),
+                    url,
+                    "cannot detect format from this report url: {e}"
+                ),
             }
         }
     }
@@ -109,11 +123,16 @@ fn detect_format(reports: &[DocumentSpec], explicit: Option<&str>, formats_repo_
             }
             return Ok(explicit.to_string());
         }
-        tracing::info!(format = detected.as_str(), "format detected from report url");
+        tracing::info!(
+            format = detected.as_str(),
+            "format detected from report url"
+        );
         return Ok(detected.clone());
     }
 
-    explicit.map(str::to_string).ok_or(FreeportsConfigError::NoFormatSpecifiedOrDetected)
+    explicit
+        .map(str::to_string)
+        .ok_or(FreeportsConfigError::NoFormatSpecifiedOrDetected)
 }
 
 /// A path with no extension is treated as a directory even when it does not exist yet, which is
@@ -125,11 +144,18 @@ fn looks_like_a_directory(path: &std::path::Path) -> bool {
 
 /// Validates the document specs; see the module documentation for the two branches deliberately
 /// left undecided.
-fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result<Vec<DocumentSpec>, FreeportsConfigError> {
+pub(crate) fn validate_document_specs(
+    reports: Vec<DocumentSpec>,
+    save_pdf: bool,
+) -> Result<Vec<DocumentSpec>, FreeportsConfigError> {
     let mut result = Vec::new();
     for (index, spec) in reports.into_iter().enumerate() {
-        spec.input_should_be_specified()
-            .map_err(|source| FreeportsConfigError::InputNotSpecified { specifier_index: index, source })?;
+        spec.input_should_be_specified().map_err(|source| {
+            FreeportsConfigError::InputNotSpecified {
+                specifier_index: index,
+                source,
+            }
+        })?;
         let DocumentSpec { url, path, name } = spec;
 
         match (url, path) {
@@ -137,12 +163,21 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
             (None, Some(path)) => {
                 if path.is_dir() {
                     for pdf in glob_pdf_files(&path) {
-                        let file_name = pdf.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                        let file_name =
+                            pdf.file_name().and_then(|n| n.to_str()).unwrap_or_default();
                         let entry_name = name.as_deref().map(|n| format!("{n}/{file_name}"));
-                        result.push(DocumentSpec { url: None, path: Some(pdf), name: entry_name });
+                        result.push(DocumentSpec {
+                            url: None,
+                            path: Some(pdf),
+                            name: entry_name,
+                        });
                     }
                 } else if path.is_file() {
-                    result.push(DocumentSpec { url: None, path: Some(path), name });
+                    result.push(DocumentSpec {
+                        url: None,
+                        path: Some(path),
+                        name,
+                    });
                 } else {
                     return Err(FreeportsConfigError::DocumentPathDoesNotExist { path });
                 }
@@ -157,23 +192,40 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
                 } else {
                     None
                 };
-                result.push(DocumentSpec { url: Some(url), path, name });
+                result.push(DocumentSpec {
+                    url: Some(url),
+                    path,
+                    name,
+                });
             }
             (Some(url), Some(path)) => {
                 if path.is_dir() {
                     if save_pdf {
                         let new_path = path.join("report.pdf");
-                        result.push(DocumentSpec { url: Some(url), path: Some(new_path), name });
+                        result.push(DocumentSpec {
+                            url: Some(url),
+                            path: Some(new_path),
+                            name,
+                        });
                     } else {
                         // A directory with saving off expands to every PDF in it.
                         for pdf in glob_pdf_files(&path) {
-                            let file_name = pdf.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                            let file_name =
+                                pdf.file_name().and_then(|n| n.to_str()).unwrap_or_default();
                             let entry_name = name.clone().map(|n| format!("{n}/{file_name}"));
-                            result.push(DocumentSpec { url: Some(url.clone()), path: Some(pdf), name: entry_name });
+                            result.push(DocumentSpec {
+                                url: Some(url.clone()),
+                                path: Some(pdf),
+                                name: entry_name,
+                            });
                         }
                     }
                 } else if path.is_file() {
-                    result.push(DocumentSpec { url: Some(url), path: Some(path), name });
+                    result.push(DocumentSpec {
+                        url: Some(url),
+                        path: Some(path),
+                        name,
+                    });
                 } else if looks_like_a_directory(&path) {
                     // A path with no extension, never seen on disk: treated as a directory that
                     // should already have existed, not as a file to download.
@@ -181,19 +233,35 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
                         return Err(FreeportsConfigError::DocumentDirectoryDoesNotExist { path });
                     }
                     tracing::warn!(path = %path.display(), "invalid directory specified with save_pdf=false and url present, falling back to url");
-                    result.push(DocumentSpec { url: Some(url), path: Some(path), name });
+                    result.push(DocumentSpec {
+                        url: Some(url),
+                        path: Some(path),
+                        name,
+                    });
                 } else if save_pdf {
                     // A file that does not exist: with saving on, only its parent directory need
                     // exist, the file being downloaded there.
-                    let parent_exists = path.parent().is_some_and(|p| p.as_os_str().is_empty() || p.is_dir());
+                    let parent_exists = path
+                        .parent()
+                        .is_some_and(|p| p.as_os_str().is_empty() || p.is_dir());
                     if !parent_exists {
-                        return Err(FreeportsConfigError::DocumentParentDirectoryDoesNotExist { path });
+                        return Err(FreeportsConfigError::DocumentParentDirectoryDoesNotExist {
+                            path,
+                        });
                     }
-                    result.push(DocumentSpec { url: Some(url), path: Some(path), name });
+                    result.push(DocumentSpec {
+                        url: Some(url),
+                        path: Some(path),
+                        name,
+                    });
                 } else {
                     // With saving off: warn and fall back to the URL, never an error.
                     tracing::warn!(path = %path.display(), "invalid file specified with save_pdf=false and url present, falling back to url");
-                    result.push(DocumentSpec { url: Some(url), path: Some(path), name });
+                    result.push(DocumentSpec {
+                        url: Some(url),
+                        path: Some(path),
+                        name,
+                    });
                 }
             }
         }
@@ -228,7 +296,10 @@ fn set_compress_flag(out_path: PathBuf, mut out_flags: OutFlags) -> (PathBuf, Ou
     let is_tar_gz = out_path.to_string_lossy().ends_with(".tar.gz");
     if is_tar_gz {
         out_flags.compressed = true;
-        let stripped = out_path.file_name().and_then(|n| n.to_str()).map(|n| n.trim_end_matches(".tar.gz").to_string());
+        let stripped = out_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(|n| n.trim_end_matches(".tar.gz").to_string());
         let out_path = match stripped {
             Some(name) => out_path.with_file_name(name),
             None => out_path,
@@ -255,13 +326,19 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
     let values = merged.values;
 
     // 1. `require_target_lists` -- fallisce veloce, controllo di presenza puro.
-    let target_lists = values.target_lists.ok_or(FreeportsConfigError::NoTargetLists)?;
+    let target_lists = values
+        .target_lists
+        .ok_or(FreeportsConfigError::NoTargetLists)?;
 
     let reports = values.reports.unwrap_or_default();
     let save_pdf = values.save_pdf.unwrap_or(true);
 
     // 2. `detect_format`.
-    let format = detect_format(&reports, values.format.as_deref(), values.formats_repo_path.as_deref())?;
+    let format = detect_format(
+        &reports,
+        values.format.as_deref(),
+        values.formats_repo_path.as_deref(),
+    )?;
 
     // 3. `validate_document_specs`.
     let reports = validate_document_specs(reports, save_pdf)?;
@@ -288,7 +365,9 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
 
     // 6. `out_path_single_file`.
     let out_profile = values.out_profile.unwrap_or(OutStructureMode::Regular);
-    let out_path = if out_profile == OutStructureMode::SingleFile && !out_path.to_string_lossy().ends_with(".csv") {
+    let out_path = if out_profile == OutStructureMode::SingleFile
+        && !out_path.to_string_lossy().ends_with(".csv")
+    {
         out_path.join("out.csv")
     } else {
         out_path
@@ -305,8 +384,14 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
         // The global default descends onto the two levels here, and only here: a level no source
         // touched inherits it, and it in turn is automatic if nothing touched it either.
         parallelism: ParallelismConfig {
-            jobs: values.parallelism_jobs.or(values.n_workers).unwrap_or(Workers::Auto),
-            pages: values.parallelism_pages.or(values.n_workers).unwrap_or(Workers::Auto),
+            jobs: values
+                .parallelism_jobs
+                .or(values.n_workers)
+                .unwrap_or(Workers::Auto),
+            pages: values
+                .parallelism_pages
+                .or(values.n_workers)
+                .unwrap_or(Workers::Auto),
         },
         batch_file: values.batch_file,
         save_pdf,
@@ -343,7 +428,11 @@ mod tests {
 
             let values = PartialConfig {
                 verbosity: Some(Verbosity::Warn),
-                reports: Some(vec![DocumentSpec { url: None, path: Some(pdf_path), name: Some("r".to_string()) }]),
+                reports: Some(vec![DocumentSpec {
+                    url: None,
+                    path: Some(pdf_path),
+                    name: Some("r".to_string()),
+                }]),
                 target_lists: Some(vec!["TEST".to_string()]),
                 format: Some("FMT".to_string()),
                 out_path: Some(out_dir),
@@ -359,7 +448,13 @@ mod tests {
                 input_db_path: None,
                 config_file: None,
             };
-            Self { _dir: dir, merged: MergedConfig { values, sources: Default::default() } }
+            Self {
+                _dir: dir,
+                merged: MergedConfig {
+                    values,
+                    sources: Default::default(),
+                },
+            }
         }
 
         fn dir(&self) -> &std::path::Path {
@@ -381,7 +476,8 @@ mod tests {
         use super::*;
 
         fn round_trip(config: &FreeportsConfig) -> FreeportsConfig {
-            let json = serde_json::to_string(config).expect("a resolved configuration must serialize");
+            let json =
+                serde_json::to_string(config).expect("a resolved configuration must serialize");
             serde_json::from_str(&json).expect("a serialized configuration must deserialize back")
         }
 
@@ -417,8 +513,16 @@ mod tests {
         fn every_shape_of_document_spec_survives() {
             let mut config = expect_ok(ValidConfig::new());
             config.reports = vec![
-                DocumentSpec { url: Some("https://example.invalid/a.pdf".to_string()), path: None, name: Some("a".to_string()) },
-                DocumentSpec { url: None, path: Some(PathBuf::from("/tmp/b.pdf")), name: Some("b".to_string()) },
+                DocumentSpec {
+                    url: Some("https://example.invalid/a.pdf".to_string()),
+                    path: None,
+                    name: Some("a".to_string()),
+                },
+                DocumentSpec {
+                    url: None,
+                    path: Some(PathBuf::from("/tmp/b.pdf")),
+                    name: Some("b".to_string()),
+                },
                 DocumentSpec {
                     url: Some("https://example.invalid/c.pdf".to_string()),
                     path: Some(PathBuf::from("/tmp/c.pdf")),
@@ -440,7 +544,11 @@ mod tests {
             ] {
                 let mut config = expect_ok(ValidConfig::new());
                 config.verbosity = verbosity;
-                assert_eq!(round_trip(&config).verbosity, verbosity, "verbosity {verbosity:?} did not survive");
+                assert_eq!(
+                    round_trip(&config).verbosity,
+                    verbosity,
+                    "verbosity {verbosity:?} did not survive"
+                );
             }
         }
 
@@ -449,10 +557,18 @@ mod tests {
         /// its log somewhere the parent does not expect.
         #[test]
         fn every_out_structure_mode_survives() {
-            for profile in [OutStructureMode::Regular, OutStructureMode::SingleFile, OutStructureMode::Structured] {
+            for profile in [
+                OutStructureMode::Regular,
+                OutStructureMode::SingleFile,
+                OutStructureMode::Structured,
+            ] {
                 let mut config = expect_ok(ValidConfig::new());
                 config.out_profile = profile;
-                assert_eq!(round_trip(&config).out_profile, profile, "out profile {profile:?} did not survive");
+                assert_eq!(
+                    round_trip(&config).out_profile,
+                    profile,
+                    "out profile {profile:?} did not survive"
+                );
             }
         }
 
@@ -461,8 +577,16 @@ mod tests {
             for compressed in [false, true] {
                 for separate_out in [false, true] {
                     let mut config = expect_ok(ValidConfig::new());
-                    config.out_flags = OutFlags { compressed, separate_out };
-                    assert_eq!(round_trip(&config).out_flags, config.out_flags, "out flags {:?} did not survive", config.out_flags);
+                    config.out_flags = OutFlags {
+                        compressed,
+                        separate_out,
+                    };
+                    assert_eq!(
+                        round_trip(&config).out_flags,
+                        config.out_flags,
+                        "out flags {:?} did not survive",
+                        config.out_flags
+                    );
                 }
             }
         }
@@ -496,7 +620,10 @@ mod tests {
             let mut config = ValidConfig::new();
             config.merged.values.target_lists = None;
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::NoTargetLists)), "got {result:?}");
+            assert!(
+                matches!(result, Err(FreeportsConfigError::NoTargetLists)),
+                "got {result:?}"
+            );
         }
 
         #[test]
@@ -514,7 +641,10 @@ mod tests {
             config.merged.values.target_lists = None;
             config.merged.values.out_path = Some(PathBuf::from("/definitely/does/not/exist"));
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::NoTargetLists)), "got {result:?}");
+            assert!(
+                matches!(result, Err(FreeportsConfigError::NoTargetLists)),
+                "got {result:?}"
+            );
         }
     }
 
@@ -524,7 +654,11 @@ mod tests {
         fn repo_with_one_url_mapped_format(dir: &std::path::Path) -> PathBuf {
             let repo = dir.join("formats_repo");
             std::fs::create_dir_all(repo.join("metadata")).unwrap();
-            std::fs::write(repo.join("metadata/formats.csv"), "Name,Locale,Year,Country,Version\nA,EN,24,,\n").unwrap();
+            std::fs::write(
+                repo.join("metadata/formats.csv"),
+                "Name,Locale,Year,Country,Version\nA,EN,24,,\n",
+            )
+            .unwrap();
             std::fs::write(
                 repo.join("metadata/url_mapping.csv"),
                 "Format name,Url\nA-EN24,https://example.com/a\n",
@@ -538,7 +672,13 @@ mod tests {
             let mut config = ValidConfig::new();
             config.merged.values.format = None;
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::NoFormatSpecifiedOrDetected)), "got {result:?}");
+            assert!(
+                matches!(
+                    result,
+                    Err(FreeportsConfigError::NoFormatSpecifiedOrDetected)
+                ),
+                "got {result:?}"
+            );
         }
 
         #[test]
@@ -567,7 +707,8 @@ mod tests {
         }
 
         #[test]
-        fn detected_format_different_from_the_explicit_one_is_a_warning_not_an_error_explicit_wins() {
+        fn detected_format_different_from_the_explicit_one_is_a_warning_not_an_error_explicit_wins()
+        {
             let mut config = ValidConfig::new();
             let repo = repo_with_one_url_mapped_format(config.dir());
             config.merged.values.format = Some("EXPLICIT-FMT".to_string());
@@ -578,7 +719,10 @@ mod tests {
                 name: Some("r".to_string()),
             }]);
             let result = expect_ok(config);
-            assert_eq!(result.format, "EXPLICIT-FMT", "the explicit format must win over the detected one");
+            assert_eq!(
+                result.format, "EXPLICIT-FMT",
+                "the explicit format must win over the detected one"
+            );
         }
 
         #[test]
@@ -599,11 +743,25 @@ mod tests {
             config.merged.values.format = None;
             config.merged.values.formats_repo_path = Some(repo);
             config.merged.values.reports = Some(vec![
-                DocumentSpec { url: Some("https://example.com/a/x.pdf".to_string()), path: None, name: Some("a".to_string()) },
-                DocumentSpec { url: Some("https://example.com/b/y.pdf".to_string()), path: None, name: Some("b".to_string()) },
+                DocumentSpec {
+                    url: Some("https://example.com/a/x.pdf".to_string()),
+                    path: None,
+                    name: Some("a".to_string()),
+                },
+                DocumentSpec {
+                    url: Some("https://example.com/b/y.pdf".to_string()),
+                    path: None,
+                    name: Some("b".to_string()),
+                },
             ]);
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::ConflictingDetectedFormats { .. })), "got {result:?}");
+            assert!(
+                matches!(
+                    result,
+                    Err(FreeportsConfigError::ConflictingDetectedFormats { .. })
+                ),
+                "got {result:?}"
+            );
         }
     }
 
@@ -613,14 +771,20 @@ mod tests {
         #[test]
         fn a_report_with_neither_url_nor_path_is_rejected() {
             let mut config = ValidConfig::new();
-            config.merged.values.reports = Some(vec![DocumentSpec { url: None, path: None, name: None }]);
+            config.merged.values.reports = Some(vec![DocumentSpec {
+                url: None,
+                path: None,
+                name: None,
+            }]);
             assert!(validate(config.merged).is_err());
         }
 
         #[test]
         fn no_url_an_existing_file_path_is_kept_as_is() {
             let config = ValidConfig::new();
-            let original_path = config.merged.values.reports.as_ref().unwrap()[0].path.clone();
+            let original_path = config.merged.values.reports.as_ref().unwrap()[0]
+                .path
+                .clone();
             let result = expect_ok(config);
             assert_eq!(result.reports.len(), 1);
             assert_eq!(result.reports[0].path, original_path);
@@ -634,23 +798,47 @@ mod tests {
             std::fs::write(subdir.join("a.pdf"), b"a").unwrap();
             std::fs::write(subdir.join("b.pdf"), b"b").unwrap();
             std::fs::write(subdir.join("not-a-pdf.txt"), b"x").unwrap();
-            config.merged.values.reports = Some(vec![DocumentSpec { url: None, path: Some(subdir), name: Some("many".to_string()) }]);
+            config.merged.values.reports = Some(vec![DocumentSpec {
+                url: None,
+                path: Some(subdir),
+                name: Some("many".to_string()),
+            }]);
             let result = expect_ok(config);
-            assert_eq!(result.reports.len(), 2, "only the two .pdf files, not the .txt one");
-            assert!(result.reports.iter().all(|d| d.path.as_ref().unwrap().extension().unwrap() == "pdf"));
+            assert_eq!(
+                result.reports.len(),
+                2,
+                "only the two .pdf files, not the .txt one"
+            );
+            assert!(
+                result
+                    .reports
+                    .iter()
+                    .all(|d| d.path.as_ref().unwrap().extension().unwrap() == "pdf")
+            );
         }
 
         #[test]
         fn no_url_a_nonexistent_path_that_is_not_a_directory_is_an_error() {
             let mut config = ValidConfig::new();
             let missing = config.dir().join("does-not-exist.pdf");
-            config.merged.values.reports = Some(vec![DocumentSpec { url: None, path: Some(missing), name: Some("r".to_string()) }]);
+            config.merged.values.reports = Some(vec![DocumentSpec {
+                url: None,
+                path: Some(missing),
+                name: Some("r".to_string()),
+            }]);
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::DocumentPathDoesNotExist { .. })), "got {result:?}");
+            assert!(
+                matches!(
+                    result,
+                    Err(FreeportsConfigError::DocumentPathDoesNotExist { .. })
+                ),
+                "got {result:?}"
+            );
         }
 
         #[test]
-        fn url_and_a_directory_path_with_save_pdf_true_requires_the_directory_to_exist_and_rewrites_to_report_pdf() {
+        fn url_and_a_directory_path_with_save_pdf_true_requires_the_directory_to_exist_and_rewrites_to_report_pdf()
+         {
             let mut config = ValidConfig::new();
             let target_dir = config.dir().join("downloads");
             std::fs::create_dir_all(&target_dir).unwrap();
@@ -675,11 +863,18 @@ mod tests {
                 name: Some("r".to_string()),
             }]);
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::DocumentDirectoryDoesNotExist { .. })), "got {result:?}");
+            assert!(
+                matches!(
+                    result,
+                    Err(FreeportsConfigError::DocumentDirectoryDoesNotExist { .. })
+                ),
+                "got {result:?}"
+            );
         }
 
         #[test]
-        fn url_and_a_not_yet_downloaded_file_path_with_save_pdf_true_only_requires_the_parent_directory() {
+        fn url_and_a_not_yet_downloaded_file_path_with_save_pdf_true_only_requires_the_parent_directory()
+         {
             let mut config = ValidConfig::new();
             let destination = config.dir().join("report-to-download.pdf"); // parent (config.dir()) exists, file itself does not
             config.merged.values.save_pdf = Some(true);
@@ -704,7 +899,10 @@ mod tests {
             }]);
             let result = validate(config.merged);
             assert!(
-                matches!(result, Err(FreeportsConfigError::DocumentParentDirectoryDoesNotExist { .. })),
+                matches!(
+                    result,
+                    Err(FreeportsConfigError::DocumentParentDirectoryDoesNotExist { .. })
+                ),
                 "got {result:?}"
             );
         }
@@ -814,13 +1012,21 @@ mod tests {
         #[test]
         fn an_out_path_whose_parent_does_not_exist_is_an_error() {
             let mut config = ValidConfig::new();
-            config.merged.values.out_path = Some(config.dir().join("nonexistent_parent").join("out"));
+            config.merged.values.out_path =
+                Some(config.dir().join("nonexistent_parent").join("out"));
             let result = validate(config.merged);
-            assert!(matches!(result, Err(FreeportsConfigError::OutPathParentDoesNotExist { .. })), "got {result:?}");
+            assert!(
+                matches!(
+                    result,
+                    Err(FreeportsConfigError::OutPathParentDoesNotExist { .. })
+                ),
+                "got {result:?}"
+            );
         }
 
         #[test]
-        fn this_check_runs_after_set_compress_flag_so_a_tar_gz_suffixed_path_is_checked_after_stripping() {
+        fn this_check_runs_after_set_compress_flag_so_a_tar_gz_suffixed_path_is_checked_after_stripping()
+         {
             let mut config = ValidConfig::new();
             // The parent of `out.tar.gz` exists (it's `config.dir()`), so this must succeed --
             // if `out_path_exists` ran on the *unstripped* path it would still pass here too, so
@@ -897,8 +1103,11 @@ mod tests {
 
         #[test]
         fn the_two_levels_are_overridden_independently() {
-            let parallelism =
-                resolved(Some(Workers::Fixed(3)), Some(Workers::Fixed(8)), Some(Workers::Auto));
+            let parallelism = resolved(
+                Some(Workers::Fixed(3)),
+                Some(Workers::Fixed(8)),
+                Some(Workers::Auto),
+            );
             assert_eq!(parallelism.jobs, Workers::Fixed(8));
             assert_eq!(parallelism.pages, Workers::Auto);
         }
@@ -919,7 +1128,10 @@ mod tests {
         /// stay reachable with a single value, since it is what the determinism checks rest on.
         #[test]
         fn one_as_the_global_default_is_the_fully_sequential_configuration() {
-            assert_eq!(resolved(Some(Workers::Fixed(1)), None, None), ParallelismConfig::SEQUENTIAL);
+            assert_eq!(
+                resolved(Some(Workers::Fixed(1)), None, None),
+                ParallelismConfig::SEQUENTIAL
+            );
         }
     }
 }

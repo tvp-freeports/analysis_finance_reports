@@ -16,7 +16,8 @@ use crate::core::promisable::{PromisableFields, Promised};
 use crate::core::promise::Promise;
 
 use super::{
-    FloatConstraint, OutputClassError, optional_promised_from_value, pending_of, promised_from_value,
+    FloatConstraint, OutputClassError, optional_promised_from_value, pending_of,
+    promised_from_value,
 };
 
 /// The fields an equity and a bond have in common.
@@ -80,7 +81,10 @@ impl InvestmentFields {
 /// Only the **type** is checked here. The domain is checked by [`InvestmentData::validate_ranges`],
 /// because a value outside its domain is not a type error, and because a field still promised
 /// cannot be validated until the promise resolves.
-fn resolved_float(field: &'static str, value: &BlockValue) -> Result<OrderedFloat<f64>, BlockValueError> {
+fn resolved_float(
+    field: &'static str,
+    value: &BlockValue,
+) -> Result<OrderedFloat<f64>, BlockValueError> {
     match value {
         BlockValue::Int(i) => Ok(OrderedFloat(*i as f64)),
         other => other.float_or_fail(field).map(OrderedFloat),
@@ -105,16 +109,22 @@ impl InvestmentData {
         let data = Self {
             company,
             company_match,
-            fund: promised_from_value("fund", &fund, |v| v.str_or_fail("fund").map(str::to_string))?,
+            fund: promised_from_value("fund", &fund, |v| {
+                v.str_or_fail("fund").map(str::to_string)
+            })?,
             nominal_quantity: nominal_quantity
-                .map(|v| FloatConstraint::NonNegative.validate("nominal_quantity", v).map(OrderedFloat))
+                .map(|v| {
+                    FloatConstraint::NonNegative
+                        .validate("nominal_quantity", v)
+                        .map(OrderedFloat)
+                })
                 .transpose()?,
-            market_value: promised_from_value(
-                "market_value",
-                &market_value,
-                |v| resolved_float("market_value", v),
-            )?,
-            currency: promised_from_value("currency", &currency, |v| v.currency_or_fail("currency"))?,
+            market_value: promised_from_value("market_value", &market_value, |v| {
+                resolved_float("market_value", v)
+            })?,
+            currency: promised_from_value("currency", &currency, |v| {
+                v.currency_or_fail("currency")
+            })?,
             perc_net_assets: optional_promised_from_value(
                 "perc_net_assets",
                 perc_net_assets.as_ref(),
@@ -125,9 +135,11 @@ impl InvestmentData {
                 acquisition_cost.as_ref(),
                 |v| resolved_float("acquisition_cost", v),
             )?,
-            acquisition_currency: optional_promised_from_value("acquisition_currency", acquisition_currency.as_ref(), |v| {
-                v.currency_or_fail("acquisition_currency")
-            })?,
+            acquisition_currency: optional_promised_from_value(
+                "acquisition_currency",
+                acquisition_currency.as_ref(),
+                |v| v.currency_or_fail("acquisition_currency"),
+            )?,
         };
         data.validate_ranges()?;
         Ok(data)
@@ -176,16 +188,26 @@ impl InvestmentData {
     fn resolve(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
         match field {
             "fund" => self.fund = Promised::Resolved(value.str_or_fail("fund")?.to_string()),
-            "market_value" => self.market_value = Promised::Resolved(resolved_float("market_value", &value)?),
+            "market_value" => {
+                self.market_value = Promised::Resolved(resolved_float("market_value", &value)?)
+            }
             "currency" => self.currency = Promised::Resolved(value.currency_or_fail("currency")?),
             "perc_net_assets" => {
-                self.perc_net_assets = Some(Promised::Resolved(resolved_float("perc_net_assets", &value)?))
+                self.perc_net_assets = Some(Promised::Resolved(resolved_float(
+                    "perc_net_assets",
+                    &value,
+                )?))
             }
             "acquisition_cost" => {
-                self.acquisition_cost = Some(Promised::Resolved(resolved_float("acquisition_cost", &value)?))
+                self.acquisition_cost = Some(Promised::Resolved(resolved_float(
+                    "acquisition_cost",
+                    &value,
+                )?))
             }
             "acquisition_currency" => {
-                self.acquisition_currency = Some(Promised::Resolved(value.currency_or_fail("acquisition_currency")?))
+                self.acquisition_currency = Some(Promised::Resolved(
+                    value.currency_or_fail("acquisition_currency")?,
+                ))
             }
             other => unreachable!("InvestmentData has no promisable field {other:?}"),
         }
@@ -202,7 +224,9 @@ pub struct Equity {
 
 impl Equity {
     pub fn build(fields: InvestmentFields) -> Result<Self, OutputClassError> {
-        Ok(Self { data: InvestmentData::build(fields)? })
+        Ok(Self {
+            data: InvestmentData::build(fields)?,
+        })
     }
 }
 
@@ -211,7 +235,11 @@ impl PromisableFields for Equity {
         self.data.pending_fields()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         self.data.resolve(field, value)
     }
 }
@@ -233,9 +261,17 @@ impl Bond {
         interest_rate: Option<f64>,
     ) -> Result<Self, OutputClassError> {
         let interest_rate = interest_rate
-            .map(|v| FloatConstraint::UnitIntervalHalfOpen.validate("interest_rate", v).map(OrderedFloat))
+            .map(|v| {
+                FloatConstraint::UnitIntervalHalfOpen
+                    .validate("interest_rate", v)
+                    .map(OrderedFloat)
+            })
             .transpose()?;
-        Ok(Self { data: InvestmentData::build(fields)?, maturity, interest_rate })
+        Ok(Self {
+            data: InvestmentData::build(fields)?,
+            maturity,
+            interest_rate,
+        })
     }
 }
 
@@ -244,7 +280,11 @@ impl PromisableFields for Bond {
         self.data.pending_fields()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         self.data.resolve(field, value)
     }
 }
@@ -274,8 +314,14 @@ mod tests {
             let equity = Equity::build(fields()).unwrap();
             assert_eq!(equity.data.company, "Acme Corp");
             assert_eq!(equity.data.company_match, "Acme");
-            assert_eq!(equity.data.fund.resolved().map(String::as_str), Some("Alpha Fund"));
-            assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(1000.0));
+            assert_eq!(
+                equity.data.fund.resolved().map(String::as_str),
+                Some("Alpha Fund")
+            );
+            assert_eq!(
+                equity.data.market_value.resolved().map(|v| v.into_inner()),
+                Some(1000.0)
+            );
             assert_eq!(equity.data.currency.resolved(), Some(&Currency::EUR));
         }
 
@@ -290,13 +336,25 @@ mod tests {
 
         #[test]
         fn accepts_an_integer_market_value_as_well_as_a_float() {
-            let f = InvestmentFields { market_value: BlockValue::from(1000i64), ..fields() };
-            assert_eq!(Equity::build(f).unwrap().data.market_value.resolved().map(|v| v.into_inner()), Some(1000.0));
+            let f = InvestmentFields {
+                market_value: BlockValue::from(1000i64),
+                ..fields()
+            };
+            assert_eq!(
+                Equity::build(f)
+                    .unwrap()
+                    .data
+                    .market_value
+                    .resolved()
+                    .map(|v| v.into_inner()),
+                Some(1000.0)
+            );
         }
 
         #[test]
         fn a_bond_carries_its_maturity_and_interest_rate() {
-            let bond = Bond::build(fields(), Some(Date::new(2025, 3, 28).unwrap()), Some(0.035)).unwrap();
+            let bond =
+                Bond::build(fields(), Some(Date::new(2025, 3, 28).unwrap()), Some(0.035)).unwrap();
             assert_eq!(bond.maturity, Some(Date::new(2025, 3, 28).unwrap()));
             assert_eq!(bond.interest_rate.map(|v| v.into_inner()), Some(0.035));
         }
@@ -309,14 +367,29 @@ mod tests {
 
         #[test]
         fn a_wrongly_typed_fund_is_a_field_error_naming_the_field() {
-            let f = InvestmentFields { fund: BlockValue::from(1i64), ..fields() };
-            assert!(matches!(Equity::build(f), Err(OutputClassError::Field { field: "fund", .. })));
+            let f = InvestmentFields {
+                fund: BlockValue::from(1i64),
+                ..fields()
+            };
+            assert!(matches!(
+                Equity::build(f),
+                Err(OutputClassError::Field { field: "fund", .. })
+            ));
         }
 
         #[test]
         fn a_wrongly_typed_currency_is_a_field_error_naming_the_field() {
-            let f = InvestmentFields { currency: BlockValue::from("EUR"), ..fields() };
-            assert!(matches!(Equity::build(f), Err(OutputClassError::Field { field: "currency", .. })));
+            let f = InvestmentFields {
+                currency: BlockValue::from("EUR"),
+                ..fields()
+            };
+            assert!(matches!(
+                Equity::build(f),
+                Err(OutputClassError::Field {
+                    field: "currency",
+                    ..
+                })
+            ));
         }
     }
 
@@ -325,43 +398,85 @@ mod tests {
 
         #[test]
         fn a_negative_nominal_quantity_is_rejected() {
-            let f = InvestmentFields { nominal_quantity: Some(-1.0), ..fields() };
-            assert!(matches!(Equity::build(f), Err(OutputClassError::OutOfRange { field: "nominal_quantity", .. })));
+            let f = InvestmentFields {
+                nominal_quantity: Some(-1.0),
+                ..fields()
+            };
+            assert!(matches!(
+                Equity::build(f),
+                Err(OutputClassError::OutOfRange {
+                    field: "nominal_quantity",
+                    ..
+                })
+            ));
         }
 
         #[test]
         fn perc_net_assets_accepts_the_whole_but_not_more() {
-            let ok = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
-            assert!(Equity::build(ok).is_ok(), "a fund may hold a single position worth all of it");
-            let ko = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0001)), ..fields() };
-            assert!(matches!(Equity::build(ko), Err(OutputClassError::OutOfRange { field: "perc_net_assets", .. })));
+            let ok = InvestmentFields {
+                perc_net_assets: Some(BlockValue::from(1.0)),
+                ..fields()
+            };
+            assert!(
+                Equity::build(ok).is_ok(),
+                "a fund may hold a single position worth all of it"
+            );
+            let ko = InvestmentFields {
+                perc_net_assets: Some(BlockValue::from(1.0001)),
+                ..fields()
+            };
+            assert!(matches!(
+                Equity::build(ko),
+                Err(OutputClassError::OutOfRange {
+                    field: "perc_net_assets",
+                    ..
+                })
+            ));
         }
 
         #[test]
         fn an_interest_rate_of_one_or_more_is_rejected() {
             assert!(matches!(
                 Bond::build(fields(), None, Some(1.0)),
-                Err(OutputClassError::OutOfRange { field: "interest_rate", .. })
+                Err(OutputClassError::OutOfRange {
+                    field: "interest_rate",
+                    ..
+                })
             ));
         }
 
         #[test]
         fn a_negative_acquisition_cost_is_rejected() {
-            let f = InvestmentFields { acquisition_cost: Some(BlockValue::from(-0.01)), ..fields() };
-            assert!(matches!(Equity::build(f), Err(OutputClassError::OutOfRange { field: "acquisition_cost", .. })));
+            let f = InvestmentFields {
+                acquisition_cost: Some(BlockValue::from(-0.01)),
+                ..fields()
+            };
+            assert!(matches!(
+                Equity::build(f),
+                Err(OutputClassError::OutOfRange {
+                    field: "acquisition_cost",
+                    ..
+                })
+            ));
         }
 
         #[test]
         fn a_pending_field_is_not_validated_at_construction_time() {
             // A value that is not there yet cannot be validated: the promise passes, and its domain
             // will be checked if and when the field is resolved and rebuilt.
-            let f = InvestmentFields { market_value: BlockValue::Promise(Promise::new("mv")), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::Promise(Promise::new("mv")),
+                ..fields()
+            };
             assert!(Equity::build(f).is_ok());
         }
 
         #[test]
         fn the_error_message_names_both_the_field_and_the_constraint() {
-            let f = InvestmentFields { nominal_quantity: Some(-1.0), ..fields() };
+            let f = InvestmentFields {
+                nominal_quantity: Some(-1.0),
+                ..fields()
+            };
             let message = Equity::build(f).unwrap_err().to_string();
             assert!(message.contains("nominal_quantity"), "{message}");
             assert!(message.contains("greater than or equal to 0"), "{message}");
@@ -418,7 +533,9 @@ mod tests {
         }
 
         /// The events emitted while building an entity from `fields`, and the entity itself.
-        fn build_and_capture(f: InvestmentFields) -> (Result<Equity, OutputClassError>, Vec<Record>) {
+        fn build_and_capture(
+            f: InvestmentFields,
+        ) -> (Result<Equity, OutputClassError>, Vec<Record>) {
             let layer = CapturingLayer::default();
             let subscriber = Registry::default().with(layer.clone());
             let built = tracing::subscriber::with_default(subscriber, || Equity::build(f));
@@ -427,38 +544,76 @@ mod tests {
         }
 
         fn edge_events(records: &[Record]) -> Vec<&Record> {
-            records.iter().filter(|r| r.message.contains("edge of the admissible range")).collect()
+            records
+                .iter()
+                .filter(|r| r.message.contains("edge of the admissible range"))
+                .collect()
         }
 
         #[test]
         fn a_zero_acquisition_cost_is_kept() {
-            let f = InvestmentFields { acquisition_cost: Some(BlockValue::from(0.0)), ..fields() };
-            let value = Equity::build(f).unwrap().data.acquisition_cost.and_then(|p| p.resolved().copied());
+            let f = InvestmentFields {
+                acquisition_cost: Some(BlockValue::from(0.0)),
+                ..fields()
+            };
+            let value = Equity::build(f)
+                .unwrap()
+                .data
+                .acquisition_cost
+                .and_then(|p| p.resolved().copied());
             assert_eq!(value.map(|v| v.into_inner()), Some(0.0));
         }
 
         #[test]
         fn a_zero_nominal_quantity_is_kept() {
-            let f = InvestmentFields { nominal_quantity: Some(0.0), ..fields() };
-            assert_eq!(Equity::build(f).unwrap().data.nominal_quantity.map(|v| v.into_inner()), Some(0.0));
+            let f = InvestmentFields {
+                nominal_quantity: Some(0.0),
+                ..fields()
+            };
+            assert_eq!(
+                Equity::build(f)
+                    .unwrap()
+                    .data
+                    .nominal_quantity
+                    .map(|v| v.into_inner()),
+                Some(0.0)
+            );
         }
 
         #[test]
         fn a_position_worth_the_whole_fund_is_kept() {
-            let f = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
-            let value = Equity::build(f).unwrap().data.perc_net_assets.and_then(|p| p.resolved().copied());
+            let f = InvestmentFields {
+                perc_net_assets: Some(BlockValue::from(1.0)),
+                ..fields()
+            };
+            let value = Equity::build(f)
+                .unwrap()
+                .data
+                .perc_net_assets
+                .and_then(|p| p.resolved().copied());
             assert_eq!(value.map(|v| v.into_inner()), Some(1.0));
         }
 
         #[test]
         fn a_value_on_the_lower_edge_is_reported_once_at_debug_and_names_its_field() {
-            let f = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::from(0.0),
+                ..fields()
+            };
             let (built, records) = build_and_capture(f);
             assert!(built.is_ok());
 
             let edges = edge_events(&records);
-            assert_eq!(edges.len(), 1, "one value on an edge, one event: {records:?}");
-            assert_eq!(edges[0].level, Level::DEBUG, "zero is ordinary: a zero-coupon, a rounded-away position");
+            assert_eq!(
+                edges.len(),
+                1,
+                "one value on an edge, one event: {records:?}"
+            );
+            assert_eq!(
+                edges[0].level,
+                Level::DEBUG,
+                "zero is ordinary: a zero-coupon, a rounded-away position"
+            );
             assert_eq!(edges[0].field, "market_value");
             assert!(edges[0].message.contains('0'), "{:?}", edges[0]);
         }
@@ -467,24 +622,45 @@ mod tests {
         fn a_value_on_the_upper_edge_stays_a_warning() {
             // A fund with its whole net assets in one position is admissible and is also the shape
             // a column read one cell off produces, so this one keeps the audit trail's attention.
-            let f = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+            let f = InvestmentFields {
+                perc_net_assets: Some(BlockValue::from(1.0)),
+                ..fields()
+            };
             let (built, records) = build_and_capture(f);
             assert!(built.is_ok());
 
             let edges = edge_events(&records);
-            assert_eq!(edges.len(), 1, "one value on an edge, one event: {records:?}");
+            assert_eq!(
+                edges.len(),
+                1,
+                "one value on an edge, one event: {records:?}"
+            );
             assert_eq!(edges[0].level, Level::WARN);
             assert_eq!(edges[0].field, "perc_net_assets");
         }
 
         #[test]
         fn the_two_edges_are_told_apart_by_the_message_as_well_as_the_level() {
-            let low = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
-            let high = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+            let low = InvestmentFields {
+                market_value: BlockValue::from(0.0),
+                ..fields()
+            };
+            let high = InvestmentFields {
+                perc_net_assets: Some(BlockValue::from(1.0)),
+                ..fields()
+            };
             let (_, low) = build_and_capture(low);
             let (_, high) = build_and_capture(high);
-            assert!(edge_events(&low)[0].message.contains("lower edge"), "{:?}", edge_events(&low)[0]);
-            assert!(edge_events(&high)[0].message.contains("upper edge"), "{:?}", edge_events(&high)[0]);
+            assert!(
+                edge_events(&low)[0].message.contains("lower edge"),
+                "{:?}",
+                edge_events(&low)[0]
+            );
+            assert!(
+                edge_events(&high)[0].message.contains("upper edge"),
+                "{:?}",
+                edge_events(&high)[0]
+            );
         }
 
         #[test]
@@ -499,9 +675,20 @@ mod tests {
             let (built, records) = build_and_capture(f);
             assert!(built.is_ok());
 
-            let mut named: Vec<&str> = edge_events(&records).iter().map(|r| r.field.as_str()).collect();
+            let mut named: Vec<&str> = edge_events(&records)
+                .iter()
+                .map(|r| r.field.as_str())
+                .collect();
             named.sort_unstable();
-            assert_eq!(named, ["acquisition_cost", "market_value", "nominal_quantity", "perc_net_assets"]);
+            assert_eq!(
+                named,
+                [
+                    "acquisition_cost",
+                    "market_value",
+                    "nominal_quantity",
+                    "perc_net_assets"
+                ]
+            );
         }
 
         #[test]
@@ -513,7 +700,10 @@ mod tests {
 
         #[test]
         fn a_value_outside_the_domain_is_an_error_and_not_an_edge() {
-            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::from(-1.0),
+                ..fields()
+            };
             let (built, records) = build_and_capture(f);
             assert!(built.is_err());
             assert!(edge_events(&records).is_empty(), "{records:?}");
@@ -525,7 +715,10 @@ mod tests {
             // whole is not something a report legitimately prints.
             assert!(matches!(
                 Bond::build(fields(), None, Some(1.0)),
-                Err(OutputClassError::OutOfRange { field: "interest_rate", .. })
+                Err(OutputClassError::OutOfRange {
+                    field: "interest_rate",
+                    ..
+                })
             ));
         }
     }
@@ -538,20 +731,32 @@ mod tests {
 
         #[test]
         fn a_zero_market_value_is_accepted() {
-            let f = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::from(0.0),
+                ..fields()
+            };
             let equity = Equity::build(f).unwrap();
-            assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(0.0));
+            assert_eq!(
+                equity.data.market_value.resolved().map(|v| v.into_inner()),
+                Some(0.0)
+            );
         }
 
         #[test]
         fn a_zero_market_value_written_as_an_integer_is_accepted_too() {
-            let f = InvestmentFields { market_value: BlockValue::from(0i64), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::from(0i64),
+                ..fields()
+            };
             assert!(Equity::build(f).is_ok());
         }
 
         #[test]
         fn a_negative_market_value_is_still_rejected() {
-            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::from(-1.0),
+                ..fields()
+            };
             assert!(matches!(
                 Equity::build(f),
                 Err(OutputClassError::OutOfRange {
@@ -564,7 +769,10 @@ mod tests {
 
         #[test]
         fn the_rejection_message_names_the_relaxed_constraint() {
-            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::from(-1.0),
+                ..fields()
+            };
             let message = Equity::build(f).unwrap_err().to_string();
             assert!(message.contains("market_value"), "{message}");
             assert!(message.contains("greater than or equal to 0"), "{message}");
@@ -572,10 +780,18 @@ mod tests {
 
         #[test]
         fn a_zero_market_value_resolved_from_a_promise_is_accepted() {
-            let f = InvestmentFields { market_value: BlockValue::Promise(Promise::new("mv")), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::Promise(Promise::new("mv")),
+                ..fields()
+            };
             let mut equity = Equity::build(f).unwrap();
-            equity.resolve_field("market_value", BlockValue::from(0.0)).unwrap();
-            assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(0.0));
+            equity
+                .resolve_field("market_value", BlockValue::from(0.0))
+                .unwrap();
+            assert_eq!(
+                equity.data.market_value.resolved().map(|v| v.into_inner()),
+                Some(0.0)
+            );
         }
     }
 
@@ -593,7 +809,11 @@ mod tests {
 
         #[test]
         fn reports_every_pending_field_in_declaration_order() {
-            let pending: Vec<_> = promised_equity().pending().into_iter().map(|(f, _)| f).collect();
+            let pending: Vec<_> = promised_equity()
+                .pending()
+                .into_iter()
+                .map(|(f, _)| f)
+                .collect();
             assert_eq!(pending, vec!["fund", "currency"]);
         }
 
@@ -613,10 +833,22 @@ mod tests {
                 acquisition_currency: Some(BlockValue::Promise(Promise::new("f"))),
                 ..fields()
             };
-            let pending: Vec<_> = Equity::build(f).unwrap().pending().into_iter().map(|(n, _)| n).collect();
+            let pending: Vec<_> = Equity::build(f)
+                .unwrap()
+                .pending()
+                .into_iter()
+                .map(|(n, _)| n)
+                .collect();
             assert_eq!(
                 pending,
-                vec!["fund", "market_value", "currency", "perc_net_assets", "acquisition_cost", "acquisition_currency"]
+                vec![
+                    "fund",
+                    "market_value",
+                    "currency",
+                    "perc_net_assets",
+                    "acquisition_cost",
+                    "acquisition_currency"
+                ]
             );
         }
 
@@ -627,33 +859,56 @@ mod tests {
                 ("fund-id".to_string(), BlockValue::from("Alpha Fund")),
                 ("cur-id".to_string(), BlockValue::from(Currency::USD)),
             ]);
-            assert_eq!(fulfill_promises(&mut equity, &map).unwrap(), Fulfilled::InPlace);
-            assert_eq!(equity.data.fund.resolved().map(String::as_str), Some("Alpha Fund"));
+            assert_eq!(
+                fulfill_promises(&mut equity, &map).unwrap(),
+                Fulfilled::InPlace
+            );
+            assert_eq!(
+                equity.data.fund.resolved().map(String::as_str),
+                Some("Alpha Fund")
+            );
             assert_eq!(equity.data.currency.resolved(), Some(&Currency::USD));
         }
 
         #[test]
         fn resolving_an_integer_into_a_float_field_works() {
-            let f = InvestmentFields { market_value: BlockValue::Promise(Promise::new("mv")), ..fields() };
+            let f = InvestmentFields {
+                market_value: BlockValue::Promise(Promise::new("mv")),
+                ..fields()
+            };
             let mut equity = Equity::build(f).unwrap();
             let map = FlatPromiseMap::from_pairs([("mv".to_string(), BlockValue::from(1500i64))]);
             fulfill_promises(&mut equity, &map).unwrap();
-            assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(1500.0));
+            assert_eq!(
+                equity.data.market_value.resolved().map(|v| v.into_inner()),
+                Some(1500.0)
+            );
         }
 
         #[test]
         fn a_bond_resolves_the_same_shared_fields_as_an_equity() {
-            let f = InvestmentFields { fund: BlockValue::Promise(Promise::new("fund-id")), ..fields() };
+            let f = InvestmentFields {
+                fund: BlockValue::Promise(Promise::new("fund-id")),
+                ..fields()
+            };
             let mut bond = Bond::build(f, None, None).unwrap();
-            let map = FlatPromiseMap::from_pairs([("fund-id".to_string(), BlockValue::from("Alpha Fund"))]);
+            let map = FlatPromiseMap::from_pairs([(
+                "fund-id".to_string(),
+                BlockValue::from("Alpha Fund"),
+            )]);
             fulfill_promises(&mut bond, &map).unwrap();
-            assert_eq!(bond.data.fund.resolved().map(String::as_str), Some("Alpha Fund"));
+            assert_eq!(
+                bond.data.fund.resolved().map(String::as_str),
+                Some("Alpha Fund")
+            );
         }
 
         #[test]
         fn resolving_with_a_wrongly_typed_value_reports_the_field() {
             let mut equity = promised_equity();
-            let err = equity.resolve_field("currency", BlockValue::from(1i64)).unwrap_err();
+            let err = equity
+                .resolve_field("currency", BlockValue::from(1i64))
+                .unwrap_err();
             assert!(err.to_string().contains("currency"), "{err}");
         }
     }

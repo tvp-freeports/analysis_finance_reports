@@ -19,11 +19,11 @@ use crate::commons::geometry::RectangleBuildError;
 use crate::commons::sets::Container;
 use crate::formats_utils::pdf_extract::position::{InputArea, PositionError};
 use crate::formats_utils::pdf_extract::relative::OptionallyRelative;
-use crate::formats_utils::pdf_extract::select::pdf_line::{PdfLineSet, SelectPdfLineSet};
 use crate::formats_utils::pdf_extract::select::pdf_line::area::Area;
 use crate::formats_utils::pdf_extract::select::pdf_line::font::FontSet;
 use crate::formats_utils::pdf_extract::select::pdf_line::font_size::FontSizeInterval;
 use crate::formats_utils::pdf_extract::select::pdf_line::text::TextSet;
+use crate::formats_utils::pdf_extract::select::pdf_line::{PdfLineSet, SelectPdfLineSet};
 use crate::formats_utils::pdf_extract::select::relative::{
     PdfLineSelection, RelativePdfLineSet, RelativeSelectPdfLineSet,
 };
@@ -83,7 +83,9 @@ pub struct InputAreaSpec {
 impl InputAreaSpec {
     /// Whether any side is an anchor, which is what makes the selection relative.
     fn has_anchor(&self) -> bool {
-        self.sides().iter().any(|side| side.as_ref().is_some_and(InputBound::is_anchor))
+        self.sides()
+            .iter()
+            .any(|side| side.as_ref().is_some_and(InputBound::is_anchor))
     }
 
     fn sides(&self) -> [&Option<InputBound>; 4] {
@@ -93,7 +95,8 @@ impl InputAreaSpec {
     /// The four sides as the coordinates they are, an anchor counting as absent. What
     /// `InputArea::build` validates: a side it is not given is a side it cannot compare.
     fn numbers(&self) -> [Option<f32>; 4] {
-        self.sides().map(|side| side.as_ref().and_then(InputBound::number))
+        self.sides()
+            .map(|side| side.as_ref().and_then(InputBound::number))
     }
 }
 
@@ -250,7 +253,12 @@ impl InputPdfLineSet {
             font_size: self.font_size,
             text: self.text.clone(),
             sides: self.area.as_ref().map(|area| {
-                (bound(&area.x_min), bound(&area.x_max), bound(&area.y_min), bound(&area.y_max))
+                (
+                    bound(&area.x_min),
+                    bound(&area.x_max),
+                    bound(&area.y_min),
+                    bound(&area.y_max),
+                )
             }),
         }
     }
@@ -294,7 +302,9 @@ pub enum LineSelectionError {
     #[error("the area of this selection is not a rectangle: {0}")]
     DegenerateArea(#[from] RectangleBuildError),
     /// A `window(..)` term that is not an anchor followed by four numbers.
-    #[error("this window term is not an anchor followed by four numbers ({reason}): window({term})")]
+    #[error(
+        "this window term is not an anchor followed by four numbers ({reason}): window({term})"
+    )]
     Window { term: String, reason: String },
     /// An expression that states no criterion at all, where one is required.
     ///
@@ -316,11 +326,19 @@ const FONT_SIZE_PRECISION: f32 = 1e-3;
 /// Shared by the two construction paths of the compact grammar — the absolute one through
 /// [`pdfline_selection_from_dict`] and the relative one through [`relative_bounds_selection`] — so
 /// that a size refused in one is refused in the other, and in the same words.
-fn font_size_interval(criterion: FontSizeCriterion) -> Result<FontSizeInterval, LineSelectionError> {
+fn font_size_interval(
+    criterion: FontSizeCriterion,
+) -> Result<FontSizeInterval, LineSelectionError> {
     match criterion {
-        FontSizeCriterion::Exact(size) if size <= 0.0 => Err(LineSelectionError::FontSizeNotPositive(size)),
-        FontSizeCriterion::Exact(size) => Ok(FontSizeInterval::from_precision(size, FONT_SIZE_PRECISION)),
-        FontSizeCriterion::Interval(low, _) if low <= 0.0 => Err(LineSelectionError::FontSizeNotPositive(low)),
+        FontSizeCriterion::Exact(size) if size <= 0.0 => {
+            Err(LineSelectionError::FontSizeNotPositive(size))
+        }
+        FontSizeCriterion::Exact(size) => {
+            Ok(FontSizeInterval::from_precision(size, FONT_SIZE_PRECISION))
+        }
+        FontSizeCriterion::Interval(low, _) if low <= 0.0 => {
+            Err(LineSelectionError::FontSizeNotPositive(low))
+        }
         FontSizeCriterion::Interval(low, high) if high <= low => {
             Err(LineSelectionError::FontSizeIntervalInverted(low, high))
         }
@@ -348,7 +366,9 @@ fn font_set(criterion: &FontCriterion) -> Result<FontSet, LineSelectionError> {
 /// and `without` existed takes, unchanged, down to the order the criteria intersect in — and
 /// relative as soon as one of those three appears, for the same reason the compact grammar's are:
 /// an anchor names a line of a page this function never sees.
-pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSelection, LineSelectionError> {
+pub fn pdfline_selection_from_dict(
+    data: &InputPdfLineSet,
+) -> Result<PdfLineSelection, LineSelectionError> {
     // Called once per selection spec while a formats repository loads, potentially thousands of
     // times across a whole repository: never above `trace!`.
     tracing::trace!(?data, "building a pdf line selection from a dict spec");
@@ -365,7 +385,9 @@ pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSele
 /// own nests, which the compact grammar cannot write and which costs nothing to allow here.
 fn dict_expression(data: &InputPdfLineSet) -> Result<RelativePdfLineSet, LineSelectionError> {
     let own = match data.states_own_criterion() {
-        true => Some(selection_node(data.parts(), data.windows(), || describe(data))?),
+        true => Some(selection_node(data.parts(), data.windows(), || {
+            describe(data)
+        })?),
         false => None,
     };
 
@@ -387,7 +409,10 @@ fn dict_expression(data: &InputPdfLineSet) -> Result<RelativePdfLineSet, LineSel
         });
     }
 
-    let stated = [own, intersection, union].into_iter().flatten().reduce(|a, b| a & b);
+    let stated = [own, intersection, union]
+        .into_iter()
+        .flatten()
+        .reduce(|a, b| a & b);
     // Unreachable through `pdfline_selection_from_dict`, which sends a spec stating nothing down
     // the absolute path, and raised for an anchor or an operand — the two places where *every
     // line* must not pass for an answer.
@@ -532,8 +557,9 @@ fn line_set_pattern(tail: &str) -> String {
     )
 }
 
-static LINE_SET_REGEXP: Lazy<Regex> =
-    Lazy::new(|| Regex::new(&line_set_pattern("")).expect("fixed, hand-written pattern, valid onig regex"));
+static LINE_SET_REGEXP: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(&line_set_pattern("")).expect("fixed, hand-written pattern, valid onig regex")
+});
 
 /// The same pattern as [`LINE_SET_REGEXP`], anchored **at the end too**.
 ///
@@ -542,8 +568,9 @@ static LINE_SET_REGEXP: Lazy<Regex> =
 /// [`pdfline_selection_from_str`] never rejects anything — a mistyped cell would silently produce
 /// an empty selection. Validation needs to be able to say "this cell is not a selection", which is
 /// what this pattern answers.
-static LINE_SET_ANCHORED_REGEXP: Lazy<Regex> =
-    Lazy::new(|| Regex::new(&line_set_pattern(r"\z")).expect("fixed, hand-written pattern, valid onig regex"));
+static LINE_SET_ANCHORED_REGEXP: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(&line_set_pattern(r"\z")).expect("fixed, hand-written pattern, valid onig regex")
+});
 
 /// Whether `input` is, in its entirety, a line selection written in the compact grammar.
 ///
@@ -556,10 +583,12 @@ static LINE_SET_ANCHORED_REGEXP: Lazy<Regex> =
 /// the difference, with its windows removed — and of each window's anchor in turn, which is an
 /// expression of this same grammar.
 pub fn is_pdfline_selection(input: &str) -> bool {
-    split_difference(input).into_iter().all(|operand| match Operand::parse(operand) {
-        Ok(operand) => operand.is_well_formed(),
-        Err(_) => false,
-    })
+    split_difference(input)
+        .into_iter()
+        .all(|operand| match Operand::parse(operand) {
+            Ok(operand) => operand.is_well_formed(),
+            Err(_) => false,
+        })
 }
 
 /// One side of an area, as the cell wrote it.
@@ -592,17 +621,29 @@ impl BoundSpec {
         if text.is_empty() {
             return BoundSpec::Absent;
         }
-        if let Some(anchor) = text.strip_prefix('"').and_then(|rest| rest.strip_suffix('"')) {
+        if let Some(anchor) = text
+            .strip_prefix('"')
+            .and_then(|rest| rest.strip_suffix('"'))
+        {
             return BoundSpec::Text(anchor.to_string());
         }
-        if let Some(expression) = text.strip_prefix('<').and_then(|rest| rest.strip_suffix('>')) {
+        if let Some(expression) = text
+            .strip_prefix('<')
+            .and_then(|rest| rest.strip_suffix('>'))
+        {
             return BoundSpec::Expression(expression.trim().to_string());
         }
-        BoundSpec::Number(text.parse::<f32>().expect("digits matched by LINE_SET_REGEXP always parse as f32"))
+        BoundSpec::Number(
+            text.parse::<f32>()
+                .expect("digits matched by LINE_SET_REGEXP always parse as f32"),
+        )
     }
 
     fn is_anchor(&self) -> bool {
-        matches!(self, BoundSpec::Text(_) | BoundSpec::Expression(_) | BoundSpec::Spec(_))
+        matches!(
+            self,
+            BoundSpec::Text(_) | BoundSpec::Expression(_) | BoundSpec::Spec(_)
+        )
     }
 
     fn number(&self) -> Option<f32> {
@@ -619,7 +660,10 @@ impl BoundSpec {
     /// one thing: `"text"` is the case the short form covers, and the long one covers the rest
     /// without a second syntax to learn. The recursion terminates because each level strips a pair
     /// of angle brackets and the pattern forbids a nested one.
-    fn to_bound(&self, fallback: f32) -> Result<OptionallyRelative<f32, PdfLineSelection>, LineSelectionError> {
+    fn to_bound(
+        &self,
+        fallback: f32,
+    ) -> Result<OptionallyRelative<f32, PdfLineSelection>, LineSelectionError> {
         Ok(match self {
             BoundSpec::Absent => OptionallyRelative::Absolute(fallback),
             BoundSpec::Number(v) => OptionallyRelative::Absolute(*v),
@@ -687,7 +731,9 @@ pub fn pdfline_selection_from_str(input: &str) -> Result<PdfLineSelection, LineS
     tracing::trace!(input, "parsing a compact pdf line selection expression");
 
     let operands = split_difference(input);
-    let (first, rest) = operands.split_first().expect("split_difference always yields one operand");
+    let (first, rest) = operands
+        .split_first()
+        .expect("split_difference always yields one operand");
     if !rest.is_empty() {
         return Ok(OptionallyRelative::Relative(relative_expression(input)?));
     }
@@ -708,7 +754,9 @@ pub fn pdfline_selection_from_str(input: &str) -> Result<PdfLineSelection, LineS
 /// them.
 fn relative_expression(input: &str) -> Result<RelativePdfLineSet, LineSelectionError> {
     let operands = split_difference(input);
-    let (first, rest) = operands.split_first().expect("split_difference always yields one operand");
+    let (first, rest) = operands
+        .split_first()
+        .expect("split_difference always yields one operand");
     let mut node = Operand::parse(first)?.node(first)?;
     for operand in rest {
         node = node / Operand::parse(operand)?.node(operand)?;
@@ -731,7 +779,10 @@ fn split_area_pairs(area_text: &str) -> (&str, &str) {
             b'<' if !in_quotes => depth += 1,
             b'>' if !in_quotes => depth = depth.saturating_sub(1),
             b')' if !in_quotes && depth == 0 && bytes[index + 1] == b'(' => {
-                return (area_text[..index].trim_start_matches('('), area_text[index + 2..].trim_end_matches(')'));
+                return (
+                    area_text[..index].trim_start_matches('('),
+                    area_text[index + 2..].trim_end_matches(')'),
+                );
             }
             _ => {}
         }
@@ -837,7 +888,10 @@ fn matching_bracket(text: &str, open: usize) -> Option<usize> {
 /// it ends — but an author who has written a bound anchor writes `<…>` out of habit, and the habit
 /// is right about everything except the brackets.
 fn strip_angles(text: &str) -> &str {
-    text.strip_prefix('<').and_then(|rest| rest.strip_suffix('>')).unwrap_or(text).trim()
+    text.strip_prefix('<')
+        .and_then(|rest| rest.strip_suffix('>'))
+        .unwrap_or(text)
+        .trim()
 }
 
 /// The keyword that opens a window term, its bracket included.
@@ -864,9 +918,9 @@ impl WindowAnchor {
     /// is precisely the place where *every line* must not be allowed to pass for an answer.
     fn selection(&self) -> Result<PdfLineSelection, LineSelectionError> {
         match self {
-            WindowAnchor::Compact(expression) => {
-                Ok(OptionallyRelative::Relative(relative_expression(expression)?))
-            }
+            WindowAnchor::Compact(expression) => Ok(OptionallyRelative::Relative(
+                relative_expression(expression)?,
+            )),
             WindowAnchor::Spec(spec) => anchor_from_dict(spec),
         }
     }
@@ -926,7 +980,9 @@ impl WindowSpec {
         };
         let commas = top_level_commas(term);
         if commas.len() < 4 {
-            return Err(refuse("it takes a displacement, a width and a height after the anchor"));
+            return Err(refuse(
+                "it takes a displacement, a width and a height after the anchor",
+            ));
         }
         let cut = commas[commas.len() - 4];
         let numbers: Vec<&str> = term[cut + 1..].split(',').map(str::trim).collect();
@@ -937,10 +993,17 @@ impl WindowSpec {
         }
         let mut read = [0.0f32; 4];
         for (slot, text) in read.iter_mut().zip(&numbers) {
-            *slot = text.parse::<f32>().map_err(|_| refuse(&format!("{text} is not a number")))?;
+            *slot = text
+                .parse::<f32>()
+                .map_err(|_| refuse(&format!("{text} is not a number")))?;
         }
         let anchor = WindowAnchor::Compact(strip_angles(term[..cut].trim()).to_string());
-        Ok(Self { anchor, displacement: (read[0], read[1]), width: read[2], height: read[3] })
+        Ok(Self {
+            anchor,
+            displacement: (read[0], read[1]),
+            width: read[2],
+            height: read[3],
+        })
     }
 
     /// The window as the leaf [`RelativeSelectPdfLineSet`] it is.
@@ -989,8 +1052,10 @@ impl SelectionParts {
                 _ => FontCriterion::Multiple(names),
             }
         });
-        let number =
-            |s: &str| s.parse::<f32>().expect("digits matched by LINE_SET_REGEXP always parse as f32");
+        let number = |s: &str| {
+            s.parse::<f32>()
+                .expect("digits matched by LINE_SET_REGEXP always parse as f32")
+        };
         let font_size = captures.at(2).map(|s| match s.split_once(':') {
             None => FontSizeCriterion::Exact(number(s)),
             Some((low, high)) => FontSizeCriterion::Interval(number(low), number(high)),
@@ -1015,7 +1080,13 @@ impl SelectionParts {
 
         let text = captures.at(5).map(|t| t.to_string());
 
-        Self { font, font_of: None, font_size, text, sides }
+        Self {
+            font,
+            font_of: None,
+            font_size,
+            text,
+            sides,
+        }
     }
 
     fn is_empty(&self) -> bool {
@@ -1031,7 +1102,9 @@ impl SelectionParts {
         self.sides
             .as_ref()
             .is_some_and(|(x_min, x_max, y_min, y_max)| {
-                [x_min, x_max, y_min, y_max].iter().any(|side| side.is_anchor())
+                [x_min, x_max, y_min, y_max]
+                    .iter()
+                    .any(|side| side.is_anchor())
             })
     }
 }
@@ -1050,7 +1123,11 @@ impl Operand {
     fn parse(input: &str) -> Result<Self, LineSelectionError> {
         let (plain, windows) = extract_windows(input)?;
         let parts = SelectionParts::parse(&plain);
-        Ok(Self { plain, parts, windows })
+        Ok(Self {
+            plain,
+            parts,
+            windows,
+        })
     }
 
     /// Whether the original, absolute construction path can build it: no window, no anchor.
@@ -1062,18 +1139,23 @@ impl Operand {
     /// [`is_pdfline_selection`], whose question this answers for one operand.
     fn is_well_formed(&self) -> bool {
         LINE_SET_ANCHORED_REGEXP.find(&self.plain).is_some()
-            && self.windows.iter().all(|window| window.anchor.is_well_formed())
+            && self
+                .windows
+                .iter()
+                .all(|window| window.anchor.is_well_formed())
     }
 
     /// The structured form, for the absolute path.
     fn into_dict(self) -> InputPdfLineSet {
         let Self { parts, .. } = self;
-        let area = parts.sides.map(|(x_min, x_max, y_min, y_max)| InputAreaSpec {
-            x_min: x_min.number().map(InputBound::Number),
-            x_max: x_max.number().map(InputBound::Number),
-            y_min: y_min.number().map(InputBound::Number),
-            y_max: y_max.number().map(InputBound::Number),
-        });
+        let area = parts
+            .sides
+            .map(|(x_min, x_max, y_min, y_max)| InputAreaSpec {
+                x_min: x_min.number().map(InputBound::Number),
+                x_max: x_max.number().map(InputBound::Number),
+                y_min: y_min.number().map(InputBound::Number),
+                y_max: y_max.number().map(InputBound::Number),
+            });
         InputPdfLineSet {
             text: parts.text,
             font: parts.font,
@@ -1118,7 +1200,13 @@ fn selection_node(
         if windows.is_empty() && parts.is_empty() {
             return Err(LineSelectionError::NoCriterion(description()));
         }
-        let SelectionParts { font, font_of, font_size, text, sides } = parts;
+        let SelectionParts {
+            font,
+            font_of,
+            font_size,
+            text,
+            sides,
+        } = parts;
 
         let mut node = None;
         if let Some((x_min, x_max, y_min, y_max)) = &sides {
@@ -1126,7 +1214,12 @@ fn selection_node(
             // non-positive coordinate is refused, and so is a pair written back to front.
             // `InputArea` is handed `None` for an anchored side, which is the honest answer — a
             // side whose value this function cannot know is a side it cannot compare.
-            InputArea::build(x_min.number(), x_max.number(), y_min.number(), y_max.number())?;
+            InputArea::build(
+                x_min.number(),
+                x_max.number(),
+                y_min.number(),
+                y_max.number(),
+            )?;
             let area = RelativeSelectPdfLineSet::area_from_bounds(
                 x_min.to_bound(0.0)?,
                 y_min.to_bound(0.0)?,
@@ -1195,10 +1288,11 @@ fn extract_windows(input: &str) -> Result<(String, Vec<WindowSpec>), LineSelecti
     let mut remainder = input;
     while let Some(start) = find_window(remainder) {
         let open = start + WINDOW_KEYWORD.len() - 1;
-        let close = matching_bracket(remainder, open).ok_or_else(|| LineSelectionError::Window {
-            term: remainder[open + 1..].to_string(),
-            reason: "its bracket never closes".to_string(),
-        })?;
+        let close =
+            matching_bracket(remainder, open).ok_or_else(|| LineSelectionError::Window {
+                term: remainder[open + 1..].to_string(),
+                reason: "its bracket never closes".to_string(),
+            })?;
         pieces.push(remainder[..start].trim());
         windows.push(WindowSpec::parse(&remainder[open + 1..close])?);
         remainder = &remainder[close + 1..];
@@ -1208,7 +1302,11 @@ fn extract_windows(input: &str) -> Result<(String, Vec<WindowSpec>), LineSelecti
     // Rejoined with one space: the pattern allows one between its groups and not two, and a term
     // removed from the middle of an operand leaves a gap. Trimming each piece can only touch
     // whitespace that was outside quotes, because that is where the term was cut out.
-    let plain = pieces.into_iter().filter(|piece| !piece.is_empty()).collect::<Vec<_>>().join(" ");
+    let plain = pieces
+        .into_iter()
+        .filter(|piece| !piece.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
     Ok((plain, windows))
 }
 
@@ -1255,7 +1353,9 @@ mod tests {
         match selection {
             OptionallyRelative::Absolute(set) => set.contains(probe),
             OptionallyRelative::Relative(_) => {
-                panic!("pdfline_selection_from_dict/_from_str must never build a Relative selection")
+                panic!(
+                    "pdfline_selection_from_dict/_from_str must never build a Relative selection"
+                )
             }
         }
     }
@@ -1267,36 +1367,78 @@ mod tests {
         #[test]
         fn with_every_field_absent_it_accepts_any_line() {
             let selection = pdfline_selection_from_dict(&InputPdfLineSet::default()).unwrap();
-            assert!(selects(&selection, &line("Arial", 12.0, "anything", (0.0, 0.0, 10.0, 10.0))));
-            assert!(selects(&selection, &line("Times New Roman", 999.0, "", (500.0, 500.0, 600.0, 600.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 12.0, "anything", (0.0, 0.0, 10.0, 10.0))
+            ));
+            assert!(selects(
+                &selection,
+                &line("Times New Roman", 999.0, "", (500.0, 500.0, 600.0, 600.0))
+            ));
         }
 
         #[test]
         fn a_single_font_accepts_only_that_font() {
-            let data = InputPdfLineSet { font: Some(FontCriterion::Single("Arial".to_string())), ..Default::default() };
+            let data = InputPdfLineSet {
+                font: Some(FontCriterion::Single("Arial".to_string())),
+                ..Default::default()
+            };
             let selection = pdfline_selection_from_dict(&data).unwrap();
-            assert!(selects(&selection, &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Times", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Times", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
         }
 
         #[test]
         fn a_list_of_two_or_more_fonts_accepts_the_union() {
             let data = InputPdfLineSet {
-                font: Some(FontCriterion::Multiple(vec!["Arial".to_string(), "Times".to_string()])),
+                font: Some(FontCriterion::Multiple(vec![
+                    "Arial".to_string(),
+                    "Times".to_string(),
+                ])),
                 ..Default::default()
             };
             let selection = pdfline_selection_from_dict(&data).unwrap();
-            assert!(selects(&selection, &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
-            assert!(selects(&selection, &line("Times", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Courier", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(selects(
+                &selection,
+                &line("Times", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Courier", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
         }
 
         #[test]
         fn font_size_selects_a_narrow_interval_around_the_given_value() {
-            let data = InputPdfLineSet { font_size: Some(FontSizeCriterion::Exact(12.0)), ..Default::default() };
+            let data = InputPdfLineSet {
+                font_size: Some(FontSizeCriterion::Exact(12.0)),
+                ..Default::default()
+            };
             let selection = pdfline_selection_from_dict(&data).unwrap();
-            assert!(selects(&selection, &line("Arial", 12.0005, "x", (0.0, 0.0, 1.0, 1.0))), "just inside [11.999, 12.001]");
-            assert!(!selects(&selection, &line("Arial", 12.005, "x", (0.0, 0.0, 1.0, 1.0))), "clearly outside [11.999, 12.001]");
+            assert!(
+                selects(
+                    &selection,
+                    &line("Arial", 12.0005, "x", (0.0, 0.0, 1.0, 1.0))
+                ),
+                "just inside [11.999, 12.001]"
+            );
+            assert!(
+                !selects(
+                    &selection,
+                    &line("Arial", 12.005, "x", (0.0, 0.0, 1.0, 1.0))
+                ),
+                "clearly outside [11.999, 12.001]"
+            );
         }
 
         #[test]
@@ -1313,55 +1455,107 @@ mod tests {
             };
             let selection = pdfline_selection_from_dict(&data).unwrap();
             // Inside (5.0, 0.0, 1e6, 50.0).
-            assert!(selects(&selection, &line("Arial", 10.0, "x", (10.0, 10.0, 20.0, 20.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "x", (10.0, 10.0, 20.0, 20.0))
+            ));
             // Outside: x0 below 5.0.
-            assert!(!selects(&selection, &line("Arial", 10.0, "x", (1.0, 10.0, 4.0, 20.0))));
+            assert!(!selects(
+                &selection,
+                &line("Arial", 10.0, "x", (1.0, 10.0, 4.0, 20.0))
+            ));
             // Outside: y1 above 50.0.
-            assert!(!selects(&selection, &line("Arial", 10.0, "x", (10.0, 10.0, 20.0, 60.0))));
+            assert!(!selects(
+                &selection,
+                &line("Arial", 10.0, "x", (10.0, 10.0, 20.0, 60.0))
+            ));
         }
 
         #[test]
         fn text_is_passed_through_to_the_text_set_unchanged() {
-            let data = InputPdfLineSet { text: Some("^foo".to_string()), ..Default::default() };
+            let data = InputPdfLineSet {
+                text: Some("^foo".to_string()),
+                ..Default::default()
+            };
             let selection = pdfline_selection_from_dict(&data).unwrap();
-            assert!(selects(&selection, &line("Arial", 10.0, "foobar", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Arial", 10.0, "barfoo", (0.0, 0.0, 1.0, 1.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "foobar", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Arial", 10.0, "barfoo", (0.0, 0.0, 1.0, 1.0))
+            ));
         }
 
         #[test]
         fn two_criteria_present_together_intersect_rather_than_union() {
-            let data = InputPdfLineSet { font: Some(FontCriterion::Single("Arial".to_string())), font_size: Some(FontSizeCriterion::Exact(12.0)), ..Default::default() };
+            let data = InputPdfLineSet {
+                font: Some(FontCriterion::Single("Arial".to_string())),
+                font_size: Some(FontSizeCriterion::Exact(12.0)),
+                ..Default::default()
+            };
             let selection = pdfline_selection_from_dict(&data).unwrap();
-            assert!(selects(&selection, &line("Arial", 12.0, "x", (0.0, 0.0, 1.0, 1.0))), "matches both");
-            assert!(!selects(&selection, &line("Arial", 50.0, "x", (0.0, 0.0, 1.0, 1.0))), "font matches, size doesn't");
-            assert!(!selects(&selection, &line("Times", 12.0, "x", (0.0, 0.0, 1.0, 1.0))), "size matches, font doesn't");
+            assert!(
+                selects(&selection, &line("Arial", 12.0, "x", (0.0, 0.0, 1.0, 1.0))),
+                "matches both"
+            );
+            assert!(
+                !selects(&selection, &line("Arial", 50.0, "x", (0.0, 0.0, 1.0, 1.0))),
+                "font matches, size doesn't"
+            );
+            assert!(
+                !selects(&selection, &line("Times", 12.0, "x", (0.0, 0.0, 1.0, 1.0))),
+                "size matches, font doesn't"
+            );
         }
 
         #[test]
         fn a_non_positive_font_size_is_rejected() {
-            let zero = InputPdfLineSet { font_size: Some(FontSizeCriterion::Exact(0.0)), ..Default::default() };
+            let zero = InputPdfLineSet {
+                font_size: Some(FontSizeCriterion::Exact(0.0)),
+                ..Default::default()
+            };
             let err = expect_err(pdfline_selection_from_dict(&zero));
-            let LineSelectionError::FontSizeNotPositive(v) = err else { panic!("expected FontSizeNotPositive, got {err:?}") };
+            let LineSelectionError::FontSizeNotPositive(v) = err else {
+                panic!("expected FontSizeNotPositive, got {err:?}")
+            };
             assert_eq!(v, 0.0);
 
-            let negative = InputPdfLineSet { font_size: Some(FontSizeCriterion::Exact(-3.0)), ..Default::default() };
+            let negative = InputPdfLineSet {
+                font_size: Some(FontSizeCriterion::Exact(-3.0)),
+                ..Default::default()
+            };
             let err = expect_err(pdfline_selection_from_dict(&negative));
-            let LineSelectionError::FontSizeNotPositive(v) = err else { panic!("expected FontSizeNotPositive, got {err:?}") };
+            let LineSelectionError::FontSizeNotPositive(v) = err else {
+                panic!("expected FontSizeNotPositive, got {err:?}")
+            };
             assert_eq!(v, -3.0);
         }
 
         #[test]
         fn an_explicitly_empty_font_list_is_rejected() {
-            let data = InputPdfLineSet { font: Some(FontCriterion::Multiple(vec![])), ..Default::default() };
+            let data = InputPdfLineSet {
+                font: Some(FontCriterion::Multiple(vec![])),
+                ..Default::default()
+            };
             let err = expect_err(pdfline_selection_from_dict(&data));
             assert!(matches!(err, LineSelectionError::EmptyFontList));
         }
 
         #[test]
         fn an_invalid_area_bubbles_up_a_position_error() {
-            let data = InputPdfLineSet { area: Some(InputAreaSpec { x_min: Some(InputBound::Number(0.0)), ..Default::default() }), ..Default::default() };
+            let data = InputPdfLineSet {
+                area: Some(InputAreaSpec {
+                    x_min: Some(InputBound::Number(0.0)),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            };
             let err = expect_err(pdfline_selection_from_dict(&data));
-            let LineSelectionError::Area(PositionError::XMinNotPositive(v)) = err else { panic!("expected Area(XMinNotPositive), got {err:?}") };
+            let LineSelectionError::Area(PositionError::XMinNotPositive(v)) = err else {
+                panic!("expected Area(XMinNotPositive), got {err:?}")
+            };
             assert_eq!(v, 0.0);
         }
     }
@@ -1373,16 +1567,34 @@ mod tests {
         #[test]
         fn a_bare_font_selects_only_that_font() {
             let selection = pdfline_selection_from_str("Arial").unwrap();
-            assert!(selects(&selection, &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Times", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Times", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
         }
 
         #[test]
         fn a_bracketed_number_alone_selects_that_font_size() {
             let selection = pdfline_selection_from_str("[12.0]").unwrap();
-            assert!(selects(&selection, &line("Arial", 12.0005, "x", (0.0, 0.0, 1.0, 1.0))));
-            assert!(selects(&selection, &line("Times", 12.0005, "x", (0.0, 0.0, 1.0, 1.0))), "font unrestricted");
-            assert!(!selects(&selection, &line("Arial", 12.005, "x", (0.0, 0.0, 1.0, 1.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 12.0005, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(
+                selects(
+                    &selection,
+                    &line("Times", 12.0005, "x", (0.0, 0.0, 1.0, 1.0))
+                ),
+                "font unrestricted"
+            );
+            assert!(!selects(
+                &selection,
+                &line("Arial", 12.005, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
         }
 
         /// The full-area grammar needs a pair of ranges wrapped in an *extra* pair of brackets, not
@@ -1391,37 +1603,80 @@ mod tests {
         #[test]
         fn a_double_parenthesized_range_pair_selects_the_full_area() {
             let selection = pdfline_selection_from_str("((1:10)(2:20))").unwrap();
-            assert!(selects(&selection, &line("Arial", 10.0, "x", (3.0, 5.0, 6.0, 8.0))), "strictly inside (1,2,10,20)");
-            assert!(!selects(&selection, &line("Arial", 10.0, "x", (50.0, 5.0, 60.0, 8.0))), "outside on x");
+            assert!(
+                selects(&selection, &line("Arial", 10.0, "x", (3.0, 5.0, 6.0, 8.0))),
+                "strictly inside (1,2,10,20)"
+            );
+            assert!(
+                !selects(
+                    &selection,
+                    &line("Arial", 10.0, "x", (50.0, 5.0, 60.0, 8.0))
+                ),
+                "outside on x"
+            );
         }
 
         #[test]
         fn a_single_parenthesized_range_selects_a_vertical_band() {
             let selection = pdfline_selection_from_str("(2:20)").unwrap();
             // The horizontal axis is unbounded and only the vertical one is constrained.
-            assert!(selects(&selection, &line("Arial", 10.0, "x", (100.0, 5.0, 200.0, 10.0))));
-            assert!(!selects(&selection, &line("Arial", 10.0, "x", (100.0, 30.0, 200.0, 40.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "x", (100.0, 5.0, 200.0, 10.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Arial", 10.0, "x", (100.0, 30.0, 200.0, 40.0))
+            ));
         }
 
         #[test]
         fn a_quoted_string_alone_selects_that_text() {
             let selection = pdfline_selection_from_str("\"foo\"").unwrap();
-            assert!(selects(&selection, &line("Arial", 10.0, "a foo b", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Arial", 10.0, "bar", (0.0, 0.0, 1.0, 1.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 10.0, "a foo b", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Arial", 10.0, "bar", (0.0, 0.0, 1.0, 1.0))
+            ));
         }
 
         #[test]
         fn an_empty_string_selects_everything() {
             let selection = pdfline_selection_from_str("").unwrap();
-            assert!(selects(&selection, &line("Whatever", 999.0, "anything", (500.0, 500.0, 600.0, 600.0))));
+            assert!(selects(
+                &selection,
+                &line("Whatever", 999.0, "anything", (500.0, 500.0, 600.0, 600.0))
+            ));
         }
 
         #[test]
         fn groups_separated_by_spaces_combine_with_intersection() {
-            let selection = pdfline_selection_from_str("Arial [12.0] ((1:10)(2:20)) \"foo\"").unwrap();
-            assert!(selects(&selection, &line("Arial", 12.0, "a foo b", (3.0, 5.0, 6.0, 8.0))), "matches all four criteria");
-            assert!(!selects(&selection, &line("Times", 12.0, "a foo b", (3.0, 5.0, 6.0, 8.0))), "font alone fails");
-            assert!(!selects(&selection, &line("Arial", 12.0, "bar", (3.0, 5.0, 6.0, 8.0))), "text alone fails");
+            let selection =
+                pdfline_selection_from_str("Arial [12.0] ((1:10)(2:20)) \"foo\"").unwrap();
+            assert!(
+                selects(
+                    &selection,
+                    &line("Arial", 12.0, "a foo b", (3.0, 5.0, 6.0, 8.0))
+                ),
+                "matches all four criteria"
+            );
+            assert!(
+                !selects(
+                    &selection,
+                    &line("Times", 12.0, "a foo b", (3.0, 5.0, 6.0, 8.0))
+                ),
+                "font alone fails"
+            );
+            assert!(
+                !selects(
+                    &selection,
+                    &line("Arial", 12.0, "bar", (3.0, 5.0, 6.0, 8.0))
+                ),
+                "text alone fails"
+            );
         }
 
         /// The font character class includes the comma, so a literal comma in a font name does not
@@ -1430,14 +1685,24 @@ mod tests {
         #[test]
         fn a_font_containing_a_literal_comma_is_a_single_criterion_not_split_on_the_comma() {
             let selection = pdfline_selection_from_str("Arial,Bold").unwrap();
-            assert!(selects(&selection, &line("Arial,Bold", 10.0, "x", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Bold", 10.0, "x", (0.0, 0.0, 1.0, 1.0))), "must not be treated as font Arial OR font Bold");
-            assert!(!selects(&selection, &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))), "must not be treated as font Arial OR font Bold");
+            assert!(selects(
+                &selection,
+                &line("Arial,Bold", 10.0, "x", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(
+                !selects(&selection, &line("Bold", 10.0, "x", (0.0, 0.0, 1.0, 1.0))),
+                "must not be treated as font Arial OR font Bold"
+            );
+            assert!(
+                !selects(&selection, &line("Arial", 10.0, "x", (0.0, 0.0, 1.0, 1.0))),
+                "must not be treated as font Arial OR font Bold"
+            );
         }
 
         #[test]
         fn agrees_with_from_dict_on_an_equivalent_hand_built_criterion_set() {
-            let via_str = pdfline_selection_from_str("Arial [12.0] ((1:10)(2:20)) \"foo\"").unwrap();
+            let via_str =
+                pdfline_selection_from_str("Arial [12.0] ((1:10)(2:20)) \"foo\"").unwrap();
             let via_dict = pdfline_selection_from_dict(&InputPdfLineSet {
                 font: Some(FontCriterion::Single("Arial".to_string())),
                 font_size: Some(FontSizeCriterion::Exact(12.0)),
@@ -1460,21 +1725,29 @@ mod tests {
                 line("Arial", 12.0, "a foo b", (50.0, 50.0, 60.0, 60.0)),
             ];
             for probe in probes {
-                assert_eq!(selects(&via_str, &probe), selects(&via_dict, &probe), "mismatch for {probe:?}");
+                assert_eq!(
+                    selects(&via_str, &probe),
+                    selects(&via_dict, &probe),
+                    "mismatch for {probe:?}"
+                );
             }
         }
 
         #[test]
         fn a_non_positive_font_size_error_propagates_from_from_dict() {
             let err = expect_err(pdfline_selection_from_str("[0.0]"));
-            let LineSelectionError::FontSizeNotPositive(v) = err else { panic!("expected FontSizeNotPositive, got {err:?}") };
+            let LineSelectionError::FontSizeNotPositive(v) = err else {
+                panic!("expected FontSizeNotPositive, got {err:?}")
+            };
             assert_eq!(v, 0.0);
         }
 
         #[test]
         fn an_invalid_area_error_propagates_from_from_dict() {
             let err = expect_err(pdfline_selection_from_str("((0:10)(2:20))"));
-            let LineSelectionError::Area(PositionError::XMinNotPositive(v)) = err else { panic!("expected Area(XMinNotPositive), got {err:?}") };
+            let LineSelectionError::Area(PositionError::XMinNotPositive(v)) = err else {
+                panic!("expected Area(XMinNotPositive), got {err:?}")
+            };
             assert_eq!(v, 0.0);
         }
     }
@@ -1496,7 +1769,10 @@ mod tests {
             let selection =
                 pdfline_selection_from_str("Lato,Bold|TrebuchetMS-Bold|Open Sans,Bold").unwrap();
             for font in ["Lato,Bold", "TrebuchetMS-Bold", "Open Sans,Bold"] {
-                assert!(selects(&selection, &probe(font)), "{font} is one of the alternatives");
+                assert!(
+                    selects(&selection, &probe(font)),
+                    "{font} is one of the alternatives"
+                );
             }
         }
 
@@ -1530,10 +1806,26 @@ mod tests {
 
         #[test]
         fn a_union_combines_with_the_other_criteria() {
-            let selection = pdfline_selection_from_str(r#"Lato,Bold|Open Sans,Bold [10] "Titoli""#).unwrap();
-            assert!(selects(&selection, &line("Open Sans,Bold", 10.0, "Titoli", (0.0, 0.0, 1.0, 1.0))));
-            assert!(!selects(&selection, &line("Open Sans,Bold", 12.0, "Titoli", (0.0, 0.0, 1.0, 1.0))), "the size still restricts");
-            assert!(!selects(&selection, &line("Lato,Bold", 10.0, "Divisa", (0.0, 0.0, 1.0, 1.0))), "the text still restricts");
+            let selection =
+                pdfline_selection_from_str(r#"Lato,Bold|Open Sans,Bold [10] "Titoli""#).unwrap();
+            assert!(selects(
+                &selection,
+                &line("Open Sans,Bold", 10.0, "Titoli", (0.0, 0.0, 1.0, 1.0))
+            ));
+            assert!(
+                !selects(
+                    &selection,
+                    &line("Open Sans,Bold", 12.0, "Titoli", (0.0, 0.0, 1.0, 1.0))
+                ),
+                "the size still restricts"
+            );
+            assert!(
+                !selects(
+                    &selection,
+                    &line("Lato,Bold", 10.0, "Divisa", (0.0, 0.0, 1.0, 1.0))
+                ),
+                "the text still restricts"
+            );
         }
     }
 
@@ -1553,7 +1845,10 @@ mod tests {
         fn a_size_inside_the_interval_is_selected() {
             let selection = pdfline_selection_from_str("[18:21]").unwrap();
             for size in [18.96, 19.5, 20.04] {
-                assert!(selects(&selection, &probe(size)), "{size} is inside [18:21]");
+                assert!(
+                    selects(&selection, &probe(size)),
+                    "{size} is inside [18:21]"
+                );
             }
         }
 
@@ -1574,16 +1869,27 @@ mod tests {
 
         #[test]
         fn an_interval_combines_with_a_font_and_a_text() {
-            let selection =
-                pdfline_selection_from_str(r#"timesnewromanbolditalic[9.5:10.5] "prestazione degli indicatori""#)
-                    .unwrap();
+            let selection = pdfline_selection_from_str(
+                r#"timesnewromanbolditalic[9.5:10.5] "prestazione degli indicatori""#,
+            )
+            .unwrap();
             assert!(selects(
                 &selection,
-                &line("timesnewromanbolditalic", 10.0, "la prestazione degli indicatori", (0.0, 0.0, 1.0, 1.0))
+                &line(
+                    "timesnewromanbolditalic",
+                    10.0,
+                    "la prestazione degli indicatori",
+                    (0.0, 0.0, 1.0, 1.0)
+                )
             ));
             assert!(!selects(
                 &selection,
-                &line("timesnewromanbolditalic", 12.0, "la prestazione degli indicatori", (0.0, 0.0, 1.0, 1.0))
+                &line(
+                    "timesnewromanbolditalic",
+                    12.0,
+                    "la prestazione degli indicatori",
+                    (0.0, 0.0, 1.0, 1.0)
+                )
             ));
         }
 
@@ -1627,12 +1933,18 @@ mod tests {
 
         #[test]
         fn font_size_not_positive_displays_the_offending_value() {
-            assert_eq!(LineSelectionError::FontSizeNotPositive(-2.5).to_string(), "font_size must be positive, found -2.5");
+            assert_eq!(
+                LineSelectionError::FontSizeNotPositive(-2.5).to_string(),
+                "font_size must be positive, found -2.5"
+            );
         }
 
         #[test]
         fn empty_font_list_displays_a_fixed_message() {
-            assert_eq!(LineSelectionError::EmptyFontList.to_string(), "font list must not be empty when provided");
+            assert_eq!(
+                LineSelectionError::EmptyFontList.to_string(),
+                "font list must not be empty when provided"
+            );
         }
 
         #[test]
@@ -1660,7 +1972,12 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        fn spec(x_min: Option<f32>, x_max: Option<f32>, y_min: Option<f32>, y_max: Option<f32>) -> InputPdfLineSet {
+        fn spec(
+            x_min: Option<f32>,
+            x_max: Option<f32>,
+            y_min: Option<f32>,
+            y_max: Option<f32>,
+        ) -> InputPdfLineSet {
             let side = |value: Option<f32>| value.map(InputBound::Number);
             InputPdfLineSet {
                 area: Some(InputAreaSpec {
@@ -1678,7 +1995,12 @@ mod tests {
         /// `x_max` to compare it with.
         #[test]
         fn an_x_min_above_the_absent_x_max_fallback_is_a_degenerate_area_not_a_panic() {
-            match expect_err(pdfline_selection_from_dict(&spec(Some(2e6), None, None, None))) {
+            match expect_err(pdfline_selection_from_dict(&spec(
+                Some(2e6),
+                None,
+                None,
+                None,
+            ))) {
                 LineSelectionError::DegenerateArea(_) => {}
                 other => panic!("expected DegenerateArea, found {other}"),
             }
@@ -1686,7 +2008,12 @@ mod tests {
 
         #[test]
         fn the_same_on_the_vertical_axis() {
-            match expect_err(pdfline_selection_from_dict(&spec(None, None, Some(2e6), None))) {
+            match expect_err(pdfline_selection_from_dict(&spec(
+                None,
+                None,
+                Some(2e6),
+                None,
+            ))) {
                 LineSelectionError::DegenerateArea(_) => {}
                 other => panic!("expected DegenerateArea, found {other}"),
             }
@@ -1696,7 +2023,12 @@ mod tests {
         /// variant is the gap-filler, not a replacement.
         #[test]
         fn an_inverted_pair_both_sides_given_is_still_reported_by_input_area() {
-            match expect_err(pdfline_selection_from_dict(&spec(Some(90.0), Some(10.0), None, None))) {
+            match expect_err(pdfline_selection_from_dict(&spec(
+                Some(90.0),
+                Some(10.0),
+                None,
+                None,
+            ))) {
                 LineSelectionError::Area(PositionError::XBoundsInverted { x_min, x_max }) => {
                     assert_eq!((x_min, x_max), (90.0, 10.0));
                 }
@@ -1710,8 +2042,14 @@ mod tests {
         fn an_area_with_only_a_lower_bound_still_builds() {
             let selection = pdfline_selection_from_dict(&spec(Some(10.0), None, None, None))
                 .expect("a half-open area is legitimate");
-            assert!(selects(&selection, &line("Arial", 12.0, "right of x_min", (20.0, 0.0, 30.0, 10.0))));
-            assert!(!selects(&selection, &line("Arial", 12.0, "left of x_min", (1.0, 0.0, 5.0, 10.0))));
+            assert!(selects(
+                &selection,
+                &line("Arial", 12.0, "right of x_min", (20.0, 0.0, 30.0, 10.0))
+            ));
+            assert!(!selects(
+                &selection,
+                &line("Arial", 12.0, "left of x_min", (1.0, 0.0, 5.0, 10.0))
+            ));
         }
     }
 
@@ -1721,8 +2059,13 @@ mod tests {
     /// about the relative forms need their own: contextualising is exactly what is under test
     /// there.
     fn selected<'a>(cell: &str, page: &'a [PdfLine]) -> Vec<&'a str> {
-        let set = pdfline_selection_from_str(cell).expect("a well-formed cell").contextualize(page);
-        page.iter().filter(|l| set.contains(l)).map(|l| l.text().as_str()).collect()
+        let set = pdfline_selection_from_str(cell)
+            .expect("a well-formed cell")
+            .contextualize(page);
+        page.iter()
+            .filter(|l| set.contains(l))
+            .map(|l| l.text().as_str())
+            .collect()
     }
 
     /// Whether a cell built a relative selection, which is what an anchor, a window and a
@@ -1743,9 +2086,24 @@ mod tests {
             vec![
                 line("Arial", 8.0, "Condensed Schedule", (10.0, 10.0, 90.0, 20.0)),
                 line("Arial", 8.0, "Domicile", (200.0, 10.0, 250.0, 20.0)),
-                line("Arial", 8.0, "inside the first column", (95.0, 40.0, 180.0, 50.0)),
-                line("Arial", 8.0, "left of the first heading", (0.0, 40.0, 8.0, 50.0)),
-                line("Arial", 8.0, "right of the second heading", (260.0, 40.0, 300.0, 50.0)),
+                line(
+                    "Arial",
+                    8.0,
+                    "inside the first column",
+                    (95.0, 40.0, 180.0, 50.0),
+                ),
+                line(
+                    "Arial",
+                    8.0,
+                    "left of the first heading",
+                    (0.0, 40.0, 8.0, 50.0),
+                ),
+                line(
+                    "Arial",
+                    8.0,
+                    "right of the second heading",
+                    (260.0, 40.0, 300.0, 50.0),
+                ),
             ]
         }
 
@@ -1762,7 +2120,9 @@ mod tests {
 
         #[test]
         fn an_anchor_among_the_bounds_makes_the_cell_relative() {
-            assert!(is_relative(r#"((  "Condensed Schedule"  :"Domicile")(1:800))"#));
+            assert!(is_relative(
+                r#"((  "Condensed Schedule"  :"Domicile")(1:800))"#
+            ));
             assert!(is_relative(r#"("Condensed Schedule":)"#));
         }
 
@@ -1779,12 +2139,30 @@ mod tests {
         #[test]
         fn the_vertical_range_form_takes_anchors_too() {
             let page = vec![
-                line("Arial", 8.0, "Statement of Net Assets", (10.0, 10.0, 120.0, 20.0)),
-                line("Arial", 8.0, "a row of the statement", (10.0, 30.0, 120.0, 40.0)),
-                line("Arial", 8.0, "Notes to the accounts", (10.0, 60.0, 120.0, 70.0)),
+                line(
+                    "Arial",
+                    8.0,
+                    "Statement of Net Assets",
+                    (10.0, 10.0, 120.0, 20.0),
+                ),
+                line(
+                    "Arial",
+                    8.0,
+                    "a row of the statement",
+                    (10.0, 30.0, 120.0, 40.0),
+                ),
+                line(
+                    "Arial",
+                    8.0,
+                    "Notes to the accounts",
+                    (10.0, 60.0, 120.0, 70.0),
+                ),
                 line("Arial", 8.0, "a note", (10.0, 80.0, 120.0, 90.0)),
             ];
-            let got = selected(r#"("Statement of Net Assets":"Notes to the accounts")"#, &page);
+            let got = selected(
+                r#"("Statement of Net Assets":"Notes to the accounts")"#,
+                &page,
+            );
             assert_eq!(got, ["a row of the statement"]);
         }
 
@@ -1806,8 +2184,18 @@ mod tests {
             // `Regulation (EU) 2020/852` is one of the measured anchors: splitting on the first
             // `)(` found would cut it in half.
             let page = vec![
-                line("Arial", 8.0, "Regulation (EU) 2020/852", (10.0, 10.0, 140.0, 20.0)),
-                line("Arial", 8.0, "under the regulation line", (10.0, 30.0, 140.0, 40.0)),
+                line(
+                    "Arial",
+                    8.0,
+                    "Regulation (EU) 2020/852",
+                    (10.0, 10.0, 140.0, 20.0),
+                ),
+                line(
+                    "Arial",
+                    8.0,
+                    "under the regulation line",
+                    (10.0, 30.0, 140.0, 40.0),
+                ),
                 line("Arial", 8.0, "above it", (10.0, 0.0, 140.0, 5.0)),
             ];
             let got = selected(r#"((1:800)("Regulation (EU) 2020/852":))"#, &page);
@@ -1818,8 +2206,18 @@ mod tests {
         fn the_other_criteria_are_intersected_with_the_area() {
             let page = vec![
                 line("Arial", 8.0, "Condensed Schedule", (10.0, 10.0, 90.0, 20.0)),
-                line("Arial", 8.0, "in the area, right font", (95.0, 40.0, 180.0, 50.0)),
-                line("Helvetica", 8.0, "in the area, wrong font", (95.0, 60.0, 180.0, 70.0)),
+                line(
+                    "Arial",
+                    8.0,
+                    "in the area, right font",
+                    (95.0, 40.0, 180.0, 50.0),
+                ),
+                line(
+                    "Helvetica",
+                    8.0,
+                    "in the area, wrong font",
+                    (95.0, 60.0, 180.0, 70.0),
+                ),
                 line("Arial", 8.0, "right font, outside", (0.0, 40.0, 8.0, 50.0)),
             ];
             let got = selected(r#"Arial[8](("Condensed Schedule":)(1:800))"#, &page);
@@ -1877,8 +2275,18 @@ mod tests {
             // in another family, so the anchor that bounds the fund column is the **bold** one.
             let page = vec![
                 line("helvetica-bold", 7.5, "Notes", (100.0, 10.0, 130.0, 20.0)),
-                line("helvetica", 7.5, "see the Notes to the accounts", (10.0, 60.0, 200.0, 70.0)),
-                line("helvetica", 7.5, "the fund's name", (10.0, 30.0, 90.0, 40.0)),
+                line(
+                    "helvetica",
+                    7.5,
+                    "see the Notes to the accounts",
+                    (10.0, 60.0, 200.0, 70.0),
+                ),
+                line(
+                    "helvetica",
+                    7.5,
+                    "the fund's name",
+                    (10.0, 30.0, 90.0, 40.0),
+                ),
             ];
             let got = selected(r#"((:<helvetica-bold[7.5] "Notes">)(1:50))"#, &page);
             assert_eq!(got, ["the fund's name"]);
@@ -1900,8 +2308,18 @@ mod tests {
             // the pattern accepts is not yet a cell the parser reads.
             let page = vec![
                 line("arialnarrow-bold", 9.0, "Notes", (100.0, 10.0, 130.0, 20.0)),
-                line("arialnarrow", 9.0, "see the Notes", (10.0, 60.0, 90.0, 70.0)),
-                line("arialnarrow", 9.0, "the fund's name", (10.0, 30.0, 90.0, 40.0)),
+                line(
+                    "arialnarrow",
+                    9.0,
+                    "see the Notes",
+                    (10.0, 60.0, 90.0, 70.0),
+                ),
+                line(
+                    "arialnarrow",
+                    9.0,
+                    "the fund's name",
+                    (10.0, 30.0, 90.0, 40.0),
+                ),
             ];
             let got = selected(r#"((:<arialnarrow-bold[8.9:9.1] "Notes">)(1:50))"#, &page);
             assert_eq!(got, ["the fund's name"]);
@@ -1931,8 +2349,12 @@ mod tests {
 
         #[test]
         fn validation_accepts_the_nested_form_too() {
-            assert!(is_pdfline_selection(r#"((<helvetica-bold[7.4:7.6] "Notes">:1000000)(75:800))"#));
-            assert!(is_pdfline_selection(r#"((:<frutiger-black "STATEMENT OF NET ASSETS AS AT">)(1:800))"#));
+            assert!(is_pdfline_selection(
+                r#"((<helvetica-bold[7.4:7.6] "Notes">:1000000)(75:800))"#
+            ));
+            assert!(is_pdfline_selection(
+                r#"((:<frutiger-black "STATEMENT OF NET ASSETS AS AT">)(1:800))"#
+            ));
         }
 
         #[test]
@@ -1967,7 +2389,10 @@ mod tests {
             // The anchor measures 40 by 10, so `1.2` to the right of its left edge is `x=148` and
             // `-1.0` of its height up is `y=40`: the line above it, to its right, and nothing else.
             let page = statement_head();
-            let got = selected(r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#, &page);
+            let got = selected(
+                r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
             assert_eq!(got, ["EUR"]);
         }
 
@@ -1977,7 +2402,10 @@ mod tests {
             // single line: the date, which sits on the label's own row. It is the pair of cells
             // CARNE-EN23 needs, and the reason the form takes four numbers rather than two.
             let page = statement_head();
-            let got = selected(r#"window(<Arial-Bold "^Assets">, 1.2, 0.0, 100.0, 1.0)"#, &page);
+            let got = selected(
+                r#"window(<Arial-Bold "^Assets">, 1.2, 0.0, 100.0, 1.0)"#,
+                &page,
+            );
             assert_eq!(got, ["31.12.2023"]);
         }
 
@@ -1992,8 +2420,14 @@ mod tests {
             // The brackets are redundant inside a term that already delimits its anchor, but an
             // author who has written a bound anchor writes them out of habit.
             let page = statement_head();
-            let bare = selected(r#"window(Arial-Bold "^Assets", 1.2, -1.0, 100.0, 1.5)"#, &page);
-            let bracketed = selected(r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#, &page);
+            let bare = selected(
+                r#"window(Arial-Bold "^Assets", 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
+            let bracketed = selected(
+                r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
             assert_eq!(bare, bracketed);
             assert_eq!(bare, ["EUR"]);
         }
@@ -2003,9 +2437,17 @@ mod tests {
             let page = vec![
                 line("Arial-Bold", 8.0, "Assets", (100.0, 50.0, 140.0, 60.0)),
                 line("Arial-Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
-                line("Helvetica", 8.0, "another family, same band", (300.0, 40.0, 340.0, 50.0)),
+                line(
+                    "Helvetica",
+                    8.0,
+                    "another family, same band",
+                    (300.0, 40.0, 340.0, 50.0),
+                ),
             ];
-            let got = selected(r#"Helvetica window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#, &page);
+            let got = selected(
+                r#"Helvetica window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
             assert_eq!(got, ["another family, same band"]);
         }
 
@@ -2013,7 +2455,10 @@ mod tests {
         fn a_window_may_be_intersected_with_an_area_of_its_own() {
             let page = statement_head();
             // The band of the first test, cut to the ordinates of the second: nothing is left.
-            let got = selected(r#"(52:800) window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#, &page);
+            let got = selected(
+                r#"(52:800) window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
             assert!(got.is_empty(), "{got:?}");
         }
 
@@ -2023,17 +2468,30 @@ mod tests {
             // the grammar's font union is a comma-bearing list, so the anchor cannot be whatever
             // precedes the first comma.
             let page = vec![
-                line("TimesNewRoman,Bold", 8.0, "Assets", (100.0, 50.0, 140.0, 60.0)),
+                line(
+                    "TimesNewRoman,Bold",
+                    8.0,
+                    "Assets",
+                    (100.0, 50.0, 140.0, 60.0),
+                ),
                 line("TimesNewRoman,Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
             ];
-            let got = selected(r#"window(TimesNewRoman,Bold "^Assets", 1.2, -1.0, 100.0, 1.5)"#, &page);
+            let got = selected(
+                r#"window(TimesNewRoman,Bold "^Assets", 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
             assert_eq!(got, ["EUR"]);
         }
 
         #[test]
         fn a_comma_inside_the_anchors_text_is_not_a_separator() {
             let page = vec![
-                line("Arial-Bold", 8.0, "Assets, total", (100.0, 50.0, 140.0, 60.0)),
+                line(
+                    "Arial-Bold",
+                    8.0,
+                    "Assets, total",
+                    (100.0, 50.0, 140.0, 60.0),
+                ),
                 line("Arial-Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
             ];
             let got = selected(r#"window("^Assets, total", 1.2, -1.0, 100.0, 1.5)"#, &page);
@@ -2044,7 +2502,12 @@ mod tests {
         fn the_keyword_is_only_a_keyword_outside_quotes() {
             // Inside the text criterion it is six letters and a bracket, and the cell stays
             // absolute because nothing in it is relative.
-            let page = vec![line("Arial", 8.0, "has window(x) in it", (10.0, 10.0, 90.0, 20.0))];
+            let page = vec![line(
+                "Arial",
+                8.0,
+                "has window(x) in it",
+                (10.0, 10.0, 90.0, 20.0),
+            )];
             // The text criterion is a substring with `^` and `$` for anchors, not a regex, so
             // the brackets need no escape.
             assert!(!is_relative(r#""window(x)""#));
@@ -2065,19 +2528,29 @@ mod tests {
         #[test]
         fn fewer_than_four_numbers_is_refused() {
             let error = expect_err(pdfline_selection_from_str(r#"window("^Assets", 1.0, 2.0)"#));
-            assert!(matches!(error, LineSelectionError::Window { .. }), "{error}");
+            assert!(
+                matches!(error, LineSelectionError::Window { .. }),
+                "{error}"
+            );
             assert!(error.to_string().contains("displacement"), "{error}");
         }
 
         #[test]
         fn a_number_that_is_not_a_number_is_refused_by_name() {
-            let error = expect_err(pdfline_selection_from_str(r#"window("^Assets", 1.0, 2.0, wide, 4.0)"#));
-            assert!(error.to_string().contains("wide is not a number"), "{error}");
+            let error = expect_err(pdfline_selection_from_str(
+                r#"window("^Assets", 1.0, 2.0, wide, 4.0)"#,
+            ));
+            assert!(
+                error.to_string().contains("wide is not a number"),
+                "{error}"
+            );
         }
 
         #[test]
         fn a_bracket_that_never_closes_is_refused() {
-            let error = expect_err(pdfline_selection_from_str(r#"window("^Assets", 1, 2, 3, 4"#));
+            let error = expect_err(pdfline_selection_from_str(
+                r#"window("^Assets", 1, 2, 3, 4"#,
+            ));
             assert!(error.to_string().contains("never closes"), "{error}");
         }
 
@@ -2087,23 +2560,35 @@ mod tests {
             // would hang off whichever line comes first on the page — a page of plausible nonsense
             // instead of an error. See `LineSelectionError::NoCriterion`.
             let error = expect_err(pdfline_selection_from_str("window(, 1, 2, 3, 4)"));
-            assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error}");
+            assert!(
+                matches!(error, LineSelectionError::NoCriterion(_)),
+                "{error}"
+            );
         }
 
         #[test]
         fn a_refusal_inside_the_anchor_travels_out() {
-            let error = expect_err(pdfline_selection_from_str(r#"window(<Arial[0] "^Assets">, 1, 2, 3, 4)"#));
-            assert!(matches!(error, LineSelectionError::FontSizeNotPositive(_)), "{error}");
+            let error = expect_err(pdfline_selection_from_str(
+                r#"window(<Arial[0] "^Assets">, 1, 2, 3, 4)"#,
+            ));
+            assert!(
+                matches!(error, LineSelectionError::FontSizeNotPositive(_)),
+                "{error}"
+            );
         }
 
         #[test]
         fn validation_accepts_the_window_form_and_rejects_a_malformed_one() {
-            assert!(is_pdfline_selection(r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#));
+            assert!(is_pdfline_selection(
+                r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#
+            ));
             assert!(is_pdfline_selection(
                 r#"ArialMT[6.95:6.97] window(<ArialMT[6.96] "^Annual report including">, 0.1, 0.8, 2.0, 1.4)"#
             ));
             assert!(!is_pdfline_selection(r#"window("^Assets", 1.0, 2.0)"#));
-            assert!(!is_pdfline_selection(r#"window(<"unterminated>, 1, 2, 3, 4)"#));
+            assert!(!is_pdfline_selection(
+                r#"window(<"unterminated>, 1, 2, 3, 4)"#
+            ));
         }
 
         #[test]
@@ -2111,11 +2596,24 @@ mod tests {
             // `pdf_extract_funds` of that format, word for word: the fund's name is the band to the
             // right of the line that declares the currency the amounts are expressed in.
             let page = vec![
-                line("Arial", 10.0, "(valori espressi in Euro)", (50.0, 100.0, 150.0, 110.0)),
-                line("Arial", 10.0, "MEDIOLANUM FLESSIBILE SVILUPPO ITALIA", (175.0, 99.0, 400.0, 109.0)),
+                line(
+                    "Arial",
+                    10.0,
+                    "(valori espressi in Euro)",
+                    (50.0, 100.0, 150.0, 110.0),
+                ),
+                line(
+                    "Arial",
+                    10.0,
+                    "MEDIOLANUM FLESSIBILE SVILUPPO ITALIA",
+                    (175.0, 99.0, 400.0, 109.0),
+                ),
                 line("Arial", 10.0, "far below", (175.0, 300.0, 400.0, 310.0)),
             ];
-            let got = selected(r#"window("(valori espressi in", 1.2, -0.1, 100.0, 2.3)"#, &page);
+            let got = selected(
+                r#"window("(valori espressi in", 1.2, -0.1, 100.0, 2.3)"#,
+                &page,
+            );
             assert_eq!(got, ["MEDIOLANUM FLESSIBILE SVILUPPO ITALIA"]);
         }
     }
@@ -2155,9 +2653,17 @@ mod tests {
         fn a_slash_inside_quotes_is_not_the_operator() {
             // `Regulation (EU) 2020/852` is a measured anchor, and the shape that makes requiring
             // spaces around the operator worth it.
-            let page = vec![line("Arial", 8.0, "Regulation (EU) 2020/852", (10.0, 10.0, 140.0, 20.0))];
+            let page = vec![line(
+                "Arial",
+                8.0,
+                "Regulation (EU) 2020/852",
+                (10.0, 10.0, 140.0, 20.0),
+            )];
             assert!(!is_relative(r#""2020/852""#));
-            assert_eq!(selected(r#""2020/852""#, &page), ["Regulation (EU) 2020/852"]);
+            assert_eq!(
+                selected(r#""2020/852""#, &page),
+                ["Regulation (EU) 2020/852"]
+            );
         }
 
         #[test]
@@ -2165,10 +2671,18 @@ mod tests {
             // The scan counts brackets as well as quotes, so a slash inside a term belongs to the
             // term.
             let page = vec![
-                line("Arial-Bold", 8.0, "Assets/Liabilities", (100.0, 50.0, 140.0, 60.0)),
+                line(
+                    "Arial-Bold",
+                    8.0,
+                    "Assets/Liabilities",
+                    (100.0, 50.0, 140.0, 60.0),
+                ),
                 line("Arial-Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
             ];
-            let got = selected(r#"window("^Assets/Liabilities", 1.2, -1.0, 100.0, 1.5)"#, &page);
+            let got = selected(
+                r#"window("^Assets/Liabilities", 1.2, -1.0, 100.0, 1.5)"#,
+                &page,
+            );
             assert_eq!(got, ["EUR"]);
         }
 
@@ -2178,14 +2692,20 @@ mod tests {
             // it, silently. See `LineSelectionError::NoCriterion`.
             for cell in ["Arial / ", " / Arial"] {
                 let error = expect_err(pdfline_selection_from_str(cell));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{cell}: {error}");
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{cell}: {error}"
+                );
             }
         }
 
         #[test]
         fn a_refusal_inside_an_operand_travels_out() {
             let error = expect_err(pdfline_selection_from_str(r#"Arial[0] / "^drop""#));
-            assert!(matches!(error, LineSelectionError::FontSizeNotPositive(_)), "{error}");
+            assert!(
+                matches!(error, LineSelectionError::FontSizeNotPositive(_)),
+                "{error}"
+            );
         }
 
         #[test]
@@ -2202,19 +2722,31 @@ mod tests {
             // moves by eight points and a half from one page to the next.
             let page = vec![
                 line("arial-bold", 7.0, "ASSETS:", (180.0, 200.0, 220.0, 208.0)),
-                line("arial-bold", 6.5, "FIDELITY USD BOND", (185.0, 160.0, 260.0, 168.0)),
+                line(
+                    "arial-bold",
+                    6.5,
+                    "FIDELITY USD BOND",
+                    (185.0, 160.0, 260.0, 168.0),
+                ),
                 line("arial-bold", 6.5, "USD", (185.0, 181.0, 205.0, 189.0)),
-                line("arial-bold", 6.5, "below the label", (185.0, 240.0, 260.0, 248.0)),
+                line(
+                    "arial-bold",
+                    6.5,
+                    "below the label",
+                    (185.0, 240.0, 260.0, 248.0),
+                ),
             ];
             let head = r#"arial-bold[6.3:6.6]((180:)(110:<arial-bold[6.8:7.1] "^ASSETS:">))"#;
-            let currency =
-                r#"arial-bold[6.3:6.6] window(<arial-bold[6.8:7.1] "^ASSETS:">, 0.0, -2.5, 100.0, 1.6)"#;
+            let currency = r#"arial-bold[6.3:6.6] window(<arial-bold[6.8:7.1] "^ASSETS:">, 0.0, -2.5, 100.0, 1.6)"#;
 
             // The head holds both rows, and the window holds the currency alone.
             assert_eq!(selected(head, &page), ["FIDELITY USD BOND", "USD"]);
             assert_eq!(selected(currency, &page), ["USD"]);
             // The difference is what leaves the names.
-            assert_eq!(selected(&format!("{head} / {currency}"), &page), ["FIDELITY USD BOND"]);
+            assert_eq!(
+                selected(&format!("{head} / {currency}"), &page),
+                ["FIDELITY USD BOND"]
+            );
         }
     }
 
@@ -2240,17 +2772,35 @@ mod tests {
             let set = pdfline_selection_from_dict(&spec(yaml))
                 .expect("a well-formed spec")
                 .contextualize(page);
-            page.iter().filter(|l| set.contains(l)).map(|l| l.text().as_str()).collect()
+            page.iter()
+                .filter(|l| set.contains(l))
+                .map(|l| l.text().as_str())
+                .collect()
         }
 
         /// A page with two columns and a heading in each, which is enough to tell an anchored side
         /// from a numeric one and a difference from an intersection.
         fn two_columns() -> Vec<PdfLine> {
             vec![
-                line("Arial-Bold", 8.0, "Situazione a fine", (300.0, 40.0, 380.0, 50.0)),
-                line("Arial", 8.0, "left of the heading", (10.0, 60.0, 90.0, 70.0)),
+                line(
+                    "Arial-Bold",
+                    8.0,
+                    "Situazione a fine",
+                    (300.0, 40.0, 380.0, 50.0),
+                ),
+                line(
+                    "Arial",
+                    8.0,
+                    "left of the heading",
+                    (10.0, 60.0, 90.0, 70.0),
+                ),
                 line("Arial", 8.0, "1,25", (120.0, 60.0, 160.0, 70.0)),
-                line("Arial", 8.0, "right of the heading", (400.0, 60.0, 480.0, 70.0)),
+                line(
+                    "Arial",
+                    8.0,
+                    "right of the heading",
+                    (400.0, 60.0, 480.0, 70.0),
+                ),
             ]
         }
 
@@ -2273,7 +2823,10 @@ mod tests {
             fn it_agrees_with_the_compact_spelling() {
                 let page = two_columns();
                 assert_eq!(
-                    selected_by("font: Arial\narea:\n  x_max:\n    text: '^Situazione a fine'\n", &page),
+                    selected_by(
+                        "font: Arial\narea:\n  x_max:\n    text: '^Situazione a fine'\n",
+                        &page
+                    ),
                     selected(r#"Arial ((:<"^Situazione a fine">)(:))"#, &page),
                 );
             }
@@ -2291,7 +2844,11 @@ mod tests {
                     "font: Arial\narea:\n  x_max:\n    font: Arial-Bold\n    text: '^Notes'\n",
                     &page,
                 );
-                assert_eq!(got, ["Notes", "a value"], "the bold heading is the side, not the plain one");
+                assert_eq!(
+                    got,
+                    ["Notes", "a value"],
+                    "the bold heading is the side, not the plain one"
+                );
             }
 
             #[test]
@@ -2308,7 +2865,10 @@ mod tests {
                 let error = expect_err(pdfline_selection_from_dict(&spec(
                     "font: Arial\narea:\n  x_max: {}\n",
                 )));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
         }
 
@@ -2336,7 +2896,10 @@ mod tests {
                 let page = statement_head();
                 assert_eq!(
                     selected_by(WINDOW, &page),
-                    selected(r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#, &page),
+                    selected(
+                        r#"window(<Arial-Bold "^Assets">, 1.2, -1.0, 100.0, 1.5)"#,
+                        &page
+                    ),
                 );
             }
 
@@ -2345,7 +2908,12 @@ mod tests {
                 let page = vec![
                     line("Arial-Bold", 8.0, "Assets", (100.0, 50.0, 140.0, 60.0)),
                     line("Arial-Bold", 8.0, "EUR", (160.0, 40.0, 190.0, 50.0)),
-                    line("Helvetica", 8.0, "another family, same band", (300.0, 40.0, 340.0, 50.0)),
+                    line(
+                        "Helvetica",
+                        8.0,
+                        "another family, same band",
+                        (300.0, 40.0, 340.0, 50.0),
+                    ),
                 ];
                 let got = selected_by(&format!("font: Helvetica\n{WINDOW}"), &page);
                 assert_eq!(got, ["another family, same band"]);
@@ -2367,7 +2935,10 @@ mod tests {
                 let error = expect_err(pdfline_selection_from_dict(&spec(
                     "window:\n  anchor: {}\n  dx: 1.0\n  dy: 0.0\n  width: 2.0\n  height: 1.0\n",
                 )));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
         }
 
@@ -2394,8 +2965,15 @@ mod tests {
             #[test]
             fn any_of_takes_the_lines_of_either_operand() {
                 let page = book_foot();
-                let got = selected_by("any_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\n", &page);
-                assert_eq!(got, ["12", "13"], "both margins, and not what sits between them");
+                let got = selected_by(
+                    "any_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\n",
+                    &page,
+                );
+                assert_eq!(
+                    got,
+                    ["12", "13"],
+                    "both margins, and not what sits between them"
+                );
             }
 
             #[test]
@@ -2408,7 +2986,11 @@ mod tests {
                     "font: Arial\nany_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\n",
                     &page,
                 );
-                assert_eq!(got, ["12"], "the union narrows the area, the font narrows the family");
+                assert_eq!(
+                    got,
+                    ["12"],
+                    "the union narrows the area, the font narrows the family"
+                );
             }
 
             #[test]
@@ -2432,7 +3014,10 @@ mod tests {
                 let error = expect_err(pdfline_selection_from_dict(&spec(
                     "any_of:\n  - text: '^A'\n  - {}\n",
                 )));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
 
             /// The union is inside the difference, which is what `(criteria & any_of) / without`
@@ -2464,14 +3049,23 @@ mod tests {
                 let page = vec![
                     line("Arial", 7.0, "a holding", (140.0, 300.0, 300.0, 310.0)),
                     line("Arial", 7.0, "SWAPS", (140.0, 600.0, 200.0, 610.0)),
-                    line("Arial", 7.0, "below the heading", (140.0, 700.0, 300.0, 710.0)),
+                    line(
+                        "Arial",
+                        7.0,
+                        "below the heading",
+                        (140.0, 700.0, 300.0, 710.0),
+                    ),
                     line("Arial", 7.0, "the page foot", (140.0, 800.0, 300.0, 810.0)),
                 ];
                 let got = selected_by(
                     "font: Arial\nall_of:\n  - area: {y_max: {text: '^SWAPS$'}}\n  - area: {y_max: 750}\n",
                     &page,
                 );
-                assert_eq!(got, ["a holding"], "the heading closes it, and the ordinate keeps the foot out");
+                assert_eq!(
+                    got,
+                    ["a holding"],
+                    "the heading closes it, and the ordinate keeps the foot out"
+                );
             }
 
             /// With the heading absent the anchored side widens, and the ordinate is what is left:
@@ -2501,7 +3095,10 @@ mod tests {
                 let error = expect_err(pdfline_selection_from_dict(&spec(
                     "all_of:\n  - text: '^A'\n  - {}\n",
                 )));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
 
             /// The three operations compose in one order: the keys and `all_of` and `any_of`
@@ -2511,7 +3108,12 @@ mod tests {
                 let page = vec![
                     line("Arial", 7.0, "12", (40.0, 800.0, 55.0, 810.0)),
                     line("Arial", 7.0, "13", (540.0, 800.0, 555.0, 810.0)),
-                    line("Helvetica", 7.0, "another family", (40.0, 800.0, 55.0, 810.0)),
+                    line(
+                        "Helvetica",
+                        7.0,
+                        "another family",
+                        (40.0, 800.0, 55.0, 810.0),
+                    ),
                 ];
                 let got = selected_by(
                     "all_of:\n  - font: Arial\nany_of:\n  - area: {x_max: 100}\n  - area: {x_min: 500}\nwithout:\n  - text: '^13$'\n",
@@ -2560,21 +3162,35 @@ mod tests {
                     "font: Arial\nwithout:\n  - text: 'of the heading'\n    without:\n      - text: '^left'\n",
                     &page,
                 );
-                assert_eq!(got, ["left of the heading", "1,25"], "only the right-hand line is taken out");
+                assert_eq!(
+                    got,
+                    ["left of the heading", "1,25"],
+                    "only the right-hand line is taken out"
+                );
             }
 
             #[test]
             fn an_operand_stating_nothing_is_refused_rather_than_subtracting_the_whole_page() {
-                let error = expect_err(pdfline_selection_from_dict(&spec("font: Arial\nwithout:\n  - {}\n")));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "font: Arial\nwithout:\n  - {}\n",
+                )));
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
 
             /// `without` alone states no criterion of its own, which is the shape the compact
             /// grammar refuses as a first operand.
             #[test]
             fn subtracting_from_nothing_is_refused_too() {
-                let error = expect_err(pdfline_selection_from_dict(&spec("without:\n  - text: ','\n")));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                let error = expect_err(pdfline_selection_from_dict(&spec(
+                    "without:\n  - text: ','\n",
+                )));
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
         }
 
@@ -2587,9 +3203,24 @@ mod tests {
             /// and a second family is there to be excluded.
             fn one_unnamed_family() -> Vec<PdfLine> {
                 vec![
-                    line("GillSans-Light", 9.0, "Descripcion de la cartera", (10.0, 40.0, 120.0, 50.0)),
-                    line("GillSans-Light", 8.0, "BOND 2029 4,5%", (10.0, 60.0, 120.0, 70.0)),
-                    line("Courier", 8.0, "a note in another family", (10.0, 80.0, 120.0, 90.0)),
+                    line(
+                        "GillSans-Light",
+                        9.0,
+                        "Descripcion de la cartera",
+                        (10.0, 40.0, 120.0, 50.0),
+                    ),
+                    line(
+                        "GillSans-Light",
+                        8.0,
+                        "BOND 2029 4,5%",
+                        (10.0, 60.0, 120.0, 70.0),
+                    ),
+                    line(
+                        "Courier",
+                        8.0,
+                        "a note in another family",
+                        (10.0, 80.0, 120.0, 90.0),
+                    ),
                 ]
             }
 
@@ -2626,7 +3257,10 @@ mod tests {
             #[test]
             fn an_anchor_stating_nothing_is_refused() {
                 let error = expect_err(pdfline_selection_from_dict(&spec("font_of: {}\n")));
-                assert!(matches!(error, LineSelectionError::NoCriterion(_)), "{error:?}");
+                assert!(
+                    matches!(error, LineSelectionError::NoCriterion(_)),
+                    "{error:?}"
+                );
             }
 
             /// `font_of` alone is a criterion, so a spec stating only it is not "every line".
@@ -2655,15 +3289,19 @@ mod tests {
             fn an_empty_spec_is_still_every_line() {
                 let selection = pdfline_selection_from_dict(&InputPdfLineSet::default())
                     .expect("an empty spec is the whole page");
-                assert!(selects(&selection, &line("Arial", 10.0, "anything", (1.0, 1.0, 2.0, 2.0))));
+                assert!(selects(
+                    &selection,
+                    &line("Arial", 10.0, "anything", (1.0, 1.0, 2.0, 2.0))
+                ));
             }
 
             /// A spec with none of the three stays **absolute**, which is what every spec written
             /// before them was: the fast path is still the path they take.
             #[test]
             fn a_spec_with_none_of_them_is_still_absolute() {
-                let absolute = pdfline_selection_from_dict(&spec("font: Arial\narea:\n  x_max: 200\n"))
-                    .expect("a well-formed spec");
+                let absolute =
+                    pdfline_selection_from_dict(&spec("font: Arial\narea:\n  x_max: 200\n"))
+                        .expect("a well-formed spec");
                 assert!(matches!(absolute, OptionallyRelative::Absolute(_)));
             }
 
@@ -2674,7 +3312,8 @@ mod tests {
                     "window:\n  anchor:\n    text: '^A'\n  dx: 1.0\n  dy: 0.0\n  width: 2.0\n  height: 1.0\n",
                     "font: Arial\nwithout:\n  - text: ','\n",
                 ] {
-                    let built = pdfline_selection_from_dict(&spec(yaml)).expect("a well-formed spec");
+                    let built =
+                        pdfline_selection_from_dict(&spec(yaml)).expect("a well-formed spec");
                     assert!(matches!(built, OptionallyRelative::Relative(_)), "{yaml}");
                 }
             }
@@ -2687,7 +3326,10 @@ mod tests {
                     "area:\n  x_min: 0\n  x_max:\n    text: '^A'\n",
                 )));
                 assert!(
-                    matches!(error, LineSelectionError::Area(PositionError::XMinNotPositive(_))),
+                    matches!(
+                        error,
+                        LineSelectionError::Area(PositionError::XMinNotPositive(_))
+                    ),
                     "{error:?}"
                 );
             }

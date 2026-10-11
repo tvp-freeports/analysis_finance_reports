@@ -30,8 +30,8 @@ use crate::core::promise_resolution::{FlatPromiseMap, PromiseMap};
 use crate::output::classes::fund::Fund;
 use crate::output::files_schema::{
     AssetsManagerRow, BondAdditionalInfoRow, ChangeNameEventType, FundAssetsRow, FundChangeNameRow,
-    FundEsgIndicatorRow, FundRow, FundSfdrClassificationRow, InvestmentRow, InvestmentsManagerRow, SchemaError,
-    UniqueTable,
+    FundEsgIndicatorRow, FundRow, FundSfdrClassificationRow, InvestmentRow, InvestmentsManagerRow,
+    SchemaError, UniqueTable,
 };
 
 // Used only by the test fixtures below, hence the `cfg(test)` to avoid unused-import warnings in
@@ -150,11 +150,15 @@ impl Accumulator {
         let mut fcn_table: UniqueTable<FundChangeNameRow> =
             UniqueTable::new("funds_change_name", "Fund ID|From|Type of event|Old name");
         for row in self.funds_change_name {
-            let key = format!("{}|{:?}|{:?}|{}", row.fund_id, row.from_date, row.event_type, row.old_name);
+            let key = format!(
+                "{}|{:?}|{:?}|{}",
+                row.fund_id, row.from_date, row.event_type, row.old_name
+            );
             fcn_table.push(key, row);
         }
 
-        let mut fa_table: UniqueTable<FundAssetsRow> = UniqueTable::new("funds_assets", "Fund ID|Date");
+        let mut fa_table: UniqueTable<FundAssetsRow> =
+            UniqueTable::new("funds_assets", "Fund ID|Date");
         for row in self.funds_assets {
             let key = format!("{}|{:?}", row.fund_id, row.date);
             fa_table.push(key, row);
@@ -194,12 +198,17 @@ impl Accumulator {
 /// It is the same value a fund entity produces on its own, which is what makes the two sources
 /// always converge on one row.
 fn canonical_fund_key(raw_name: &str) -> String {
-    Fund::new(raw_name).name().expect("a freshly-built Fund is always resolved")
+    Fund::new(raw_name)
+        .name()
+        .expect("a freshly-built Fund is always resolved")
 }
 
 /// Resolves an entity's promises, yielding zero copies (dropped), one (resolved in place) or
 /// several (expanded).
-fn resolve<T: PromisableFields + Clone>(mut entity: T, flat: &FlatPromiseMap) -> Result<Vec<T>, AccumulateError> {
+fn resolve<T: PromisableFields + Clone>(
+    mut entity: T,
+    flat: &FlatPromiseMap,
+) -> Result<Vec<T>, AccumulateError> {
     match fulfill_promises(&mut entity, flat)? {
         Fulfilled::InPlace => Ok(vec![entity]),
         Fulfilled::Expanded(copies) => Ok(copies),
@@ -270,7 +279,11 @@ fn flatten_promises(outcomes: &[DocumentOutcome]) -> Result<FlatPromiseMap, Accu
         }
     }
     let flat = promise_map.flatten()?;
-    tracing::debug!(documents = outcomes.len(), promise_ids = flat.len(), "promise map flattened");
+    tracing::debug!(
+        documents = outcomes.len(),
+        promise_ids = flat.len(),
+        "promise map flattened"
+    );
     Ok(flat)
 }
 
@@ -315,7 +328,15 @@ fn pour_job(
 
                     Extracted::Equity(equity) => {
                         for equity in resolve(equity.clone(), flat)? {
-                            push_investment(acc, &equity.data, FinancialInstrument::EQUITY, None, None, page_n, &report)?;
+                            push_investment(
+                                acc,
+                                &equity.data,
+                                FinancialInstrument::EQUITY,
+                                None,
+                                None,
+                                page_n,
+                                &report,
+                            )?;
                         }
                     }
 
@@ -338,7 +359,10 @@ fn pour_job(
                             let idx = acc.get_or_create_fund(&canonical_fund_key(&assets.fund));
                             let fund_id = acc.funds[idx].id;
                             let date = assets.date.and_then(|d| d.resolved().copied());
-                            let currency = *assets.currency.resolved().expect("resolved after fulfill_promises");
+                            let currency = *assets
+                                .currency
+                                .resolved()
+                                .expect("resolved after fulfill_promises");
                             let id = acc.funds_assets.len() as i64 + 1;
                             acc.funds_assets.push(FundAssetsRow::new(
                                 id,
@@ -358,19 +382,26 @@ fn pour_job(
                         for fsc in resolve(fsc.clone(), flat)? {
                             let idx = acc.get_or_create_fund(&canonical_fund_key(&fsc.fund));
                             let fund_id = acc.funds[idx].id;
-                            let article = *fsc.article.resolved().expect("resolved after fulfill_promises");
-                            acc.funds_sfdr_classification.push(FundSfdrClassificationRow::new(
-                                fund_id as i64,
-                                article,
-                                page_n,
-                                report.clone(),
-                            )?);
+                            let article = *fsc
+                                .article
+                                .resolved()
+                                .expect("resolved after fulfill_promises");
+                            acc.funds_sfdr_classification
+                                .push(FundSfdrClassificationRow::new(
+                                    fund_id as i64,
+                                    article,
+                                    page_n,
+                                    report.clone(),
+                                )?);
                         }
                     }
 
                     Extracted::FundEsgIndicator(fei) => {
                         for fei in resolve(fei.clone(), flat)? {
-                            let fund_raw = fei.fund.resolved().expect("resolved after fulfill_promises");
+                            let fund_raw = fei
+                                .fund
+                                .resolved()
+                                .expect("resolved after fulfill_promises");
                             let idx = acc.get_or_create_fund(&canonical_fund_key(fund_raw));
                             let fund_id = acc.funds[idx].id;
                             acc.funds_esg_indicators.push(FundEsgIndicatorRow::new(
@@ -385,13 +416,25 @@ fn pour_job(
 
                     Extracted::FundRename(rename) => {
                         for rename in resolve(rename.clone(), flat)? {
-                            push_fund_change_name(acc, &rename.data, ChangeNameEventType::Renaming, page_n, &report)?;
+                            push_fund_change_name(
+                                acc,
+                                &rename.data,
+                                ChangeNameEventType::Renaming,
+                                page_n,
+                                &report,
+                            )?;
                         }
                     }
 
                     Extracted::FundMerge(merge) => {
                         for merge in resolve(merge.clone(), flat)? {
-                            push_fund_change_name(acc, &merge.data, ChangeNameEventType::Merging, page_n, &report)?;
+                            push_fund_change_name(
+                                acc,
+                                &merge.data,
+                                ChangeNameEventType::Merging,
+                                page_n,
+                                &report,
+                            )?;
                         }
                     }
 
@@ -399,7 +442,8 @@ fn pour_job(
                         for mc in resolve(mc.clone(), flat)? {
                             let am_id = get_or_create_manager(acc, &mc.data.name, page_n, &report)?;
                             for fund_name in &mc.data.managed_funds {
-                                let fund_idx = acc.get_or_create_fund(&canonical_fund_key(fund_name));
+                                let fund_idx =
+                                    acc.get_or_create_fund(&canonical_fund_key(fund_name));
                                 acc.funds[fund_idx].management_company_id = Some(am_id);
                             }
                         }
@@ -409,10 +453,14 @@ fn pour_job(
                         for im in resolve(im.clone(), flat)? {
                             let am_id = get_or_create_manager(acc, &im.data.name, page_n, &report)?;
                             for fund_name in &im.data.managed_funds {
-                                let fund_idx = acc.get_or_create_fund(&canonical_fund_key(fund_name));
+                                let fund_idx =
+                                    acc.get_or_create_fund(&canonical_fund_key(fund_name));
                                 let fund_id = acc.funds[fund_idx].id;
                                 acc.investments_managers_to_funds
-                                    .push(InvestmentsManagerRow::new(am_id as i64, fund_id as i64)?);
+                                    .push(InvestmentsManagerRow::new(
+                                        am_id as i64,
+                                        fund_id as i64,
+                                    )?);
                             }
                         }
                     }
@@ -434,11 +482,21 @@ fn push_investment(
     page_n: i32,
     report: &str,
 ) -> Result<(), AccumulateError> {
-    let fund_raw = data.fund.resolved().expect("resolved after fulfill_promises");
+    let fund_raw = data
+        .fund
+        .resolved()
+        .expect("resolved after fulfill_promises");
     let idx = acc.get_or_create_fund(&canonical_fund_key(fund_raw));
     let fund_id = acc.funds[idx].id;
-    let currency = *data.currency.resolved().expect("resolved after fulfill_promises");
-    let market_value = data.market_value.resolved().expect("resolved after fulfill_promises").into_inner();
+    let currency = *data
+        .currency
+        .resolved()
+        .expect("resolved after fulfill_promises");
+    let market_value = data
+        .market_value
+        .resolved()
+        .expect("resolved after fulfill_promises")
+        .into_inner();
 
     let id = acc.investments.len() as i64 + 1;
     let row = InvestmentRow::new(
@@ -451,10 +509,20 @@ fn push_investment(
         data.nominal_quantity.map(|v| v.into_inner()),
         market_value,
         currency,
-        data.perc_net_assets.as_ref().map(|p| p.resolved().expect("resolved after fulfill_promises").into_inner()),
+        data.perc_net_assets.as_ref().map(|p| {
+            p.resolved()
+                .expect("resolved after fulfill_promises")
+                .into_inner()
+        }),
         fund_id as i64,
-        data.acquisition_cost.as_ref().map(|p| p.resolved().expect("resolved after fulfill_promises").into_inner()),
-        data.acquisition_currency.as_ref().map(|p| *p.resolved().expect("resolved after fulfill_promises")),
+        data.acquisition_cost.as_ref().map(|p| {
+            p.resolved()
+                .expect("resolved after fulfill_promises")
+                .into_inner()
+        }),
+        data.acquisition_currency
+            .as_ref()
+            .map(|p| *p.resolved().expect("resolved after fulfill_promises")),
     )?;
 
     if financial_instrument == FinancialInstrument::BOND {
@@ -474,7 +542,10 @@ fn push_fund_change_name(
 ) -> Result<(), AccumulateError> {
     let idx = acc.get_or_create_fund(&canonical_fund_key(&data.current_name));
     let fund_id = acc.funds[idx].id;
-    let from_date = *data.date.resolved().expect("resolved after fulfill_promises");
+    let from_date = *data
+        .date
+        .resolved()
+        .expect("resolved after fulfill_promises");
     let id = acc.funds_change_name.len() as i64 + 1;
     acc.funds_change_name.push(FundChangeNameRow::new(
         id,
@@ -512,11 +583,19 @@ mod tests {
     use super::*;
 
     fn doc(id: &str, format: &str, pages: Vec<PageOutcome>) -> DocumentOutcome {
-        DocumentOutcome { id: DocumentId::new(id), format: FormatName::new(format), pages }
+        DocumentOutcome {
+            id: DocumentId::new(id),
+            format: FormatName::new(format),
+            pages,
+        }
     }
 
     fn page(number: u32, class: &str, results: Vec<Extracted>) -> PageOutcome {
-        PageOutcome { page: number, class: PageClass::new(class), results }
+        PageOutcome {
+            page: number,
+            class: PageClass::new(class),
+            results,
+        }
     }
 
     fn equity(fund: &str, market_value: f64) -> Extracted {
@@ -582,7 +661,8 @@ mod tests {
 
     fn fund_sfdr(fund: &str, article: SfdrArticle) -> Extracted {
         Extracted::FundSfdrClassification(
-            FundSfdrClassification::build(fund, &BlockValue::from(article)).expect("fixed, valid fixture"),
+            FundSfdrClassification::build(fund, &BlockValue::from(article))
+                .expect("fixed, valid fixture"),
         )
     }
 
@@ -591,7 +671,11 @@ mod tests {
 
         #[test]
         fn investment_rows_carry_report_and_page_from_the_outcome() {
-            let outcomes = vec![doc("Report A", "FMT", vec![page(3, "investments", vec![equity("Alpha Fund", 1000.0)])])];
+            let outcomes = vec![doc(
+                "Report A",
+                "FMT",
+                vec![page(3, "investments", vec![equity("Alpha Fund", 1000.0)])],
+            )];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(tables.investments.len(), 1);
             let row = &tables.investments[0];
@@ -616,11 +700,23 @@ mod tests {
         #[test]
         fn multiple_documents_all_contribute_rows_with_their_own_report_name() {
             let outcomes = vec![
-                doc("Doc A", "FMT", vec![page(1, "investments", vec![equity("Alpha Fund", 1000.0)])]),
-                doc("Doc B", "FMT", vec![page(1, "investments", vec![equity("Beta Fund", 500.0)])]),
+                doc(
+                    "Doc A",
+                    "FMT",
+                    vec![page(1, "investments", vec![equity("Alpha Fund", 1000.0)])],
+                ),
+                doc(
+                    "Doc B",
+                    "FMT",
+                    vec![page(1, "investments", vec![equity("Beta Fund", 500.0)])],
+                ),
             ];
             let tables = accumulate(&outcomes).unwrap();
-            let reports: BTreeSet<&str> = tables.investments.iter().map(|r| r.report.as_str()).collect();
+            let reports: BTreeSet<&str> = tables
+                .investments
+                .iter()
+                .map(|r| r.report.as_str())
+                .collect();
             assert_eq!(reports, BTreeSet::from(["Doc A", "Doc B"]));
         }
     }
@@ -646,7 +742,11 @@ mod tests {
 
         #[test]
         fn a_fund_seen_only_indirectly_has_no_report_debug_info() {
-            let outcomes = vec![doc("R", "FMT", vec![page(1, "investments", vec![equity("Alpha Fund", 1000.0)])])];
+            let outcomes = vec![doc(
+                "R",
+                "FMT",
+                vec![page(1, "investments", vec![equity("Alpha Fund", 1000.0)])],
+            )];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(tables.funds.len(), 1);
             assert_eq!(tables.funds[0].report_page, None);
@@ -677,7 +777,10 @@ mod tests {
             let outcomes = vec![doc(
                 "R",
                 "FMT",
-                vec![page(1, "c", vec![management_company("Acme AM")]), page(2, "c", vec![investments_manager("Acme AM")])],
+                vec![
+                    page(1, "c", vec![management_company("Acme AM")]),
+                    page(2, "c", vec![investments_manager("Acme AM")]),
+                ],
             )];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(
@@ -692,7 +795,14 @@ mod tests {
             let outcomes = vec![doc(
                 "R",
                 "FMT",
-                vec![page(1, "c", vec![management_company("Acme AM"), management_company("Other AM")])],
+                vec![page(
+                    1,
+                    "c",
+                    vec![
+                        management_company("Acme AM"),
+                        management_company("Other AM"),
+                    ],
+                )],
             )];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(tables.assets_managers.len(), 2);
@@ -704,8 +814,15 @@ mod tests {
 
         #[test]
         fn page_class_results_produce_no_rows_and_no_error() {
-            let outcomes =
-                vec![doc("R", "FMT", vec![page(1, "c", vec![Extracted::PageClass(Some(PageClass::new("investments")))])])];
+            let outcomes = vec![doc(
+                "R",
+                "FMT",
+                vec![page(
+                    1,
+                    "c",
+                    vec![Extracted::PageClass(Some(PageClass::new("investments")))],
+                )],
+            )];
             let tables = accumulate(&outcomes).unwrap();
             assert!(tables.investments.is_empty());
             assert!(tables.funds.is_empty());
@@ -713,13 +830,25 @@ mod tests {
 
         #[test]
         fn an_unclassified_page_class_is_also_ignored_without_error() {
-            let outcomes = vec![doc("R", "FMT", vec![page(1, "c", vec![Extracted::PageClass(None)])])];
+            let outcomes = vec![doc(
+                "R",
+                "FMT",
+                vec![page(1, "c", vec![Extracted::PageClass(None)])],
+            )];
             assert!(accumulate(&outcomes).is_ok());
         }
 
         #[test]
         fn promises_by_themselves_produce_no_rows() {
-            let outcomes = vec![doc("R", "FMT", vec![page(1, "c", vec![promises(vec![("id", BlockValue::from(1i64))])])])];
+            let outcomes = vec![doc(
+                "R",
+                "FMT",
+                vec![page(
+                    1,
+                    "c",
+                    vec![promises(vec![("id", BlockValue::from(1i64))])],
+                )],
+            )];
             let tables = accumulate(&outcomes).unwrap();
             assert!(tables.investments.is_empty());
             assert!(tables.funds.is_empty());
@@ -753,7 +882,11 @@ mod tests {
             let outcomes = vec![doc(
                 "R",
                 "FMT",
-                vec![page(1, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-id")])],
+                vec![page(
+                    1,
+                    "investments",
+                    vec![equity_with_promised_market_value("Alpha Fund", "mv-id")],
+                )],
             )];
             let tables = accumulate(&outcomes).unwrap();
             assert!(tables.investments.is_empty());
@@ -764,7 +897,11 @@ mod tests {
             let outcomes = vec![doc(
                 "R",
                 "FMT",
-                vec![page(1, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-id!")])],
+                vec![page(
+                    1,
+                    "investments",
+                    vec![equity_with_promised_market_value("Alpha Fund", "mv-id!")],
+                )],
             )];
             assert!(accumulate(&outcomes).is_err());
         }
@@ -773,7 +910,8 @@ mod tests {
         fn a_multiple_promise_expands_the_entity_into_one_row_per_value() {
             let promise_val: BlockValue = Promise::new("fund-id[]").into();
             let pending = Extracted::FundEsgIndicator(
-                FundEsgIndicator::build(&promise_val, "GHG intensity", "12.3").expect("fixed, valid fixture"),
+                FundEsgIndicator::build(&promise_val, "GHG intensity", "12.3")
+                    .expect("fixed, valid fixture"),
             );
             let outcomes = vec![doc(
                 "R",
@@ -801,7 +939,11 @@ mod tests {
                 "FMT",
                 vec![
                     page(1, "investments", vec![equity_with_promised_fund("fund-id")]),
-                    page(2, "investments", vec![promises(vec![("fund-id", BlockValue::from("Alpha Fund"))])]),
+                    page(
+                        2,
+                        "investments",
+                        vec![promises(vec![("fund-id", BlockValue::from("Alpha Fund"))])],
+                    ),
                 ],
             )];
             let tables = accumulate(&outcomes).unwrap();
@@ -812,11 +954,23 @@ mod tests {
         #[test]
         fn a_promise_can_be_resolved_by_a_contribution_from_a_different_document() {
             let outcomes = vec![
-                doc("Doc A", "FMT", vec![page(1, "investments", vec![equity_with_promised_fund("fund-id")])]),
+                doc(
+                    "Doc A",
+                    "FMT",
+                    vec![page(
+                        1,
+                        "investments",
+                        vec![equity_with_promised_fund("fund-id")],
+                    )],
+                ),
                 doc(
                     "Doc B",
                     "FMT",
-                    vec![page(1, "investments", vec![promises(vec![("fund-id", BlockValue::from("Alpha Fund"))])])],
+                    vec![page(
+                        1,
+                        "investments",
+                        vec![promises(vec![("fund-id", BlockValue::from("Alpha Fund"))])],
+                    )],
                 ),
             ];
             let tables = accumulate(&outcomes).unwrap();
@@ -833,7 +987,10 @@ mod tests {
                     "investments",
                     vec![
                         equity_with_promised_market_value("Alpha Fund", "a"),
-                        promises(vec![("a", BlockValue::from(Promise::new("b"))), ("b", BlockValue::from(Promise::new("a")))]),
+                        promises(vec![
+                            ("a", BlockValue::from(Promise::new("b"))),
+                            ("b", BlockValue::from(Promise::new("a"))),
+                        ]),
                     ],
                 )],
             )];
@@ -861,7 +1018,10 @@ mod tests {
 
         impl Fields {
             fn get(&self, name: &str) -> Option<&str> {
-                self.0.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str())
+                self.0
+                    .iter()
+                    .find(|(k, _)| k == name)
+                    .map(|(_, v)| v.as_str())
             }
         }
 
@@ -875,7 +1035,8 @@ mod tests {
             }
 
             fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-                self.0.push((field.name().to_string(), format!("{value:?}")));
+                self.0
+                    .push((field.name().to_string(), format!("{value:?}")));
             }
         }
 
@@ -902,7 +1063,12 @@ mod tests {
         where
             S: tracing::Subscriber + for<'a> LookupSpan<'a>,
         {
-            fn on_new_span(&self, attrs: &tracing::span::Attributes<'_>, id: &tracing::span::Id, ctx: Context<'_, S>) {
+            fn on_new_span(
+                &self,
+                attrs: &tracing::span::Attributes<'_>,
+                id: &tracing::span::Id,
+                ctx: Context<'_, S>,
+            ) {
                 let mut fields = Fields::default();
                 attrs.record(&mut fields);
                 if let Some(span) = ctx.span(id) {
@@ -918,7 +1084,11 @@ mod tests {
                     .into_iter()
                     .flat_map(|spans| spans.from_root().collect::<Vec<_>>())
                     .map(|span| {
-                        let captured = span.extensions().get::<Fields>().cloned().unwrap_or_default();
+                        let captured = span
+                            .extensions()
+                            .get::<Fields>()
+                            .cloned()
+                            .unwrap_or_default();
                         (span.name().to_string(), captured)
                     })
                     .collect();
@@ -938,7 +1108,10 @@ mod tests {
         }
 
         fn dropped_events(records: &[Captured]) -> Vec<&Captured> {
-            records.iter().filter(|r| r.message.contains("entity dropped")).collect()
+            records
+                .iter()
+                .filter(|r| r.message.contains("entity dropped"))
+                .collect()
         }
 
         /// Two documents, each losing an entity on a page of its own: each warning must name its
@@ -946,8 +1119,24 @@ mod tests {
         #[test]
         fn a_dropped_entity_names_its_document_and_its_page() {
             let outcomes = vec![
-                doc("Doc A", "FMT", vec![page(7, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-a")])]),
-                doc("Doc B", "FMT", vec![page(12, "investments", vec![equity_with_promised_market_value("Beta Fund", "mv-b")])]),
+                doc(
+                    "Doc A",
+                    "FMT",
+                    vec![page(
+                        7,
+                        "investments",
+                        vec![equity_with_promised_market_value("Alpha Fund", "mv-a")],
+                    )],
+                ),
+                doc(
+                    "Doc B",
+                    "FMT",
+                    vec![page(
+                        12,
+                        "investments",
+                        vec![equity_with_promised_market_value("Beta Fund", "mv-b")],
+                    )],
+                ),
             ];
             let records = events_of(|| {
                 accumulate(&outcomes).expect("a non-strict unresolved promise is not an error");
@@ -957,9 +1146,17 @@ mod tests {
             assert_eq!(dropped.len(), 2, "one warning per lost entity");
             let located: Vec<(Option<&str>, Option<&str>)> = dropped
                 .iter()
-                .map(|r| (r.span("document").and_then(|f| f.get("report")), r.span("page").and_then(|f| f.get("page"))))
+                .map(|r| {
+                    (
+                        r.span("document").and_then(|f| f.get("report")),
+                        r.span("page").and_then(|f| f.get("page")),
+                    )
+                })
                 .collect();
-            assert_eq!(located, vec![(Some("Doc A"), Some("7")), (Some("Doc B"), Some("12"))]);
+            assert_eq!(
+                located,
+                vec![(Some("Doc A"), Some("7")), (Some("Doc B"), Some("12"))]
+            );
         }
 
         /// The page span is opened per page, not once per document: two pages of one document that
@@ -970,16 +1167,26 @@ mod tests {
                 "R",
                 "FMT",
                 vec![
-                    page(3, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-1")]),
-                    page(4, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-2")]),
+                    page(
+                        3,
+                        "investments",
+                        vec![equity_with_promised_market_value("Alpha Fund", "mv-1")],
+                    ),
+                    page(
+                        4,
+                        "investments",
+                        vec![equity_with_promised_market_value("Alpha Fund", "mv-2")],
+                    ),
                 ],
             )];
             let records = events_of(|| {
                 accumulate(&outcomes).expect("a non-strict unresolved promise is not an error");
             });
 
-            let pages: Vec<Option<&str>> =
-                dropped_events(&records).iter().map(|r| r.span("page").and_then(|f| f.get("page"))).collect();
+            let pages: Vec<Option<&str>> = dropped_events(&records)
+                .iter()
+                .map(|r| r.span("page").and_then(|f| f.get("page")))
+                .collect();
             assert_eq!(pages, vec![Some("3"), Some("4")]);
         }
 
@@ -988,7 +1195,11 @@ mod tests {
         /// exists on its own — so a document named there would be a lie, not a convenience.
         #[test]
         fn the_global_promise_map_is_reported_without_a_document() {
-            let outcomes = vec![doc("R", "FMT", vec![page(1, "investments", vec![equity("Alpha Fund", 10.0)])])];
+            let outcomes = vec![doc(
+                "R",
+                "FMT",
+                vec![page(1, "investments", vec![equity("Alpha Fund", 10.0)])],
+            )];
             let records = events_of(|| {
                 accumulate(&outcomes).expect("valid fixture");
             });
@@ -1024,7 +1235,10 @@ mod tests {
             )];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(tables.funds_sfdr_classification.len(), 1);
-            assert_eq!(tables.funds_sfdr_classification[0].sfdr_classification, SfdrArticle::Art8);
+            assert_eq!(
+                tables.funds_sfdr_classification[0].sfdr_classification,
+                SfdrArticle::Art8
+            );
         }
 
         #[test]
@@ -1032,8 +1246,24 @@ mod tests {
             // The case that stopped a real batch: two reports of the same house both print the
             // fund's merger, and the run must write its results all the same.
             let outcomes = vec![
-                doc("R1", "FMT", vec![page(1, "c", vec![fund_sfdr("Alpha Fund", SfdrArticle::Art8)])]),
-                doc("R2", "FMT", vec![page(1, "c", vec![fund_sfdr("Alpha Fund", SfdrArticle::Art8)])]),
+                doc(
+                    "R1",
+                    "FMT",
+                    vec![page(
+                        1,
+                        "c",
+                        vec![fund_sfdr("Alpha Fund", SfdrArticle::Art8)],
+                    )],
+                ),
+                doc(
+                    "R2",
+                    "FMT",
+                    vec![page(
+                        1,
+                        "c",
+                        vec![fund_sfdr("Alpha Fund", SfdrArticle::Art8)],
+                    )],
+                ),
             ];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(tables.funds_sfdr_classification.len(), 1);
@@ -1096,8 +1326,16 @@ mod tests {
 
         #[test]
         fn a_promise_kept_in_one_job_does_not_resolve_an_entity_of_another() {
-            let depositing = vec![doc("A", "FMT", vec![page(1, "c", vec![deposit("fund", "Alpha")])])];
-            let consuming = vec![doc("B", "FMT", vec![page(1, "c", vec![equity_with_promised_fund("fund")])])];
+            let depositing = vec![doc(
+                "A",
+                "FMT",
+                vec![page(1, "c", vec![deposit("fund", "Alpha")])],
+            )];
+            let consuming = vec![doc(
+                "B",
+                "FMT",
+                vec![page(1, "c", vec![equity_with_promised_fund("fund")])],
+            )];
             let tables = accumulate_jobs(&[depositing, consuming]).unwrap();
             assert!(
                 tables.investments.is_empty(),
@@ -1110,27 +1348,51 @@ mod tests {
             let first = vec![doc(
                 "A",
                 "FMT",
-                vec![page(1, "c", vec![deposit("fund", "Alpha"), equity_with_promised_fund("fund")])],
+                vec![page(
+                    1,
+                    "c",
+                    vec![deposit("fund", "Alpha"), equity_with_promised_fund("fund")],
+                )],
             )];
             let second = vec![doc(
                 "B",
                 "FMT",
-                vec![page(1, "c", vec![deposit("fund", "Beta"), equity_with_promised_fund("fund")])],
+                vec![page(
+                    1,
+                    "c",
+                    vec![deposit("fund", "Beta"), equity_with_promised_fund("fund")],
+                )],
             )];
             let tables = accumulate_jobs(&[first, second]).unwrap();
             let mut names: Vec<&str> = tables.funds.iter().map(|f| f.name.as_str()).collect();
             names.sort_unstable();
-            assert_eq!(names, vec!["ALPHA", "BETA"], "each job resolves against its own contribution");
+            assert_eq!(
+                names,
+                vec!["ALPHA", "BETA"],
+                "each job resolves against its own contribution"
+            );
         }
 
         #[test]
         fn documents_of_one_job_still_share_a_map() {
             let job = vec![
-                doc("A", "FMT", vec![page(1, "c", vec![deposit("fund", "Alpha")])]),
-                doc("B", "FMT", vec![page(1, "c", vec![equity_with_promised_fund("fund")])]),
+                doc(
+                    "A",
+                    "FMT",
+                    vec![page(1, "c", vec![deposit("fund", "Alpha")])],
+                ),
+                doc(
+                    "B",
+                    "FMT",
+                    vec![page(1, "c", vec![equity_with_promised_fund("fund")])],
+                ),
             ];
             let tables = accumulate_jobs(&[job]).unwrap();
-            assert_eq!(tables.investments.len(), 1, "one report completing another is the intended case");
+            assert_eq!(
+                tables.investments.len(),
+                1,
+                "one report completing another is the intended case"
+            );
         }
 
         #[test]
@@ -1138,21 +1400,41 @@ mod tests {
             let outcomes = vec![doc(
                 "A",
                 "FMT",
-                vec![page(1, "c", vec![deposit("fund", "Alpha"), equity_with_promised_fund("fund")])],
+                vec![page(
+                    1,
+                    "c",
+                    vec![deposit("fund", "Alpha"), equity_with_promised_fund("fund")],
+                )],
             )];
             let grouped = accumulate_jobs(std::slice::from_ref(&outcomes)).unwrap();
             let single = accumulate(&outcomes).unwrap();
             assert_eq!(grouped.investments.len(), single.investments.len());
             assert_eq!(
-                grouped.funds.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
-                single.funds.iter().map(|f| f.name.clone()).collect::<Vec<_>>()
+                grouped
+                    .funds
+                    .iter()
+                    .map(|f| f.name.clone())
+                    .collect::<Vec<_>>(),
+                single
+                    .funds
+                    .iter()
+                    .map(|f| f.name.clone())
+                    .collect::<Vec<_>>()
             );
         }
 
         #[test]
         fn a_fund_seen_in_two_jobs_still_gets_one_row() {
-            let first = vec![doc("A", "FMT", vec![page(1, "c", vec![equity("Alpha", 10.0)])])];
-            let second = vec![doc("B", "FMT", vec![page(1, "c", vec![equity("Alpha", 20.0)])])];
+            let first = vec![doc(
+                "A",
+                "FMT",
+                vec![page(1, "c", vec![equity("Alpha", 10.0)])],
+            )];
+            let second = vec![doc(
+                "B",
+                "FMT",
+                vec![page(1, "c", vec![equity("Alpha", 20.0)])],
+            )];
             let tables = accumulate_jobs(&[first, second]).unwrap();
             assert_eq!(
                 tables.funds.len(),

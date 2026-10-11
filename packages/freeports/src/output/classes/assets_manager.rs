@@ -30,18 +30,32 @@ pub struct AssetsManagerData {
 
 impl AssetsManagerData {
     pub fn build(name: &BlockValue, managed_funds: &BlockValue) -> Result<Self, OutputClassError> {
-        let name = name.str_or_fail("name").map_err(|source| OutputClassError::Field { field: "name", source })?;
+        let name = name
+            .str_or_fail("name")
+            .map_err(|source| OutputClassError::Field {
+                field: "name",
+                source,
+            })?;
         let managed_funds = managed_funds
             .set_or_fail("managed_funds")
-            .map_err(|source| OutputClassError::Field { field: "managed_funds", source })?
+            .map_err(|source| OutputClassError::Field {
+                field: "managed_funds",
+                source,
+            })?
             .iter()
             .map(|v| {
                 v.str_or_fail("managed_funds")
                     .map(str::to_string)
-                    .map_err(|source| OutputClassError::Field { field: "managed_funds", source })
+                    .map_err(|source| OutputClassError::Field {
+                        field: "managed_funds",
+                        source,
+                    })
             })
             .collect::<Result<BTreeSet<String>, _>>()?;
-        Ok(Self { name: name.to_string(), managed_funds })
+        Ok(Self {
+            name: name.to_string(),
+            managed_funds,
+        })
     }
 }
 
@@ -54,7 +68,9 @@ pub struct ManagementCompany {
 
 impl ManagementCompany {
     pub fn build(name: &BlockValue, managed_funds: &BlockValue) -> Result<Self, OutputClassError> {
-        Ok(Self { data: AssetsManagerData::build(name, managed_funds)? })
+        Ok(Self {
+            data: AssetsManagerData::build(name, managed_funds)?,
+        })
     }
 }
 
@@ -63,7 +79,11 @@ impl PromisableFields for ManagementCompany {
         Vec::new()
     }
 
-    fn resolve_field(&mut self, field: &'static str, _value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        _value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         unreachable!("ManagementCompany has no promisable field {field:?}")
     }
 }
@@ -77,7 +97,9 @@ pub struct InvestmentsManager {
 
 impl InvestmentsManager {
     pub fn build(name: &BlockValue, managed_funds: &BlockValue) -> Result<Self, OutputClassError> {
-        Ok(Self { data: AssetsManagerData::build(name, managed_funds)? })
+        Ok(Self {
+            data: AssetsManagerData::build(name, managed_funds)?,
+        })
     }
 }
 
@@ -86,7 +108,11 @@ impl PromisableFields for InvestmentsManager {
         Vec::new()
     }
 
-    fn resolve_field(&mut self, field: &'static str, _value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        _value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         unreachable!("InvestmentsManager has no promisable field {field:?}")
     }
 }
@@ -94,8 +120,8 @@ impl PromisableFields for InvestmentsManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::promise_resolution::FlatPromiseMap;
     use crate::core::promisable::{Fulfilled, fulfill_promises};
+    use crate::core::promise_resolution::FlatPromiseMap;
 
     fn funds_value(names: &[&str]) -> BlockValue {
         BlockValue::Set(names.iter().map(|n| BlockValue::from(*n)).collect())
@@ -106,8 +132,11 @@ mod tests {
 
         #[test]
         fn builds_a_management_company_from_name_and_funds() {
-            let mc = ManagementCompany::build(&BlockValue::from("Acme AM"), &funds_value(&["Fund A", "Fund B"]))
-                .unwrap();
+            let mc = ManagementCompany::build(
+                &BlockValue::from("Acme AM"),
+                &funds_value(&["Fund A", "Fund B"]),
+            )
+            .unwrap();
             assert_eq!(mc.data.name, "Acme AM");
             assert_eq!(
                 mc.data.managed_funds,
@@ -118,14 +147,19 @@ mod tests {
         #[test]
         fn builds_an_investments_manager_the_same_way() {
             let im =
-                InvestmentsManager::build(&BlockValue::from("Acme IM"), &funds_value(&["Fund A"])).unwrap();
+                InvestmentsManager::build(&BlockValue::from("Acme IM"), &funds_value(&["Fund A"]))
+                    .unwrap();
             assert_eq!(im.data.name, "Acme IM");
-            assert_eq!(im.data.managed_funds, BTreeSet::from(["Fund A".to_string()]));
+            assert_eq!(
+                im.data.managed_funds,
+                BTreeSet::from(["Fund A".to_string()])
+            );
         }
 
         #[test]
         fn an_empty_set_of_funds_produces_an_empty_btreeset_not_an_error() {
-            let mc = ManagementCompany::build(&BlockValue::from("Acme AM"), &funds_value(&[])).unwrap();
+            let mc =
+                ManagementCompany::build(&BlockValue::from("Acme AM"), &funds_value(&[])).unwrap();
             assert!(mc.data.managed_funds.is_empty());
         }
 
@@ -138,29 +172,47 @@ mod tests {
             .unwrap();
             assert_eq!(
                 mc.data.managed_funds,
-                BTreeSet::from(["Café Balanced Fund".to_string(), "Ómega Bond Fund".to_string()])
+                BTreeSet::from([
+                    "Café Balanced Fund".to_string(),
+                    "Ómega Bond Fund".to_string()
+                ])
             );
         }
 
         #[test]
         fn a_wrongly_typed_name_is_a_field_error_naming_the_field() {
-            let err = ManagementCompany::build(&BlockValue::from(1i64), &funds_value(&[])).unwrap_err();
+            let err =
+                ManagementCompany::build(&BlockValue::from(1i64), &funds_value(&[])).unwrap_err();
             assert!(matches!(err, OutputClassError::Field { field: "name", .. }));
         }
 
         #[test]
         fn a_wrongly_typed_managed_funds_is_a_field_error_naming_the_field() {
-            let err =
-                ManagementCompany::build(&BlockValue::from("Acme AM"), &BlockValue::from("not a set"))
-                    .unwrap_err();
-            assert!(matches!(err, OutputClassError::Field { field: "managed_funds", .. }));
+            let err = ManagementCompany::build(
+                &BlockValue::from("Acme AM"),
+                &BlockValue::from("not a set"),
+            )
+            .unwrap_err();
+            assert!(matches!(
+                err,
+                OutputClassError::Field {
+                    field: "managed_funds",
+                    ..
+                }
+            ));
         }
 
         #[test]
         fn a_managed_fund_that_is_not_a_string_is_a_field_error() {
             let bad_set = BlockValue::Set(BTreeSet::from([BlockValue::Int(1)]));
             let err = ManagementCompany::build(&BlockValue::from("Acme AM"), &bad_set).unwrap_err();
-            assert!(matches!(err, OutputClassError::Field { field: "managed_funds", .. }));
+            assert!(matches!(
+                err,
+                OutputClassError::Field {
+                    field: "managed_funds",
+                    ..
+                }
+            ));
         }
     }
 
@@ -170,12 +222,22 @@ mod tests {
         /// Built from the same name and fund set but of different types, so they are not
         /// interchangeable. The compiler guarantees it; this documents it.
         #[test]
-        fn management_company_and_investments_manager_are_distinct_types_even_with_identical_data() {
+        fn management_company_and_investments_manager_are_distinct_types_even_with_identical_data()
+        {
             use std::any::TypeId;
-            let mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"])).unwrap();
-            let im = InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"])).unwrap();
-            assert_eq!(mc.data, im.data, "the shared data is identical by construction");
-            assert_ne!(TypeId::of::<ManagementCompany>(), TypeId::of::<InvestmentsManager>());
+            let mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"]))
+                .unwrap();
+            let im =
+                InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"]))
+                    .unwrap();
+            assert_eq!(
+                mc.data, im.data,
+                "the shared data is identical by construction"
+            );
+            assert_ne!(
+                TypeId::of::<ManagementCompany>(),
+                TypeId::of::<InvestmentsManager>()
+            );
         }
     }
 
@@ -184,29 +246,38 @@ mod tests {
 
         #[test]
         fn pending_is_always_empty_for_a_management_company() {
-            let mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"])).unwrap();
+            let mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"]))
+                .unwrap();
             assert!(mc.pending().is_empty());
         }
 
         #[test]
         fn pending_is_always_empty_for_an_investments_manager() {
-            let im = InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&[])).unwrap();
+            let im =
+                InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&[])).unwrap();
             assert!(im.pending().is_empty());
         }
 
         #[test]
         fn fulfilling_a_management_company_against_any_map_is_always_in_place() {
-            let mut mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"])).unwrap();
+            let mut mc =
+                ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"]))
+                    .unwrap();
             let before = mc.clone();
-            let map = FlatPromiseMap::from_pairs([("whatever".to_string(), BlockValue::from(1i64))]);
+            let map =
+                FlatPromiseMap::from_pairs([("whatever".to_string(), BlockValue::from(1i64))]);
             assert_eq!(fulfill_promises(&mut mc, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(mc, before, "nothing should have changed");
         }
 
         #[test]
         fn fulfilling_against_an_empty_map_is_also_always_in_place() {
-            let mut im = InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&[])).unwrap();
-            assert_eq!(fulfill_promises(&mut im, &FlatPromiseMap::new()).unwrap(), Fulfilled::InPlace);
+            let mut im =
+                InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&[])).unwrap();
+            assert_eq!(
+                fulfill_promises(&mut im, &FlatPromiseMap::new()).unwrap(),
+                Fulfilled::InPlace
+            );
         }
     }
 
@@ -215,22 +286,34 @@ mod tests {
 
         #[test]
         fn a_management_company_survives_a_json_roundtrip() {
-            let mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A", "Fund B"]))
-                .unwrap();
+            let mc = ManagementCompany::build(
+                &BlockValue::from("Acme"),
+                &funds_value(&["Fund A", "Fund B"]),
+            )
+            .unwrap();
             let json = serde_json::to_string(&mc).unwrap();
-            assert_eq!(serde_json::from_str::<ManagementCompany>(&json).unwrap(), mc);
+            assert_eq!(
+                serde_json::from_str::<ManagementCompany>(&json).unwrap(),
+                mc
+            );
         }
 
         #[test]
         fn an_investments_manager_survives_a_json_roundtrip() {
-            let im = InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"])).unwrap();
+            let im =
+                InvestmentsManager::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"]))
+                    .unwrap();
             let json = serde_json::to_string(&im).unwrap();
-            assert_eq!(serde_json::from_str::<InvestmentsManager>(&json).unwrap(), im);
+            assert_eq!(
+                serde_json::from_str::<InvestmentsManager>(&json).unwrap(),
+                im
+            );
         }
 
         #[test]
         fn the_shared_fields_are_flattened_not_nested_under_a_data_key() {
-            let mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&[])).unwrap();
+            let mc =
+                ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&[])).unwrap();
             let json = serde_json::to_string(&mc).unwrap();
             assert!(json.contains("\"name\""), "{json}");
             assert!(!json.contains("\"data\""), "{json}");

@@ -22,6 +22,7 @@
 //! configuration. A batch file's columns cannot set them in any case.
 
 use crate::cli::batch::{self, BatchError};
+use crate::cli::classify::ClassifyError;
 use crate::cli::config_locations::cmd::{CliArgs, CmdConfigError};
 use crate::cli::config_locations::env::{self, EnvConfigError};
 use crate::cli::config_locations::file::{self, FileConfigError};
@@ -29,7 +30,7 @@ use crate::cli::freeports_config::{self, FreeportsConfig, FreeportsConfigError};
 use crate::cli::job;
 use crate::cli::output::{self, OutputError};
 use crate::cli::parallelism_config::ParallelismConfig;
-use crate::cli::partial_config::{ConfigSource, defaults, overwrite};
+use crate::cli::partial_config::{ConfigSource, MergedConfig, PartialConfig, defaults, overwrite};
 use crate::cli::worker::{self, JobFailure, WorkerError};
 use crate::core::algorithm::DocumentOutcome;
 use crate::core::parallelism::{self, Parallelism};
@@ -71,6 +72,9 @@ pub enum CliError {
     },
     #[error(transparent)]
     WorkerRequest(#[from] WorkerError),
+    /// What only `freeports classify` can fail on.
+    #[error(transparent)]
+    Classify(#[from] ClassifyError),
 }
 
 /// What a finished run has to say about itself beyond "it did not fail".
@@ -92,21 +96,18 @@ pub enum RunCompleteness {
     NotEverything,
 }
 
-/// Resolves the configurations without running any job or writing any output.
-///
-/// Opens its own span. Each step already logs its own failure where the specific error is
-/// constructed, so this function does not re-log a propagated error, only the resolution steps
-/// genuinely local to it: which configuration file ends up in effect, whether batch mode applies,
-/// how many jobs came out.
-pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> {
-    let span = tracing::info_span!("resolve_config");
-    let _guard = span.enter();
-
-    let cmd_partial = args.to_partial_config()?;
+/// Steps 1 to 4 of [`resolve_configs`], shared with `freeports classify`: the command line `cmd`,
+/// the environment, the first pass that finds the configuration file, the file, and the real merge
+/// (defaults, file, environment, command line).
+pub(crate) fn merge_sources(cmd: PartialConfig) -> Result<MergedConfig, CliError> {
     let env_partial = env::load()?;
 
     // The first pass exists only to discover which configuration file is in effect.
-    let first_pass = overwrite(overwrite(defaults(), env_partial.clone(), ConfigSource::Env), cmd_partial.clone(), ConfigSource::Cmd);
+    let first_pass = overwrite(
+        overwrite(defaults(), env_partial.clone(), ConfigSource::Env),
+        cmd.clone(),
+        ConfigSource::Cmd,
+    );
     // No log in the common (`None`) branch: `file::find_config` already logs, more specifically,
     // whether/where it found a configuration file -- logging again here would just repeat it.
     // Only the override branch below adds information `find_config` never gets a chance to log
@@ -121,11 +122,28 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
     let file_partial = file::load(config_file_path.as_deref())?;
 
     // Merge reale: default <- file <- env <- cmd.
-    let merged = overwrite(
-        overwrite(overwrite(defaults(), file_partial, ConfigSource::File), env_partial, ConfigSource::Env),
-        cmd_partial,
+    Ok(overwrite(
+        overwrite(
+            overwrite(defaults(), file_partial, ConfigSource::File),
+            env_partial,
+            ConfigSource::Env,
+        ),
+        cmd,
         ConfigSource::Cmd,
-    );
+    ))
+}
+
+/// Resolves the configurations without running any job or writing any output.
+///
+/// Opens its own span. Each step already logs its own failure where the specific error is
+/// constructed, so this function does not re-log a propagated error, only the resolution steps
+/// genuinely local to it: which configuration file ends up in effect, whether batch mode applies,
+/// how many jobs came out.
+pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> {
+    let span = tracing::info_span!("resolve_config");
+    let _guard = span.enter();
+
+    let merged = merge_sources(args.to_partial_config()?)?;
 
     let configs = match merged.values.batch_file.clone() {
         Some(batch_file) => {
@@ -174,8 +192,12 @@ pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<RunCompleteness,
         // Before the CSV destination, and before any job: it is what raises the two level filters
         // to the resolved verbosity, and the sooner it runs the fewer records are lost to a filter
         // the configuration file has already contradicted.
-        log_handle.settle_verbosity(first.verbosity).map_err(CliError::from)?;
-        log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
+        log_handle
+            .settle_verbosity(first.verbosity)
+            .map_err(CliError::from)?;
+        log_handle
+            .set_csv_dir(&output::log_csv_dir(first))
+            .map_err(CliError::from)?;
     }
     let (jobs, failures) = run_jobs(&configs, log_handle)?;
     report_failures(&configs, &failures);
@@ -218,7 +240,10 @@ fn report_failures(configs: &[FreeportsConfig], failures: &[JobFailure]) {
         let index = failure.index();
         tracing::error!(
             job = index,
-            format = configs.get(index).map(|c| c.format.as_str()).unwrap_or("<unknown>"),
+            format = configs
+                .get(index)
+                .map(|c| c.format.as_str())
+                .unwrap_or("<unknown>"),
             "job {index} failed: {failure}"
         );
     }
@@ -244,7 +269,9 @@ fn completeness(configs: &[FreeportsConfig], jobs: &[Vec<DocumentOutcome>]) -> R
 /// that governs the write parameters. Both levels are properties of the run rather than of a job,
 /// and a batch file's columns cannot set them anyway.
 fn run_parallelism(configs: &[FreeportsConfig]) -> ParallelismConfig {
-    configs.first().map_or_else(ParallelismConfig::default, |first| first.parallelism)
+    configs
+        .first()
+        .map_or_else(ParallelismConfig::default, |first| first.parallelism)
 }
 
 /// How many jobs at a time, and how many pages inside each, resolved together.
@@ -378,8 +405,8 @@ mod tests {
     /// dirtied.
     fn test_log_handle() -> crate::core::tracing_setup::LogHandle {
         let dir = tempfile::tempdir().expect("tempdir");
-        let handle = crate::core::tracing_setup::log_handle_for_tests(dir.path())
-            .expect("test log handle");
+        let handle =
+            crate::core::tracing_setup::log_handle_for_tests(dir.path()).expect("test log handle");
         // The temporary directory is kept alive for the test process's lifetime: the code reopens
         // the CSV in the real output directory anyway, and keeping it alive stops the fallback
         // destination disappearing from under the close.
@@ -421,11 +448,17 @@ mod tests {
     impl EnvScope {
         fn new() -> Self {
             let lock = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-            let originals = ALL_FREEPORTS_VARS.iter().map(|&k| (k, std::env::var(k).ok())).collect();
+            let originals = ALL_FREEPORTS_VARS
+                .iter()
+                .map(|&k| (k, std::env::var(k).ok()))
+                .collect();
             for &k in ALL_FREEPORTS_VARS {
                 unsafe { std::env::remove_var(k) };
             }
-            Self { _lock: lock, originals }
+            Self {
+                _lock: lock,
+                originals,
+            }
         }
     }
 
@@ -468,7 +501,11 @@ mod tests {
         fn config_with(parallelism: ParallelismConfig) -> FreeportsConfig {
             FreeportsConfig {
                 verbosity: Verbosity::Warn,
-                reports: vec![DocumentSpec { url: None, path: Some(PathBuf::from("/tmp/a.pdf")), name: Some("a".to_string()) }],
+                reports: vec![DocumentSpec {
+                    url: None,
+                    path: Some(PathBuf::from("/tmp/a.pdf")),
+                    name: Some("a".to_string()),
+                }],
                 target_lists: vec!["TEST".to_string()],
                 format: "FMT".to_string(),
                 out_path: PathBuf::from("/tmp/out"),
@@ -484,8 +521,10 @@ mod tests {
         }
 
         fn batch_of(count: usize, jobs: usize) -> Vec<FreeportsConfig> {
-            let parallelism =
-                ParallelismConfig { jobs: Workers::Fixed(jobs), pages: Workers::Fixed(1) };
+            let parallelism = ParallelismConfig {
+                jobs: Workers::Fixed(jobs),
+                pages: Workers::Fixed(1),
+            };
             (0..count).map(|_| config_with(parallelism)).collect()
         }
 
@@ -508,8 +547,9 @@ mod tests {
         /// the user having to know.
         #[test]
         fn the_default_now_runs_a_batch_in_parallel() {
-            let configs: Vec<FreeportsConfig> =
-                (0..8).map(|_| config_with(ParallelismConfig::default())).collect();
+            let configs: Vec<FreeportsConfig> = (0..8)
+                .map(|_| config_with(ParallelismConfig::default()))
+                .collect();
             let expected = parallelism::available_threads().min(8);
             assert_eq!(jobs_of(&configs), expected);
         }
@@ -528,8 +568,9 @@ mod tests {
         /// checked.
         #[test]
         fn one_everywhere_is_sequential_at_both_levels() {
-            let configs: Vec<FreeportsConfig> =
-                (0..8).map(|_| config_with(ParallelismConfig::SEQUENTIAL)).collect();
+            let configs: Vec<FreeportsConfig> = (0..8)
+                .map(|_| config_with(ParallelismConfig::SEQUENTIAL))
+                .collect();
             assert_eq!(resolve_parallelism(&configs), (1, Parallelism::SEQUENTIAL));
         }
 
@@ -537,10 +578,11 @@ mod tests {
         /// the request is honoured, and the resolution says so.
         #[test]
         fn an_explicit_page_count_is_not_divided_among_the_jobs() {
-            let parallelism =
-                ParallelismConfig { jobs: Workers::Fixed(2), pages: Workers::Fixed(7) };
-            let configs: Vec<FreeportsConfig> =
-                (0..4).map(|_| config_with(parallelism)).collect();
+            let parallelism = ParallelismConfig {
+                jobs: Workers::Fixed(2),
+                pages: Workers::Fixed(7),
+            };
+            let configs: Vec<FreeportsConfig> = (0..4).map(|_| config_with(parallelism)).collect();
             assert_eq!(resolve_parallelism(&configs), (2, Parallelism::pages(7)));
         }
 
@@ -626,7 +668,8 @@ mod tests {
         #[test]
         fn documents_are_counted_across_the_groups_not_by_group() {
             let configs = vec![config_naming(3)];
-            let one_job_three_documents = vec![outcomes(3).into_iter().flatten().collect::<Vec<_>>()];
+            let one_job_three_documents =
+                vec![outcomes(3).into_iter().flatten().collect::<Vec<_>>()];
             assert_eq!(
                 completeness(&configs, &one_job_three_documents),
                 RunCompleteness::Everything,
@@ -637,7 +680,10 @@ mod tests {
         #[test]
         fn every_named_document_read_is_everything() {
             let configs = vec![config_naming(2), config_naming(1)];
-            assert_eq!(completeness(&configs, &outcomes(3)), RunCompleteness::Everything);
+            assert_eq!(
+                completeness(&configs, &outcomes(3)),
+                RunCompleteness::Everything
+            );
         }
 
         /// One document short: the job ran and one of its documents would not open. The results are
@@ -645,7 +691,10 @@ mod tests {
         #[test]
         fn one_document_missing_is_not_everything() {
             let configs = vec![config_naming(2), config_naming(1)];
-            assert_eq!(completeness(&configs, &outcomes(2)), RunCompleteness::NotEverything);
+            assert_eq!(
+                completeness(&configs, &outcomes(2)),
+                RunCompleteness::NotEverything
+            );
         }
 
         /// A whole job missing is the same shape of answer, which is the point of measuring
@@ -654,7 +703,10 @@ mod tests {
         #[test]
         fn a_whole_job_missing_is_not_everything() {
             let configs = vec![config_naming(3), config_naming(3)];
-            assert_eq!(completeness(&configs, &outcomes(3)), RunCompleteness::NotEverything);
+            assert_eq!(
+                completeness(&configs, &outcomes(3)),
+                RunCompleteness::NotEverything
+            );
         }
 
         /// A run that names no document reads everything it was asked to read, which is nothing.
@@ -662,7 +714,10 @@ mod tests {
         #[test]
         fn a_run_naming_no_document_is_complete() {
             assert_eq!(completeness(&[], &[]), RunCompleteness::Everything);
-            assert_eq!(completeness(&[config_naming(0)], &[]), RunCompleteness::Everything);
+            assert_eq!(
+                completeness(&[config_naming(0)], &[]),
+                RunCompleteness::Everything
+            );
         }
 
         /// Pages and rows are deliberately not part of this. An outcome exists for a document whose
@@ -671,7 +726,10 @@ mod tests {
         #[test]
         fn a_document_read_but_empty_is_still_a_document_read() {
             let configs = vec![config_naming(1)];
-            assert_eq!(completeness(&configs, &outcomes(1)), RunCompleteness::Everything);
+            assert_eq!(
+                completeness(&configs, &outcomes(1)),
+                RunCompleteness::Everything
+            );
         }
     }
 
@@ -690,13 +748,20 @@ mod tests {
                 "Name,Locale,Year,Country,Version\nA,EN,24,,\nB,EN,24,,\n",
             )
             .unwrap();
-            std::fs::write(dir.path().join("metadata/url_mapping.csv"), "Format name,Url\n").unwrap();
+            std::fs::write(
+                dir.path().join("metadata/url_mapping.csv"),
+                "Format name,Url\n",
+            )
+            .unwrap();
             let config_path = empty_config_file(dir.path());
 
             let batch_csv = dir.path().join("jobs.csv");
             std::fs::write(
                 &batch_csv,
-                format!("format,pdf\nA-EN24,{path}\nB-EN24,{path}\n", path = pdf.to_str().unwrap()),
+                format!(
+                    "format,pdf\nA-EN24,{path}\nB-EN24,{path}\n",
+                    path = pdf.to_str().unwrap()
+                ),
             )
             .unwrap();
 
@@ -781,7 +846,10 @@ mod tests {
                 // Deliberately no --target-list: `require_target_lists` must reject this.
             ]);
             let result = execute(args, &test_log_handle());
-            assert!(matches!(result, Err(CliError::Validate(_))), "got {result:?}");
+            assert!(
+                matches!(result, Err(CliError::Validate(_))),
+                "got {result:?}"
+            );
         }
 
         #[test]
@@ -791,8 +859,16 @@ mod tests {
             let pdf = dir.path().join("report.pdf");
             std::fs::write(&pdf, b"%PDF-1.4").unwrap();
             std::fs::create_dir_all(dir.path().join("metadata")).unwrap();
-            std::fs::write(dir.path().join("metadata/formats.csv"), "Name,Locale,Year,Country,Version\n").unwrap();
-            std::fs::write(dir.path().join("metadata/url_mapping.csv"), "Format name,Url\n").unwrap();
+            std::fs::write(
+                dir.path().join("metadata/formats.csv"),
+                "Name,Locale,Year,Country,Version\n",
+            )
+            .unwrap();
+            std::fs::write(
+                dir.path().join("metadata/url_mapping.csv"),
+                "Format name,Url\n",
+            )
+            .unwrap();
             let config_path = empty_config_file(dir.path());
 
             let args = parse(&[
@@ -821,7 +897,10 @@ mod tests {
             match result {
                 Err(CliError::Worker(failure)) => {
                     assert_eq!(failure.index(), 0);
-                    assert_eq!(failure.to_string(), "unknown format 'DOES-NOT-EXIST'; the repository declares 0 format(s)");
+                    assert_eq!(
+                        failure.to_string(),
+                        "unknown format 'DOES-NOT-EXIST'; the repository declares 0 format(s)"
+                    );
                 }
                 other => panic!("got {other:?}"),
             }
@@ -838,12 +917,17 @@ mod tests {
         /// A minimal PDF with text the fixture repository's classifier recognises.
         fn build_minimal_pdf(pdf_path: &std::path::Path) {
             Python::attach(|py| {
-                let fitz = PyModule::import(py, "fitz")
-                    .expect("PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md");
+                let fitz = PyModule::import(py, "fitz").expect(
+                    "PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md",
+                );
                 let doc = fitz.call_method0("open").unwrap();
-                let page = doc.call_method1("new_page", (-1i64, 200.0f64, 300.0f64)).unwrap();
-                page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings")).unwrap();
-                doc.call_method1("save", (pdf_path.to_str().unwrap(),)).unwrap();
+                let page = doc
+                    .call_method1("new_page", (-1i64, 200.0f64, 300.0f64))
+                    .unwrap();
+                page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings"))
+                    .unwrap();
+                doc.call_method1("save", (pdf_path.to_str().unwrap(),))
+                    .unwrap();
                 doc.call_method0("close").unwrap();
             });
         }
@@ -852,13 +936,19 @@ mod tests {
         fn write_minimal_repo(dir: &std::path::Path) -> std::path::PathBuf {
             let repo = dir.join("formats_repo");
             for (relative, content) in [
-                ("metadata/formats.csv", "Name,Locale,Year,Country,Version\nA,EN,24,,\n"),
+                (
+                    "metadata/formats.csv",
+                    "Name,Locale,Year,Country,Version\nA,EN,24,,\n",
+                ),
                 ("metadata/url_mapping.csv", "Format name,Url\n"),
                 (
                     "content/orchestration/algorithms_schedule.csv",
                     "Format name,Page type,Filter next iteration\nA-EN24,investments,\n",
                 ),
-                ("content/orchestration/mapping.csv", "ID,Page type\nA-EN24(investments),investments\n"),
+                (
+                    "content/orchestration/mapping.csv",
+                    "ID,Page type\nA-EN24(investments),investments\n",
+                ),
                 ("content/orchestration/pageclassify_overwrite.csv", "ID\n"),
                 (
                     "content/algorithms/structured/page_classify/args.csv",
@@ -873,12 +963,30 @@ mod tests {
                     "content/algorithms/structured/investments/additional_args.csv",
                     "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero\n",
                 ),
-                ("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n"),
-                ("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n"),
-                ("content/algorithms/semistructured/formats_mapping.csv", "ID,pdf_extract,text_filter,deserialize\n"),
-                ("content/algorithms/semistructured/args/pdf_extract.yaml", "{}"),
-                ("content/algorithms/semistructured/args/text_filter.yaml", "{}"),
-                ("content/algorithms/semistructured/args/deserialize.yaml", "{}"),
+                (
+                    "content/algorithms/structured/investments/partial_pipes.csv",
+                    "ID,pdf_extract,text_filter,deserialize\n",
+                ),
+                (
+                    "content/algorithms/structured/investments/deselection_lists.csv",
+                    "ID,Deselection set\n",
+                ),
+                (
+                    "content/algorithms/semistructured/formats_mapping.csv",
+                    "ID,pdf_extract,text_filter,deserialize\n",
+                ),
+                (
+                    "content/algorithms/semistructured/args/pdf_extract.yaml",
+                    "{}",
+                ),
+                (
+                    "content/algorithms/semistructured/args/text_filter.yaml",
+                    "{}",
+                ),
+                (
+                    "content/algorithms/semistructured/args/deserialize.yaml",
+                    "{}",
+                ),
             ] {
                 let path = repo.join(relative);
                 std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -969,7 +1077,10 @@ mod tests {
             let completeness = execute(args, &test_log_handle())
                 .expect("one failing job out of two must not fail the run");
             assert_eq!(completeness, RunCompleteness::NotEverything);
-            assert!(out_dir.join("investments.csv").is_file(), "the results of the sound job must be on disk");
+            assert!(
+                out_dir.join("investments.csv").is_file(),
+                "the results of the sound job must be on disk"
+            );
             assert!(out_dir.join("funds.csv").is_file());
         }
 
@@ -1014,10 +1125,15 @@ mod tests {
             ]);
 
             match execute(args, &test_log_handle()) {
-                Err(CliError::Worker(failure)) => assert_eq!(failure.index(), 0, "the first failure in job order"),
+                Err(CliError::Worker(failure)) => {
+                    assert_eq!(failure.index(), 0, "the first failure in job order")
+                }
                 other => panic!("a run that produced nothing must fail, got {other:?}"),
             }
-            assert!(!out_dir.join("investments.csv").exists(), "six empty tables are worse than none");
+            assert!(
+                !out_dir.join("investments.csv").exists(),
+                "six empty tables are worse than none"
+            );
         }
     }
 }

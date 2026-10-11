@@ -29,8 +29,8 @@ pub mod core;
 pub mod input;
 pub mod interfaces;
 pub mod log;
-pub mod pipes;
 pub mod output;
+pub mod pipes;
 pub mod standard_funcs;
 pub mod utils;
 
@@ -50,7 +50,9 @@ fn register_submodules(py: Python<'_>, module: &Bound<'_, PyModule>, prefix: &st
         .collect::<PyResult<Vec<_>>>()?;
 
     for (name, value) in contents {
-        let Ok(submodule) = value.into_bound(py).cast_into::<PyModule>() else { continue };
+        let Ok(submodule) = value.into_bound(py).cast_into::<PyModule>() else {
+            continue;
+        };
         let dotted = format!("{prefix}.{name}");
         submodule.setattr("__name__", &dotted)?;
         sys_modules.set_item(&dotted, &submodule)?;
@@ -86,7 +88,9 @@ pub fn install(py: Python<'_>) -> PyResult<()> {
     // The qualified path, not the bare name: in doc-tests the crate itself is passed to rustdoc
     // under its own name, and the bare form becomes ambiguous between the crate and the module
     // below. The qualified path says which, and holds in every context.
-    let module = pyo3::wrap_pymodule!(self::freeports)(py).into_bound(py).cast_into::<PyModule>()?;
+    let module = pyo3::wrap_pymodule!(self::freeports)(py)
+        .into_bound(py)
+        .cast_into::<PyModule>()?;
     module.setattr("__name__", "freeports")?;
     sys_modules.set_item("freeports", &module)?;
     register_submodules(py, &module, "freeports")?;
@@ -169,12 +173,12 @@ pub mod freeports {
             use crate::python::standard_funcs::pdf_extract::py_extract_text_pdf_block_or_fail_page;
             #[pymodule_export]
             use crate::python::utils::pdf_extract::{
-                PyCollapseAlgorithm, PyColumnConfig, PyLimits, PyPageImage, PyPdfLine,
-                PyLabelledValueTake, PyLabelledValueWhere, PyPdfLineSelection, PyPdfLineSet, PyRowConfig,
-                PySplittingState, PyTableConfig,
-                PyTablePosAlgorithm, PyTablePosMeasureUnit, py_get_groups, py_get_table_coordinates,
-                py_pdfimages_from_pagedict, py_pdfline_selection_from_dict,
-                py_pdfline_selection_from_str, py_pdflines_from_pagedict,
+                PyCollapseAlgorithm, PyColumnConfig, PyLabelledValueTake, PyLabelledValueWhere,
+                PyLimits, PyPageImage, PyPdfLine, PyPdfLineSelection, PyPdfLineSet, PyRowConfig,
+                PySplittingState, PyTableConfig, PyTablePosAlgorithm, PyTablePosMeasureUnit,
+                py_get_groups, py_get_table_coordinates, py_pdfimages_from_pagedict,
+                py_pdfline_selection_from_dict, py_pdfline_selection_from_str,
+                py_pdflines_from_pagedict,
             };
         }
 
@@ -208,10 +212,10 @@ pub mod freeports {
             use crate::python::standard_funcs::pdf_extract::{
                 PyAssetsColumn, py_pdf_extract_assets_standard, py_pdf_extract_currency_constant,
                 py_pdf_extract_currency_standard, py_pdf_extract_doc_classify_standard,
-                py_pdf_extract_fund_standard,
-                py_pdf_extract_investments_standard, py_pdf_extract_labelled_value_standard,
-                py_pdf_extract_managment_company_standard, py_pdf_extract_page_classify_standard,
-                py_pdf_extract_section_standard, py_pdf_extract_sfdr_sign_standard,
+                py_pdf_extract_fund_standard, py_pdf_extract_investments_standard,
+                py_pdf_extract_labelled_value_standard, py_pdf_extract_managment_company_standard,
+                py_pdf_extract_page_classify_standard, py_pdf_extract_section_standard,
+                py_pdf_extract_sfdr_sign_standard,
             };
         }
 
@@ -220,9 +224,8 @@ pub mod freeports {
             #[pymodule_export]
             use crate::python::standard_funcs::text_filter::{
                 py_text_filter_assets_standard, py_text_filter_doc_classify_standard,
-                py_text_filter_investments_standard,
-                py_text_filter_managment_company_standard, py_text_filter_page_classify_standard,
-                py_text_filter_sfdr_sign_standard,
+                py_text_filter_investments_standard, py_text_filter_managment_company_standard,
+                py_text_filter_page_classify_standard, py_text_filter_sfdr_sign_standard,
             };
         }
 
@@ -231,8 +234,8 @@ pub mod freeports {
             #[pymodule_export]
             use crate::python::standard_funcs::deserialize::{
                 py_deserialize_sfdr_article_standard, py_deserializer_assets_standard,
-                py_deserializer_doc_classify_standard,
-                py_deserializer_fund_standard, py_deserializer_investment_standard,
+                py_deserializer_doc_classify_standard, py_deserializer_fund_standard,
+                py_deserializer_investment_standard,
                 py_deserializer_investments_manager_from_manco,
                 py_deserializer_investments_manager_standard,
                 py_deserializer_managment_company_standard, py_deserializer_page_classify_standard,
@@ -261,7 +264,9 @@ pub mod freeports {
             &interfaces.getattr("text_blks")?.cast_into::<PyModule>()?,
         )?;
         let utils = module.getattr("utils")?.cast_into::<PyModule>()?;
-        crate::python::utils::pdf_extract::init(&utils.getattr("pdf_extract")?.cast_into::<PyModule>()?)?;
+        crate::python::utils::pdf_extract::init(
+            &utils.getattr("pdf_extract")?.cast_into::<PyModule>()?,
+        )?;
         Ok(())
     }
 }
@@ -278,7 +283,11 @@ mod tests {
     /// [`install`] disarms.
     fn seed(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
         install(py)?;
-        py.import("sys")?.getattr("modules")?.get_item("freeports")?.cast_into::<PyModule>().map_err(PyErr::from)
+        py.import("sys")?
+            .getattr("modules")?
+            .get_item("freeports")?
+            .cast_into::<PyModule>()
+            .map_err(PyErr::from)
     }
 
     /// Runs `code` with `freeports` already seeded, returning the Python error if there is one.
@@ -323,8 +332,10 @@ mod tests {
         /// have to be edited every time a currency is added, and would be wrong in the meantime.
         #[test]
         fn every_currency_is_reachable_as_a_class_attribute() {
-            run("from freeports.consts import Currency; assert Currency.EUR.name == 'EUR'").unwrap();
-            run("from freeports.consts import Currency; assert Currency.NGN.name == 'NGN'").unwrap();
+            run("from freeports.consts import Currency; assert Currency.EUR.name == 'EUR'")
+                .unwrap();
+            run("from freeports.consts import Currency; assert Currency.NGN.name == 'NGN'")
+                .unwrap();
             let expected = crate::commons::consts::Currency::variants().len();
             run(&format!(
                 "from freeports.consts import Currency; assert len(Currency.__members__) == {expected}"
@@ -340,13 +351,15 @@ mod tests {
 
         #[test]
         fn the_same_variant_is_equal_to_itself_and_hashable() {
-            run("from freeports.consts import Currency; assert Currency.EUR == Currency.EUR").unwrap();
+            run("from freeports.consts import Currency; assert Currency.EUR == Currency.EUR")
+                .unwrap();
             run("from freeports.consts import Currency; assert len({Currency.EUR, Currency.EUR, Currency.USD}) == 2").unwrap();
         }
 
         #[test]
         fn a_variant_is_reachable_by_name_too() {
-            run("from freeports.consts import Currency; assert Currency['GBP'] == Currency.GBP").unwrap();
+            run("from freeports.consts import Currency; assert Currency['GBP'] == Currency.GBP")
+                .unwrap();
         }
     }
 
@@ -360,12 +373,10 @@ mod tests {
 
         #[test]
         fn a_fund_built_from_a_promise_reports_the_promise_as_its_name() {
-            run(
-                "from freeports.output import Fund\n\
+            run("from freeports.output import Fund\n\
                  from freeports.core import Promise\n\
                  f = Fund(Promise('fund-name'))\n\
-                 assert f.name == Promise('fund-name'), f.name",
-            )
+                 assert f.name == Promise('fund-name'), f.name")
             .unwrap();
         }
 
@@ -445,25 +456,21 @@ mod tests {
 
         #[test]
         fn an_esg_indicator_accepts_a_promised_fund() {
-            run(
-                "from freeports.output import FundEsgIndicator\n\
+            run("from freeports.output import FundEsgIndicator\n\
                  from freeports.core import Promise\n\
                  i = FundEsgIndicator(fund=Promise('esg-fund'), name='GHG', value='12.3')\n\
                  assert i.name == 'GHG' and i.value == '12.3'\n\
-                 assert i.fund == Promise('esg-fund'), i.fund",
-            )
+                 assert i.fund == Promise('esg-fund'), i.fund")
             .unwrap();
         }
 
         #[test]
         fn an_sfdr_classification_accepts_the_article_as_a_shim_or_a_promise() {
-            run(
-                "from freeports.output import FundSfdrClassification as C\n\
+            run("from freeports.output import FundSfdrClassification as C\n\
                  from freeports.consts import SfdrArticle\n\
                  from freeports.core import Promise\n\
                  assert C(fund='A', article=SfdrArticle.ART_8).article == SfdrArticle.ART_8\n\
-                 assert C(fund='A', article=Promise('a')).article == Promise('a')",
-            )
+                 assert C(fund='A', article=Promise('a')).article == Promise('a')")
             .unwrap();
         }
 
@@ -483,12 +490,10 @@ mod tests {
 
         #[test]
         fn entities_compare_and_hash_by_value() {
-            run(
-                "from freeports.output import Fund\n\
+            run("from freeports.output import Fund\n\
                  assert Fund('a') == Fund('a')\n\
                  assert Fund('a') != Fund('b')\n\
-                 assert len({Fund('a'), Fund('a'), Fund('b')}) == 2",
-            )
+                 assert len({Fund('a'), Fund('a'), Fund('b')}) == 2")
             .unwrap();
         }
     }
@@ -513,11 +518,9 @@ mod tests {
 
         #[test]
         fn match_fund_compares_after_deep_normalization() {
-            run(
-                "from freeports.utils.text_filter import MatchFund\n\
+            run("from freeports.utils.text_filter import MatchFund\n\
                  assert MatchFund('Alpha  Fund').matches('alpha fund')\n\
-                 assert MatchFund(name='Alpha Fund').name == 'Alpha Fund'",
-            )
+                 assert MatchFund(name='Alpha Fund').name == 'Alpha Fund'")
             .unwrap();
         }
 
@@ -651,13 +654,11 @@ mod tests {
 
         #[test]
         fn the_standard_fund_text_block_builder_produces_a_text_block() {
-            run(
-                "from freeports.core import PdfBlock, TextBlock\n\
+            run("from freeports.core import PdfBlock, TextBlock\n\
                  from freeports.interfaces.text_blks import StandardFundTextBlock\n\
                  blk = StandardFundTextBlock(PdfBlock('FUND_NAME', content='Alpha'))\n\
                  assert isinstance(blk, TextBlock), type(blk)\n\
-                 assert blk.type_block == 'FUND', blk.type_block",
-            )
+                 assert blk.type_block == 'FUND', blk.type_block")
             .unwrap();
         }
 
@@ -679,35 +680,29 @@ mod tests {
 
         #[test]
         fn a_pdf_block_round_trips_its_three_fields() {
-            run(
-                "from freeports.core import PdfBlock\n\
+            run("from freeports.core import PdfBlock\n\
                  b = PdfBlock('row', content=['a', 1], metadata={'page': 3})\n\
                  assert b.type_block == 'row'\n\
                  assert b.content == ['a', 1], b.content\n\
-                 assert b.metadata == {'page': 3}, b.metadata",
-            )
+                 assert b.metadata == {'page': 3}, b.metadata")
             .unwrap();
         }
 
         #[test]
         fn blocks_are_hashable_and_compare_by_value() {
-            run(
-                "from freeports.core import PdfBlock\n\
+            run("from freeports.core import PdfBlock\n\
                  assert PdfBlock('r', content='x') == PdfBlock('r', content='x')\n\
-                 assert len({PdfBlock('r', content='x'), PdfBlock('r', content='x')}) == 1",
-            )
+                 assert len({PdfBlock('r', content='x'), PdfBlock('r', content='x')}) == 1")
             .unwrap();
         }
 
         #[test]
         fn a_text_block_built_from_a_pdf_block_inherits_its_content() {
-            run(
-                "from freeports.core import PdfBlock, TextBlock\n\
+            run("from freeports.core import PdfBlock, TextBlock\n\
                  p = PdfBlock('row', content='inherited')\n\
                  t = TextBlock('fund', {}, p)\n\
                  assert t.content == 'inherited', t.content\n\
-                 assert t.pdf_block == p",
-            )
+                 assert t.pdf_block == p")
             .unwrap();
         }
 
@@ -716,8 +711,7 @@ mod tests {
         /// a content.
         #[test]
         fn the_two_text_block_constructors_are_separate() {
-            run(
-                "from freeports.core import PdfBlock, TextBlock\n\
+            run("from freeports.core import PdfBlock, TextBlock\n\
                  t = TextBlock.from_content('fund', {'k': 1}, 'standalone')\n\
                  assert t.content == 'standalone'\n\
                  assert t.pdf_block is None\n\
@@ -727,8 +721,7 @@ mod tests {
                  except TypeError:\n\
                  \x20   pass\n\
                  else:\n\
-                 \x20   raise AssertionError('the constructor must not take a content')",
-            )
+                 \x20   raise AssertionError('the constructor must not take a content')")
             .unwrap();
         }
 
@@ -736,70 +729,58 @@ mod tests {
         /// not frozen.
         #[test]
         fn a_text_block_content_is_rewritable() {
-            run(
-                "from freeports.core import TextBlock\n\
+            run("from freeports.core import TextBlock\n\
                  t = TextBlock.from_content('fund', {}, 'Alpha Fund *')\n\
                  t.content = t.content.replace('*', '').strip()\n\
-                 assert t.content == 'Alpha Fund'",
-            )
+                 assert t.content == 'Alpha Fund'")
             .unwrap();
         }
 
         /// The positional order is the one author modules actually write: type, metadata, content.
         #[test]
         fn the_blocks_take_their_arguments_in_the_reference_order() {
-            run(
-                "from freeports.core import PdfBlock, TextBlock\n\
+            run("from freeports.core import PdfBlock, TextBlock\n\
                  b = PdfBlock('RELEVANT_BLOCK', {'page': 3}, 'testo')\n\
                  assert b.metadata == {'page': 3}\n\
                  assert b.content == 'testo'\n\
                  t = TextBlock('FUND', {'page': 3}, b)\n\
                  assert t.metadata == {'page': 3}\n\
-                 assert t.content == 'testo'",
-            )
+                 assert t.content == 'testo'")
             .unwrap();
         }
 
         #[test]
         fn typed_values_survive_the_round_trip_as_shims_not_strings() {
-            run(
-                "from freeports.core import PdfBlock\n\
+            run("from freeports.core import PdfBlock\n\
                  from freeports.consts import Currency\n\
                  b = PdfBlock('amount', content=Currency.EUR)\n\
-                 assert b.content == Currency.EUR, b.content",
-            )
+                 assert b.content == Currency.EUR, b.content")
             .unwrap();
         }
 
         #[test]
         fn a_promise_keeps_its_flags_and_its_suffix_derived_defaults() {
-            run(
-                "from freeports.core import Promise\n\
+            run("from freeports.core import Promise\n\
                  assert Promise('fund-id').id == 'fund-id'\n\
                  assert Promise('x', strict=True, multiple=True).strict\n\
-                 assert Promise('x', strict=True, multiple=True).multiple",
-            )
+                 assert Promise('x', strict=True, multiple=True).multiple")
             .unwrap();
         }
 
         #[test]
         fn a_promise_nested_in_a_block_comes_back_as_a_promise() {
-            run(
-                "from freeports.core import PdfBlock, Promise\n\
+            run("from freeports.core import PdfBlock, Promise\n\
                  b = PdfBlock('ref', content=Promise('some-id'))\n\
-                 assert b.content == Promise('some-id'), b.content",
-            )
+                 assert b.content == Promise('some-id'), b.content")
             .unwrap();
         }
 
         #[test]
         fn a_date_round_trips_through_the_iso_bridge() {
-            run(
-                "import datetime\n\
+            run("import datetime\n\
                  from freeports.core import PdfBlock\n\
                  b = PdfBlock('when', content=datetime.date(2024, 2, 29))\n\
-                 assert b.content == datetime.date(2024, 2, 29), b.content",
-            )
+                 assert b.content == datetime.date(2024, 2, 29), b.content")
             .unwrap();
         }
     }
@@ -903,7 +884,10 @@ def raises(exc_type, fn, *args):
 
             #[test]
             fn the_arguments_can_be_given_by_keyword() {
-                run_with_prelude("PdfExtractDocClassifyStandard(selections=[sel('x')], pattern='MEDIOLANUM')").unwrap();
+                run_with_prelude(
+                    "PdfExtractDocClassifyStandard(selections=[sel('x')], pattern='MEDIOLANUM')",
+                )
+                .unwrap();
             }
 
             #[test]
@@ -928,13 +912,17 @@ def raises(exc_type, fn, *args):
             /// `*` as entity is a model of the YAML only (§1.4): from Python arrive values.
             #[test]
             fn a_template_is_not_accepted_as_a_pattern() {
-                run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, [], '*-EN23')").unwrap();
+                run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, [], '*-EN23')")
+                    .unwrap();
             }
 
             #[test]
             fn something_that_is_not_a_selection_is_a_value_error() {
                 run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, ['Mediolanum'], 'MEDIOLANUM')").unwrap();
-                run_with_prelude("raises(ValueError, PdfExtractDocClassifyStandard, 3, 'MEDIOLANUM')").unwrap();
+                run_with_prelude(
+                    "raises(ValueError, PdfExtractDocClassifyStandard, 3, 'MEDIOLANUM')",
+                )
+                .unwrap();
             }
         }
 
@@ -1009,7 +997,8 @@ def raises(exc_type, fn, *args):
 
             #[test]
             fn the_filter_given_no_block_raises() {
-                run_with_prelude("raises(RuntimeError, TextFilterDocClassifyStandard(), [], [])").unwrap();
+                run_with_prelude("raises(RuntimeError, TextFilterDocClassifyStandard(), [], [])")
+                    .unwrap();
             }
         }
     }

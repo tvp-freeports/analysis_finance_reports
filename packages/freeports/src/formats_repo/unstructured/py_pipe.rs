@@ -31,7 +31,8 @@ use pyo3::types::{PyDict, PyFrozenSet, PyList, PySet, PyTuple};
 use crate::core::classes::{BlockType, BlockValue, PdfBlock, TextBlock};
 use crate::core::page::Page;
 use crate::core::pipeline::{
-    DeserializePipe, Extracted, FilterData, PdfExtractPipe, PipeError, PromiseEntries, TextFilterPipe,
+    DeserializePipe, Extracted, FilterData, PdfExtractPipe, PipeError, PromiseEntries,
+    TextFilterPipe,
 };
 use crate::core::promise::Promise;
 
@@ -51,7 +52,9 @@ fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny
 
 /// Whether the object has all three attributes of a promise.
 fn looks_like_promise(object: &Bound<'_, PyAny>) -> bool {
-    PROMISE_FIELDS.iter().all(|name| field(object, name).is_some())
+    PROMISE_FIELDS
+        .iter()
+        .all(|name| field(object, name).is_some())
 }
 
 /// A [`BlockValue`] from any Python object. See the module documentation for the contract.
@@ -139,9 +142,14 @@ fn metadata_from_py(object: &Bound<'_, PyAny>) -> PyResult<BTreeMap<String, Bloc
 }
 
 /// The three fields common to a PDF block and a text block.
-fn block_parts(object: &Bound<'_, PyAny>) -> PyResult<(BlockType, BTreeMap<String, BlockValue>, BlockValue)> {
-    let missing = |name: &str| pyo3::exceptions::PyAttributeError::new_err(format!("block has no '{name}'"));
-    let type_block: String = field(object, "type_block").ok_or_else(|| missing("type_block"))?.extract()?;
+fn block_parts(
+    object: &Bound<'_, PyAny>,
+) -> PyResult<(BlockType, BTreeMap<String, BlockValue>, BlockValue)> {
+    let missing =
+        |name: &str| pyo3::exceptions::PyAttributeError::new_err(format!("block has no '{name}'"));
+    let type_block: String = field(object, "type_block")
+        .ok_or_else(|| missing("type_block"))?
+        .extract()?;
     let metadata = match field(object, "metadata") {
         Some(value) => metadata_from_py(&value)?,
         None => BTreeMap::new(),
@@ -229,7 +237,11 @@ pub fn pdf_block_to_py<'py>(py: Python<'py>, block: &PdfBlock) -> PyResult<Bound
 
 /// A [`TextBlock`] as a Python object, for passing to an author's pipe.
 pub fn text_block_to_py<'py>(py: Python<'py>, block: &TextBlock) -> PyResult<Bound<'py, PyAny>> {
-    Ok(Bound::new(py, crate::python::core::PyTextBlock::from_native(py, block)?)?.into_any())
+    Ok(Bound::new(
+        py,
+        crate::python::core::PyTextBlock::from_native(py, block)?,
+    )?
+    .into_any())
 }
 
 /// The result of an author's deserialize pipe as a list of Python objects, without converting them.
@@ -276,7 +288,11 @@ pub(crate) fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: Py
     if error.is_instance_of::<crate::python::core::PageParseFail>(py) {
         // Non-fatal: whoever absorbs this error skips the page and carries on, which loses a result
         // — a warning, not merely informational.
-        tracing::warn!(pipeline, pipe, "author pipe could not parse the page: {message}");
+        tracing::warn!(
+            pipeline,
+            pipe,
+            "author pipe could not parse the page: {message}"
+        );
         return PipeError::page_parse(pipe, crate::core::page::PageError::ParseFail { message });
     }
     tracing::error!(pipeline, pipe, "author pipe raised: {message}");
@@ -293,7 +309,11 @@ pub struct PyPdfExtractPipe {
 
 impl PyPdfExtractPipe {
     pub fn new(pipeline: impl Into<String>, name: impl Into<String>, func: Py<PyAny>) -> Self {
-        Self { pipeline: pipeline.into(), name: name.into(), func }
+        Self {
+            pipeline: pipeline.into(),
+            name: name.into(),
+            func,
+        }
     }
 }
 
@@ -312,7 +332,11 @@ impl PdfExtractPipe for PyPdfExtractPipe {
         // An author's pipe expects the original PyMuPDF dict rather than the native page: that is
         // why a page keeps it.
         let raw = page.raw().ok_or_else(|| {
-            PipeError::author(&self.pipeline, &self.name, "the page carries no PyMuPDF dictionary")
+            PipeError::author(
+                &self.pipeline,
+                &self.name,
+                "the page carries no PyMuPDF dictionary",
+            )
         })?;
         Python::attach(|py| {
             let result = self
@@ -320,8 +344,8 @@ impl PdfExtractPipe for PyPdfExtractPipe {
                 .bind(py)
                 .call1((raw.bind(py),))
                 .map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            let blocks =
-                each(&result, pdf_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
+            let blocks = each(&result, pdf_block_from_py)
+                .map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
             // `trace!`, not `debug!`: this pipe runs once per page, in a hot loop.
             tracing::trace!(
                 pipeline = %self.pipeline,
@@ -343,7 +367,11 @@ pub struct PyTextFilterPipe {
 
 impl PyTextFilterPipe {
     pub fn new(pipeline: impl Into<String>, name: impl Into<String>, func: Py<PyAny>) -> Self {
-        Self { pipeline: pipeline.into(), name: name.into(), func }
+        Self {
+            pipeline: pipeline.into(),
+            name: name.into(),
+            func,
+        }
     }
 }
 
@@ -358,7 +386,11 @@ impl TextFilterPipe for PyTextFilterPipe {
         false
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
         Python::attach(|py| {
             let convert = || -> PyResult<Bound<'_, PyAny>> {
                 let py_blocks = PyList::empty(py);
@@ -382,15 +414,16 @@ impl TextFilterPipe for PyTextFilterPipe {
                     }
                     FilterData::Previous(previous) => {
                         for extracted in *previous {
-                            py_data.append(crate::python::pipes::extracted_to_py(py, extracted)?)?;
+                            py_data
+                                .append(crate::python::pipes::extracted_to_py(py, extracted)?)?;
                         }
                     }
                 }
                 self.func.bind(py).call1((py_blocks, py_data))
             };
             let result = convert().map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            let blocks =
-                each(&result, text_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
+            let blocks = each(&result, text_block_from_py)
+                .map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
             // `trace!`: runs once per page, like the extraction pipe.
             tracing::trace!(
                 pipeline = %self.pipeline,
@@ -417,7 +450,11 @@ pub struct PyDeserializePipe {
 
 impl PyDeserializePipe {
     pub fn new(pipeline: impl Into<String>, name: impl Into<String>, func: Py<PyAny>) -> Self {
-        Self { pipeline: pipeline.into(), name: name.into(), func }
+        Self {
+            pipeline: pipeline.into(),
+            name: name.into(),
+            func,
+        }
     }
 }
 

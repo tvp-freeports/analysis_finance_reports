@@ -46,7 +46,9 @@
 use onig::{Regex as OnigRegex, RegexOptions, Syntax};
 use std::sync::Arc;
 
-use crate::core::normalization::{deep_normalize_string, deep_normalize_string_split_on_punctuation};
+use crate::core::normalization::{
+    deep_normalize_string, deep_normalize_string_split_on_punctuation,
+};
 
 #[derive(Debug, Clone)]
 struct Regex {
@@ -87,8 +89,14 @@ fn compile_regex_pattern(p: &str) -> Result<Regex, PatternCompileError> {
         RegexOptions::REGEX_OPTION_IGNORECASE | RegexOptions::REGEX_OPTION_MULTILINE,
         Syntax::default(),
     )
-    .map_err(|e| PatternCompileError { pattern: p.to_string(), message: e.description().to_string() })?;
-    Ok(Regex { pattern: modified_pattern, reference: Arc::new(reference) })
+    .map_err(|e| PatternCompileError {
+        pattern: p.to_string(),
+        message: e.description().to_string(),
+    })?;
+    Ok(Regex {
+        pattern: modified_pattern,
+        reference: Arc::new(reference),
+    })
 }
 
 /// Word-boundary wrapping of a symbol pattern — a ticker, matched as a whole word.
@@ -99,8 +107,14 @@ fn compile_symbol_pattern(p: &str) -> Result<Regex, PatternCompileError> {
         RegexOptions::REGEX_OPTION_MULTILINE,
         Syntax::default(),
     )
-    .map_err(|e| PatternCompileError { pattern: p.to_string(), message: e.description().to_string() })?;
-    Ok(Regex { pattern: modified_pattern, reference: Arc::new(reference) })
+    .map_err(|e| PatternCompileError {
+        pattern: p.to_string(),
+        message: e.description().to_string(),
+    })?;
+    Ok(Regex {
+        pattern: modified_pattern,
+        reference: Arc::new(reference),
+    })
 }
 
 pub struct TargetCompanyInput {
@@ -159,7 +173,10 @@ impl CompanyMatchInfos {
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        tracing::debug!(companies = n_companies, "target company match patterns compiled");
+        tracing::debug!(
+            companies = n_companies,
+            "target company match patterns compiled"
+        );
         Ok(compiled)
     }
 }
@@ -251,7 +268,11 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
         }
         for b in &c.buds {
             if txt.contains(b) {
-                for Regex { pattern, reference: r } in &c.regexs {
+                for Regex {
+                    pattern,
+                    reference: r,
+                } in &c.regexs
+                {
                     if r.is_match(&txt) {
                         tracing::trace!(
                             coord_ref_1 = %text,
@@ -296,7 +317,11 @@ fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
             tracing::trace!(coord_ref_1 = %text, coord_ref_2 = %c.name, "company matched by one of its symbols");
             return Ok(Some(&c.name));
         }
-        for Regex { pattern, reference: r } in &c.regexs {
+        for Regex {
+            pattern,
+            reference: r,
+        } in &c.regexs
+        {
             if r.is_match(&txt) {
                 tracing::trace!(
                     coord_ref_1 = %text,
@@ -328,7 +353,10 @@ fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
 
 /// Tries `match_fast`; if it returns `Ok(None)` — no match, not an error — tries `match_long`.
 /// A match or an error from the first pass is returned directly.
-pub fn match_company<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> MatchResult<'a> {
+pub fn match_company<'a>(
+    text: &'a str,
+    target_companies: &'a [CompanyMatchInfos],
+) -> MatchResult<'a> {
     match match_fast(text, target_companies) {
         Ok(None) => match_long(text, target_companies),
         res => res,
@@ -374,17 +402,25 @@ mod tests {
         #[test_case("bubu$", ".*bubu"; "end anchor character is stripped, start gets wrapped")]
         #[test_case("^bubu$", "bubu"; "fully anchored: both anchor characters stripped, no wrapping")]
         fn regexs_get_anchor_aware_wrapping(input: &str, expected_pattern: &str) {
-            let compiled =
-                CompanyMatchInfos::compile_from_target_companies(vec![target("X", &[input], &[], &[])])
-                    .unwrap();
+            let compiled = CompanyMatchInfos::compile_from_target_companies(vec![target(
+                "X",
+                &[input],
+                &[],
+                &[],
+            )])
+            .unwrap();
             assert_eq!(compiled[0].regexs[0].pattern, expected_pattern);
         }
 
         #[test]
         fn symbols_get_word_boundary_wrapping() {
-            let compiled =
-                CompanyMatchInfos::compile_from_target_companies(vec![target("X", &[], &["COC"], &[])])
-                    .unwrap();
+            let compiled = CompanyMatchInfos::compile_from_target_companies(vec![target(
+                "X",
+                &[],
+                &["COC"],
+                &[],
+            )])
+            .unwrap();
             assert_eq!(compiled[0].symbols[0].pattern, r".*\bCOC\b.*");
         }
 
@@ -402,23 +438,39 @@ mod tests {
 
         #[test]
         fn empty_input_yields_empty_output() {
-            assert!(CompanyMatchInfos::compile_from_target_companies(vec![]).unwrap().is_empty());
+            assert!(
+                CompanyMatchInfos::compile_from_target_companies(vec![])
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn an_invalid_regex_pattern_is_rejected_and_named_in_the_error() {
-            let err =
-                CompanyMatchInfos::compile_from_target_companies(vec![target("X", &["("], &[], &[])])
-                    .unwrap_err();
+            let err = CompanyMatchInfos::compile_from_target_companies(vec![target(
+                "X",
+                &["("],
+                &[],
+                &[],
+            )])
+            .unwrap_err();
             let message = err.to_string();
-            assert!(message.contains('('), "error should mention the offending pattern: {message}");
+            assert!(
+                message.contains('('),
+                "error should mention the offending pattern: {message}"
+            );
         }
 
         #[test]
         fn an_invalid_symbol_pattern_is_rejected() {
             assert!(
-                CompanyMatchInfos::compile_from_target_companies(vec![target("X", &[], &["("], &[])])
-                    .is_err()
+                CompanyMatchInfos::compile_from_target_companies(vec![target(
+                    "X",
+                    &[],
+                    &["("],
+                    &[]
+                )])
+                .is_err()
             );
         }
     }
@@ -440,7 +492,10 @@ mod tests {
         #[test_case("Bond SSE 4.75%", "SSE"; "surrounded by spaces")]
         #[test_case("Coca Cola Bottling", "Coca Cola"; "a name of several words")]
         fn accepts_an_occurrence_no_letter_touches(text: &str, name: &str) {
-            assert!(names_the_company(text, name), "{name:?} should name a company in {text:?}");
+            assert!(
+                names_the_company(text, name),
+                "{name:?} should name a company in {text:?}"
+            );
         }
 
         /// The failure this rule exists for: `Other Assets` normalises to `other assets`, which
@@ -451,7 +506,10 @@ mod tests {
         #[test_case("Classe A", "SSE"; "a letter before")]
         #[test_case("Intesa Sanpaolo", "Sanpaol"; "a prefix of a longer word")]
         fn rejects_an_occurrence_a_letter_touches(text: &str, name: &str) {
-            assert!(!names_the_company(text, name), "{name:?} should not name a company in {text:?}");
+            assert!(
+                !names_the_company(text, name),
+                "{name:?} should not name a company in {text:?}"
+            );
         }
 
         /// Digits and the punctuation the normalisation keeps are boundaries, because reports write
@@ -462,7 +520,10 @@ mod tests {
         #[test_case("SSE% of net assets", "SSE"; "a percent sign right after")]
         #[test_case("ENI-SPA", "ENI"; "a dash, which normalisation turns into a space")]
         fn treats_digits_and_kept_punctuation_as_boundaries(text: &str, name: &str) {
-            assert!(names_the_company(text, name), "{name:?} should name a company in {text:?}");
+            assert!(
+                names_the_company(text, name),
+                "{name:?} should name a company in {text:?}"
+            );
         }
 
         /// The boundary the report printed survives the normalisation erasing it. Without the
@@ -474,7 +535,10 @@ mod tests {
         #[test_case("L'OREAL SA", "L'Oreal"; "an apostrophe inside the name itself")]
         #[test_case("VOLKSWAGEN/AUDI", "Volkswagen"; "a slash")]
         fn treats_erased_punctuation_as_a_boundary_too(text: &str, name: &str) {
-            assert!(names_the_company(text, name), "{name:?} should name a company in {text:?}");
+            assert!(
+                names_the_company(text, name),
+                "{name:?} should name a company in {text:?}"
+            );
         }
 
         /// The second reading widens the boundaries, not the names: it must not let a name through
@@ -482,7 +546,10 @@ mod tests {
         #[test_case("Other Assets", "SSE"; "no punctuation to split on")]
         #[test_case("A.SSEMBLY", "SSE"; "split leaves a letter touching")]
         fn the_second_reading_does_not_readmit_an_undelimited_name(text: &str, name: &str) {
-            assert!(!names_the_company(text, name), "{name:?} should not name a company in {text:?}");
+            assert!(
+                !names_the_company(text, name),
+                "{name:?} should not name a company in {text:?}"
+            );
         }
 
         /// One occurrence being delimited is enough, wherever the undelimited ones fall.
@@ -525,7 +592,12 @@ mod tests {
                 target("Coca Cola", &[], &["COC"], &[]),
                 target("bubus", &[r"\bbubu\b", "rock"], &[], &["rock bubu"]),
                 target("BlackRock", &[r"\bblack ?rock"], &[], &["black", "rock"]),
-                target("pimpa Co.", &[r"\bpimpa co\b", r"\bsecret\b"], &[], &["pimpa"]),
+                target(
+                    "pimpa Co.",
+                    &[r"\bpimpa co\b", r"\bsecret\b"],
+                    &[],
+                    &["pimpa"],
+                ),
                 target("almade", &[r"lman?de\b"], &["ALMD", "ALM"], &["almande"]),
                 target("olemande part two", &["part two"], &[], &["part"]),
             ])
@@ -562,14 +634,20 @@ mod tests {
         #[test]
         fn anchor_stripped_regex_still_matches_only_at_the_correct_position() {
             assert_eq!(
-                match_company("bubu", &ANCHORED_COMPANY_LIST).unwrap().unwrap(),
+                match_company("bubu", &ANCHORED_COMPANY_LIST)
+                    .unwrap()
+                    .unwrap(),
                 "Bubu Inc."
             );
         }
 
         #[test]
         fn anchor_stripped_regex_does_not_match_when_the_content_is_out_of_position() {
-            assert!(match_company("xbubu", &ANCHORED_COMPANY_LIST).unwrap().is_none());
+            assert!(
+                match_company("xbubu", &ANCHORED_COMPANY_LIST)
+                    .unwrap()
+                    .is_none()
+            );
         }
 
         #[test]
@@ -581,7 +659,10 @@ mod tests {
                 origin_match: ".*lman?de\\b.*",
                 other_match: ".*part two.*",
             };
-            assert_eq!(match_company("Almande part two", &COMPANY_LIST).unwrap_err(), expected);
+            assert_eq!(
+                match_company("Almande part two", &COMPANY_LIST).unwrap_err(),
+                expected
+            );
         }
 
         mod fast {
@@ -600,14 +681,22 @@ mod tests {
             /// the company's own regexes accept it.
             #[test]
             fn a_name_running_into_a_longer_word_is_not_a_match() {
-                assert!(match_fast(" The Pimpa CompanyMatchInfos", &COMPANY_LIST).unwrap().is_none());
+                assert!(
+                    match_fast(" The Pimpa CompanyMatchInfos", &COMPANY_LIST)
+                        .unwrap()
+                        .is_none()
+                );
             }
 
             #[test]
             fn does_not_check_symbols_at_all() {
                 // "Coca Cola" has only a symbol here, with no bud, regex or name overlapping this
                 // text: `match_fast` must not find it, while `match_long` does.
-                assert!(match_fast("302840128 ifl COC UUU]]]", &COMPANY_LIST).unwrap().is_none());
+                assert!(
+                    match_fast("302840128 ifl COC UUU]]]", &COMPANY_LIST)
+                        .unwrap()
+                        .is_none()
+                );
             }
 
             #[test]
@@ -624,7 +713,10 @@ mod tests {
                     origin_match: ".*lman?de\\b.*",
                     other_match: ".*part two.*",
                 };
-                assert_eq!(match_fast("Almande part two", &COMPANY_LIST).unwrap_err(), expected);
+                assert_eq!(
+                    match_fast("Almande part two", &COMPANY_LIST).unwrap_err(),
+                    expected
+                );
             }
         }
 
@@ -655,7 +747,10 @@ mod tests {
                     origin_match: ".*lman?de\\b.*",
                     other_match: ".*part two.*",
                 };
-                assert_eq!(match_long("Almande part two", &COMPANY_LIST).unwrap_err(), expected);
+                assert_eq!(
+                    match_long("Almande part two", &COMPANY_LIST).unwrap_err(),
+                    expected
+                );
             }
         }
     }

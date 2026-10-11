@@ -143,7 +143,11 @@ impl Overlappable<Self> for TextAstLeaf {
 impl Container for TextAstLeaf {
     type Elem = str;
     fn contains(&self, text: &str) -> bool {
-        let Self { start, content, end } = self;
+        let Self {
+            start,
+            content,
+            end,
+        } = self;
         if *start && *end {
             text == content
         } else if *start {
@@ -176,7 +180,11 @@ impl TextAstLeaf {
             content.pop();
             end = true;
         }
-        Self { start, content, end }
+        Self {
+            start,
+            content,
+            end,
+        }
     }
 }
 

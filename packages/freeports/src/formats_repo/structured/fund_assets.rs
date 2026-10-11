@@ -39,12 +39,12 @@ use crate::commons::date::Date;
 use crate::core::pipeline::{Pipeline, PipelineName};
 use crate::formats_utils::deserialize::cast::{self, CastError};
 use crate::formats_utils::deserialize::standard_funcs::{DeserializerAssetsStandard, NumConverter};
+use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::formats_utils::pdf_extract::standard_funcs::{
     AssetsColumn, AssetsPairing, AssetsStandardArgs, PdfExtractAssetsStandard, TableSettings,
 };
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
 use crate::formats_utils::text_filter::standard_funcs::TextFilterAssetsStandard;
-use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::input::document::selection::pdfline_selection_from_str;
 
 use super::StructuredError;
@@ -105,7 +105,10 @@ impl FromStr for AmountCast {
                 ));
             }
         };
-        let mut cast = Self { base, ..Self::default() };
+        let mut cast = Self {
+            base,
+            ..Self::default()
+        };
         for term in terms {
             match term {
                 "dash_as_zero" => cast.dash_as_zero = true,
@@ -139,7 +142,11 @@ impl AmountCast {
             if self.dash_as_zero && (trimmed.is_empty() || ZERO_DASHES.contains(&trimmed)) {
                 return Ok(0.0);
             }
-            let cleaned = if self.magnitude { trimmed.trim_matches(['(', ')']) } else { trimmed };
+            let cleaned = if self.magnitude {
+                trimmed.trim_matches(['(', ')'])
+            } else {
+                trimmed
+            };
             let value = match self.base {
                 AmountBase::Int => cast::to_int(cleaned).map(|v| v as f64),
                 AmountBase::Float => cast::to_float(cleaned),
@@ -205,10 +212,20 @@ fn column(
     id: &str,
     name: &'static str,
 ) -> Result<AssetsColumn, StructuredError> {
-    let selection = pdfline_selection_from_str(anchor)
-        .map_err(|source| StructuredError::LineSelection { id: id.to_string(), column: name, source })?;
+    let selection =
+        pdfline_selection_from_str(anchor).map_err(|source| StructuredError::LineSelection {
+            id: id.to_string(),
+            column: name,
+            source,
+        })?;
     let mut built = AssetsColumn::new(selection);
-    if let Some(ValueWindow { dx, dy, width, height }) = window {
+    if let Some(ValueWindow {
+        dx,
+        dy,
+        width,
+        height,
+    }) = window
+    {
         built.vector = (dx, dy);
         built.width = width;
         built.height = height;
@@ -224,9 +241,13 @@ fn optional_selection(
 ) -> Result<Option<PdfLineSelection>, StructuredError> {
     match cell {
         None => Ok(None),
-        Some(raw) => pdfline_selection_from_str(raw)
-            .map(Some)
-            .map_err(|source| StructuredError::LineSelection { id: id.to_string(), column: name, source }),
+        Some(raw) => pdfline_selection_from_str(raw).map(Some).map_err(|source| {
+            StructuredError::LineSelection {
+                id: id.to_string(),
+                column: name,
+                source,
+            }
+        }),
     }
 }
 
@@ -244,8 +265,13 @@ pub fn get_pipelines(
         let FundAssetsConfig { id, row } = config;
         let key = id.to_string();
 
-        let fund_set = pdfline_selection_from_str(&row.fund_set)
-            .map_err(|source| StructuredError::LineSelection { id: key.clone(), column: "Fund set", source })?;
+        let fund_set = pdfline_selection_from_str(&row.fund_set).map_err(|source| {
+            StructuredError::LineSelection {
+                id: key.clone(),
+                column: "Fund set",
+                source,
+            }
+        })?;
         let currency_set = optional_selection(&row.currency_set, &key, "Currency set")?;
         let date = match optional_selection(&row.date_set, &key, "Date set")? {
             Some(selection) => vec![selection],
@@ -262,8 +288,12 @@ pub fn get_pipelines(
             table: match &row.algorithm_flags {
                 None => TableSettings::assets_funds(),
                 Some(expression) => TableSettings {
-                    algorithm_flags: TablePosAlgorithm::from_expression(expression)
-                        .map_err(|source| StructuredError::AlgorithmFlags { id: key.clone(), source })?,
+                    algorithm_flags: TablePosAlgorithm::from_expression(expression).map_err(
+                        |source| StructuredError::AlgorithmFlags {
+                            id: key.clone(),
+                            source,
+                        },
+                    )?,
                     ..TableSettings::assets_funds()
                 },
             },
@@ -273,7 +303,12 @@ pub fn get_pipelines(
                 fund_set,
                 currency_set,
                 column(&row.net_assets, row.net_assets_window, &key, "Net assets")?,
-                column(&row.liabilities, row.liabilities_window, &key, "Total liabilities")?,
+                column(
+                    &row.liabilities,
+                    row.liabilities_window,
+                    &key,
+                    "Total liabilities",
+                )?,
                 column(&row.tot_assets, row.tot_assets_window, &key, "Total assets")?,
             )
         };
@@ -281,8 +316,13 @@ pub fn get_pipelines(
         // One cut per cell, as an alternation where there is more than one, exactly as the
         // investments table does it.
         let cuts: Vec<String> = row.remove_from_fund.clone().into_iter().collect();
-        let filter = TextFilterAssetsStandard::new(row.date_regex.as_deref(), cuts)
-            .map_err(|source| StructuredError::TextFilter { id: key.clone(), source })?;
+        let filter =
+            TextFilterAssetsStandard::new(row.date_regex.as_deref(), cuts).map_err(|source| {
+                StructuredError::TextFilter {
+                    id: key.clone(),
+                    source,
+                }
+            })?;
 
         let deserializer = DeserializerAssetsStandard::with_converters(
             row.amount_cast.unwrap_or_default().converter(),
@@ -294,15 +334,22 @@ pub fn get_pipelines(
         // `build` and not a constructor: the pipe refuses a statement that is neither tabular nor
         // carries a currency, because there would be nothing to derive one from — and a
         // misconfigured row must fail when the repository loads, not mid-run.
-        let extractor = PdfExtractAssetsStandard::build(args)
-            .map_err(|source| StructuredError::PdfExtract { id: key.clone(), source })?;
+        let extractor = PdfExtractAssetsStandard::build(args).map_err(|source| {
+            StructuredError::PdfExtract {
+                id: key.clone(),
+                source,
+            }
+        })?;
         pipeline.pdf_extract.push(Arc::new(extractor));
         pipeline.text_filter.push(Arc::new(filter));
         pipeline.deserialize.push(Arc::new(deserializer));
         pipelines.insert(name, pipeline);
     }
 
-    tracing::debug!(pipeline_count = pipelines.len(), "built fund assets pipelines");
+    tracing::debug!(
+        pipeline_count = pipelines.len(),
+        "built fund assets pipelines"
+    );
     Ok(pipelines)
 }
 
@@ -315,7 +362,10 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn read(cast: &str, text: &str) -> Option<f64> {
-            cast.parse::<AmountCast>().expect("a cast this test spells right").converter()(text).ok()
+            cast.parse::<AmountCast>()
+                .expect("a cast this test spells right")
+                .converter()(text)
+            .ok()
         }
 
         #[test]
@@ -370,7 +420,10 @@ mod tests {
         #[test]
         fn the_conventions_compose_which_is_why_they_are_written_and_not_enumerated() {
             // FIDEURAM-EN23 needs both: a dash for zero and brackets for the sign.
-            for cast in ["int + dash_as_zero + magnitude", "int + magnitude + dash_as_zero"] {
+            for cast in [
+                "int + dash_as_zero + magnitude",
+                "int + magnitude + dash_as_zero",
+            ] {
                 assert_eq!(read(cast, "-"), Some(0.0), "{cast}");
                 assert_eq!(read(cast, "(1.234)"), Some(1234.0), "{cast}");
                 assert_eq!(read(cast, "1.234"), Some(1234.0), "{cast}");
@@ -379,14 +432,30 @@ mod tests {
 
         #[test]
         fn every_name_is_read_and_a_typo_lists_the_vocabulary() {
-            let cast = |base, dash_as_zero, magnitude| AmountCast { base, dash_as_zero, magnitude };
+            let cast = |base, dash_as_zero, magnitude| AmountCast {
+                base,
+                dash_as_zero,
+                magnitude,
+            };
             assert_eq!("int".parse(), Ok(cast(AmountBase::Int, false, false)));
             assert_eq!("float".parse(), Ok(cast(AmountBase::Float, false, false)));
-            assert_eq!("int + dash_as_zero".parse(), Ok(cast(AmountBase::Int, true, false)));
-            assert_eq!("float + magnitude".parse(), Ok(cast(AmountBase::Float, false, true)));
+            assert_eq!(
+                "int + dash_as_zero".parse(),
+                Ok(cast(AmountBase::Int, true, false))
+            );
+            assert_eq!(
+                "float + magnitude".parse(),
+                Ok(cast(AmountBase::Float, false, true))
+            );
             // Case and surrounding spaces do not matter: a spreadsheet adds them.
-            assert_eq!("  FLOAT ".parse(), Ok(cast(AmountBase::Float, false, false)));
-            assert_eq!("int+magnitude".parse(), Ok(cast(AmountBase::Int, false, true)));
+            assert_eq!(
+                "  FLOAT ".parse(),
+                Ok(cast(AmountBase::Float, false, false))
+            );
+            assert_eq!(
+                "int+magnitude".parse(),
+                Ok(cast(AmountBase::Int, false, true))
+            );
 
             let base = "flaot".parse::<AmountCast>().unwrap_err();
             for name in ["int", "float", "dash_as_zero", "magnitude"] {
@@ -429,7 +498,10 @@ mod tests {
             assert_eq!(date, Date::new(2023, 2, 28).unwrap());
             // The comma is a separator, not a requirement: a date is being recognised, not
             // validated.
-            assert_eq!(DateCast::EnMonthFirst.converter()("february 28 2023").unwrap(), date);
+            assert_eq!(
+                DateCast::EnMonthFirst.converter()("february 28 2023").unwrap(),
+                date
+            );
             // A month that is not one is refused rather than taken for a day.
             assert!(DateCast::EnMonthFirst.converter()("FEBBRAIO 28, 2023").is_err());
             assert!(DateCast::EnMonthFirst.converter()("FEBRUARY 2023").is_err());
@@ -452,7 +524,12 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        const OWN: ValueWindow = ValueWindow { dx: 1.0, dy: 2.0, width: 3.0, height: 4.0 };
+        const OWN: ValueWindow = ValueWindow {
+            dx: 1.0,
+            dy: 2.0,
+            width: 3.0,
+            height: 4.0,
+        };
 
         fn built(own: Option<ValueWindow>) -> AssetsColumn {
             column("ArialMT", own, "A-EN24", "Total assets").expect("a valid anchor")
@@ -463,7 +540,10 @@ mod tests {
             let column = built(None);
             let engine_default = AssetsColumn::new(pdfline_selection_from_str("ArialMT").unwrap());
             assert_eq!(column.vector, engine_default.vector);
-            assert_eq!((column.width, column.height), (engine_default.width, engine_default.height));
+            assert_eq!(
+                (column.width, column.height),
+                (engine_default.width, engine_default.height)
+            );
         }
 
         #[test]

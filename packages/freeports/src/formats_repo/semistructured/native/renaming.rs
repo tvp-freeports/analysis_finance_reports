@@ -107,20 +107,36 @@ pub struct InputRenamingDeserialize {
 /// Builds the `renaming` `text_filter`.
 pub fn text_filter(input: &InputRenaming) -> Result<TextFilterRenaming, RenamingConfigError> {
     let reader = match &input.read {
-        InputReader::Listed { renamed, merged, connector, date, date_intro, strip, note_marks } => {
-            Reader::listed(
-                renamed,
-                merged,
-                connector.clone(),
-                date,
-                date_intro,
-                strip,
-                note_marks.clone(),
-            )?
-        }
-        InputReader::Sentence { renamed, merged, group_key, strip, note_marks } => {
-            Reader::sentence(renamed, merged, group_key.clone(), strip, note_marks.clone())?
-        }
+        InputReader::Listed {
+            renamed,
+            merged,
+            connector,
+            date,
+            date_intro,
+            strip,
+            note_marks,
+        } => Reader::listed(
+            renamed,
+            merged,
+            connector.clone(),
+            date,
+            date_intro,
+            strip,
+            note_marks.clone(),
+        )?,
+        InputReader::Sentence {
+            renamed,
+            merged,
+            group_key,
+            strip,
+            note_marks,
+        } => Reader::sentence(
+            renamed,
+            merged,
+            group_key.clone(),
+            strip,
+            note_marks.clone(),
+        )?,
     };
     let of_interest = match input.of_interest.as_deref() {
         None | Some("current") => OfInterest::Current,
@@ -141,7 +157,9 @@ pub fn deserialize(
 ) -> Result<DeserializerRenaming, RenamingConfigError> {
     let cast: DateCast = match &input.date_cast {
         None => DateCast::EnMonth,
-        Some(name) => name.parse().map_err(|message| RenamingConfigError::Cast(name.clone(), message))?,
+        Some(name) => name
+            .parse()
+            .map_err(|message| RenamingConfigError::Cast(name.clone(), message))?,
     };
     Ok(DeserializerRenaming::new(Arc::new(cast.converter())))
 }

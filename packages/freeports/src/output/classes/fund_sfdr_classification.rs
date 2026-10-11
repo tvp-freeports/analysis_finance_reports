@@ -20,8 +20,12 @@ pub struct FundSfdrClassification {
 
 impl FundSfdrClassification {
     pub fn build(fund: impl Into<String>, article: &BlockValue) -> Result<Self, OutputClassError> {
-        let article = promised_from_value("article", article, |v| v.sfdr_article_or_fail("article"))?;
-        Ok(Self { fund: fund.into(), article })
+        let article =
+            promised_from_value("article", article, |v| v.sfdr_article_or_fail("article"))?;
+        Ok(Self {
+            fund: fund.into(),
+            article,
+        })
     }
 }
 
@@ -30,7 +34,11 @@ impl PromisableFields for FundSfdrClassification {
         pending_of("article", &self.article).into_iter().collect()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         match field {
             "article" => {
                 self.article = Promised::Resolved(value.sfdr_article_or_fail("article")?);
@@ -44,8 +52,8 @@ impl PromisableFields for FundSfdrClassification {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::promise_resolution::FlatPromiseMap;
     use crate::core::promisable::{Fulfilled, fulfill_promises};
+    use crate::core::promise_resolution::FlatPromiseMap;
 
     mod construction {
         use super::*;
@@ -53,7 +61,8 @@ mod tests {
         #[test]
         fn builds_a_classification_from_a_resolved_article() {
             let classification =
-                FundSfdrClassification::build("Alpha Fund", &BlockValue::from(SfdrArticle::Art8)).unwrap();
+                FundSfdrClassification::build("Alpha Fund", &BlockValue::from(SfdrArticle::Art8))
+                    .unwrap();
             assert_eq!(classification.fund, "Alpha Fund");
             assert_eq!(classification.article.resolved(), Some(&SfdrArticle::Art8));
         }
@@ -70,7 +79,13 @@ mod tests {
         #[test]
         fn a_wrongly_typed_article_is_a_field_error_naming_the_field() {
             let err = FundSfdrClassification::build("X", &BlockValue::from("Art. 8")).unwrap_err();
-            assert!(matches!(err, OutputClassError::Field { field: "article", .. }));
+            assert!(matches!(
+                err,
+                OutputClassError::Field {
+                    field: "article",
+                    ..
+                }
+            ));
         }
 
         #[test]
@@ -103,28 +118,41 @@ mod tests {
 
         #[test]
         fn a_resolved_classification_reports_nothing_pending() {
-            let classification = FundSfdrClassification::build("X", &BlockValue::from(SfdrArticle::Art6)).unwrap();
+            let classification =
+                FundSfdrClassification::build("X", &BlockValue::from(SfdrArticle::Art6)).unwrap();
             assert!(classification.pending().is_empty());
         }
 
         #[test]
         fn resolving_the_article_field_works_in_place() {
             let mut classification = promised_classification();
-            classification.resolve_field("article", BlockValue::from(SfdrArticle::Art9)).unwrap();
+            classification
+                .resolve_field("article", BlockValue::from(SfdrArticle::Art9))
+                .unwrap();
             assert_eq!(classification.article.resolved(), Some(&SfdrArticle::Art9));
         }
 
         #[test]
         fn resolving_with_a_wrongly_typed_value_is_an_error() {
             let mut classification = promised_classification();
-            assert!(classification.resolve_field("article", BlockValue::from("Art. 9")).is_err());
+            assert!(
+                classification
+                    .resolve_field("article", BlockValue::from("Art. 9"))
+                    .is_err()
+            );
         }
 
         #[test]
         fn fulfilling_against_a_map_resolves_the_article_field() {
             let mut classification = promised_classification();
-            let map = FlatPromiseMap::from_pairs([("article-id".to_string(), BlockValue::from(SfdrArticle::Art9))]);
-            assert_eq!(fulfill_promises(&mut classification, &map).unwrap(), Fulfilled::InPlace);
+            let map = FlatPromiseMap::from_pairs([(
+                "article-id".to_string(),
+                BlockValue::from(SfdrArticle::Art9),
+            )]);
+            assert_eq!(
+                fulfill_promises(&mut classification, &map).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(classification.article.resolved(), Some(&SfdrArticle::Art9));
         }
     }
@@ -134,9 +162,13 @@ mod tests {
 
         #[test]
         fn a_resolved_classification_survives_a_json_roundtrip() {
-            let classification = FundSfdrClassification::build("X", &BlockValue::from(SfdrArticle::Art6)).unwrap();
+            let classification =
+                FundSfdrClassification::build("X", &BlockValue::from(SfdrArticle::Art6)).unwrap();
             let json = serde_json::to_string(&classification).unwrap();
-            assert_eq!(serde_json::from_str::<FundSfdrClassification>(&json).unwrap(), classification);
+            assert_eq!(
+                serde_json::from_str::<FundSfdrClassification>(&json).unwrap(),
+                classification
+            );
         }
 
         #[test]
@@ -150,7 +182,10 @@ mod tests {
             )
             .unwrap();
             let json = serde_json::to_string(&classification).unwrap();
-            assert_eq!(serde_json::from_str::<FundSfdrClassification>(&json).unwrap(), classification);
+            assert_eq!(
+                serde_json::from_str::<FundSfdrClassification>(&json).unwrap(),
+                classification
+            );
         }
     }
 }

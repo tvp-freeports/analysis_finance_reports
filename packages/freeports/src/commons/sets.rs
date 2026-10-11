@@ -148,7 +148,10 @@ where
 /// binary operations: implemented by `AstSet`, `SmartAstSet`, `DisjointAtomsSet`
 /// and by `Set<S,E>` itself (so `Set<Set<S,E>,E>` would still type-check, even
 /// if nothing in this crate needs that).
-pub trait SetAlgebra: BitOr<Self, Output = Self> + BitAnd<Self, Output = Self> + Div<Self, Output = Self> + Sized {}
+pub trait SetAlgebra:
+    BitOr<Self, Output = Self> + BitAnd<Self, Output = Self> + Div<Self, Output = Self> + Sized
+{
+}
 
 /// A `SetAlgebra` whose two instances cannot in general be compared
 /// (`ast_simple`, `ast_smart`): membership can still be tested per-element,
@@ -170,8 +173,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ops::{BitOr, BitAnd, Div};
     use std::collections::BTreeSet;
+    use std::ops::{BitAnd, BitOr, Div};
 
     /// A minimal `Container` + `SetAlgebra` leaf used only to exercise the generic
     /// `Set<S,E>` wrapper (Empty/Universe/Set) independently of any concrete
@@ -230,8 +233,8 @@ mod tests {
 
     mod set_ops_truth_table {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(SetOps::Union, true, true, true; "union of true true is true")]
         #[test_case(SetOps::Union, true, false, true; "union of true false is true")]
@@ -277,8 +280,8 @@ mod tests {
 
     mod set_algebra_union {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(Set::Universe, Set::Empty, Kind::Universe; "universe or empty is universe")]
         #[test_case(Set::Universe, Set::Universe, Kind::Universe; "universe or universe is universe")]
@@ -289,15 +292,19 @@ mod tests {
         #[test_case(Set::Set(TestLeaf::new([1,2])), Set::Empty, Kind::Set(vec![1,2]); "set or empty is unchanged set")]
         #[test_case(Set::Empty, Set::Set(TestLeaf::new([3,4])), Kind::Set(vec![3,4]); "empty or set is unchanged set")]
         #[test_case(Set::Set(TestLeaf::new([1,2])), Set::Set(TestLeaf::new([2,3])), Kind::Set(vec![1,2,3]); "set or set is the real union")]
-        fn matches_absorbing_element_rules(lhs: Set<TestLeaf, i32>, rhs: Set<TestLeaf, i32>, expected: Kind) {
+        fn matches_absorbing_element_rules(
+            lhs: Set<TestLeaf, i32>,
+            rhs: Set<TestLeaf, i32>,
+            expected: Kind,
+        ) {
             assert_eq!(classify(lhs | rhs), expected);
         }
     }
 
     mod set_algebra_intersection {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(Set::Empty, Set::Universe, Kind::Empty; "empty and universe keeps lhs")]
         #[test_case(Set::Universe, Set::Universe, Kind::Universe; "universe and universe is universe")]
@@ -308,15 +315,19 @@ mod tests {
         #[test_case(Set::Empty, Set::Set(TestLeaf::new([1,2])), Kind::Empty; "empty and set is empty")]
         #[test_case(Set::Set(TestLeaf::new([1,2])), Set::Empty, Kind::Empty; "set and empty is empty")]
         #[test_case(Set::Set(TestLeaf::new([1,2,3])), Set::Set(TestLeaf::new([2,3,4])), Kind::Set(vec![2,3]); "set and set is the real intersection")]
-        fn matches_absorbing_element_rules(lhs: Set<TestLeaf, i32>, rhs: Set<TestLeaf, i32>, expected: Kind) {
+        fn matches_absorbing_element_rules(
+            lhs: Set<TestLeaf, i32>,
+            rhs: Set<TestLeaf, i32>,
+            expected: Kind,
+        ) {
             assert_eq!(classify(lhs & rhs), expected);
         }
     }
 
     mod set_algebra_difference {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(Set::Empty, Set::Universe, Kind::Empty; "empty minus universe is empty")]
         #[test_case(Set::Set(TestLeaf::new([1,2])), Set::Universe, Kind::Empty; "set minus universe is empty")]
@@ -324,7 +335,11 @@ mod tests {
         #[test_case(Set::Set(TestLeaf::new([1,2])), Set::Empty, Kind::Set(vec![1,2]); "set minus empty is unchanged")]
         #[test_case(Set::Empty, Set::Set(TestLeaf::new([3,4])), Kind::Empty; "empty minus set is empty")]
         #[test_case(Set::Set(TestLeaf::new([1,2,3])), Set::Set(TestLeaf::new([2,3,4])), Kind::Set(vec![1]); "set minus set is the real difference")]
-        fn matches_absorbing_element_rules(lhs: Set<TestLeaf, i32>, rhs: Set<TestLeaf, i32>, expected: Kind) {
+        fn matches_absorbing_element_rules(
+            lhs: Set<TestLeaf, i32>,
+            rhs: Set<TestLeaf, i32>,
+            expected: Kind,
+        ) {
             assert_eq!(classify(lhs / rhs), expected);
         }
 
@@ -348,10 +363,12 @@ mod tests {
     /// which representation computed it.
     mod cross_representation_consistency {
         use super::*;
-        use pretty_assertions::assert_eq;
         use crate::commons::sets::ast_simple::AstSet;
         use crate::commons::sets::ast_smart::SmartAstSet;
-        use crate::commons::sets::indipendent_atoms::{AtomOperations, AtomAlgebra, CompoundAtomOperationRes, DisjointAtomsSet};
+        use crate::commons::sets::indipendent_atoms::{
+            AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet,
+        };
+        use pretty_assertions::assert_eq;
 
         /// A leaf over a small `u32` domain, reused as-is across the three
         /// representations: it satisfies `Container` (needed by all three),
@@ -396,13 +413,19 @@ mod tests {
             type SubtractOverlappingRes = CompoundAtomOperationRes<DomainLeaf>;
             type IntersectOverlappingRes = CompoundAtomOperationRes<DomainLeaf>;
             fn subtract_subset(&self, other: &Self) -> Self::SubtractSubsetRes {
-                CompoundAtomOperationRes::One(DomainLeaf(self.0.difference(&other.0).copied().collect()))
+                CompoundAtomOperationRes::One(DomainLeaf(
+                    self.0.difference(&other.0).copied().collect(),
+                ))
             }
             fn subtract_overlapping(&self, other: &Self) -> Self::SubtractOverlappingRes {
-                CompoundAtomOperationRes::One(DomainLeaf(self.0.difference(&other.0).copied().collect()))
+                CompoundAtomOperationRes::One(DomainLeaf(
+                    self.0.difference(&other.0).copied().collect(),
+                ))
             }
             fn intersect_overlapping(&self, other: &Self) -> Self::IntersectOverlappingRes {
-                CompoundAtomOperationRes::One(DomainLeaf(self.0.intersection(&other.0).copied().collect()))
+                CompoundAtomOperationRes::One(DomainLeaf(
+                    self.0.intersection(&other.0).copied().collect(),
+                ))
             }
         }
         impl AtomAlgebra for DomainLeaf {}
@@ -434,13 +457,27 @@ mod tests {
             for a in all_subsets() {
                 for b in all_subsets() {
                     let simple = AstSet::from_leaf(a.clone()) | AstSet::from_leaf(b.clone());
-                    let smart = SmartAstSet::from_leaf(a.clone()) | SmartAstSet::from_leaf(b.clone());
-                    let atoms = DisjointAtomsSet::from_atom(a.clone()) | DisjointAtomsSet::from_atom(b.clone());
+                    let smart =
+                        SmartAstSet::from_leaf(a.clone()) | SmartAstSet::from_leaf(b.clone());
+                    let atoms = DisjointAtomsSet::from_atom(a.clone())
+                        | DisjointAtomsSet::from_atom(b.clone());
                     for x in domain() {
                         let expected = a.contains(&x) || b.contains(&x);
-                        assert_eq!(simple.contains(&x), expected, "ast_simple union mismatch at {x} for {a:?} | {b:?}");
-                        assert_eq!(smart.contains(&x), expected, "ast_smart union mismatch at {x} for {a:?} | {b:?}");
-                        assert_eq!(atoms.contains(&x), expected, "indipendent_atoms union mismatch at {x} for {a:?} | {b:?}");
+                        assert_eq!(
+                            simple.contains(&x),
+                            expected,
+                            "ast_simple union mismatch at {x} for {a:?} | {b:?}"
+                        );
+                        assert_eq!(
+                            smart.contains(&x),
+                            expected,
+                            "ast_smart union mismatch at {x} for {a:?} | {b:?}"
+                        );
+                        assert_eq!(
+                            atoms.contains(&x),
+                            expected,
+                            "indipendent_atoms union mismatch at {x} for {a:?} | {b:?}"
+                        );
                     }
                 }
             }
@@ -451,13 +488,27 @@ mod tests {
             for a in all_subsets() {
                 for b in all_subsets() {
                     let simple = AstSet::from_leaf(a.clone()) & AstSet::from_leaf(b.clone());
-                    let smart = SmartAstSet::from_leaf(a.clone()) & SmartAstSet::from_leaf(b.clone());
-                    let atoms = DisjointAtomsSet::from_atom(a.clone()) & DisjointAtomsSet::from_atom(b.clone());
+                    let smart =
+                        SmartAstSet::from_leaf(a.clone()) & SmartAstSet::from_leaf(b.clone());
+                    let atoms = DisjointAtomsSet::from_atom(a.clone())
+                        & DisjointAtomsSet::from_atom(b.clone());
                     for x in domain() {
                         let expected = a.contains(&x) && b.contains(&x);
-                        assert_eq!(simple.contains(&x), expected, "ast_simple intersection mismatch at {x} for {a:?} & {b:?}");
-                        assert_eq!(smart.contains(&x), expected, "ast_smart intersection mismatch at {x} for {a:?} & {b:?}");
-                        assert_eq!(atoms.contains(&x), expected, "indipendent_atoms intersection mismatch at {x} for {a:?} & {b:?}");
+                        assert_eq!(
+                            simple.contains(&x),
+                            expected,
+                            "ast_simple intersection mismatch at {x} for {a:?} & {b:?}"
+                        );
+                        assert_eq!(
+                            smart.contains(&x),
+                            expected,
+                            "ast_smart intersection mismatch at {x} for {a:?} & {b:?}"
+                        );
+                        assert_eq!(
+                            atoms.contains(&x),
+                            expected,
+                            "indipendent_atoms intersection mismatch at {x} for {a:?} & {b:?}"
+                        );
                     }
                 }
             }
@@ -468,13 +519,27 @@ mod tests {
             for a in all_subsets() {
                 for b in all_subsets() {
                     let simple = AstSet::from_leaf(a.clone()) / AstSet::from_leaf(b.clone());
-                    let smart = SmartAstSet::from_leaf(a.clone()) / SmartAstSet::from_leaf(b.clone());
-                    let atoms = DisjointAtomsSet::from_atom(a.clone()) / DisjointAtomsSet::from_atom(b.clone());
+                    let smart =
+                        SmartAstSet::from_leaf(a.clone()) / SmartAstSet::from_leaf(b.clone());
+                    let atoms = DisjointAtomsSet::from_atom(a.clone())
+                        / DisjointAtomsSet::from_atom(b.clone());
                     for x in domain() {
                         let expected = a.contains(&x) && !b.contains(&x);
-                        assert_eq!(simple.contains(&x), expected, "ast_simple difference mismatch at {x} for {a:?} / {b:?}");
-                        assert_eq!(smart.contains(&x), expected, "ast_smart difference mismatch at {x} for {a:?} / {b:?}");
-                        assert_eq!(atoms.contains(&x), expected, "indipendent_atoms difference mismatch at {x} for {a:?} / {b:?}");
+                        assert_eq!(
+                            simple.contains(&x),
+                            expected,
+                            "ast_simple difference mismatch at {x} for {a:?} / {b:?}"
+                        );
+                        assert_eq!(
+                            smart.contains(&x),
+                            expected,
+                            "ast_smart difference mismatch at {x} for {a:?} / {b:?}"
+                        );
+                        assert_eq!(
+                            atoms.contains(&x),
+                            expected,
+                            "indipendent_atoms difference mismatch at {x} for {a:?} / {b:?}"
+                        );
                     }
                 }
             }
@@ -493,14 +558,28 @@ mod tests {
                 & (AstSet::from_leaf(c.clone()) / AstSet::from_leaf(d.clone()));
             let smart = (SmartAstSet::from_leaf(a.clone()) | SmartAstSet::from_leaf(b.clone()))
                 & (SmartAstSet::from_leaf(c.clone()) / SmartAstSet::from_leaf(d.clone()));
-            let atoms = (DisjointAtomsSet::from_atom(a.clone()) | DisjointAtomsSet::from_atom(b.clone()))
+            let atoms = (DisjointAtomsSet::from_atom(a.clone())
+                | DisjointAtomsSet::from_atom(b.clone()))
                 & (DisjointAtomsSet::from_atom(c.clone()) / DisjointAtomsSet::from_atom(d.clone()));
 
             for x in domain() {
-                let expected = (a.contains(&x) || b.contains(&x)) && (c.contains(&x) && !d.contains(&x));
-                assert_eq!(simple.contains(&x), expected, "ast_simple compound expression mismatch at {x}");
-                assert_eq!(smart.contains(&x), expected, "ast_smart compound expression mismatch at {x}");
-                assert_eq!(atoms.contains(&x), expected, "indipendent_atoms compound expression mismatch at {x}");
+                let expected =
+                    (a.contains(&x) || b.contains(&x)) && (c.contains(&x) && !d.contains(&x));
+                assert_eq!(
+                    simple.contains(&x),
+                    expected,
+                    "ast_simple compound expression mismatch at {x}"
+                );
+                assert_eq!(
+                    smart.contains(&x),
+                    expected,
+                    "ast_smart compound expression mismatch at {x}"
+                );
+                assert_eq!(
+                    atoms.contains(&x),
+                    expected,
+                    "indipendent_atoms compound expression mismatch at {x}"
+                );
             }
         }
     }

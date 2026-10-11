@@ -88,8 +88,8 @@ pipe still works.
 | **Validation** | inference from document URLs via the repository's `url_mapping.csv` |
 | **Example** | `-f EURIZON-EN23` |
 
-Left unset, the engine infers it from the URL of each document; the first matching prefix in the
-mapping wins, so the order of that file is meaningful. Two documents inferring **different** formats
+Left unset, the engine infers it from the URL of each document: the longest matching prefix in the
+mapping wins, then the row with the more specific name, then the row that comes first in the file. Two documents inferring **different** formats
 is an error. An explicit format that **disagrees** with a successful inference is a warning, and the
 explicit one is used.
 

@@ -199,7 +199,10 @@ impl PyPdfBlock {
 }
 
 /// The live metadata dict of a block, from the constructor's argument.
-fn metadata_dict<'py>(py: Python<'py>, value: Option<&Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyDict>> {
+fn metadata_dict<'py>(
+    py: Python<'py>,
+    value: Option<&Bound<'py, PyAny>>,
+) -> PyResult<Bound<'py, PyDict>> {
     metadata_to_py(py, &metadata_from_py(value)?)
 }
 
@@ -239,14 +242,19 @@ impl PyTextBlock {
         let metadata = metadata_from_py(Some(self.metadata.bind(py).as_any()))?;
         Ok(match &self.pdf_block {
             Some(pdf_block) => {
-                let mut block =
-                    TextBlock::new(self.type_block.clone(), metadata, pdf_block.bind(py).borrow().native(py)?);
+                let mut block = TextBlock::new(
+                    self.type_block.clone(),
+                    metadata,
+                    pdf_block.bind(py).borrow().native(py)?,
+                );
                 // The native constructor inherits the content from the PDF block; if the author
                 // rewrote it afterwards, the rewrite wins.
                 block.content = self.content.clone();
                 block
             }
-            None => TextBlock::from_content(self.type_block.clone(), metadata, self.content.clone()),
+            None => {
+                TextBlock::from_content(self.type_block.clone(), metadata, self.content.clone())
+            }
         })
     }
 }
@@ -388,15 +396,32 @@ fn render_value(value: &BlockValue) -> String {
         BlockValue::Date(v) => format!("date({v})"),
         BlockValue::Currency(v) => format!("Currency.{}", v.code()),
         BlockValue::SfdrArticle(v) => {
-            format!("SfdrArticle.{}", super::consts::PySfdrArticle::from(*v).variant_name_of())
+            format!(
+                "SfdrArticle.{}",
+                super::consts::PySfdrArticle::from(*v).variant_name_of()
+            )
         }
         BlockValue::FinancialInstrument(v) => format!("FinancialInstrument.{v:?}"),
         BlockValue::Promise(v) => format!("Promise({:?})", v.id()),
         BlockValue::List(items) => {
-            format!("[{}]", items.iter().map(render_value).collect::<Vec<_>>().join(", "))
+            format!(
+                "[{}]",
+                items
+                    .iter()
+                    .map(render_value)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
         }
         BlockValue::Set(items) => {
-            format!("{{{}}}", items.iter().map(render_value).collect::<Vec<_>>().join(", "))
+            format!(
+                "{{{}}}",
+                items
+                    .iter()
+                    .map(render_value)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
         }
         BlockValue::Map(map) => render_metadata(map),
     }
@@ -451,18 +476,24 @@ fn segment_list<'py>(
     value: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<Bound<'py, pyo3::types::PyList>> {
     let list = pyo3::types::PyList::empty(py);
-    let Some(value) = value.filter(|value| !value.is_none()) else { return Ok(list) };
+    let Some(value) = value.filter(|value| !value.is_none()) else {
+        return Ok(list);
+    };
     if value.is_callable() {
         list.append(value)?;
         return Ok(list);
     }
     let items = value.try_iter().map_err(|_| {
-        pyo3::exceptions::PyTypeError::new_err(format!("{name} must be a pipe or an iterable of pipes"))
+        pyo3::exceptions::PyTypeError::new_err(format!(
+            "{name} must be a pipe or an iterable of pipes"
+        ))
     })?;
     for item in items {
         let item = item?;
         if !item.is_callable() {
-            return Err(pyo3::exceptions::PyTypeError::new_err(format!("every pipe of {name} must be callable")));
+            return Err(pyo3::exceptions::PyTypeError::new_err(format!(
+                "every pipe of {name} must be callable"
+            )));
         }
         list.append(item)?;
     }

@@ -36,7 +36,10 @@ struct SpanPathCollector {
 
 impl SpanPathCollector {
     fn paths(&self) -> Vec<String> {
-        self.paths.lock().expect("test-only mutex is never poisoned").clone()
+        self.paths
+            .lock()
+            .expect("test-only mutex is never poisoned")
+            .clone()
     }
 }
 
@@ -48,10 +51,17 @@ where
         let path = ctx
             .event_scope(event)
             .map(|scope| {
-                scope.from_root().map(|span| span.name().to_string()).collect::<Vec<_>>().join("/")
+                scope
+                    .from_root()
+                    .map(|span| span.name().to_string())
+                    .collect::<Vec<_>>()
+                    .join("/")
             })
             .unwrap_or_default();
-        self.paths.lock().expect("test-only mutex is never poisoned").push(path);
+        self.paths
+            .lock()
+            .expect("test-only mutex is never poisoned")
+            .push(path);
     }
 }
 
@@ -83,8 +93,15 @@ impl TextFilterPipe for TalkativeFilter {
         "talkative"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], _data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
-        tracing::warn!(blocks = blocks.len(), "the talkative pipe has something to say");
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        _data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        tracing::warn!(
+            blocks = blocks.len(),
+            "the talkative pipe has something to say"
+        );
         Ok(blocks
             .iter()
             .map(|b| TextBlock::new(BlockType::PAGE_CLASS, b.metadata.clone(), b.clone()))
@@ -118,8 +135,12 @@ impl DeserializePipe for EmitNothing {
 
 fn pipeline(name: &str, last: Arc<dyn DeserializePipe>) -> Pipeline {
     let mut pipeline = Pipeline::new(name);
-    pipeline.pdf_extract.push(Arc::new(OneBlockPerLine) as Arc<dyn PdfExtractPipe>);
-    pipeline.text_filter.push(Arc::new(TalkativeFilter) as Arc<dyn TextFilterPipe>);
+    pipeline
+        .pdf_extract
+        .push(Arc::new(OneBlockPerLine) as Arc<dyn PdfExtractPipe>);
+    pipeline
+        .text_filter
+        .push(Arc::new(TalkativeFilter) as Arc<dyn TextFilterPipe>);
     pipeline.deserialize.push(last);
     pipeline
 }
@@ -132,7 +153,10 @@ fn algorithm() -> Algorithm {
                 PipelineName::new("classify"),
                 pipeline("classify", Arc::new(ClassifyAs(Some(PageClass::new("a"))))),
             ),
-            (PipelineName::new("work"), pipeline("work", Arc::new(EmitNothing))),
+            (
+                PipelineName::new("work"),
+                pipeline("work", Arc::new(EmitNothing)),
+            ),
         ]),
         &[PipelineName::new("classify")],
         PageClassFinalizer::Identity,
@@ -171,21 +195,28 @@ fn the_span_path_survives_the_thread_boundary() {
     assert_eq!(outcome.pages.len(), 32);
 
     let paths = collector.paths();
-    assert!(!paths.is_empty(), "the talkative pipe must have produced events");
+    assert!(
+        !paths.is_empty(),
+        "the talkative pipe must have produced events"
+    );
 
     // Classificazione: `run/document/classify/page/pipeline/text_filter/pipe`, con il prefisso
     // `run` che esiste solo sul thread chiamante — se non fosse riagganciato, il percorso
     // comincerebbe da `page`. Lo span `document` porta il nome del report nella colonna `Report`
     // del `.log.csv`.
     assert!(
-        paths.iter().any(|p| p.starts_with("run/document/classify/page/")),
+        paths
+            .iter()
+            .any(|p| p.starts_with("run/document/classify/page/")),
         "no event kept the caller's span path through classification: {paths:?}"
     );
     // Esecuzione: `run/step/class/document/page/...`, il ciclo che P2 parallelizza per primo. Qui
     // `document` sta *sotto* `class`, e non sopra: un gruppo di classe contiene le pagine di più
     // documenti, quindi il documento si conosce una pagina alla volta.
     assert!(
-        paths.iter().any(|p| p.starts_with("run/step/class/document/page/")),
+        paths
+            .iter()
+            .any(|p| p.starts_with("run/step/class/document/page/")),
         "no event kept the caller's span path through the step loop: {paths:?}"
     );
     // Nessun evento orfano: **ogni** evento deve stare sotto lo span del chiamante, non solo
@@ -194,6 +225,9 @@ fn the_span_path_survives_the_thread_boundary() {
     assert!(
         paths.iter().all(|p| p == "run" || p.starts_with("run/")),
         "some events lost the caller's span entirely: {:?}",
-        paths.iter().filter(|p| *p != "run" && !p.starts_with("run/")).collect::<Vec<_>>()
+        paths
+            .iter()
+            .filter(|p| *p != "run" && !p.starts_with("run/"))
+            .collect::<Vec<_>>()
     );
 }

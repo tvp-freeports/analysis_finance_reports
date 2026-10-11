@@ -69,12 +69,15 @@ use crate::core::normalization;
 //
 // All four patterns are fixed and hand-written, never built from external input, so a compilation
 // failure would be a bug in this file rather than a runtime condition to handle.
-static NUMERIC_SHAPE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\d+([.,]\d+)*$").expect("fixed, hand-written pattern, valid onig regex"));
-static NON_NUMERIC_CHARS: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"[^a-zA-Z.,0-9]+").expect("fixed, hand-written pattern, valid onig regex"));
+static NUMERIC_SHAPE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^\d+([.,]\d+)*$").expect("fixed, hand-written pattern, valid onig regex")
+});
+static NON_NUMERIC_CHARS: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"[^a-zA-Z.,0-9]+").expect("fixed, hand-written pattern, valid onig regex")
+});
 static FLOAT_THOUSANDS_GROUPED: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^[1-9]\d{0,2}\.\d{3}(\.\d{3})+$").expect("fixed, hand-written pattern, valid onig regex")
+    Regex::new(r"^[1-9]\d{0,2}\.\d{3}(\.\d{3})+$")
+        .expect("fixed, hand-written pattern, valid onig regex")
 });
 static INT_THOUSANDS_GROUPED: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[1-9]\d{0,2}(\.\d{3})+$").expect("fixed, hand-written pattern, valid onig regex")
@@ -134,15 +137,27 @@ fn force_numeric(data: &str) -> Forced {
         None => (false, data),
     };
     if is_numeric_shape(body) {
-        Forced { cleaned: body.to_string(), negative, was_forced: false }
+        Forced {
+            cleaned: body.to_string(),
+            negative,
+            was_forced: false,
+        }
     } else {
-        Forced { cleaned: NON_NUMERIC_CHARS.replace_all(body, ""), negative, was_forced: true }
+        Forced {
+            cleaned: NON_NUMERIC_CHARS.replace_all(body, ""),
+            negative,
+            was_forced: true,
+        }
     }
 }
 
 /// Renders what the text was reduced to, sign included, for the forced-cast event.
 fn forced_as_read(cleaned: &str, negative: bool) -> String {
-    if negative { format!("-{cleaned}") } else { cleaned.to_string() }
+    if negative {
+        format!("-{cleaned}")
+    } else {
+        cleaned.to_string()
+    }
 }
 
 /// The one event a forced cast is worth, emitted **after** the value has been read.
@@ -185,7 +200,11 @@ fn resolve_separators(data: &str) -> String {
 /// genuine sign.
 pub fn to_float(data: &str) -> Result<f64, CastError> {
     let data = normalization::normalize_word(data, false);
-    let Forced { cleaned, negative, was_forced } = force_numeric(&data);
+    let Forced {
+        cleaned,
+        negative,
+        was_forced,
+    } = force_numeric(&data);
     // Decided before the separators are resolved, and reported with the text as it arrived: once
     // stripped, `"-"` and `"."` are both the empty string, and an error naming `""` says nothing
     // about what the cell actually held.
@@ -196,7 +215,9 @@ pub fn to_float(data: &str) -> Result<f64, CastError> {
     if FLOAT_THOUSANDS_GROUPED.is_match(&number) {
         number = number.replace('.', "");
     }
-    let value = number.parse::<f64>().map_err(|_| CastError::NotANumber { data: number })?;
+    let value = number
+        .parse::<f64>()
+        .map_err(|_| CastError::NotANumber { data: number })?;
     if was_forced {
         log_forced_cast(&data, &forced_as_read(&cleaned, negative));
     }
@@ -209,7 +230,11 @@ pub fn to_float(data: &str) -> Result<f64, CastError> {
 /// read it as a decimal point.
 pub fn to_int(data: &str) -> Result<i64, CastError> {
     let data = normalization::normalize_word(data, false);
-    let Forced { cleaned, negative, was_forced } = force_numeric(&data);
+    let Forced {
+        cleaned,
+        negative,
+        was_forced,
+    } = force_numeric(&data);
     if !has_digits(&cleaned) {
         return Err(CastError::NoDigits { data });
     }
@@ -220,13 +245,17 @@ pub fn to_int(data: &str) -> Result<i64, CastError> {
     if let Some(pos_dot) = number.find('.') {
         let mantissa: i64 = number[pos_dot + 1..]
             .parse()
-            .map_err(|_| CastError::NotANumber { data: number.clone() })?;
+            .map_err(|_| CastError::NotANumber {
+                data: number.clone(),
+            })?;
         if mantissa != 0 {
             return Err(CastError::NonZeroMantissa { data: number });
         }
         number.truncate(pos_dot);
     }
-    let value = number.parse::<i64>().map_err(|_| CastError::NotANumber { data: number })?;
+    let value = number
+        .parse::<i64>()
+        .map_err(|_| CastError::NotANumber { data: number })?;
     if was_forced {
         log_forced_cast(&data, &forced_as_read(&cleaned, negative));
     }
@@ -279,7 +308,9 @@ fn shift_two_decimal_places(value: f64) -> f64 {
         return value / 100.0;
     };
     match exponent.parse::<i32>() {
-        Ok(exponent) => format!("{mantissa}e{}", exponent - 2).parse().unwrap_or(value / 100.0),
+        Ok(exponent) => format!("{mantissa}e{}", exponent - 2)
+            .parse()
+            .unwrap_or(value / 100.0),
         Err(_) => value / 100.0,
     }
 }
@@ -379,16 +410,46 @@ fn try_parse_date(data: &str, fmt: &[&str]) -> Option<(i32, u8, u8)> {
 }
 
 const EN_MONTHS: &[&str] = &[
-    "january", "february", "march", "april", "may", "june", "july", "august", "september",
-    "october", "november", "december",
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
 ];
 const IT_MONTHS: &[&str] = &[
-    "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
-    "ottobre", "novembre", "dicembre",
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre",
 ];
 const ES_MONTHS: &[&str] = &[
-    "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre",
-    "octubre", "noviembre", "diciembre",
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
 ];
 
 fn month_index(text: &str, months: &[&str], locale: &'static str) -> Result<u8, CastError> {
@@ -398,7 +459,10 @@ fn month_index(text: &str, months: &[&str], locale: &'static str) -> Result<u8, 
         .iter()
         .position(|m| *m == needle)
         .map(|i| i as u8 + 1)
-        .ok_or_else(|| CastError::UnknownMonthName { text: text.to_string(), locale })
+        .ok_or_else(|| CastError::UnknownMonthName {
+            text: text.to_string(),
+            locale,
+        })
 }
 
 /// Converts an English month name, case-insensitively, to its index from 1 to 12.
@@ -411,18 +475,28 @@ pub fn to_int_it_month(text: &str) -> Result<u8, CastError> {
     month_index(text, IT_MONTHS, "it")
 }
 
-fn parse_day_month_name_year(text: &str, months: &[&str], locale: &'static str) -> Result<Date, CastError> {
+fn parse_day_month_name_year(
+    text: &str,
+    months: &[&str],
+    locale: &'static str,
+) -> Result<Date, CastError> {
     let parts: Vec<&str> = text.split_whitespace().collect();
     let [day_s, month_s, year_s] = parts.as_slice() else {
-        return Err(CastError::MalformedDayMonthYear { text: text.to_string() });
+        return Err(CastError::MalformedDayMonthYear {
+            text: text.to_string(),
+        });
     };
     let day: u8 = day_s
         .parse()
-        .map_err(|_| CastError::MalformedDayMonthYear { text: text.to_string() })?;
+        .map_err(|_| CastError::MalformedDayMonthYear {
+            text: text.to_string(),
+        })?;
     let month = month_index(month_s, months, locale)?;
     let year: i32 = year_s
         .parse()
-        .map_err(|_| CastError::MalformedDayMonthYear { text: text.to_string() })?;
+        .map_err(|_| CastError::MalformedDayMonthYear {
+            text: text.to_string(),
+        })?;
     Ok(Date::new(year, month, day)?)
 }
 
@@ -443,8 +517,10 @@ pub fn to_date_with_it_month(text: &str) -> Result<Date, CastError> {
 /// gone the three fields are in the order [`to_date_with_it_month`] already reads, so the parsing
 /// itself is shared and only the month names and the filler word differ.
 pub fn to_date_with_es_month(text: &str) -> Result<Date, CastError> {
-    let without_filler: Vec<&str> =
-        text.split_whitespace().filter(|part| !part.eq_ignore_ascii_case("de")).collect();
+    let without_filler: Vec<&str> = text
+        .split_whitespace()
+        .filter(|part| !part.eq_ignore_ascii_case("de"))
+        .collect();
     parse_day_month_name_year(&without_filler.join(" "), ES_MONTHS, "es")
 }
 
@@ -457,7 +533,9 @@ pub fn to_date_with_es_month(text: &str) -> Result<Date, CastError> {
 /// The comma is taken as a separator rather than required, so `FEBRUARY 28 2023` reads the same: a
 /// date is being recognised here, not validated.
 pub fn to_date_with_en_month_first(text: &str) -> Result<Date, CastError> {
-    let malformed = || CastError::MalformedDayMonthYear { text: text.to_string() };
+    let malformed = || CastError::MalformedDayMonthYear {
+        text: text.to_string(),
+    };
     let spaced = text.replace(',', " ");
     let parts: Vec<&str> = spaced.split_whitespace().collect();
     let [month, day, year] = parts.as_slice() else {
@@ -727,8 +805,16 @@ mod tests {
         #[test_case("December", 12; "december")]
         fn to_int_en_month_maps_every_month(name: &str, expected: u8) {
             assert_eq!(to_int_en_month(name).unwrap(), expected);
-            assert_eq!(to_int_en_month(&name.to_uppercase()).unwrap(), expected, "case insensitive");
-            assert_eq!(to_int_en_month(&name.to_lowercase()).unwrap(), expected, "case insensitive");
+            assert_eq!(
+                to_int_en_month(&name.to_uppercase()).unwrap(),
+                expected,
+                "case insensitive"
+            );
+            assert_eq!(
+                to_int_en_month(&name.to_lowercase()).unwrap(),
+                expected,
+                "case insensitive"
+            );
         }
 
         #[test_case("gennaio", 1; "gennaio")]
@@ -745,8 +831,16 @@ mod tests {
         #[test_case("dicembre", 12; "dicembre")]
         fn to_int_it_month_maps_every_month(name: &str, expected: u8) {
             assert_eq!(to_int_it_month(name).unwrap(), expected);
-            assert_eq!(to_int_it_month(&name.to_uppercase()).unwrap(), expected, "case insensitive");
-            assert_eq!(to_int_it_month(&name.to_lowercase()).unwrap(), expected, "case insensitive");
+            assert_eq!(
+                to_int_it_month(&name.to_uppercase()).unwrap(),
+                expected,
+                "case insensitive"
+            );
+            assert_eq!(
+                to_int_it_month(&name.to_lowercase()).unwrap(),
+                expected,
+                "case insensitive"
+            );
         }
 
         #[test]
@@ -772,14 +866,26 @@ mod tests {
 
         #[test]
         fn to_date_with_en_month_parses_day_month_year() {
-            assert_eq!(to_date_with_en_month("1 January 2025").unwrap(), date(2025, 1, 1));
-            assert_eq!(to_date_with_en_month("15 December 2024").unwrap(), date(2024, 12, 15));
+            assert_eq!(
+                to_date_with_en_month("1 January 2025").unwrap(),
+                date(2025, 1, 1)
+            );
+            assert_eq!(
+                to_date_with_en_month("15 December 2024").unwrap(),
+                date(2024, 12, 15)
+            );
         }
 
         #[test]
         fn to_date_with_it_month_parses_day_month_year() {
-            assert_eq!(to_date_with_it_month("1 Gennaio 2025").unwrap(), date(2025, 1, 1));
-            assert_eq!(to_date_with_it_month("15 Dicembre 2024").unwrap(), date(2024, 12, 15));
+            assert_eq!(
+                to_date_with_it_month("1 Gennaio 2025").unwrap(),
+                date(2025, 1, 1)
+            );
+            assert_eq!(
+                to_date_with_it_month("15 Dicembre 2024").unwrap(),
+                date(2024, 12, 15)
+            );
         }
 
         #[test]
@@ -803,20 +909,32 @@ mod tests {
         /// `31 de diciembre de 2024`, the only way MEDIOLANUM-ES24.A writes a date.
         #[test]
         fn to_date_with_es_month_drops_the_two_de_and_reads_the_three_fields() {
-            assert_eq!(to_date_with_es_month("31 de diciembre de 2024").unwrap(), Date::new(2024, 12, 31).unwrap());
-            assert_eq!(to_date_with_es_month("1 de enero de 2025").unwrap(), Date::new(2025, 1, 1).unwrap());
+            assert_eq!(
+                to_date_with_es_month("31 de diciembre de 2024").unwrap(),
+                Date::new(2024, 12, 31).unwrap()
+            );
+            assert_eq!(
+                to_date_with_es_month("1 de enero de 2025").unwrap(),
+                Date::new(2025, 1, 1).unwrap()
+            );
         }
 
         /// The filler is dropped, not required: the same three fields without it read the same, as
         /// `to_date_with_en_month_first` treats its comma.
         #[test]
         fn to_date_with_es_month_reads_the_same_date_without_the_filler() {
-            assert_eq!(to_date_with_es_month("31 diciembre 2024").unwrap(), Date::new(2024, 12, 31).unwrap());
+            assert_eq!(
+                to_date_with_es_month("31 diciembre 2024").unwrap(),
+                Date::new(2024, 12, 31).unwrap()
+            );
         }
 
         #[test]
         fn to_date_with_es_month_is_case_insensitive_like_the_other_three() {
-            assert_eq!(to_date_with_es_month("31 DE DICIEMBRE DE 2024").unwrap(), Date::new(2024, 12, 31).unwrap());
+            assert_eq!(
+                to_date_with_es_month("31 DE DICIEMBRE DE 2024").unwrap(),
+                Date::new(2024, 12, 31).unwrap()
+            );
         }
 
         /// An Italian month is not a Spanish one, and neither converter guesses for the other.
@@ -829,8 +947,14 @@ mod tests {
         #[test]
         fn to_date_with_en_month_first_parses_month_day_year() {
             // The order FIDEURAM-EN23 heads its statement of net assets with.
-            assert_eq!(to_date_with_en_month_first("FEBRUARY 28, 2023").unwrap(), date(2023, 2, 28));
-            assert_eq!(to_date_with_en_month_first("january 1, 2025").unwrap(), date(2025, 1, 1));
+            assert_eq!(
+                to_date_with_en_month_first("FEBRUARY 28, 2023").unwrap(),
+                date(2023, 2, 28)
+            );
+            assert_eq!(
+                to_date_with_en_month_first("january 1, 2025").unwrap(),
+                date(2025, 1, 1)
+            );
         }
 
         #[test]
@@ -840,7 +964,10 @@ mod tests {
                 to_date_with_en_month_first("FEBRUARY 28, 2023").unwrap()
             );
             // And a stray one does not add a field.
-            assert_eq!(to_date_with_en_month_first(" MARCH , 3 , 2024 ").unwrap(), date(2024, 3, 3));
+            assert_eq!(
+                to_date_with_en_month_first(" MARCH , 3 , 2024 ").unwrap(),
+                date(2024, 3, 3)
+            );
         }
 
         #[test]
@@ -880,7 +1007,10 @@ mod tests {
         #[test_case("."; "lone dot")]
         #[test_case(","; "lone comma")]
         fn to_float_reads_a_digitless_text_as_a_nil_marker(text: &str) {
-            assert!(matches!(to_float(text), Err(CastError::NoDigits { .. })), "{text:?}");
+            assert!(
+                matches!(to_float(text), Err(CastError::NoDigits { .. })),
+                "{text:?}"
+            );
         }
 
         #[test_case("-"; "ascii hyphen")]
@@ -890,15 +1020,26 @@ mod tests {
         #[test_case("."; "lone dot")]
         #[test_case(","; "lone comma")]
         fn to_int_reads_a_digitless_text_as_a_nil_marker(text: &str) {
-            assert!(matches!(to_int(text), Err(CastError::NoDigits { .. })), "{text:?}");
+            assert!(
+                matches!(to_int(text), Err(CastError::NoDigits { .. })),
+                "{text:?}"
+            );
         }
 
         #[test_case("-", "-"; "the dash itself, not the empty string it strips to")]
         #[test_case("  n/a  ", "n/a"; "surrounding whitespace only is dropped")]
         #[test_case(".", "."; "a lone separator is reported as written")]
-        fn the_error_carries_the_original_text_rather_than_the_stripped_one(text: &str, expected: &str) {
+        fn the_error_carries_the_original_text_rather_than_the_stripped_one(
+            text: &str,
+            expected: &str,
+        ) {
             let err = to_float(text).unwrap_err();
-            assert_eq!(err, CastError::NoDigits { data: expected.to_string() });
+            assert_eq!(
+                err,
+                CastError::NoDigits {
+                    data: expected.to_string()
+                }
+            );
         }
 
         #[test_case("0"; "plain zero")]
@@ -906,7 +1047,10 @@ mod tests {
         #[test_case("-5"; "a negative number")]
         #[test_case("1.234abc"; "noise around real digits")]
         fn a_text_with_digits_is_never_a_nil_marker(text: &str) {
-            assert!(!matches!(to_float(text), Err(CastError::NoDigits { .. })), "{text:?}");
+            assert!(
+                !matches!(to_float(text), Err(CastError::NoDigits { .. })),
+                "{text:?}"
+            );
         }
 
         #[test]
@@ -918,12 +1062,17 @@ mod tests {
         fn text_glued_to_digits_stays_an_unreadable_number_rather_than_a_nil_marker() {
             // The stripping keeps letters, so this one still has digits and fails to parse: it is
             // an anomaly, not an absence, and the two must not be confused.
-            assert!(matches!(to_float("1.234abc"), Err(CastError::NotANumber { .. })));
+            assert!(matches!(
+                to_float("1.234abc"),
+                Err(CastError::NotANumber { .. })
+            ));
         }
 
         #[test]
         fn a_percentage_inherits_the_nil_marker_through_to_float() {
-            assert!(matches!(perc_to_float("-", true), Err(CastError::NoDigits { data }) if data == "-"));
+            assert!(
+                matches!(perc_to_float("-", true), Err(CastError::NoDigits { data }) if data == "-")
+            );
         }
     }
 
@@ -945,7 +1094,11 @@ mod tests {
                 let warnings = warnings_emitted_by(|| {
                     let _ = to_int("[-1.234]");
                 });
-                assert_eq!(warnings.len(), 1, "expected exactly one warning: {warnings:?}");
+                assert_eq!(
+                    warnings.len(),
+                    1,
+                    "expected exactly one warning: {warnings:?}"
+                );
             }
 
             #[test]
@@ -1023,7 +1176,11 @@ mod tests {
             let warnings = warnings_emitted_by(|| {
                 let _ = to_int("\u{20ac} 1.234");
             });
-            assert_eq!(warnings.len(), 1, "one forced cast, one warning: {warnings:?}");
+            assert_eq!(
+                warnings.len(),
+                1,
+                "one forced cast, one warning: {warnings:?}"
+            );
         }
 
         #[test]
@@ -1031,7 +1188,11 @@ mod tests {
             let warnings = warnings_emitted_by(|| {
                 let _ = to_float("\u{20ac} 1.234");
             });
-            assert_eq!(warnings.len(), 1, "one forced cast, one warning: {warnings:?}");
+            assert_eq!(
+                warnings.len(),
+                1,
+                "one forced cast, one warning: {warnings:?}"
+            );
         }
 
         #[test]
@@ -1076,7 +1237,10 @@ mod tests {
             let warnings = warnings_emitted_by(|| {
                 let _ = perc_to_float("10%", false);
             });
-            assert!(!warnings.is_empty(), "expected a forced-normalization warning, got none");
+            assert!(
+                !warnings.is_empty(),
+                "expected a forced-normalization warning, got none"
+            );
         }
 
         #[test]
@@ -1190,6 +1354,5 @@ mod tests {
                 (actual - expected).abs() < 1e-9
             }
         }
-
     }
 }

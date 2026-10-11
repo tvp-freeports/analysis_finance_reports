@@ -215,14 +215,14 @@ impl Currency {
         &[
             USD, EUR, GBP, JPY, CNY, AUD, CAD, CHF, CNH, SEK, NOK, DKK, SGD, HKD, KRW, INR, BRL,
             MXN, RUB, ZAR, TRY, PLN, THB, IDR, MYR, PHP, ILS, AED, SAR, QAR, KWD, CLP, COP, PEN,
-            ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP, TWD,
-            AFN, ALL, AMD, ANG, AOA, AWG, AZN, BAM, BBD, BDT, BHD, BIF, BMD, BND, BOB, BSD, BTN, BWP,
-            BYN, BZD, CDF, CRC, CUP, CVE, DJF, DOP, DZD, ERN, ETB, FJD, FKP, GEL, GHS, GIP, GMD, GNF,
-            GTQ, GYD, HNL, HTG, IQD, IRR, JMD, JOD, KES, KGS, KHR, KMF, KPW, KYD, KZT, LAK, LBP, LKR,
-            LRD, LSL, LYD, MAD, MDL, MGA, MKD, MMK, MNT, MOP, MRU, MUR, MVR, MWK, MZN, NAD, NGN, NIO,
-            NPR, OMR, PAB, PGK, PKR, PYG, RSD, RWF, SBD, SCR, SDG, SHP, SLE, SOS, SRD, SSP, STN, SVC,
-            SYP, SZL, TJS, TMT, TND, TOP, TTD, TZS, UGX, UYU, UZS, VED, VES, VUV, WST, XAF, XCD, XCG,
-            XOF, XPF, YER, ZMW, ZWG,
+            ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP, TWD, AFN, ALL, AMD, ANG, AOA,
+            AWG, AZN, BAM, BBD, BDT, BHD, BIF, BMD, BND, BOB, BSD, BTN, BWP, BYN, BZD, CDF, CRC,
+            CUP, CVE, DJF, DOP, DZD, ERN, ETB, FJD, FKP, GEL, GHS, GIP, GMD, GNF, GTQ, GYD, HNL,
+            HTG, IQD, IRR, JMD, JOD, KES, KGS, KHR, KMF, KPW, KYD, KZT, LAK, LBP, LKR, LRD, LSL,
+            LYD, MAD, MDL, MGA, MKD, MMK, MNT, MOP, MRU, MUR, MVR, MWK, MZN, NAD, NGN, NIO, NPR,
+            OMR, PAB, PGK, PKR, PYG, RSD, RWF, SBD, SCR, SDG, SHP, SLE, SOS, SRD, SSP, STN, SVC,
+            SYP, SZL, TJS, TMT, TND, TOP, TTD, TZS, UGX, UYU, UZS, VED, VES, VUV, WST, XAF, XCD,
+            XCG, XOF, XPF, YER, ZMW, ZWG,
         ]
     }
 
@@ -795,10 +795,9 @@ mod tests {
             fn the_reference_members_keep_their_order_at_the_head_of_the_list() {
                 use Currency::*;
                 let reference = [
-                    USD, EUR, GBP, JPY, CNY, AUD, CAD, CHF, CNH, SEK, NOK, DKK, SGD, HKD, KRW,
-                    INR, BRL, MXN, RUB, ZAR, TRY, PLN, THB, IDR, MYR, PHP, ILS, AED, SAR, QAR,
-                    KWD, CLP, COP, PEN, ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP,
-                    TWD,
+                    USD, EUR, GBP, JPY, CNY, AUD, CAD, CHF, CNH, SEK, NOK, DKK, SGD, HKD, KRW, INR,
+                    BRL, MXN, RUB, ZAR, TRY, PLN, THB, IDR, MYR, PHP, ILS, AED, SAR, QAR, KWD, CLP,
+                    COP, PEN, ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP, TWD,
                 ];
                 assert_eq!(&Currency::variants()[..reference.len()], &reference[..]);
             }
@@ -810,11 +809,19 @@ mod tests {
             /// not be.
             #[test]
             fn the_list_covers_currencies_reports_actually_quote_and_nothing_else() {
-                for code in ["NGN", "KES", "MAD", "PKR", "BHD", "OMR", "JOD", "XOF", "GHS", "TND"] {
-                    assert!(Currency::from_code(code).is_some(), "{code} should be a currency");
+                for code in [
+                    "NGN", "KES", "MAD", "PKR", "BHD", "OMR", "JOD", "XOF", "GHS", "TND",
+                ] {
+                    assert!(
+                        Currency::from_code(code).is_some(),
+                        "{code} should be a currency"
+                    );
                 }
                 for code in ["XAU", "XAG", "XDR", "XXX", "XTS", "USN", "CLF"] {
-                    assert!(Currency::from_code(code).is_none(), "{code} is not a currency");
+                    assert!(
+                        Currency::from_code(code).is_none(),
+                        "{code} is not a currency"
+                    );
                 }
             }
         }
@@ -862,8 +869,7 @@ mod tests {
             fn deserialize_uses_exact_code_match_not_alias() {
                 // Deserialization mirrors `from_code`, not `from_name`: the "EURO" alias is a
                 // lookup convenience, not a wire format, so it must NOT deserialize.
-                let result: Result<Currency, _> =
-                    serde_json::from_value(serde_json::json!("EURO"));
+                let result: Result<Currency, _> = serde_json::from_value(serde_json::json!("EURO"));
                 assert!(result.is_err());
             }
 

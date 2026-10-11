@@ -48,8 +48,8 @@ use freeports::cli::config_locations::cmd::CliArgs;
 use freeports::cli::output as cli_output;
 use freeports::cli::run;
 use freeports::core::algorithm::Algorithm;
-use freeports::core::parallelism::Parallelism;
 use freeports::core::page::FormatName;
+use freeports::core::parallelism::Parallelism;
 use freeports::input::companies_db::compile_target_companies;
 use freeports::input::document::load_document;
 
@@ -148,7 +148,11 @@ where
             .and_then(|span| span.extensions().get::<SpanLabel>().map(|l| l.0.clone()))
             .unwrap_or_else(|| "?".to_string());
         STACK.with(|stack| {
-            stack.borrow_mut().push(Frame { label, enter: Instant::now(), children: Duration::ZERO })
+            stack.borrow_mut().push(Frame {
+                label,
+                enter: Instant::now(),
+                children: Duration::ZERO,
+            })
         });
     }
 
@@ -168,7 +172,9 @@ where
             if let Some(parent) = stack.last_mut() {
                 parent.children += inclusive;
             }
-            let mut totals = totals().lock().expect("the profiling map is never poisoned");
+            let mut totals = totals()
+                .lock()
+                .expect("the profiling map is never poisoned");
             let entry = totals.entry(path).or_default();
             entry.inclusive += inclusive;
             entry.exclusive += exclusive;
@@ -237,8 +243,10 @@ fn main() {
     // Every artifact of this run — outputs, `.log.csv` — goes under the output directory, never
     // in the working directory.
     let temp = tempfile::tempdir().expect("cannot create the temporary output directory");
-    let out_dir: PathBuf =
-        argv.get(5).map(PathBuf::from).unwrap_or_else(|| temp.path().join("out"));
+    let out_dir: PathBuf = argv
+        .get(5)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| temp.path().join("out"));
     // An explicit empty config file keeps `find_config` from picking up whatever sits in the
     // working directory, which would silently change what is being measured.
     let empty_config = temp.path().join("empty.yaml");
@@ -275,12 +283,18 @@ fn main() {
 
     let t = Instant::now();
     let configs = run::resolve_configs(args).expect("the configuration must resolve");
-    let config = configs.into_iter().next().expect("exactly one non-batch configuration");
+    let config = configs
+        .into_iter()
+        .next()
+        .expect("exactly one non-batch configuration");
     let d_config = t.elapsed();
 
     let t = Instant::now();
     let algorithm = Algorithm::load(
-        config.formats_repo_path.as_deref().expect("a formats repo path was given"),
+        config
+            .formats_repo_path
+            .as_deref()
+            .expect("a formats repo path was given"),
         &FormatName::new(config.format.clone()),
     )
     .expect("the algorithm must load");
@@ -288,7 +302,10 @@ fn main() {
 
     let t = Instant::now();
     let companies = compile_target_companies(
-        config.input_db_path.as_deref().expect("an input db path was given"),
+        config
+            .input_db_path
+            .as_deref()
+            .expect("an input db path was given"),
         &config.target_lists,
     )
     .expect("the target companies must compile");
@@ -296,7 +313,10 @@ fn main() {
 
     // Question 1. One call, one `Instant`: PyMuPDF holds the GIL for its whole duration, so this
     // is the number that decides how much P2 (threads) can possibly buy.
-    let spec = config.reports.first().expect("one document per invocation here");
+    let spec = config
+        .reports
+        .first()
+        .expect("one document per invocation here");
     let path = spec.path.clone().expect("a local pdf path was given");
     let t = Instant::now();
     let document = load_document(
@@ -349,13 +369,23 @@ fn main() {
         ("write_results (output)", d_output),
     ];
     for (name, d) in phases {
-        println!("| {name} | {:.1} | {:.1}% |", ms(d), 100.0 * d.as_secs_f64() / d_total.as_secs_f64());
+        println!(
+            "| {name} | {:.1} | {:.1}% |",
+            ms(d),
+            100.0 * d.as_secs_f64() / d_total.as_secs_f64()
+        );
     }
     println!("| **total** | **{:.1}** | 100% |", ms(d_total));
     println!();
-    println!("Per page: load {:.2} ms, apply {:.2} ms.", ms(d_load) / page_count as f64, ms(d_apply) / page_count as f64);
+    println!(
+        "Per page: load {:.2} ms, apply {:.2} ms.",
+        ms(d_load) / page_count as f64,
+        ms(d_apply) / page_count as f64
+    );
 
-    let totals = totals().lock().expect("the profiling map is never poisoned");
+    let totals = totals()
+        .lock()
+        .expect("the profiling map is never poisoned");
     let mut rows: Vec<(&String, &Stat)> = totals.iter().collect();
     rows.sort_by(|a, b| b.1.exclusive.cmp(&a.1.exclusive));
     let span_entries: u64 = rows.iter().map(|(_, s)| s.entries).sum();
@@ -396,12 +426,21 @@ fn main() {
     for phase in &phases_seen {
         let cells: Vec<Duration> = SEGMENTS
             .iter()
-            .map(|seg| matrix.get(&(phase.clone(), *seg)).copied().unwrap_or_default())
+            .map(|seg| {
+                matrix
+                    .get(&(phase.clone(), *seg))
+                    .copied()
+                    .unwrap_or_default()
+            })
             .collect();
         let row_total: Duration = cells.iter().sum();
         println!(
             "| `{phase}` | {:.1} | {:.1} | {:.1} | {:.1} | **{:.1}** |",
-            ms(cells[0]), ms(cells[1]), ms(cells[2]), ms(cells[3]), ms(row_total)
+            ms(cells[0]),
+            ms(cells[1]),
+            ms(cells[2]),
+            ms(cells[3]),
+            ms(row_total)
         );
     }
     let col_totals: Vec<Duration> = SEGMENTS
@@ -415,7 +454,10 @@ fn main() {
         .collect();
     println!(
         "| **total** | **{:.1}** | **{:.1}** | **{:.1}** | **{:.1}** | **{:.1}** |",
-        ms(col_totals[0]), ms(col_totals[1]), ms(col_totals[2]), ms(col_totals[3]),
+        ms(col_totals[0]),
+        ms(col_totals[1]),
+        ms(col_totals[2]),
+        ms(col_totals[3]),
         ms(col_totals.iter().copied().sum::<Duration>())
     );
 
@@ -427,7 +469,10 @@ fn main() {
     println!("| pipe | phase | calls | own ms | avg ms/call |");
     println!("|---|---|---:|---:|---:|");
     for (path, stat) in rows.iter().filter(|(p, _)| p.contains("/pipe[")).take(15) {
-        let pipe = path.rsplit('/').find(|c| c.starts_with("pipe[")).unwrap_or(path);
+        let pipe = path
+            .rsplit('/')
+            .find(|c| c.starts_with("pipe["))
+            .unwrap_or(path);
         let phase = path.split('/').next().unwrap_or("?");
         println!(
             "| `{pipe}` | `{phase}` | {} | {:.1} | {:.3} |",
@@ -440,8 +485,10 @@ fn main() {
     println!();
     println!("## Span paths, by own (exclusive) time");
     println!();
-    println!("({span_entries} span entries recorded; `page` at the root of a path is the per-page \
-span PyMuPDF loading opens, not an engine span.)");
+    println!(
+        "({span_entries} span entries recorded; `page` at the root of a path is the per-page \
+span PyMuPDF loading opens, not an engine span.)"
+    );
     println!();
     println!("| span path | entries | inclusive ms | own ms | own % of total |");
     println!("|---|---:|---:|---:|---:|");

@@ -22,8 +22,10 @@ use crate::core::match_fund::MatchFund;
 /// `{"managed_funds": <set of the names as written>}`, shared by the four management-company and
 /// investments-manager builders.
 fn managed_funds_metadata(funds: &BTreeSet<MatchFund>) -> BTreeMap<String, BlockValue> {
-    let names: BTreeSet<BlockValue> =
-        funds.iter().map(|f| BlockValue::Str(f.name().to_string())).collect();
+    let names: BTreeSet<BlockValue> = funds
+        .iter()
+        .map(|f| BlockValue::Str(f.name().to_string()))
+        .collect();
     BTreeMap::from([("managed_funds".to_string(), BlockValue::Set(names))])
 }
 
@@ -35,33 +37,55 @@ pub fn standard_fund_txt_blk_from_content(fund: &str) -> TextBlock {
     TextBlock::from_content(BlockType::FUND, BTreeMap::new(), fund)
 }
 
-pub fn standard_management_company_txt_blk(pdf_blk: PdfBlock, funds: &BTreeSet<MatchFund>) -> TextBlock {
-    TextBlock::new(BlockType::MANAGEMENT_COMPANY, managed_funds_metadata(funds), pdf_blk)
+pub fn standard_management_company_txt_blk(
+    pdf_blk: PdfBlock,
+    funds: &BTreeSet<MatchFund>,
+) -> TextBlock {
+    TextBlock::new(
+        BlockType::MANAGEMENT_COMPANY,
+        managed_funds_metadata(funds),
+        pdf_blk,
+    )
 }
 
 pub fn standard_management_company_txt_blk_from_content(
     name: &str,
     funds: &BTreeSet<MatchFund>,
 ) -> TextBlock {
-    TextBlock::from_content(BlockType::MANAGEMENT_COMPANY, managed_funds_metadata(funds), name)
+    TextBlock::from_content(
+        BlockType::MANAGEMENT_COMPANY,
+        managed_funds_metadata(funds),
+        name,
+    )
 }
 
-pub fn standard_investmet_manager_txt_blk(pdf_blk: PdfBlock, funds: &BTreeSet<MatchFund>) -> TextBlock {
-    TextBlock::new(BlockType::INVESTMENTS_MANAGER, managed_funds_metadata(funds), pdf_blk)
+pub fn standard_investmet_manager_txt_blk(
+    pdf_blk: PdfBlock,
+    funds: &BTreeSet<MatchFund>,
+) -> TextBlock {
+    TextBlock::new(
+        BlockType::INVESTMENTS_MANAGER,
+        managed_funds_metadata(funds),
+        pdf_blk,
+    )
 }
 
 pub fn standard_investmet_manager_txt_blk_from_content(
     name: &str,
     funds: &BTreeSet<MatchFund>,
 ) -> TextBlock {
-    TextBlock::from_content(BlockType::INVESTMENTS_MANAGER, managed_funds_metadata(funds), name)
+    TextBlock::from_content(
+        BlockType::INVESTMENTS_MANAGER,
+        managed_funds_metadata(funds),
+        name,
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::classes::{BlockType, PdfBlock};
     use crate::core::classes::value::BlockValue;
+    use crate::core::classes::{BlockType, PdfBlock};
     use crate::core::match_fund::MatchFund;
     use std::collections::BTreeSet;
 
@@ -172,10 +196,13 @@ mod tests {
 
         #[test]
         fn a_single_managed_fund_is_reported_by_its_written_name() {
-            let txt =
-                standard_management_company_txt_blk(some_pdf_block("Acme AM"), &funds(&["Acme Growth Fund"]));
-            let expected: BTreeSet<BlockValue> =
-                [BlockValue::Str("Acme Growth Fund".to_string())].into_iter().collect();
+            let txt = standard_management_company_txt_blk(
+                some_pdf_block("Acme AM"),
+                &funds(&["Acme Growth Fund"]),
+            );
+            let expected: BTreeSet<BlockValue> = [BlockValue::Str("Acme Growth Fund".to_string())]
+                .into_iter()
+                .collect();
             assert_eq!(managed_fund_names(&txt), expected);
         }
 
@@ -271,10 +298,13 @@ mod tests {
 
         #[test]
         fn a_single_managed_fund_is_reported_by_its_written_name() {
-            let txt =
-                standard_investmet_manager_txt_blk(some_pdf_block("Acme IM"), &funds(&["Acme Growth Fund"]));
-            let expected: BTreeSet<BlockValue> =
-                [BlockValue::Str("Acme Growth Fund".to_string())].into_iter().collect();
+            let txt = standard_investmet_manager_txt_blk(
+                some_pdf_block("Acme IM"),
+                &funds(&["Acme Growth Fund"]),
+            );
+            let expected: BTreeSet<BlockValue> = [BlockValue::Str("Acme Growth Fund".to_string())]
+                .into_iter()
+                .collect();
             assert_eq!(managed_fund_names(&txt), expected);
         }
 

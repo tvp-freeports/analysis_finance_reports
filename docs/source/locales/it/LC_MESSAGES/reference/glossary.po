@@ -70,14 +70,9 @@ msgstr "formato"
 #: ../../source/reference/glossary.md:16
 #, python-brace-format
 msgid ""
-"The recipe for one report layout, named for the issuer and the publication year — "
-"`EURIZON-EN23`. A layout is a snapshot, so next year's report from the same issuer is"
-" a different format rather than a revision. {doc}`../guides/formats/index`."
+"The recipe for one report layout, named for the issuer, the language and the earliest publication year it reads — `EURIZON-EN23`. The name follows the recipe, not the document: a later report the same recipe still reads keeps the name, and only a report that needs a recipe of its own gets a new one. {doc}`../guides/formats/index`, {doc}`formats/names`."
 msgstr ""
-"La ricetta per il layout di una relazione, che porta il nome dell'emittente e l'anno "
-"di pubblicazione — `EURIZON-EN23`. Un layout è uno snapshot, quindi la relazione "
-"dell'anno prossimo dello stesso emittente è un formato diverso anziché una revisione."
-" {doc}`../guides/formats/index`."
+"La ricetta per il layout di una relazione, che porta il nome dell'emittente, la lingua e l'anno più vecchio fra le relazioni che legge — `EURIZON-EN23`. Il nome segue la ricetta, non il documento: una relazione successiva che la stessa ricetta legge ancora tiene quel nome, e solo una relazione che ha bisogno di una ricetta propria ne riceve uno nuovo. {doc}`../guides/formats/index`, {doc}`formats/names`."
 
 #: ../../source/reference/glossary.md:14
 msgid "formats repository"

@@ -50,7 +50,9 @@ impl Workers {
         }
         match trimmed.parse::<usize>() {
             Ok(n) if n > 0 => Ok(Workers::Fixed(n)),
-            _ => Err(WorkersParseError { value: value.to_string() }),
+            _ => Err(WorkersParseError {
+                value: value.to_string(),
+            }),
         }
     }
 
@@ -87,8 +89,10 @@ pub struct ParallelismConfig {
 
 impl ParallelismConfig {
     /// The behaviour that has always been: one job at a time, one page at a time.
-    pub const SEQUENTIAL: ParallelismConfig =
-        ParallelismConfig { jobs: Workers::Fixed(1), pages: Workers::Fixed(1) };
+    pub const SEQUENTIAL: ParallelismConfig = ParallelismConfig {
+        jobs: Workers::Fixed(1),
+        pages: Workers::Fixed(1),
+    };
 
     /// How many jobs at a time, given how many there are to run.
     ///
@@ -133,7 +137,11 @@ mod tests {
         #[test]
         fn auto_is_recognised_whatever_the_case() {
             for spelling in ["auto", "AUTO", "Auto", " auto "] {
-                assert_eq!(Workers::parse(spelling).unwrap(), Workers::Auto, "{spelling:?}");
+                assert_eq!(
+                    Workers::parse(spelling).unwrap(),
+                    Workers::Auto,
+                    "{spelling:?}"
+                );
             }
         }
 
@@ -177,7 +185,10 @@ mod tests {
         use super::*;
 
         fn with_jobs(jobs: Workers) -> ParallelismConfig {
-            ParallelismConfig { jobs, pages: Workers::Auto }
+            ParallelismConfig {
+                jobs,
+                pages: Workers::Auto,
+            }
         }
 
         #[test]
@@ -213,7 +224,10 @@ mod tests {
         use super::*;
 
         fn with_pages(pages: Workers) -> ParallelismConfig {
-            ParallelismConfig { jobs: Workers::Auto, pages }
+            ParallelismConfig {
+                jobs: Workers::Auto,
+                pages,
+            }
         }
 
         #[test]
@@ -224,18 +238,30 @@ mod tests {
         #[test]
         fn auto_divides_the_core_budget_among_the_concurrent_jobs() {
             let cores = parallelism::available_threads();
-            assert_eq!(with_pages(Workers::Auto).resolve_pages(1).pages, cores.max(1));
-            assert_eq!(with_pages(Workers::Auto).resolve_pages(2).pages, (cores / 2).max(1));
+            assert_eq!(
+                with_pages(Workers::Auto).resolve_pages(1).pages,
+                cores.max(1)
+            );
+            assert_eq!(
+                with_pages(Workers::Auto).resolve_pages(2).pages,
+                (cores / 2).max(1)
+            );
         }
 
         #[test]
         fn auto_divided_below_one_is_sequential_not_zero() {
-            assert_eq!(with_pages(Workers::Auto).resolve_pages(10_000), Parallelism::SEQUENTIAL);
+            assert_eq!(
+                with_pages(Workers::Auto).resolve_pages(10_000),
+                Parallelism::SEQUENTIAL
+            );
         }
 
         #[test]
         fn one_page_is_the_sequential_engine() {
-            assert_eq!(with_pages(Workers::Fixed(1)).resolve_pages(1), Parallelism::SEQUENTIAL);
+            assert_eq!(
+                with_pages(Workers::Fixed(1)).resolve_pages(1),
+                Parallelism::SEQUENTIAL
+            );
         }
     }
 
@@ -253,7 +279,10 @@ mod tests {
         fn the_default_is_auto_at_both_levels_not_sequential() {
             assert_eq!(
                 ParallelismConfig::default(),
-                ParallelismConfig { jobs: Workers::Auto, pages: Workers::Auto }
+                ParallelismConfig {
+                    jobs: Workers::Auto,
+                    pages: Workers::Auto
+                }
             );
         }
     }
@@ -263,7 +292,10 @@ mod tests {
 
         #[test]
         fn a_request_that_fits_the_machine_is_not_reported() {
-            assert_eq!(ParallelismConfig::oversubscription(1, Parallelism::SEQUENTIAL), None);
+            assert_eq!(
+                ParallelismConfig::oversubscription(1, Parallelism::SEQUENTIAL),
+                None
+            );
         }
 
         #[test]
@@ -282,9 +314,15 @@ mod tests {
         /// one the parent decided.
         #[test]
         fn a_configuration_survives_a_json_round_trip() {
-            let config = ParallelismConfig { jobs: Workers::Fixed(4), pages: Workers::Auto };
+            let config = ParallelismConfig {
+                jobs: Workers::Fixed(4),
+                pages: Workers::Auto,
+            };
             let json = serde_json::to_string(&config).expect("serializable");
-            assert_eq!(serde_json::from_str::<ParallelismConfig>(&json).unwrap(), config);
+            assert_eq!(
+                serde_json::from_str::<ParallelismConfig>(&json).unwrap(),
+                config
+            );
         }
     }
 }

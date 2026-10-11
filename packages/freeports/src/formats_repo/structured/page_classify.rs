@@ -33,25 +33,37 @@ pub fn get_pipelines(
     for config in configs.into_iter().filter(|c| c.id.format == format_name) {
         let mut header_sets = Vec::with_capacity(config.header_sets.len());
         for raw in &config.header_sets {
-            header_sets.push(pdfline_selection_from_str(raw).map_err(|source| StructuredError::LineSelection {
-                id: config.id.to_string(),
-                column: "Header set",
-                source,
+            header_sets.push(pdfline_selection_from_str(raw).map_err(|source| {
+                StructuredError::LineSelection {
+                    id: config.id.to_string(),
+                    column: "Header set",
+                    source,
+                }
             })?);
         }
 
         let name = PipelineName::new(&config.id.pipeline);
         let pipeline = pipelines.entry(name.clone()).or_insert_with(|| {
             let mut pipeline = Pipeline::new(name);
-            pipeline.text_filter.push(Arc::new(TextFilterPageClassifyStandard));
-            pipeline.deserialize.push(Arc::new(DeserializerPageClassifyStandard));
+            pipeline
+                .text_filter
+                .push(Arc::new(TextFilterPageClassifyStandard));
+            pipeline
+                .deserialize
+                .push(Arc::new(DeserializerPageClassifyStandard));
             pipeline
         });
         pipeline
             .pdf_extract
-            .push(Arc::new(PdfExtractPageClassifyStandard::new(header_sets, &config.class)));
+            .push(Arc::new(PdfExtractPageClassifyStandard::new(
+                header_sets,
+                &config.class,
+            )));
     }
 
-    tracing::debug!(pipeline_count = pipelines.len(), "built page classify pipelines");
+    tracing::debug!(
+        pipeline_count = pipelines.len(),
+        "built page classify pipelines"
+    );
     Ok(pipelines)
 }

@@ -89,7 +89,7 @@ pub struct Step {
 
 impl Step {
     /// No criteria of its own but children: it only scopes them, and is never evaluated (§3.2).
-    fn is_prefix(&self) -> bool {
+    pub(crate) fn is_prefix(&self) -> bool {
         self.criteria.is_empty() && !self.children.is_empty()
     }
 }
@@ -112,14 +112,22 @@ impl PythonEntry {
     /// What the pipeline says of `page` (§6): its results with the `None`s dropped and the repeats
     /// merged, which must leave at most one pattern — and one the repository has, since the Python
     /// cannot be checked when it is loaded. `index` is the entry's position, for the errors.
-    fn outcome(&self, index: usize, page: &Page, formats: &[String]) -> Result<Option<FormatPattern>, DocClassifyError> {
+    fn outcome(
+        &self,
+        index: usize,
+        page: &Page,
+        formats: &[String],
+    ) -> Result<Option<FormatPattern>, DocClassifyError> {
         let pipeline = || self.pipeline.name.clone();
-        let results = self.pipeline.apply(page, &FilterData::EMPTY).map_err(|source| DocClassifyError::Pipe {
-            entry: index,
-            pipeline: pipeline(),
-            page: self.page,
-            source,
-        })?;
+        let results = self
+            .pipeline
+            .apply(page, &FilterData::EMPTY)
+            .map_err(|source| DocClassifyError::Pipe {
+                entry: index,
+                pipeline: pipeline(),
+                page: self.page,
+                source,
+            })?;
         let mut outcome: Option<FormatPattern> = None;
         for result in results {
             let Extracted::DocClass(pattern) = result else {
@@ -147,9 +155,19 @@ impl PythonEntry {
         }
         match outcome {
             Some(pattern) if !in_repository(&pattern, formats) => Err(if pattern.is_complete() {
-                DocClassifyError::UnknownFormat { entry: index, pipeline: pipeline(), page: self.page, format: pattern }
+                DocClassifyError::UnknownFormat {
+                    entry: index,
+                    pipeline: pipeline(),
+                    page: self.page,
+                    format: pattern,
+                }
             } else {
-                DocClassifyError::PartialMatchesNoFormat { entry: index, pipeline: pipeline(), page: self.page, pattern }
+                DocClassifyError::PartialMatchesNoFormat {
+                    entry: index,
+                    pipeline: pipeline(),
+                    page: self.page,
+                    pattern,
+                }
             }),
             outcome => Ok(outcome),
         }
@@ -169,7 +187,17 @@ impl DocumentClassifier {
     /// `formats` are the complete names declared in `formats.csv`, in file order: the candidates of
     /// a partial outcome follow that order.
     pub fn new(formats: Vec<String>, python: Vec<PythonEntry>, yaml: Vec<YamlEntry>) -> Self {
-        DocumentClassifier { formats, python, yaml }
+        DocumentClassifier {
+            formats,
+            python,
+            yaml,
+        }
+    }
+
+    /// The complete names of `formats.csv`, in file order: what the sources of a document are
+    /// combined against (phase 10, `formats_repo::doc_classify_sources`).
+    pub fn formats(&self) -> &[String] {
+        &self.formats
     }
 
     /// Runs the classification over the pages of `source`, converting each page at most once and
@@ -178,21 +206,32 @@ impl DocumentClassifier {
     /// The accumulated partial `A` is carried through every entry, Python first and then YAML: a
     /// partial the Python found is where the YAML starts from (§3.3, §6).
     pub fn classify(&self, source: &dyn PageSource) -> Result<DocClassification, DocClassifyError> {
-        let mut pages = PageCache { source, pages: HashMap::new() };
+        let mut pages = PageCache {
+            source,
+            pages: HashMap::new(),
+        };
         let mut accumulated: Option<FormatPattern> = None;
 
         for (index, entry) in self.python.iter().enumerate() {
-            let Some(page) = pages.get(entry.page)? else { continue };
-            let Some(pattern) = entry.outcome(index, page, &self.formats)? else { continue };
+            let Some(page) = pages.get(entry.page)? else {
+                continue;
+            };
+            let Some(pattern) = entry.outcome(index, page, &self.formats)? else {
+                continue;
+            };
             match &accumulated {
                 // The counterpart of a YAML step that is not candidable (§6, D4).
-                Some(found) if !adds_to(&pattern, Some(found)) => ignore_python_outcome(index, entry, &pattern, found),
+                Some(found) if !adds_to(&pattern, Some(found)) => {
+                    ignore_python_outcome(index, entry, &pattern, found)
+                }
                 _ if pattern.is_complete() => {
                     let complete = CompleteClassification {
                         format: pattern,
                         page: entry.page,
                         entry: index,
-                        decided_by: DecidedBy::Python { pipeline: entry.pipeline.name.clone() },
+                        decided_by: DecidedBy::Python {
+                            pipeline: entry.pipeline.name.clone(),
+                        },
                         by_exclusion: false,
                     };
                     announce(&complete, None);
@@ -206,7 +245,9 @@ impl DocumentClassifier {
         }
 
         for (index, entry) in self.yaml.iter().enumerate() {
-            let Some(page) = pages.get(entry.page)? else { continue };
+            let Some(page) = pages.get(entry.page)? else {
+                continue;
+            };
             let mut walk = YamlWalk {
                 formats: &self.formats,
                 page,
@@ -222,7 +263,10 @@ impl DocumentClassifier {
         }
 
         Ok(match accumulated {
-            Some(pattern) => DocClassification::Partial { candidates: pattern.expand(&self.formats), pattern },
+            Some(pattern) => DocClassification::Partial {
+                candidates: pattern.expand(&self.formats),
+                pattern,
+            },
             None => DocClassification::Unclassified,
         })
     }
@@ -247,7 +291,13 @@ impl PageCache<'_> {
         {
             return Ok(self.pages.get(&index));
         }
-        let page = self.source.page(number).map_err(|source| DocClassifyError::Document { page: number, source })?;
+        let page = self
+            .source
+            .page(number)
+            .map_err(|source| DocClassifyError::Document {
+                page: number,
+                source,
+            })?;
         Ok(match (index, page) {
             (Some(index), Some(page)) => Some(self.pages.entry(index).or_insert(page)),
             _ => None,
@@ -262,6 +312,35 @@ fn adds_to(pattern: &FormatPattern, accumulated: Option<&FormatPattern>) -> bool
     accumulated.is_none_or(|found| pattern.strictly_refines(found))
 }
 
+/// Rules 3.1.1 and 3.1.2 for a step of pattern `pattern`, with `accumulated` as `A`: the **one**
+/// definition of candidability, shared by the run ([`YamlWalk`]) and by the load-time reachability
+/// check of `formats_repo::doc_classify_validate` (§5), which must not keep a copy of it.
+///
+/// `root` is `None` for a top-level step; for a nested one it is the pattern `A` must already
+/// refine (D2: the nearest ancestor with criteria of its own, or the top-level key of a chain of
+/// prefixes).
+pub(crate) fn is_candidable(
+    pattern: &FormatPattern,
+    root: Option<&FormatPattern>,
+    accumulated: Option<&FormatPattern>,
+) -> bool {
+    let root_found = root.is_none_or(|root| accumulated.is_some_and(|found| found.refines(root)));
+    root_found && adds_to(pattern, accumulated)
+}
+
+/// Rule 3.1.3 for a `*` step: the template instantiated with the entity of `accumulated`, if there
+/// is one and the repository has a format for it (the instance is one, or expands to some) — so the
+/// YAML can never produce a name that does not exist. Shared with the load-time validation like
+/// [`is_candidable`].
+pub(crate) fn template_instance(
+    template: &FormatTemplate,
+    accumulated: Option<&FormatPattern>,
+    formats: &[String],
+) -> Option<FormatPattern> {
+    let instance = template.instantiate(accumulated?.entity());
+    in_repository(&instance, formats).then_some(instance)
+}
+
 /// Some format of the repository refines `pattern`: for a complete name, it is declared.
 fn in_repository(pattern: &FormatPattern, formats: &[String]) -> bool {
     !pattern.expand(formats).is_empty()
@@ -270,7 +349,12 @@ fn in_repository(pattern: &FormatPattern, formats: &[String]) -> bool {
 /// D4: an outcome the accumulated partial already refines repeats what is known and is only
 /// `debug`; any other — incompatible, or compatible but not comparable — means two pipelines of
 /// the author disagree, which must show without stopping the classification.
-fn ignore_python_outcome(index: usize, entry: &PythonEntry, pattern: &FormatPattern, found: &FormatPattern) {
+fn ignore_python_outcome(
+    index: usize,
+    entry: &PythonEntry,
+    pattern: &FormatPattern,
+    found: &FormatPattern,
+) {
     if found.refines(pattern) {
         tracing::debug!(
             entry = index,
@@ -348,12 +432,18 @@ impl YamlWalk<'_> {
     /// One step, then its children. Candidability is the step's own (R1): a step that is not
     /// evaluated does not close its subtree; only criteria that were evaluated and failed do
     /// (rule 3.1.4).
-    fn step(&mut self, step: &Step, context: Option<&FormatPattern>) -> Option<(CompleteClassification, Option<String>)> {
+    fn step(
+        &mut self,
+        step: &Step,
+        context: Option<&FormatPattern>,
+    ) -> Option<(CompleteClassification, Option<String>)> {
         let pattern = match &step.key {
             StepKey::Pattern(pattern) => pattern.clone(),
-            StepKey::Template(template) => self.instance(template)?,
+            StepKey::Template(template) => {
+                template_instance(template, self.accumulated.as_ref(), self.formats)?
+            }
         };
-        if !step.is_prefix() && self.is_candidable(&pattern, context) {
+        if !step.is_prefix() && is_candidable(&pattern, context, self.accumulated.as_ref()) {
             let found = first_line_if_every_selection_matches(&step.criteria, &self.page.lines)?;
             let found = (!step.criteria.is_empty()).then_some(found);
             if pattern.is_complete() {
@@ -364,30 +454,28 @@ impl YamlWalk<'_> {
         }
         // D2: the root of the children is the nearest ancestor with criteria of its own, or the
         // top-level key of a chain of prefixes — so adding or removing a prefix changes nothing.
-        let root = if step.criteria.is_empty() { context.unwrap_or(&pattern) } else { &pattern };
+        let root = if step.criteria.is_empty() {
+            context.unwrap_or(&pattern)
+        } else {
+            &pattern
+        };
         self.steps(&step.children, Some(root))
     }
 
-    /// Rules 3.1.1 and 3.1.2 (rule 3.1.3 is [`Self::instance`]'s).
-    fn is_candidable(&self, pattern: &FormatPattern, context: Option<&FormatPattern>) -> bool {
-        let accumulated = self.accumulated.as_ref();
-        let root_found = context.is_none_or(|root| accumulated.is_some_and(|found| found.refines(root)));
-        root_found && adds_to(pattern, accumulated)
-    }
-
-    /// Rule 3.1.3: a `*` step stands for the entity already found, and only where the repository
-    /// has a format for it — so the YAML can never produce a name that does not exist.
-    fn instance(&self, template: &FormatTemplate) -> Option<FormatPattern> {
-        let pattern = template.instantiate(self.accumulated.as_ref()?.entity());
-        in_repository(&pattern, self.formats).then_some(pattern)
-    }
-
-    fn complete(&self, step: &Step, format: FormatPattern, by_exclusion: bool) -> CompleteClassification {
+    fn complete(
+        &self,
+        step: &Step,
+        format: FormatPattern,
+        by_exclusion: bool,
+    ) -> CompleteClassification {
         CompleteClassification {
             format,
             page: self.written_page,
             entry: self.entry,
-            decided_by: DecidedBy::Yaml { step: step.key.to_string(), path: self.path.clone() },
+            decided_by: DecidedBy::Yaml {
+                step: step.key.to_string(),
+                path: self.path.clone(),
+            },
             by_exclusion,
         }
     }
@@ -423,7 +511,10 @@ pub enum DocClassification {
     Complete(CompleteClassification),
     /// The accumulated partial, and the formats of the repository refining it (`expand`), in
     /// `formats.csv` order.
-    Partial { pattern: FormatPattern, candidates: Vec<String> },
+    Partial {
+        pattern: FormatPattern,
+        candidates: Vec<String>,
+    },
     Unclassified,
 }
 
@@ -437,7 +528,9 @@ pub enum DocClassifyError {
         #[source]
         source: DocumentError,
     },
-    #[error("document classifier entry {entry} (pipeline `{pipeline}`, page {page}) failed: {source}")]
+    #[error(
+        "document classifier entry {entry} (pipeline `{pipeline}`, page {page}) failed: {source}"
+    )]
     Pipe {
         entry: usize,
         pipeline: PipelineName,
@@ -448,19 +541,40 @@ pub enum DocClassifyError {
     #[error(
         "document classifier entry {entry} (pipeline `{pipeline}`, page {page}) gave two different formats: '{first}' and '{second}'"
     )]
-    ConflictingDocClass { entry: usize, pipeline: PipelineName, page: NonZeroI32, first: FormatPattern, second: FormatPattern },
+    ConflictingDocClass {
+        entry: usize,
+        pipeline: PipelineName,
+        page: NonZeroI32,
+        first: FormatPattern,
+        second: FormatPattern,
+    },
     #[error(
         "document classifier entry {entry} (pipeline `{pipeline}`, page {page}) returned {found}, not a document class"
     )]
-    NotADocClassification { entry: usize, pipeline: PipelineName, page: NonZeroI32, found: String },
+    NotADocClassification {
+        entry: usize,
+        pipeline: PipelineName,
+        page: NonZeroI32,
+        found: String,
+    },
     #[error(
         "document classifier entry {entry} (pipeline `{pipeline}`, page {page}) gave '{format}', which is not a format of the repository"
     )]
-    UnknownFormat { entry: usize, pipeline: PipelineName, page: NonZeroI32, format: FormatPattern },
+    UnknownFormat {
+        entry: usize,
+        pipeline: PipelineName,
+        page: NonZeroI32,
+        format: FormatPattern,
+    },
     #[error(
         "document classifier entry {entry} (pipeline `{pipeline}`, page {page}) gave '{pattern}', which no format of the repository refines"
     )]
-    PartialMatchesNoFormat { entry: usize, pipeline: PipelineName, page: NonZeroI32, pattern: FormatPattern },
+    PartialMatchesNoFormat {
+        entry: usize,
+        pipeline: PipelineName,
+        page: NonZeroI32,
+        pattern: FormatPattern,
+    },
 }
 
 #[cfg(test)]
@@ -506,7 +620,11 @@ pub(crate) mod tests {
     }
 
     fn formats_without(excluded: &str) -> Vec<String> {
-        FORMATS.iter().filter(|f| **f != excluded).map(|f| f.to_string()).collect()
+        FORMATS
+            .iter()
+            .filter(|f| **f != excluded)
+            .map(|f| f.to_string())
+            .collect()
     }
 
     fn n(number: i32) -> NonZeroI32 {
@@ -531,29 +649,51 @@ pub(crate) mod tests {
 
     /// A step with criteria and no children.
     fn leaf(key: &str, patterns: &[&str]) -> Step {
-        Step { key: StepKey::Pattern(p(key)), criteria: criteria(patterns), children: vec![] }
+        Step {
+            key: StepKey::Pattern(p(key)),
+            criteria: criteria(patterns),
+            children: vec![],
+        }
     }
 
     /// A step with (possibly no) criteria and children.
     fn block(key: &str, patterns: &[&str], children: Vec<Step>) -> Step {
-        Step { key: StepKey::Pattern(p(key)), criteria: criteria(patterns), children }
+        Step {
+            key: StepKey::Pattern(p(key)),
+            criteria: criteria(patterns),
+            children,
+        }
     }
 
     /// No criteria, no children: the "otherwise" (§3.2).
     fn unconditional(key: &str) -> Step {
-        Step { key: StepKey::Pattern(p(key)), criteria: vec![], children: vec![] }
+        Step {
+            key: StepKey::Pattern(p(key)),
+            criteria: vec![],
+            children: vec![],
+        }
     }
 
     fn template(key: &str, patterns: &[&str]) -> Step {
-        Step { key: StepKey::Template(t(key)), criteria: criteria(patterns), children: vec![] }
+        Step {
+            key: StepKey::Template(t(key)),
+            criteria: criteria(patterns),
+            children: vec![],
+        }
     }
 
     fn entry(page: i32, steps: Vec<Step>) -> YamlEntry {
-        YamlEntry { page: n(page), steps }
+        YamlEntry {
+            page: n(page),
+            steps,
+        }
     }
 
     fn py(page: i32, pipeline: Pipeline) -> PythonEntry {
-        PythonEntry { page: n(page), pipeline }
+        PythonEntry {
+            page: n(page),
+            pipeline,
+        }
     }
 
     fn yaml_only(yaml: Vec<YamlEntry>) -> DocumentClassifier {
@@ -567,9 +707,18 @@ pub(crate) mod tests {
     /// The pipeline a Python author writes with the three standard bricks of phase 5.
     fn standard_pipeline(name: &str, patterns: &[&str], pattern: &str) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
-        pipeline.pdf_extract.push(Arc::new(PdfExtractDocClassifyStandard::new(criteria(patterns), p(pattern))));
-        pipeline.text_filter.push(Arc::new(TextFilterDocClassifyStandard));
-        pipeline.deserialize.push(Arc::new(DeserializerDocClassifyStandard));
+        pipeline
+            .pdf_extract
+            .push(Arc::new(PdfExtractDocClassifyStandard::new(
+                criteria(patterns),
+                p(pattern),
+            )));
+        pipeline
+            .text_filter
+            .push(Arc::new(TextFilterDocClassifyStandard));
+        pipeline
+            .deserialize
+            .push(Arc::new(DeserializerDocClassifyStandard));
         pipeline
     }
 
@@ -578,10 +727,19 @@ pub(crate) mod tests {
     fn standard_pipeline_with(name: &str, pipes: &[(&[&str], &str)]) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         for (patterns, pattern) in pipes {
-            pipeline.pdf_extract.push(Arc::new(PdfExtractDocClassifyStandard::new(criteria(patterns), p(pattern))));
+            pipeline
+                .pdf_extract
+                .push(Arc::new(PdfExtractDocClassifyStandard::new(
+                    criteria(patterns),
+                    p(pattern),
+                )));
         }
-        pipeline.text_filter.push(Arc::new(TextFilterDocClassifyStandard));
-        pipeline.deserialize.push(Arc::new(DeserializerDocClassifyStandard));
+        pipeline
+            .text_filter
+            .push(Arc::new(TextFilterDocClassifyStandard));
+        pipeline
+            .deserialize
+            .push(Arc::new(DeserializerDocClassifyStandard));
         pipeline
     }
 
@@ -614,7 +772,9 @@ pub(crate) mod tests {
     fn pipeline_emitting(name: &str, results: Vec<Extracted>) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(Arc::new(OneBlock));
-        pipeline.text_filter.push(RecordingFilter::new("pass") as Arc<dyn TextFilterPipe>);
+        pipeline
+            .text_filter
+            .push(RecordingFilter::new("pass") as Arc<dyn TextFilterPipe>);
         pipeline.deserialize.push(Arc::new(Emits(results)));
         pipeline
     }
@@ -639,7 +799,10 @@ pub(crate) mod tests {
     impl FakeDocument {
         fn new(pages: &[&[&str]]) -> Self {
             FakeDocument {
-                pages: pages.iter().map(|lines| lines.iter().map(|l| l.to_string()).collect()).collect(),
+                pages: pages
+                    .iter()
+                    .map(|lines| lines.iter().map(|l| l.to_string()).collect())
+                    .collect(),
                 requests: Mutex::new(Vec::new()),
                 broken: Vec::new(),
             }
@@ -647,7 +810,11 @@ pub(crate) mod tests {
 
         /// `count` pages with no text.
         fn blank(count: usize) -> Self {
-            FakeDocument { pages: vec![Vec::new(); count], requests: Mutex::new(Vec::new()), broken: Vec::new() }
+            FakeDocument {
+                pages: vec![Vec::new(); count],
+                requests: Mutex::new(Vec::new()),
+                broken: Vec::new(),
+            }
         }
 
         /// The same document, with physical page `number` failing to convert.
@@ -674,7 +841,9 @@ pub(crate) mod tests {
                 if self.broken.contains(&physical) {
                     return Err(DocumentError::Page {
                         number: physical,
-                        source: crate::core::page::PageError::ParseFail { message: "broken page".to_string() },
+                        source: crate::core::page::PageError::ParseFail {
+                            message: "broken page".to_string(),
+                        },
                     });
                 }
             }
@@ -756,7 +925,10 @@ pub(crate) mod tests {
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
                 let mut render = Render::default();
                 event.record(&mut render);
-                self.events.lock().unwrap().push(Event { level: *event.metadata().level(), text: render.0 });
+                self.events.lock().unwrap().push(Event {
+                    level: *event.metadata().level(),
+                    text: render.0,
+                });
             }
         }
 
@@ -765,7 +937,9 @@ pub(crate) mod tests {
         /// Holds [`super::SERIAL`] for the whole capture, and rebuilds the callsite interest cache
         /// once the capturing dispatcher is installed: see `SERIAL` for the race this closes.
         pub(super) fn events_of<T>(f: impl FnOnce() -> T) -> (T, Vec<Event>) {
-            let _guard = super::SERIAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            let _guard = super::SERIAL
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             let layer = CapturingLayer::default();
             let subscriber = Registry::default().with(layer.clone());
             let result = tracing::subscriber::with_default(subscriber, || {
@@ -777,7 +951,11 @@ pub(crate) mod tests {
         }
 
         pub(super) fn at(events: &[Event], level: tracing::Level) -> Vec<Event> {
-            events.iter().filter(|event| event.level == level).cloned().collect()
+            events
+                .iter()
+                .filter(|event| event.level == level)
+                .cloned()
+                .collect()
         }
     }
 
@@ -797,12 +975,20 @@ pub(crate) mod tests {
     /// [`DocumentClassifier::classify`] under [`SERIAL`]. Every test calls the engine through this,
     /// except inside [`events_of`], which already holds the lock.
     trait ClassifySerialized {
-        fn classify_serialized(&self, source: &dyn PageSource) -> Result<DocClassification, DocClassifyError>;
+        fn classify_serialized(
+            &self,
+            source: &dyn PageSource,
+        ) -> Result<DocClassification, DocClassifyError>;
     }
 
     impl ClassifySerialized for DocumentClassifier {
-        fn classify_serialized(&self, source: &dyn PageSource) -> Result<DocClassification, DocClassifyError> {
-            let _guard = SERIAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        fn classify_serialized(
+            &self,
+            source: &dyn PageSource,
+        ) -> Result<DocClassification, DocClassifyError> {
+            let _guard = SERIAL
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             self.classify(source)
         }
     }
@@ -818,22 +1004,249 @@ pub(crate) mod tests {
         #[test]
         fn an_empty_classifier_leaves_the_document_unclassified_and_reads_no_page() {
             let document = FakeDocument::blank(3);
-            let outcome = DocumentClassifier::new(formats(), vec![], vec![]).classify_serialized(&document).unwrap();
+            let outcome = DocumentClassifier::new(formats(), vec![], vec![])
+                .classify_serialized(&document)
+                .unwrap();
             assert_eq!(outcome, DocClassification::Unclassified);
             assert_eq!(document.requests(), Vec::<i32>::new());
         }
 
         #[test]
         fn a_step_key_displays_as_written() {
-            assert_eq!(StepKey::Pattern(p("MEDIOLANUM-IT24.*")).to_string(), "MEDIOLANUM-IT24.*");
-            assert_eq!(StepKey::Pattern(p("FIDEURAM-IT23@*")).to_string(), "FIDEURAM-IT23@*");
+            assert_eq!(
+                StepKey::Pattern(p("MEDIOLANUM-IT24.*")).to_string(),
+                "MEDIOLANUM-IT24.*"
+            );
+            assert_eq!(
+                StepKey::Pattern(p("FIDEURAM-IT23@*")).to_string(),
+                "FIDEURAM-IT23@*"
+            );
             assert_eq!(StepKey::Template(t("*-EN23")).to_string(), "*-EN23");
+        }
+
+        /// The formats are given back as they were given, in `formats.csv` order: the combination
+        /// of the sources (phase 10) lists candidates in that order.
+        #[test]
+        fn the_formats_are_those_given_in_their_order() {
+            let given = vec![
+                "MEDIOLANUM-IT24.B".to_string(),
+                "AMUNDI-EN24".to_string(),
+                "MEDIOLANUM-IT24.A".to_string(),
+            ];
+            let classifier = DocumentClassifier::new(given.clone(), vec![], vec![]);
+            assert_eq!(classifier.formats(), given.as_slice());
         }
 
         #[test]
         fn lazy_document_is_a_page_source() {
             fn is_page_source<T: PageSource>() {}
             is_page_source::<LazyDocument>();
+        }
+    }
+
+    /// Rules 3.1.1–3.1.3 as the free functions the run and the load-time validation share (phase
+    /// 9: the reachability check must use the engine's own definition of candidability).
+    mod shared_rules {
+        use super::*;
+
+        mod is_candidable_at_the_top_level {
+            use super::*;
+
+            #[test]
+            fn anything_is_candidable_with_nothing_accumulated() {
+                assert!(is_candidable(&p("AMUNDI-EN24"), None, None));
+                assert!(is_candidable(&p("MEDIOLANUM"), None, None));
+            }
+
+            #[test]
+            fn a_strict_refinement_of_the_accumulated_partial_is_candidable() {
+                assert!(is_candidable(
+                    &p("MEDIOLANUM-IT24.A"),
+                    None,
+                    Some(&p("MEDIOLANUM"))
+                ));
+                assert!(is_candidable(
+                    &p("MEDIOLANUM-IT24.A"),
+                    None,
+                    Some(&p("MEDIOLANUM-IT24.*"))
+                ));
+            }
+
+            #[test]
+            fn the_accumulated_partial_itself_is_not_candidable() {
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM"),
+                    None,
+                    Some(&p("MEDIOLANUM"))
+                ));
+            }
+
+            #[test]
+            fn a_pattern_the_accumulated_partial_already_refines_is_not_candidable() {
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM"),
+                    None,
+                    Some(&p("MEDIOLANUM-IT"))
+                ));
+            }
+
+            #[test]
+            fn an_incompatible_pattern_is_not_candidable() {
+                assert!(!is_candidable(
+                    &p("AMUNDI-EN24"),
+                    None,
+                    Some(&p("MEDIOLANUM"))
+                ));
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM-EN23"),
+                    None,
+                    Some(&p("MEDIOLANUM-IT"))
+                ));
+            }
+
+            /// Compatible but not comparable: neither refines the other.
+            #[test]
+            fn a_compatible_but_not_comparable_pattern_is_not_candidable() {
+                assert!(!is_candidable(
+                    &p("X-IT23@*.B"),
+                    None,
+                    Some(&p("X-IT23@LUX.*"))
+                ));
+            }
+        }
+
+        mod is_candidable_when_nested {
+            use super::*;
+
+            /// Rule 3.1.2: a nested step needs its root already found.
+            #[test]
+            fn nothing_accumulated_never_makes_a_nested_step_candidable() {
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM-EN23"),
+                    Some(&p("MEDIOLANUM")),
+                    None
+                ));
+            }
+
+            #[test]
+            fn the_root_found_makes_a_strict_refinement_candidable() {
+                assert!(is_candidable(
+                    &p("MEDIOLANUM-EN23"),
+                    Some(&p("MEDIOLANUM")),
+                    Some(&p("MEDIOLANUM"))
+                ));
+            }
+
+            #[test]
+            fn a_refinement_of_the_root_found_counts_as_the_root_found() {
+                assert!(is_candidable(
+                    &p("MEDIOLANUM-ES24.A"),
+                    Some(&p("MEDIOLANUM")),
+                    Some(&p("MEDIOLANUM-ES"))
+                ));
+            }
+
+            /// D2: below `MEDIOLANUM: {text, ES: {text, 24.*: {A: …}}}` the root of `24.A` is
+            /// `MEDIOLANUM-ES`, and `A = MEDIOLANUM` is not enough.
+            #[test]
+            fn an_accumulated_partial_coarser_than_the_root_does_not_make_it_candidable() {
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM-ES24.A"),
+                    Some(&p("MEDIOLANUM-ES")),
+                    Some(&p("MEDIOLANUM"))
+                ));
+            }
+
+            #[test]
+            fn the_root_found_does_not_lift_rule_3_1_1() {
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM-ES"),
+                    Some(&p("MEDIOLANUM")),
+                    Some(&p("MEDIOLANUM-ES"))
+                ));
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM-IT23"),
+                    Some(&p("MEDIOLANUM")),
+                    Some(&p("MEDIOLANUM-ES"))
+                ));
+            }
+
+            #[test]
+            fn an_accumulated_partial_of_another_entity_does_not_make_it_candidable() {
+                assert!(!is_candidable(
+                    &p("MEDIOLANUM-EN23"),
+                    Some(&p("MEDIOLANUM")),
+                    Some(&p("AMUNDI"))
+                ));
+            }
+        }
+
+        mod the_template_instance {
+            use super::*;
+
+            #[test]
+            fn nothing_accumulated_instantiates_nothing() {
+                assert_eq!(template_instance(&t("*-EN23"), None, &formats()), None);
+            }
+
+            #[test]
+            fn a_complete_instance_the_repository_has_is_the_instance() {
+                assert_eq!(
+                    template_instance(&t("*-EN23"), Some(&p("MEDIOLANUM")), &formats()),
+                    Some(p("MEDIOLANUM-EN23"))
+                );
+            }
+
+            /// The entity is the accumulated partial's, however refined that partial is.
+            #[test]
+            fn the_instance_takes_only_the_entity_of_the_accumulated_partial() {
+                assert_eq!(
+                    template_instance(&t("*-EN23"), Some(&p("MEDIOLANUM-IT")), &formats()),
+                    Some(p("MEDIOLANUM-EN23"))
+                );
+            }
+
+            /// The user's rule (§5, 2026-10-11): the `*` simply does not start.
+            #[test]
+            fn a_complete_instance_the_repository_lacks_is_none() {
+                assert_eq!(
+                    template_instance(
+                        &t("*-EN23"),
+                        Some(&p("MEDIOLANUM")),
+                        &formats_without("MEDIOLANUM-EN23")
+                    ),
+                    None
+                );
+            }
+
+            #[test]
+            fn a_partial_instance_expanding_to_some_format_is_the_instance() {
+                assert_eq!(
+                    template_instance(&t("*-ES"), Some(&p("MEDIOLANUM")), &formats()),
+                    Some(p("MEDIOLANUM-ES"))
+                );
+                assert_eq!(
+                    template_instance(&t("*-IT23@*"), Some(&p("FIDEURAM")), &formats()),
+                    Some(p("FIDEURAM-IT23@*"))
+                );
+            }
+
+            #[test]
+            fn a_partial_instance_expanding_to_nothing_is_none() {
+                assert_eq!(
+                    template_instance(&t("*-FR"), Some(&p("MEDIOLANUM")), &formats()),
+                    None
+                );
+            }
+
+            /// Rule 3.1.3 only: whether the instance strictly refines `A` is rule 3.1.1's business.
+            #[test]
+            fn an_instance_that_does_not_refine_the_accumulated_partial_is_still_the_instance() {
+                assert_eq!(
+                    template_instance(&t("*-EN23"), Some(&p("MEDIOLANUM-EN23")), &formats()),
+                    Some(p("MEDIOLANUM-EN23"))
+                );
+            }
         }
     }
 
@@ -849,7 +1262,10 @@ pub(crate) mod tests {
         fn pages_are_read_in_the_order_the_entries_are_written() {
             let document = FakeDocument::blank(10);
             let classifier = yaml_only([1, 3, 5, 2, -2].into_iter().map(never_matching).collect());
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
             assert_eq!(document.requests(), vec![1, 3, 5, 2, -2]);
         }
 
@@ -859,10 +1275,18 @@ pub(crate) mod tests {
             // a page that exists is converted once, however it is written. So `-2` is asked for
             // only on 1 page (where it does not exist); on 2 pages it is page 1, on 4 pages page 3,
             // both already converted.
-            for (page_count, expected) in [(1, vec![1, 3, 5, 2, -2]), (2, vec![1, 3, 5, 2]), (4, vec![1, 3, 5, 2])] {
+            for (page_count, expected) in [
+                (1, vec![1, 3, 5, 2, -2]),
+                (2, vec![1, 3, 5, 2]),
+                (4, vec![1, 3, 5, 2]),
+            ] {
                 let document = FakeDocument::blank(page_count);
-                let classifier = yaml_only([1, 3, 5, 2, -2].into_iter().map(never_matching).collect());
-                assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+                let classifier =
+                    yaml_only([1, 3, 5, 2, -2].into_iter().map(never_matching).collect());
+                assert_eq!(
+                    classifier.classify_serialized(&document).unwrap(),
+                    DocClassification::Unclassified
+                );
                 assert_eq!(document.requests(), expected, "{page_count} pages");
             }
         }
@@ -885,7 +1309,10 @@ pub(crate) mod tests {
         fn an_unconditional_step_on_a_missing_page_does_not_match() {
             let document = FakeDocument::blank(2);
             let classifier = yaml_only(vec![entry(5, vec![unconditional("ASTERIA-EN23")])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
@@ -893,14 +1320,22 @@ pub(crate) mod tests {
             let document = FakeDocument::blank(2);
             // Were the pipeline run, its outcome would be a complete name.
             let classifier = python_only(vec![py(7, says("p", "AMUNDI-EN24"))]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
             assert_eq!(document.requests(), vec![7]);
         }
 
         #[test]
         fn the_same_page_in_several_yaml_entries_is_converted_once() {
             let document = FakeDocument::blank(4);
-            let classifier = yaml_only(vec![never_matching(1), never_matching(2), never_matching(1), never_matching(1)]);
+            let classifier = yaml_only(vec![
+                never_matching(1),
+                never_matching(2),
+                never_matching(1),
+                never_matching(1),
+            ]);
             classifier.classify_serialized(&document).unwrap();
             assert_eq!(document.requests(), vec![1, 2]);
         }
@@ -908,7 +1343,11 @@ pub(crate) mod tests {
         #[test]
         fn a_page_written_positive_and_negative_is_converted_once() {
             let document = FakeDocument::blank(10);
-            let classifier = yaml_only(vec![never_matching(1), never_matching(-10), never_matching(1)]);
+            let classifier = yaml_only(vec![
+                never_matching(1),
+                never_matching(-10),
+                never_matching(1),
+            ]);
             classifier.classify_serialized(&document).unwrap();
             assert_eq!(document.requests(), vec![1]);
         }
@@ -916,7 +1355,12 @@ pub(crate) mod tests {
         #[test]
         fn the_last_page_written_both_ways_is_converted_once() {
             let document = FakeDocument::blank(10);
-            let classifier = yaml_only(vec![never_matching(-1), never_matching(3), never_matching(10), never_matching(-8)]);
+            let classifier = yaml_only(vec![
+                never_matching(-1),
+                never_matching(3),
+                never_matching(10),
+                never_matching(-8),
+            ]);
             classifier.classify_serialized(&document).unwrap();
             assert_eq!(document.requests(), vec![-1, 3]);
         }
@@ -952,7 +1396,10 @@ pub(crate) mod tests {
             let document = FakeDocument::blank(4);
             let classifier = DocumentClassifier::new(
                 formats(),
-                vec![py(1, pipeline_emitting("p", vec![doc_class(None)])), py(3, pipeline_emitting("q", vec![doc_class(None)]))],
+                vec![
+                    py(1, pipeline_emitting("p", vec![doc_class(None)])),
+                    py(3, pipeline_emitting("q", vec![doc_class(None)])),
+                ],
                 vec![never_matching(3), never_matching(1)],
             );
             classifier.classify_serialized(&document).unwrap();
@@ -967,15 +1414,24 @@ pub(crate) mod tests {
                 entry(2, vec![leaf("AMUNDI-EN24", &["anything"])]),
                 entry(3, vec![leaf("AMUNDI-EN24", &["anything"])]),
             ]);
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "EURIZON-EN23");
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "EURIZON-EN23",
+            );
             assert_eq!(document.requests(), vec![1]);
         }
 
         #[test]
         fn a_complete_python_outcome_stops_before_the_next_page_is_converted() {
             let document = FakeDocument::blank(3);
-            let classifier = python_only(vec![py(1, says("p", "AMUNDI-EN24")), py(2, says("q", "EURIZON-EN23"))]);
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "AMUNDI-EN24");
+            let classifier = python_only(vec![
+                py(1, says("p", "AMUNDI-EN24")),
+                py(2, says("q", "EURIZON-EN23")),
+            ]);
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "AMUNDI-EN24",
+            );
             assert_eq!(document.requests(), vec![1]);
         }
 
@@ -984,9 +1440,15 @@ pub(crate) mod tests {
             let document = FakeDocument::new(&[&["Eurizon Fund", "Amundi Funds"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("EURIZON-EN23", &["^Eurizon Fund$"]), leaf("AMUNDI-EN24", &["^Amundi Funds$"])],
+                vec![
+                    leaf("EURIZON-EN23", &["^Eurizon Fund$"]),
+                    leaf("AMUNDI-EN24", &["^Amundi Funds$"]),
+                ],
             )]);
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "EURIZON-EN23");
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "EURIZON-EN23",
+            );
         }
     }
 
@@ -1041,7 +1503,10 @@ doc.close()
             let dir = tempfile::tempdir().unwrap();
             let document = LazyDocument::open(&plain_pdf(&dir, 2), true).unwrap();
             let classifier = yaml_only(vec![entry(5, vec![unconditional("ASTERIA-EN23")])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
     }
 
@@ -1052,7 +1517,10 @@ doc.close()
         #[test]
         fn a_complete_step_whose_criteria_all_find_a_line_classifies() {
             let document = FakeDocument::new(&[&["Eurizon Fund", "Annual Report 2023"]]);
-            let classifier = yaml_only(vec![entry(1, vec![leaf("EURIZON-EN23", &["^Eurizon Fund$", "^Annual Report"])])]);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![leaf("EURIZON-EN23", &["^Eurizon Fund$", "^Annual Report"])],
+            )]);
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_eq!(
                 outcome,
@@ -1060,7 +1528,10 @@ doc.close()
                     format: p("EURIZON-EN23"),
                     page: n(1),
                     entry: 0,
-                    decided_by: DecidedBy::Yaml { step: "EURIZON-EN23".to_string(), path: vec![0] },
+                    decided_by: DecidedBy::Yaml {
+                        step: "EURIZON-EN23".to_string(),
+                        path: vec![0]
+                    },
                     by_exclusion: false,
                 })
             );
@@ -1069,22 +1540,37 @@ doc.close()
         #[test]
         fn one_criterion_without_a_line_is_enough_to_fail() {
             let document = FakeDocument::new(&[&["Eurizon Fund"]]);
-            let classifier = yaml_only(vec![entry(1, vec![leaf("EURIZON-EN23", &["^Eurizon Fund$", "^Annual Report"])])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![leaf("EURIZON-EN23", &["^Eurizon Fund$", "^Annual Report"])],
+            )]);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
         fn a_page_without_text_matches_no_step_with_criteria() {
             let document = FakeDocument::blank(1);
             let classifier = yaml_only(vec![entry(1, vec![leaf("EURIZON-EN23", &[".*"])])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
         fn the_criteria_may_be_found_on_different_lines() {
             let document = FakeDocument::new(&[&["first", "Eurizon Fund", "other", "2023"]]);
-            let classifier = yaml_only(vec![entry(1, vec![leaf("EURIZON-EN23", &["^Eurizon Fund$", "^2023$"])])]);
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "EURIZON-EN23");
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![leaf("EURIZON-EN23", &["^Eurizon Fund$", "^2023$"])],
+            )]);
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "EURIZON-EN23",
+            );
         }
     }
 
@@ -1095,12 +1581,18 @@ doc.close()
         #[test]
         fn a_matching_partial_step_alone_gives_a_partial_outcome_with_its_candidates() {
             let document = FakeDocument::new(&[&["Mediolanum"]]);
-            let classifier = yaml_only(vec![entry(1, vec![leaf("MEDIOLANUM-IT24.*", &["^Mediolanum$"])])]);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![leaf("MEDIOLANUM-IT24.*", &["^Mediolanum$"])],
+            )]);
             assert_eq!(
                 classifier.classify_serialized(&document).unwrap(),
                 DocClassification::Partial {
                     pattern: p("MEDIOLANUM-IT24.*"),
-                    candidates: vec!["MEDIOLANUM-IT24.A".to_string(), "MEDIOLANUM-IT24.B".to_string()],
+                    candidates: vec![
+                        "MEDIOLANUM-IT24.A".to_string(),
+                        "MEDIOLANUM-IT24.B".to_string()
+                    ],
                 }
             );
         }
@@ -1109,11 +1601,17 @@ doc.close()
         fn the_candidates_follow_the_order_of_the_formats() {
             let document = FakeDocument::new(&[&["Mediolanum"]]);
             let classifier = yaml_only(vec![entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"])])]);
-            let expected: Vec<String> =
-                FORMATS.iter().filter(|f| f.starts_with("MEDIOLANUM-")).map(|f| f.to_string()).collect();
+            let expected: Vec<String> = FORMATS
+                .iter()
+                .filter(|f| f.starts_with("MEDIOLANUM-"))
+                .map(|f| f.to_string())
+                .collect();
             assert_eq!(
                 classifier.classify_serialized(&document).unwrap(),
-                DocClassification::Partial { pattern: p("MEDIOLANUM"), candidates: expected }
+                DocClassification::Partial {
+                    pattern: p("MEDIOLANUM"),
+                    candidates: expected
+                }
             );
         }
 
@@ -1122,17 +1620,31 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum", "Relazione"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), leaf("MEDIOLANUM-IT24.*", &["^Relazione$"])],
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    leaf("MEDIOLANUM-IT24.*", &["^Relazione$"]),
+                ],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.*");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-IT24.*",
+            );
         }
 
         #[test]
         fn a_partial_of_another_entity_is_not_evaluated_once_one_is_accumulated() {
             let document = FakeDocument::new(&[&["Mediolanum", "Amundi"]]);
-            let classifier =
-                yaml_only(vec![entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), leaf("AMUNDI", &["^Amundi$"])])]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    leaf("AMUNDI", &["^Amundi$"]),
+                ],
+            )]);
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
@@ -1140,9 +1652,15 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum", "Amundi Funds"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), leaf("AMUNDI-EN24", &["^Amundi Funds$"])],
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    leaf("AMUNDI-EN24", &["^Amundi Funds$"]),
+                ],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
@@ -1150,9 +1668,15 @@ doc.close()
             let document = FakeDocument::new(&[&["Relazione", "Mediolanum"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM-IT24.*", &["^Relazione$"]), leaf("MEDIOLANUM", &["^Mediolanum$"])],
+                vec![
+                    leaf("MEDIOLANUM-IT24.*", &["^Relazione$"]),
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                ],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.*");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-IT24.*",
+            );
         }
 
         #[test]
@@ -1160,11 +1684,17 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum", "Best Brands"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])],
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"]),
+                ],
             )]);
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "MEDIOLANUM-IT24.A");
-            assert_eq!(yaml_step(&outcome), ("MEDIOLANUM-IT24.A".to_string(), vec![1]));
+            assert_eq!(
+                yaml_step(&outcome),
+                ("MEDIOLANUM-IT24.A".to_string(), vec![1])
+            );
         }
 
         #[test]
@@ -1173,9 +1703,18 @@ doc.close()
             let classifier = yaml_only(vec![
                 entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"])]),
                 // `AMUNDI-EN24` would match page 2, but `A = MEDIOLANUM` comes from page 1.
-                entry(2, vec![leaf("AMUNDI-EN24", &["^Amundi Funds$"]), leaf("MEDIOLANUM-IT24.*", &["^Relazione$"])]),
+                entry(
+                    2,
+                    vec![
+                        leaf("AMUNDI-EN24", &["^Amundi Funds$"]),
+                        leaf("MEDIOLANUM-IT24.*", &["^Relazione$"]),
+                    ],
+                ),
             ]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.*");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-IT24.*",
+            );
         }
 
         #[test]
@@ -1200,7 +1739,10 @@ doc.close()
                 entry(2, vec![leaf("MEDIOLANUM-IT24.*", &["^Relazione$"])]),
                 entry(3, vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])]),
             ]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
     }
 
@@ -1214,11 +1756,22 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum", "Informe 2021"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![block("MEDIOLANUM", &["^Mediolanum$"], vec![block("MEDIOLANUM-ES", &[], vec![leaf("MEDIOLANUM-ES21", &["^Informe 2021$"])])])],
+                vec![block(
+                    "MEDIOLANUM",
+                    &["^Mediolanum$"],
+                    vec![block(
+                        "MEDIOLANUM-ES",
+                        &[],
+                        vec![leaf("MEDIOLANUM-ES21", &["^Informe 2021$"])],
+                    )],
+                )],
             )]);
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "MEDIOLANUM-ES21");
-            assert_eq!(yaml_step(&outcome), ("MEDIOLANUM-ES21".to_string(), vec![0, 0, 0]));
+            assert_eq!(
+                yaml_step(&outcome),
+                ("MEDIOLANUM-ES21".to_string(), vec![0, 0, 0])
+            );
         }
 
         #[test]
@@ -1227,9 +1780,20 @@ doc.close()
             let document = FakeDocument::new(&[&["Informe 2021"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![block("MEDIOLANUM", &["^Mediolanum$"], vec![block("MEDIOLANUM-ES", &[], vec![leaf("MEDIOLANUM-ES21", &["^Informe 2021$"])])])],
+                vec![block(
+                    "MEDIOLANUM",
+                    &["^Mediolanum$"],
+                    vec![block(
+                        "MEDIOLANUM-ES",
+                        &[],
+                        vec![leaf("MEDIOLANUM-ES21", &["^Informe 2021$"])],
+                    )],
+                )],
             )]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
@@ -1239,9 +1803,20 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![block("MEDIOLANUM", &["^Mediolanum$"], vec![block("MEDIOLANUM-ES", &["^Informe$"], vec![unconditional("MEDIOLANUM-ES24.B")])])],
+                vec![block(
+                    "MEDIOLANUM",
+                    &["^Mediolanum$"],
+                    vec![block(
+                        "MEDIOLANUM-ES",
+                        &["^Informe$"],
+                        vec![unconditional("MEDIOLANUM-ES24.B")],
+                    )],
+                )],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
@@ -1252,27 +1827,56 @@ doc.close()
                 vec![block(
                     "MEDIOLANUM",
                     &["^Mediolanum$"],
-                    vec![block("MEDIOLANUM-ES", &[], vec![block("MEDIOLANUM-ES24.*", &[], vec![leaf("MEDIOLANUM-ES24.A", &["^GAMAX$"])])])],
+                    vec![block(
+                        "MEDIOLANUM-ES",
+                        &[],
+                        vec![block(
+                            "MEDIOLANUM-ES24.*",
+                            &[],
+                            vec![leaf("MEDIOLANUM-ES24.A", &["^GAMAX$"])],
+                        )],
+                    )],
                 )],
             )]);
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-ES24.A");
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-ES24.A",
+            );
         }
 
         #[test]
         fn a_nested_step_is_never_evaluated_with_nothing_accumulated() {
             // §3.1.2: a block without criteria at the top, `A` null — the root was never found.
             let document = FakeDocument::new(&[&["Annual Report"]]);
-            let classifier =
-                yaml_only(vec![entry(1, vec![block("MEDIOLANUM", &[], vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])])])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![block(
+                    "MEDIOLANUM",
+                    &[],
+                    vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])],
+                )],
+            )]);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
         fn a_top_level_prefix_does_not_set_the_accumulated_partial() {
             let document = FakeDocument::new(&[&["nothing"]]);
-            let classifier =
-                yaml_only(vec![entry(1, vec![block("MEDIOLANUM", &[], vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])])])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![block(
+                    "MEDIOLANUM",
+                    &[],
+                    vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])],
+                )],
+            )]);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
@@ -1283,12 +1887,19 @@ doc.close()
                 1,
                 vec![
                     leaf("MEDIOLANUM", &["^Mediolanum$"]),
-                    block("MEDIOLANUM", &[], vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])]),
+                    block(
+                        "MEDIOLANUM",
+                        &[],
+                        vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])],
+                    ),
                 ],
             )]);
             assert_eq!(
                 classifier.classify_serialized(&document).unwrap(),
-                DocClassification::Partial { pattern: p("MEDIOLANUM-EN"), candidates: vec!["MEDIOLANUM-EN23".to_string()] }
+                DocClassification::Partial {
+                    pattern: p("MEDIOLANUM-EN"),
+                    candidates: vec!["MEDIOLANUM-EN23".to_string()]
+                }
             );
         }
 
@@ -1301,10 +1912,16 @@ doc.close()
                 vec![block(
                     "MEDIOLANUM",
                     &["^Mediolanum$"],
-                    vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"]), leaf("MEDIOLANUM-IT23", &["^Relazione 2023$"])],
+                    vec![
+                        leaf("MEDIOLANUM-EN", &["^Annual Report$"]),
+                        leaf("MEDIOLANUM-IT23", &["^Relazione 2023$"]),
+                    ],
                 )],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-EN");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-EN",
+            );
         }
 
         #[test]
@@ -1315,12 +1932,18 @@ doc.close()
                 vec![block(
                     "MEDIOLANUM",
                     &["^Mediolanum$"],
-                    vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"]), leaf("MEDIOLANUM-IT23", &["^Relazione 2023$"])],
+                    vec![
+                        leaf("MEDIOLANUM-EN", &["^Annual Report$"]),
+                        leaf("MEDIOLANUM-IT23", &["^Relazione 2023$"]),
+                    ],
                 )],
             )]);
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "MEDIOLANUM-IT23");
-            assert_eq!(yaml_step(&outcome), ("MEDIOLANUM-IT23".to_string(), vec![0, 1]));
+            assert_eq!(
+                yaml_step(&outcome),
+                ("MEDIOLANUM-IT23".to_string(), vec![0, 1])
+            );
         }
 
         #[test]
@@ -1330,10 +1953,17 @@ doc.close()
                 1,
                 vec![
                     leaf("MEDIOLANUM", &["^Mediolanum$"]),
-                    block("FIDEURAM-IT23@*", &[], vec![leaf("FIDEURAM-IT23@LUX", &["^Lux$"])]),
+                    block(
+                        "FIDEURAM-IT23@*",
+                        &[],
+                        vec![leaf("FIDEURAM-IT23@LUX", &["^Lux$"])],
+                    ),
                 ],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         mod d1_context_already_acquired {
@@ -1349,7 +1979,11 @@ doc.close()
                         vec![block(
                             "MEDIOLANUM",
                             &["^Mediolanum$"],
-                            vec![block("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])])],
+                            vec![block(
+                                "MEDIOLANUM-IT24.*",
+                                &[],
+                                vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])],
+                            )],
                         )],
                     ),
                 ]);
@@ -1369,11 +2003,18 @@ doc.close()
                         vec![block(
                             "MEDIOLANUM",
                             &["^Mediolanum$"],
-                            vec![block("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])])],
+                            vec![block(
+                                "MEDIOLANUM-IT24.*",
+                                &[],
+                                vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])],
+                            )],
                         )],
                     ),
                 ]);
-                assert_complete(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.A");
+                assert_complete(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-IT24.A",
+                );
             }
 
             #[test]
@@ -1381,9 +2022,19 @@ doc.close()
                 let document = FakeDocument::new(&[&["Amundi"], &["Amundi Funds"]]);
                 let classifier = yaml_only(vec![
                     entry(1, vec![leaf("AMUNDI", &["^Amundi$"])]),
-                    entry(2, vec![block("MEDIOLANUM", &["^Mediolanum$"], vec![leaf("MEDIOLANUM-EN23", &["^Amundi Funds$"])])]),
+                    entry(
+                        2,
+                        vec![block(
+                            "MEDIOLANUM",
+                            &["^Mediolanum$"],
+                            vec![leaf("MEDIOLANUM-EN23", &["^Amundi Funds$"])],
+                        )],
+                    ),
                 ]);
-                assert_partial(&classifier.classify_serialized(&document).unwrap(), "AMUNDI");
+                assert_partial(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "AMUNDI",
+                );
             }
         }
 
@@ -1400,7 +2051,11 @@ doc.close()
                         vec![block(
                             "MEDIOLANUM-ES",
                             &["^Informe$"],
-                            vec![block("MEDIOLANUM-ES24.*", &[], vec![leaf("MEDIOLANUM-ES24.A", &["^GAMAX$"])])],
+                            vec![block(
+                                "MEDIOLANUM-ES24.*",
+                                &[],
+                                vec![leaf("MEDIOLANUM-ES24.A", &["^GAMAX$"])],
+                            )],
                         )],
                     )],
                 )])
@@ -1411,13 +2066,19 @@ doc.close()
                 let document = FakeDocument::new(&[&["Mediolanum", "Informe", "GAMAX"]]);
                 let outcome = d2_classifier().classify_serialized(&document).unwrap();
                 assert_complete(&outcome, "MEDIOLANUM-ES24.A");
-                assert_eq!(yaml_step(&outcome), ("MEDIOLANUM-ES24.A".to_string(), vec![0, 0, 0, 0]));
+                assert_eq!(
+                    yaml_step(&outcome),
+                    ("MEDIOLANUM-ES24.A".to_string(), vec![0, 0, 0, 0])
+                );
             }
 
             #[test]
             fn finding_only_the_top_level_root_is_not_enough() {
                 let document = FakeDocument::new(&[&["Mediolanum", "GAMAX"]]);
-                assert_partial(&d2_classifier().classify_serialized(&document).unwrap(), "MEDIOLANUM");
+                assert_partial(
+                    &d2_classifier().classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM",
+                );
             }
 
             #[test]
@@ -1426,7 +2087,10 @@ doc.close()
                 // neither is rechecked (D1).
                 let document = FakeDocument::new(&[&["Mediolanum", "Informe"], &["GAMAX"]]);
                 let mut classifier = d2_classifier();
-                classifier.yaml.push(YamlEntry { page: n(2), steps: d2_classifier().yaml[0].steps.clone() });
+                classifier.yaml.push(YamlEntry {
+                    page: n(2),
+                    steps: d2_classifier().yaml[0].steps.clone(),
+                });
                 let outcome = classifier.classify_serialized(&document).unwrap();
                 assert_complete(&outcome, "MEDIOLANUM-ES24.A");
                 assert_eq!(complete(&outcome).page, n(2));
@@ -1440,10 +2104,21 @@ doc.close()
                     1,
                     vec![
                         leaf("MEDIOLANUM", &["^Mediolanum$"]),
-                        block("MEDIOLANUM", &[], vec![block("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])])]),
+                        block(
+                            "MEDIOLANUM",
+                            &[],
+                            vec![block(
+                                "MEDIOLANUM-IT24.*",
+                                &[],
+                                vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])],
+                            )],
+                        ),
                     ],
                 )]);
-                assert_complete(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.A");
+                assert_complete(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-IT24.A",
+                );
             }
 
             #[test]
@@ -1455,10 +2130,17 @@ doc.close()
                     1,
                     vec![
                         leaf("MEDIOLANUM", &["^Mediolanum$"]),
-                        block("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])]),
+                        block(
+                            "MEDIOLANUM-IT24.*",
+                            &[],
+                            vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])],
+                        ),
                     ],
                 )]);
-                assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+                assert_partial(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM",
+                );
             }
 
             #[test]
@@ -1470,10 +2152,17 @@ doc.close()
                     vec![
                         leaf("MEDIOLANUM", &["^Mediolanum$"]),
                         template("*-ES", &["^Informe$"]),
-                        block("MEDIOLANUM-ES", &[], vec![leaf("MEDIOLANUM-ES24.A", &["^GAMAX$"])]),
+                        block(
+                            "MEDIOLANUM-ES",
+                            &[],
+                            vec![leaf("MEDIOLANUM-ES24.A", &["^GAMAX$"])],
+                        ),
                     ],
                 )]);
-                assert_complete(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-ES24.A");
+                assert_complete(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-ES24.A",
+                );
             }
         }
 
@@ -1484,28 +2173,44 @@ doc.close()
             fn children_are_visited_before_the_next_sibling_r3() {
                 // R3: depth-first gives the partial `MEDIOLANUM-EN`; breadth-first would have
                 // given the complete `MEDIOLANUM-IT24.A`.
-                let document = FakeDocument::new(&[&["Mediolanum", "Annual Report", "Best Brands"]]);
+                let document =
+                    FakeDocument::new(&[&["Mediolanum", "Annual Report", "Best Brands"]]);
                 let classifier = yaml_only(vec![entry(
                     1,
                     vec![
-                        block("MEDIOLANUM", &["^Mediolanum$"], vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])]),
+                        block(
+                            "MEDIOLANUM",
+                            &["^Mediolanum$"],
+                            vec![leaf("MEDIOLANUM-EN", &["^Annual Report$"])],
+                        ),
                         leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"]),
                     ],
                 )]);
-                assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-EN");
+                assert_partial(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-EN",
+                );
             }
 
             #[test]
             fn a_deeper_complete_child_wins_over_a_later_sibling() {
-                let document = FakeDocument::new(&[&["Mediolanum", "Annual Report", "Eurizon Fund"]]);
+                let document =
+                    FakeDocument::new(&[&["Mediolanum", "Annual Report", "Eurizon Fund"]]);
                 let classifier = yaml_only(vec![entry(
                     1,
                     vec![
-                        block("MEDIOLANUM", &["^Mediolanum$"], vec![leaf("MEDIOLANUM-EN23", &["^Annual Report$"])]),
+                        block(
+                            "MEDIOLANUM",
+                            &["^Mediolanum$"],
+                            vec![leaf("MEDIOLANUM-EN23", &["^Annual Report$"])],
+                        ),
                         leaf("EURIZON-EN23", &["^Eurizon Fund$"]),
                     ],
                 )]);
-                assert_complete(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-EN23");
+                assert_complete(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-EN23",
+                );
             }
 
             #[test]
@@ -1514,11 +2219,18 @@ doc.close()
                 let classifier = yaml_only(vec![entry(
                     1,
                     vec![
-                        block("MEDIOLANUM", &["^Mediolanum$"], vec![leaf("MEDIOLANUM-EN23", &["^Annual Report$"])]),
+                        block(
+                            "MEDIOLANUM",
+                            &["^Mediolanum$"],
+                            vec![leaf("MEDIOLANUM-EN23", &["^Annual Report$"])],
+                        ),
                         leaf("EURIZON-EN23", &["^Eurizon Fund$"]),
                     ],
                 )]);
-                assert_complete(&classifier.classify_serialized(&document).unwrap(), "EURIZON-EN23");
+                assert_complete(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "EURIZON-EN23",
+                );
             }
         }
     }
@@ -1532,7 +2244,10 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum", "Annual Report 2023"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), template("*-EN23", &["^Annual Report 2023$"])],
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    template("*-EN23", &["^Annual Report 2023$"]),
+                ],
             )]);
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "MEDIOLANUM-EN23");
@@ -1542,8 +2257,14 @@ doc.close()
         #[test]
         fn a_template_is_not_evaluated_with_nothing_accumulated() {
             let document = FakeDocument::new(&[&["Annual Report 2023"]]);
-            let classifier = yaml_only(vec![entry(1, vec![template("*-EN23", &["^Annual Report 2023$"])])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![template("*-EN23", &["^Annual Report 2023$"])],
+            )]);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
@@ -1552,16 +2273,30 @@ doc.close()
             let classifier = DocumentClassifier::new(
                 formats_without("MEDIOLANUM-EN23"),
                 vec![],
-                vec![entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), template("*-EN23", &["^Annual Report 2023$"])])],
+                vec![entry(
+                    1,
+                    vec![
+                        leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                        template("*-EN23", &["^Annual Report 2023$"]),
+                    ],
+                )],
             );
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
         fn a_partial_instance_is_accumulated_when_it_expands_to_some_format() {
             let document = FakeDocument::new(&[&["Mediolanum", "Informe"]]);
-            let classifier =
-                yaml_only(vec![entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), template("*-ES", &["^Informe$"])])]);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    template("*-ES", &["^Informe$"]),
+                ],
+            )]);
             assert_eq!(
                 classifier.classify_serialized(&document).unwrap(),
                 DocClassification::Partial {
@@ -1578,9 +2313,17 @@ doc.close()
         #[test]
         fn a_partial_instance_that_expands_to_nothing_is_skipped() {
             let document = FakeDocument::new(&[&["Eurizon", "Rapport"]]);
-            let classifier =
-                yaml_only(vec![entry(1, vec![leaf("EURIZON", &["^Eurizon$"]), template("*-FR", &["^Rapport$"])])]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "EURIZON");
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![
+                    leaf("EURIZON", &["^Eurizon$"]),
+                    template("*-FR", &["^Rapport$"]),
+                ],
+            )]);
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "EURIZON",
+            );
         }
 
         #[test]
@@ -1589,9 +2332,15 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum", "Annual Report 2023"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM-IT", &["^Mediolanum$"]), template("*-EN23", &["^Annual Report 2023$"])],
+                vec![
+                    leaf("MEDIOLANUM-IT", &["^Mediolanum$"]),
+                    template("*-EN23", &["^Annual Report 2023$"]),
+                ],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-IT",
+            );
         }
 
         #[test]
@@ -1605,7 +2354,10 @@ doc.close()
                     template("*-EN23", &["^Annual Report 2023$"]),
                 ],
             )]);
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "ASTERIA-EN23");
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "ASTERIA-EN23",
+            );
         }
 
         #[test]
@@ -1613,9 +2365,15 @@ doc.close()
             let document = FakeDocument::new(&[&["Mediolanum"]]);
             let classifier = yaml_only(vec![entry(
                 1,
-                vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), template("*-EN23", &["^Annual Report 2023$"])],
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    template("*-EN23", &["^Annual Report 2023$"]),
+                ],
             )]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
     }
 
@@ -1631,7 +2389,10 @@ doc.close()
                 vec![block(
                     "ASTERIA",
                     &["^Asteria Funds$"],
-                    vec![leaf("ASTERIA-EN24", &["^Investment Managers$"]), unconditional("ASTERIA-EN23")],
+                    vec![
+                        leaf("ASTERIA-EN24", &["^Investment Managers$"]),
+                        unconditional("ASTERIA-EN23"),
+                    ],
                 )],
             )])
         }
@@ -1646,7 +2407,10 @@ doc.close()
                     format: p("ASTERIA-EN23"),
                     page: n(1),
                     entry: 0,
-                    decided_by: DecidedBy::Yaml { step: "ASTERIA-EN23".to_string(), path: vec![0, 1] },
+                    decided_by: DecidedBy::Yaml {
+                        step: "ASTERIA-EN23".to_string(),
+                        path: vec![0, 1]
+                    },
                     by_exclusion: true,
                 })
             );
@@ -1663,7 +2427,10 @@ doc.close()
         #[test]
         fn the_otherwise_is_not_reached_when_its_root_fails() {
             let document = FakeDocument::new(&[&["Investment Managers"]]);
-            assert_eq!(asteria().classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                asteria().classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
@@ -1678,15 +2445,26 @@ doc.close()
         #[test]
         fn a_top_level_unconditional_partial_step_sets_the_accumulated_partial() {
             let document = FakeDocument::blank(1);
-            let classifier = yaml_only(vec![entry(1, vec![unconditional("MEDIOLANUM"), leaf("AMUNDI-EN24", &[".*"])])]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![unconditional("MEDIOLANUM"), leaf("AMUNDI-EN24", &[".*"])],
+            )]);
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
         fn a_complete_outcome_reached_after_an_unconditional_partial_is_not_by_exclusion() {
             let document = FakeDocument::new(&[&["Best Brands"]]);
-            let classifier =
-                yaml_only(vec![entry(1, vec![unconditional("MEDIOLANUM-IT24.*"), leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])])]);
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![
+                    unconditional("MEDIOLANUM-IT24.*"),
+                    leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"]),
+                ],
+            )]);
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "MEDIOLANUM-IT24.A");
             assert!(!complete(&outcome).by_exclusion);
@@ -1696,8 +2474,17 @@ doc.close()
         fn an_unconditional_step_is_still_subject_to_candidability() {
             // `A = MEDIOLANUM`: the unconditional `ASTERIA-EN23` does not refine it.
             let document = FakeDocument::new(&[&["Mediolanum"]]);
-            let classifier = yaml_only(vec![entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"]), unconditional("ASTERIA-EN23")])]);
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            let classifier = yaml_only(vec![entry(
+                1,
+                vec![
+                    leaf("MEDIOLANUM", &["^Mediolanum$"]),
+                    unconditional("ASTERIA-EN23"),
+                ],
+            )]);
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
@@ -1707,10 +2494,15 @@ doc.close()
             assert!(complete(&outcome).by_exclusion);
             let infos = at(&events, tracing::Level::INFO);
             assert!(
-                infos.iter().any(|event| event.text.contains("ASTERIA-EN23")),
+                infos
+                    .iter()
+                    .any(|event| event.text.contains("ASTERIA-EN23")),
                 "expected an INFO event naming the step ASTERIA-EN23, got {events:?}"
             );
-            assert!(at(&events, tracing::Level::WARN).is_empty(), "by exclusion is not a warning: {events:?}");
+            assert!(
+                at(&events, tracing::Level::WARN).is_empty(),
+                "by exclusion is not a warning: {events:?}"
+            );
         }
     }
 
@@ -1741,7 +2533,11 @@ doc.close()
                             ],
                         ),
                         template("*-EN23", &["^2023$"]),
-                        block("FIDEURAM-IT23@*", &[], vec![leaf("FIDEURAM-IT23@LUX", &["^Luxembourg$"])]),
+                        block(
+                            "FIDEURAM-IT23@*",
+                            &[],
+                            vec![leaf("FIDEURAM-IT23@LUX", &["^Luxembourg$"])],
+                        ),
                     ],
                 )],
             )
@@ -1750,7 +2546,9 @@ doc.close()
         #[test]
         fn the_first_complete_step_whose_criteria_match_ends_it() {
             let document = FakeDocument::new(&[&["Eurizon Fund", "ciao"]]);
-            let outcome = source_example(formats()).classify_serialized(&document).unwrap();
+            let outcome = source_example(formats())
+                .classify_serialized(&document)
+                .unwrap();
             assert_complete(&outcome, "EURIZON-EN23");
             assert_eq!(yaml_step(&outcome), ("EURIZON-EN23".to_string(), vec![0]));
         }
@@ -1758,7 +2556,9 @@ doc.close()
         #[test]
         fn the_repeated_key_is_an_or_tried_after_the_steps_between() {
             let document = FakeDocument::new(&[&["Eurizon Fund 2"]]);
-            let outcome = source_example(formats()).classify_serialized(&document).unwrap();
+            let outcome = source_example(formats())
+                .classify_serialized(&document)
+                .unwrap();
             assert_complete(&outcome, "EURIZON-EN23");
             assert_eq!(yaml_step(&outcome), ("EURIZON-EN23".to_string(), vec![2]));
         }
@@ -1766,15 +2566,28 @@ doc.close()
         #[test]
         fn an_earlier_step_wins_over_the_or_written_after_it() {
             let document = FakeDocument::new(&[&["Fideuram", "Eurizon Fund 2"]]);
-            assert_complete(&source_example(formats()).classify_serialized(&document).unwrap(), "FIDEURAM-IT21");
+            assert_complete(
+                &source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                "FIDEURAM-IT21",
+            );
         }
 
         #[test]
         fn mediolanum_then_en_then_the_template_completes_the_name() {
             // `AMUNDI` and `IT23` would match the page and are not evaluated.
-            let document =
-                FakeDocument::new(&[&["Mediolanum", "Amundi Funds", "Annual Report", "Relazione 2023", "2023", "Luxembourg"]]);
-            let outcome = source_example(formats()).classify_serialized(&document).unwrap();
+            let document = FakeDocument::new(&[&[
+                "Mediolanum",
+                "Amundi Funds",
+                "Annual Report",
+                "Relazione 2023",
+                "2023",
+                "Luxembourg",
+            ]]);
+            let outcome = source_example(formats())
+                .classify_serialized(&document)
+                .unwrap();
             assert_complete(&outcome, "MEDIOLANUM-EN23");
             assert_eq!(yaml_step(&outcome), ("*-EN23".to_string(), vec![6]));
         }
@@ -1783,52 +2596,95 @@ doc.close()
         fn without_the_template_matching_the_outcome_is_the_partial_with_its_candidates() {
             let document = FakeDocument::new(&[&["Mediolanum", "Annual Report", "Relazione 2023"]]);
             assert_eq!(
-                source_example(formats()).classify_serialized(&document).unwrap(),
-                DocClassification::Partial { pattern: p("MEDIOLANUM-EN"), candidates: vec!["MEDIOLANUM-EN23".to_string()] }
+                source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                DocClassification::Partial {
+                    pattern: p("MEDIOLANUM-EN"),
+                    candidates: vec!["MEDIOLANUM-EN23".to_string()]
+                }
             );
         }
 
         #[test]
         fn the_template_is_skipped_when_the_repository_lacks_its_instance() {
             let document = FakeDocument::new(&[&["Mediolanum", "Annual Report", "2023"]]);
-            let outcome = source_example(formats_without("MEDIOLANUM-EN23")).classify_serialized(&document).unwrap();
-            assert_eq!(outcome, DocClassification::Partial { pattern: p("MEDIOLANUM-EN"), candidates: vec![] });
+            let outcome = source_example(formats_without("MEDIOLANUM-EN23"))
+                .classify_serialized(&document)
+                .unwrap();
+            assert_eq!(
+                outcome,
+                DocClassification::Partial {
+                    pattern: p("MEDIOLANUM-EN"),
+                    candidates: vec![]
+                }
+            );
         }
 
         #[test]
         fn a_sibling_of_the_block_is_reached_when_the_first_child_fails() {
             let document = FakeDocument::new(&[&["Mediolanum", "Relazione 2023"]]);
-            assert_complete(&source_example(formats()).classify_serialized(&document).unwrap(), "MEDIOLANUM-IT23");
+            assert_complete(
+                &source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                "MEDIOLANUM-IT23",
+            );
         }
 
         #[test]
         fn without_the_first_partial_the_mediolanum_block_is_never_evaluated() {
             let document = FakeDocument::new(&[&["Annual Report", "Relazione 2023", "Informe"]]);
-            assert_eq!(source_example(formats()).classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
         fn amundi_is_not_evaluated_once_mediolanum_is_found() {
             let document = FakeDocument::new(&[&["Mediolanum", "Amundi Funds"]]);
-            assert_partial(&source_example(formats()).classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
         fn amundi_is_evaluated_when_nothing_was_accumulated() {
             let document = FakeDocument::new(&[&["Amundi Funds"]]);
-            assert_complete(&source_example(formats()).classify_serialized(&document).unwrap(), "AMUNDI-EN24");
+            assert_complete(
+                &source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                "AMUNDI-EN24",
+            );
         }
 
         #[test]
         fn the_fideuram_block_without_criteria_is_never_evaluated_from_nothing() {
             let document = FakeDocument::new(&[&["Luxembourg"]]);
-            assert_eq!(source_example(formats()).classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                DocClassification::Unclassified
+            );
         }
 
         #[test]
         fn the_fideuram_block_is_never_evaluated_under_another_entity() {
             let document = FakeDocument::new(&[&["Mediolanum", "Luxembourg"]]);
-            assert_partial(&source_example(formats()).classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &source_example(formats())
+                    .classify_serialized(&document)
+                    .unwrap(),
+                "MEDIOLANUM",
+            );
         }
     }
 
@@ -1844,16 +2700,25 @@ doc.close()
                 let document = FakeDocument::blank(2);
                 let classifier = python_only(vec![
                     py(1, pipeline_emitting("p", vec![doc_class(None)])),
-                    py(2, pipeline_emitting("q", vec![doc_class(None), doc_class(None)])),
+                    py(
+                        2,
+                        pipeline_emitting("q", vec![doc_class(None), doc_class(None)]),
+                    ),
                 ]);
-                assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+                assert_eq!(
+                    classifier.classify_serialized(&document).unwrap(),
+                    DocClassification::Unclassified
+                );
             }
 
             #[test]
             fn a_pipeline_that_gives_no_result_at_all_is_none() {
                 let document = FakeDocument::blank(1);
                 let classifier = python_only(vec![py(1, pipeline_emitting("p", vec![]))]);
-                assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+                assert_eq!(
+                    classifier.classify_serialized(&document).unwrap(),
+                    DocClassification::Unclassified
+                );
             }
 
             #[test]
@@ -1863,10 +2728,18 @@ doc.close()
                     1,
                     pipeline_emitting(
                         "p",
-                        vec![doc_class(None), doc_class(Some("AMUNDI-EN24")), doc_class(None), doc_class(Some("AMUNDI-EN24"))],
+                        vec![
+                            doc_class(None),
+                            doc_class(Some("AMUNDI-EN24")),
+                            doc_class(None),
+                            doc_class(Some("AMUNDI-EN24")),
+                        ],
                     ),
                 )]);
-                assert_complete(&classifier.classify_serialized(&document).unwrap(), "AMUNDI-EN24");
+                assert_complete(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "AMUNDI-EN24",
+                );
             }
 
             #[test]
@@ -1874,10 +2747,22 @@ doc.close()
                 let document = FakeDocument::blank(1);
                 let classifier = python_only(vec![py(
                     1,
-                    pipeline_emitting("p", vec![doc_class(Some("MEDIOLANUM")), doc_class(Some("MEDIOLANUM-IT24.A"))]),
+                    pipeline_emitting(
+                        "p",
+                        vec![
+                            doc_class(Some("MEDIOLANUM")),
+                            doc_class(Some("MEDIOLANUM-IT24.A")),
+                        ],
+                    ),
                 )]);
                 match classifier.classify_serialized(&document) {
-                    Err(DocClassifyError::ConflictingDocClass { entry, pipeline, page, first, second }) => {
+                    Err(DocClassifyError::ConflictingDocClass {
+                        entry,
+                        pipeline,
+                        page,
+                        first,
+                        second,
+                    }) => {
                         assert_eq!(entry, 0);
                         assert_eq!(pipeline, PipelineName::new("p"));
                         assert_eq!(page, n(1));
@@ -1892,15 +2777,25 @@ doc.close()
                 let document = FakeDocument::new(&[&["Mediolanum", "Amundi"]]);
                 let classifier = python_only(vec![py(
                     1,
-                    standard_pipeline_with("p", &[(&["^Mediolanum$"], "MEDIOLANUM"), (&["^Amundi$"], "AMUNDI")]),
+                    standard_pipeline_with(
+                        "p",
+                        &[(&["^Mediolanum$"], "MEDIOLANUM"), (&["^Amundi$"], "AMUNDI")],
+                    ),
                 )]);
                 match classifier.classify_serialized(&document) {
-                    Err(DocClassifyError::Pipe { entry, pipeline, page, source }) => {
+                    Err(DocClassifyError::Pipe {
+                        entry,
+                        pipeline,
+                        page,
+                        source,
+                    }) => {
                         assert_eq!((entry, page), (0, n(1)));
                         assert_eq!(pipeline, PipelineName::new("p"));
                         assert_eq!(source.pipe(), "TextFilterDocClassifyStandard");
                     }
-                    other => panic!("expected the pipe error of the standard filter, got {other:?}"),
+                    other => {
+                        panic!("expected the pipe error of the standard filter, got {other:?}")
+                    }
                 }
             }
 
@@ -1908,12 +2803,24 @@ doc.close()
             fn a_failing_pipe_is_an_error_naming_entry_pipeline_and_page() {
                 let document = FakeDocument::blank(3);
                 let mut pipeline = Pipeline::new("broken");
-                pipeline.pdf_extract.push(crate::core::pipeline::segment::test_pipes::FailingExtract::fatal("boom"));
-                pipeline.text_filter.push(RecordingFilter::new("pass") as Arc<dyn TextFilterPipe>);
+                pipeline.pdf_extract.push(
+                    crate::core::pipeline::segment::test_pipes::FailingExtract::fatal("boom"),
+                );
+                pipeline
+                    .text_filter
+                    .push(RecordingFilter::new("pass") as Arc<dyn TextFilterPipe>);
                 pipeline.deserialize.push(Arc::new(Emits(vec![])));
-                let classifier = python_only(vec![py(1, pipeline_emitting("ok", vec![doc_class(None)])), py(-1, pipeline)]);
+                let classifier = python_only(vec![
+                    py(1, pipeline_emitting("ok", vec![doc_class(None)])),
+                    py(-1, pipeline),
+                ]);
                 match classifier.classify_serialized(&document) {
-                    Err(DocClassifyError::Pipe { entry, pipeline, page, .. }) => {
+                    Err(DocClassifyError::Pipe {
+                        entry,
+                        pipeline,
+                        page,
+                        ..
+                    }) => {
                         assert_eq!((entry, page), (1, n(-1)));
                         assert_eq!(pipeline, PipelineName::new("broken"));
                     }
@@ -1924,7 +2831,10 @@ doc.close()
             #[test]
             fn a_result_that_is_not_a_document_class_is_an_error() {
                 let document = FakeDocument::blank(1);
-                let classifier = python_only(vec![py(1, pipeline_emitting("p", vec![Extracted::PageClass(None)]))]);
+                let classifier = python_only(vec![py(
+                    1,
+                    pipeline_emitting("p", vec![Extracted::PageClass(None)]),
+                )]);
                 assert!(
                     matches!(
                         classifier.classify_serialized(&document),
@@ -1937,14 +2847,19 @@ doc.close()
             #[test]
             fn the_standard_pipes_classify_as_the_yaml_would() {
                 let document = FakeDocument::new(&[&["Eurizon Fund"]]);
-                let classifier = python_only(vec![py(1, standard_pipeline("eurizon", &["^Eurizon Fund$"], "EURIZON-EN23"))]);
+                let classifier = python_only(vec![py(
+                    1,
+                    standard_pipeline("eurizon", &["^Eurizon Fund$"], "EURIZON-EN23"),
+                )]);
                 assert_eq!(
                     classifier.classify_serialized(&document).unwrap(),
                     DocClassification::Complete(CompleteClassification {
                         format: p("EURIZON-EN23"),
                         page: n(1),
                         entry: 0,
-                        decided_by: DecidedBy::Python { pipeline: PipelineName::new("eurizon") },
+                        decided_by: DecidedBy::Python {
+                            pipeline: PipelineName::new("eurizon")
+                        },
                         by_exclusion: false,
                     })
                 );
@@ -1953,8 +2868,14 @@ doc.close()
             #[test]
             fn the_standard_pipes_give_none_when_a_criterion_fails() {
                 let document = FakeDocument::new(&[&["Amundi"]]);
-                let classifier = python_only(vec![py(1, standard_pipeline("eurizon", &["^Eurizon Fund$"], "EURIZON-EN23"))]);
-                assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+                let classifier = python_only(vec![py(
+                    1,
+                    standard_pipeline("eurizon", &["^Eurizon Fund$"], "EURIZON-EN23"),
+                )]);
+                assert_eq!(
+                    classifier.classify_serialized(&document).unwrap(),
+                    DocClassification::Unclassified
+                );
             }
         }
 
@@ -1966,7 +2887,12 @@ doc.close()
                 let document = FakeDocument::blank(2);
                 let classifier = python_only(vec![py(2, says("p", "MEDIOLANUM-IT24"))]);
                 match classifier.classify_serialized(&document) {
-                    Err(DocClassifyError::UnknownFormat { entry, pipeline, page, format }) => {
+                    Err(DocClassifyError::UnknownFormat {
+                        entry,
+                        pipeline,
+                        page,
+                        format,
+                    }) => {
                         assert_eq!((entry, page), (0, n(2)));
                         assert_eq!(pipeline, PipelineName::new("p"));
                         assert_eq!(format, p("MEDIOLANUM-IT24"));
@@ -1980,7 +2906,12 @@ doc.close()
                 let document = FakeDocument::blank(1);
                 let classifier = python_only(vec![py(1, says("p", "MEDIOLANUM-DE"))]);
                 match classifier.classify_serialized(&document) {
-                    Err(DocClassifyError::PartialMatchesNoFormat { entry, pipeline, page, pattern }) => {
+                    Err(DocClassifyError::PartialMatchesNoFormat {
+                        entry,
+                        pipeline,
+                        page,
+                        pattern,
+                    }) => {
                         assert_eq!((entry, page), (0, n(1)));
                         assert_eq!(pipeline, PipelineName::new("p"));
                         assert_eq!(pattern, p("MEDIOLANUM-DE"));
@@ -1993,14 +2924,23 @@ doc.close()
             fn an_unknown_entity_is_an_error_too() {
                 let document = FakeDocument::blank(1);
                 let classifier = python_only(vec![py(1, says("p", "NOBODY"))]);
-                assert!(matches!(classifier.classify_serialized(&document), Err(DocClassifyError::PartialMatchesNoFormat { .. })));
+                assert!(matches!(
+                    classifier.classify_serialized(&document),
+                    Err(DocClassifyError::PartialMatchesNoFormat { .. })
+                ));
             }
 
             #[test]
             fn the_error_stops_the_classification_before_later_entries() {
                 let document = FakeDocument::blank(3);
-                let classifier = python_only(vec![py(1, says("p", "NOBODY-EN23")), py(2, says("q", "AMUNDI-EN24"))]);
-                assert!(matches!(classifier.classify_serialized(&document), Err(DocClassifyError::UnknownFormat { .. })));
+                let classifier = python_only(vec![
+                    py(1, says("p", "NOBODY-EN23")),
+                    py(2, says("q", "AMUNDI-EN24")),
+                ]);
+                assert!(matches!(
+                    classifier.classify_serialized(&document),
+                    Err(DocClassifyError::UnknownFormat { .. })
+                ));
                 assert_eq!(document.requests(), vec![1]);
             }
         }
@@ -2011,14 +2951,19 @@ doc.close()
             #[test]
             fn a_complete_outcome_with_nothing_accumulated_ends_the_classification() {
                 let document = FakeDocument::blank(2);
-                let classifier = python_only(vec![py(1, pipeline_emitting("none", vec![doc_class(None)])), py(2, says("p", "AMUNDI-EN24"))]);
+                let classifier = python_only(vec![
+                    py(1, pipeline_emitting("none", vec![doc_class(None)])),
+                    py(2, says("p", "AMUNDI-EN24")),
+                ]);
                 assert_eq!(
                     classifier.classify_serialized(&document).unwrap(),
                     DocClassification::Complete(CompleteClassification {
                         format: p("AMUNDI-EN24"),
                         page: n(2),
                         entry: 1,
-                        decided_by: DecidedBy::Python { pipeline: PipelineName::new("p") },
+                        decided_by: DecidedBy::Python {
+                            pipeline: PipelineName::new("p")
+                        },
                         by_exclusion: false,
                     })
                 );
@@ -2045,18 +2990,29 @@ doc.close()
                     py(2, says("q", "MEDIOLANUM")),
                     py(3, says("r", "MEDIOLANUM-IT24.*")),
                 ]);
-                assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.*");
+                assert_partial(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-IT24.*",
+                );
             }
 
             #[test]
             fn an_outcome_the_accumulated_partial_already_refines_is_logged_at_debug_only() {
                 let document = FakeDocument::blank(2);
-                let classifier = python_only(vec![py(1, says("p", "MEDIOLANUM-IT24.*")), py(2, says("ignored-one", "MEDIOLANUM"))]);
+                let classifier = python_only(vec![
+                    py(1, says("p", "MEDIOLANUM-IT24.*")),
+                    py(2, says("ignored-one", "MEDIOLANUM")),
+                ]);
                 let (outcome, events) = events_of(|| classifier.classify(&document).unwrap());
                 assert_partial(&outcome, "MEDIOLANUM-IT24.*");
-                assert!(at(&events, tracing::Level::WARN).is_empty(), "no warning expected: {events:?}");
                 assert!(
-                    at(&events, tracing::Level::DEBUG).iter().any(|event| event.text.contains("MEDIOLANUM")),
+                    at(&events, tracing::Level::WARN).is_empty(),
+                    "no warning expected: {events:?}"
+                );
+                assert!(
+                    at(&events, tracing::Level::DEBUG)
+                        .iter()
+                        .any(|event| event.text.contains("MEDIOLANUM")),
                     "expected a DEBUG event naming the ignored outcome, got {events:?}"
                 );
             }
@@ -2069,7 +3025,10 @@ doc.close()
                     py(2, says("q", "AMUNDI")),
                     py(3, says("r", "MEDIOLANUM-EN")),
                 ]);
-                assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-EN");
+                assert_partial(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM-EN",
+                );
             }
 
             #[test]
@@ -2089,53 +3048,89 @@ doc.close()
             fn an_incompatible_outcome_is_a_warning_naming_entry_page_outcome_and_partial() {
                 // D4.
                 let document = FakeDocument::blank(7);
-                let classifier = python_only(vec![py(1, says("first", "MEDIOLANUM")), py(7, says("contradicts", "EURIZON-EN23"))]);
+                let classifier = python_only(vec![
+                    py(1, says("first", "MEDIOLANUM")),
+                    py(7, says("contradicts", "EURIZON-EN23")),
+                ]);
                 let (outcome, events) = events_of(|| classifier.classify(&document).unwrap());
                 assert_partial(&outcome, "MEDIOLANUM");
                 let warnings = at(&events, tracing::Level::WARN);
-                assert_eq!(warnings.len(), 1, "exactly one warning expected: {events:?}");
+                assert_eq!(
+                    warnings.len(),
+                    1,
+                    "exactly one warning expected: {events:?}"
+                );
                 let warning = &warnings[0].text;
                 for expected in ["contradicts", "7", "EURIZON-EN23", "MEDIOLANUM"] {
-                    assert!(warning.contains(expected), "the warning must mention '{expected}': {warning}");
+                    assert!(
+                        warning.contains(expected),
+                        "the warning must mention '{expected}': {warning}"
+                    );
                 }
             }
 
             /// A repository where `X-IT23@LUX.*` and `X-IT23@*.B` both expand to something, while
             /// their meet `X-IT23@LUX.B` is not a format.
             fn incomparable_repo(python: Vec<PythonEntry>) -> DocumentClassifier {
-                DocumentClassifier::new(vec!["X-IT23@LUX.A".to_string(), "X-IT23@ROM.B".to_string()], python, vec![])
+                DocumentClassifier::new(
+                    vec!["X-IT23@LUX.A".to_string(), "X-IT23@ROM.B".to_string()],
+                    python,
+                    vec![],
+                )
             }
 
             #[test]
             fn a_compatible_but_incomparable_outcome_is_ignored() {
                 let document = FakeDocument::blank(2);
-                let classifier = incomparable_repo(vec![py(1, says("p", "X-IT23@LUX.*")), py(2, says("q", "X-IT23@*.B"))]);
+                let classifier = incomparable_repo(vec![
+                    py(1, says("p", "X-IT23@LUX.*")),
+                    py(2, says("q", "X-IT23@*.B")),
+                ]);
                 assert_eq!(
                     classifier.classify_serialized(&document).unwrap(),
-                    DocClassification::Partial { pattern: p("X-IT23@LUX.*"), candidates: vec!["X-IT23@LUX.A".to_string()] }
+                    DocClassification::Partial {
+                        pattern: p("X-IT23@LUX.*"),
+                        candidates: vec!["X-IT23@LUX.A".to_string()]
+                    }
                 );
             }
 
             #[test]
-            fn a_compatible_but_incomparable_outcome_is_a_warning_naming_entry_page_outcome_and_partial() {
+            fn a_compatible_but_incomparable_outcome_is_a_warning_naming_entry_page_outcome_and_partial()
+             {
                 let document = FakeDocument::blank(7);
-                let classifier =
-                    incomparable_repo(vec![py(1, says("first", "X-IT23@LUX.*")), py(7, says("sideways", "X-IT23@*.B"))]);
+                let classifier = incomparable_repo(vec![
+                    py(1, says("first", "X-IT23@LUX.*")),
+                    py(7, says("sideways", "X-IT23@*.B")),
+                ]);
                 let (outcome, events) = events_of(|| classifier.classify(&document).unwrap());
                 assert_partial(&outcome, "X-IT23@LUX.*");
                 let warnings = at(&events, tracing::Level::WARN);
-                assert_eq!(warnings.len(), 1, "exactly one warning expected: {events:?}");
+                assert_eq!(
+                    warnings.len(),
+                    1,
+                    "exactly one warning expected: {events:?}"
+                );
                 let warning = &warnings[0].text;
                 for expected in ["sideways", "7", "X-IT23@*.B", "X-IT23@LUX.*"] {
-                    assert!(warning.contains(expected), "the warning must mention '{expected}': {warning}");
+                    assert!(
+                        warning.contains(expected),
+                        "the warning must mention '{expected}': {warning}"
+                    );
                 }
             }
 
             #[test]
             fn an_outcome_on_a_page_that_adds_nothing_does_not_end_the_python_entries() {
                 let document = FakeDocument::blank(2);
-                let classifier = python_only(vec![py(1, says("p", "MEDIOLANUM")), py(2, says("q", "MEDIOLANUM"))]);
-                assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+                let classifier = python_only(vec![
+                    py(1, says("p", "MEDIOLANUM")),
+                    py(2, says("q", "MEDIOLANUM")),
+                ]);
+                assert_partial(
+                    &classifier.classify_serialized(&document).unwrap(),
+                    "MEDIOLANUM",
+                );
                 assert_eq!(document.requests(), vec![1, 2]);
             }
         }
@@ -2145,9 +3140,15 @@ doc.close()
     mod page_conversion_errors {
         use super::*;
 
-        fn assert_document_error(result: Result<DocClassification, DocClassifyError>, written: i32) {
+        fn assert_document_error(
+            result: Result<DocClassification, DocClassifyError>,
+            written: i32,
+        ) {
             match result {
-                Err(DocClassifyError::Document { page, source: DocumentError::Page { .. } }) => assert_eq!(page, n(written)),
+                Err(DocClassifyError::Document {
+                    page,
+                    source: DocumentError::Page { .. },
+                }) => assert_eq!(page, n(written)),
                 other => panic!("expected a Document error on page {written}, got {other:?}"),
             }
         }
@@ -2179,7 +3180,8 @@ doc.close()
 
         #[test]
         fn the_error_stops_the_classification_even_with_a_partial_accumulated() {
-            let document = FakeDocument::new(&[&["Mediolanum"], &["x"], &["Best Brands"]]).breaking(2);
+            let document =
+                FakeDocument::new(&[&["Mediolanum"], &["x"], &["Best Brands"]]).breaking(2);
             let classifier = yaml_only(vec![
                 entry(1, vec![leaf("MEDIOLANUM", &["^Mediolanum$"])]),
                 entry(2, vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])]),
@@ -2205,7 +3207,10 @@ doc.close()
         fn a_page_past_the_end_is_still_nothing_not_an_error() {
             let document = FakeDocument::blank(2).breaking(2);
             let classifier = yaml_only(vec![entry(5, vec![unconditional("ASTERIA-EN23")])]);
-            assert_eq!(classifier.classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                classifier.classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
         }
     }
 
@@ -2219,11 +3224,17 @@ doc.close()
             let classifier = DocumentClassifier::new(
                 formats(),
                 vec![py(1, says("p", "AMUNDI-EN24"))],
-                vec![entry(1, vec![leaf("EURIZON-EN23", &[".*"])]), entry(2, vec![leaf("EURIZON-EN23", &[".*"])])],
+                vec![
+                    entry(1, vec![leaf("EURIZON-EN23", &[".*"])]),
+                    entry(2, vec![leaf("EURIZON-EN23", &[".*"])]),
+                ],
             );
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "AMUNDI-EN24");
-            assert!(matches!(complete(&outcome).decided_by, DecidedBy::Python { .. }));
+            assert!(matches!(
+                complete(&outcome).decided_by,
+                DecidedBy::Python { .. }
+            ));
             assert_eq!(document.requests(), vec![1]);
         }
 
@@ -2233,7 +3244,13 @@ doc.close()
             let classifier = DocumentClassifier::new(
                 formats(),
                 vec![py(1, says("p", "MEDIOLANUM"))],
-                vec![entry(1, vec![leaf("AMUNDI-EN24", &["^Amundi Funds$"]), template("*-EN23", &["^Annual Report 2023$"])])],
+                vec![entry(
+                    1,
+                    vec![
+                        leaf("AMUNDI-EN24", &["^Amundi Funds$"]),
+                        template("*-EN23", &["^Annual Report 2023$"]),
+                    ],
+                )],
             );
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "MEDIOLANUM-EN23");
@@ -2252,11 +3269,18 @@ doc.close()
                     vec![block(
                         "MEDIOLANUM",
                         &["^Mediolanum$"],
-                        vec![block("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])])],
+                        vec![block(
+                            "MEDIOLANUM-IT24.*",
+                            &[],
+                            vec![leaf("MEDIOLANUM-IT24.A", &["^Best Brands$"])],
+                        )],
                     )],
                 )],
             );
-            assert_complete(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM-IT24.A");
+            assert_complete(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM-IT24.A",
+            );
         }
 
         #[test]
@@ -2267,7 +3291,10 @@ doc.close()
                 vec![py(1, says("p", "MEDIOLANUM"))],
                 vec![entry(1, vec![leaf("EURIZON-EN23", &["^Eurizon Fund$"])])],
             );
-            assert_partial(&classifier.classify_serialized(&document).unwrap(), "MEDIOLANUM");
+            assert_partial(
+                &classifier.classify_serialized(&document).unwrap(),
+                "MEDIOLANUM",
+            );
         }
 
         #[test]
@@ -2281,7 +3308,10 @@ doc.close()
             let outcome = classifier.classify_serialized(&document).unwrap();
             assert_complete(&outcome, "EURIZON-EN23");
             assert_eq!(complete(&outcome).entry, 0);
-            assert!(matches!(complete(&outcome).decided_by, DecidedBy::Yaml { .. }));
+            assert!(matches!(
+                complete(&outcome).decided_by,
+                DecidedBy::Yaml { .. }
+            ));
         }
 
         #[test]
@@ -2289,8 +3319,14 @@ doc.close()
             let document = FakeDocument::blank(5);
             let classifier = DocumentClassifier::new(
                 formats(),
-                vec![py(4, pipeline_emitting("p", vec![doc_class(None)])), py(5, pipeline_emitting("q", vec![doc_class(None)]))],
-                vec![entry(1, vec![leaf("EURIZON-EN23", &["^x$"])]), entry(2, vec![leaf("EURIZON-EN23", &["^x$"])])],
+                vec![
+                    py(4, pipeline_emitting("p", vec![doc_class(None)])),
+                    py(5, pipeline_emitting("q", vec![doc_class(None)])),
+                ],
+                vec![
+                    entry(1, vec![leaf("EURIZON-EN23", &["^x$"])]),
+                    entry(2, vec![leaf("EURIZON-EN23", &["^x$"])]),
+                ],
             );
             classifier.classify_serialized(&document).unwrap();
             assert_eq!(document.requests(), vec![4, 5, 1, 2]);
@@ -2305,7 +3341,17 @@ doc.close()
         fn a_document_nothing_recognises_raises_no_warning() {
             let document = FakeDocument::new(&[&["nothing here"], &["nor here"]]);
             let classifier = yaml_only(vec![
-                entry(1, vec![leaf("EURIZON-EN23", &["^Eurizon Fund$"]), block("MEDIOLANUM", &["^Mediolanum$"], vec![leaf("MEDIOLANUM-EN23", &["^x$"])])]),
+                entry(
+                    1,
+                    vec![
+                        leaf("EURIZON-EN23", &["^Eurizon Fund$"]),
+                        block(
+                            "MEDIOLANUM",
+                            &["^Mediolanum$"],
+                            vec![leaf("MEDIOLANUM-EN23", &["^x$"])],
+                        ),
+                    ],
+                ),
                 entry(2, vec![leaf("AMUNDI-EN24", &["^Amundi Funds$"])]),
             ]);
             let (outcome, events) = events_of(|| classifier.classify(&document).unwrap());

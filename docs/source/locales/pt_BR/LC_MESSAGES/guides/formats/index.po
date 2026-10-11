@@ -24,14 +24,11 @@ msgid "Formats"
 msgstr "Formatos"
 
 #: ../../source/guides/formats/index.md:3
+#, python-brace-format
 msgid ""
-"A **format** is the recipe for one report layout: `EURIZON-EN23`, `AMUNDI-IT24`. It "
-"carries the publication year because a layout is a snapshot — next year's report from"
-" the same issuer is a different format, not a revision of this one."
+"A **format** is the recipe for one report layout: `EURIZON-EN23`, `AMUNDI-IT24`. Its name carries the issuer, the language and the **earliest** year of the reports it reads. Layouts drift over the years, so a later report from the same issuer often needs a format of its own; when it does not, the existing format reads it and keeps its name — names follow recipes, not documents ({doc}`../../reference/formats/names`)."
 msgstr ""
-"Um **formato** é a receita para o layout de um relatório: `EURIZON-EN23`, `AMUNDI-"
-"IT24`. Ele leva o ano de publicação porque um layout é um snapshot — o relatório do "
-"ano que vem, do mesmo emissor, é outro formato, não uma revisão deste."
+"Um **formato** é a receita para o layout de um relatório: `EURIZON-EN23`, `AMUNDI-IT24`. O nome dele leva o emissor, o idioma e o ano **mais antigo** dos relatórios que lê. Os layouts mudam com os anos, então um relatório posterior do mesmo emissor muitas vezes precisa de um formato próprio; quando não precisa, o formato existente o lê e mantém o nome — os nomes seguem as receitas, não os documentos ({doc}`../../reference/formats/names`)."
 
 #: ../../source/guides/formats/index.md:7
 #, python-brace-format

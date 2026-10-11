@@ -74,7 +74,10 @@ pub fn declared_funds(data: &FilterData<'_>) -> BTreeSet<String> {
         {
             add(name);
         }
-        for holding in [result.as_equity().map(|e| &e.data), result.as_bond().map(|b| &b.data)] {
+        for holding in [
+            result.as_equity().map(|e| &e.data),
+            result.as_bond().map(|b| &b.data),
+        ] {
             if let Some(investment) = holding
                 && let Some(name) = investment.fund.resolved()
             {
@@ -127,7 +130,12 @@ impl TextFilterPipe for TextFilterOnlyDeclaredFunds {
         }
         let mut kept = Vec::new();
         for block in passed {
-            let name = block.content.as_str().unwrap_or_default().trim().to_string();
+            let name = block
+                .content
+                .as_str()
+                .unwrap_or_default()
+                .trim()
+                .to_string();
             if declared.contains(MatchFund::new(&name).normalized()) {
                 kept.push(block);
             } else {
@@ -162,10 +170,20 @@ mod tests {
             "pass everything"
         }
 
-        fn filter(&self, blocks: &[PdfBlock], _: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+        fn filter(
+            &self,
+            blocks: &[PdfBlock],
+            _: &FilterData<'_>,
+        ) -> Result<Vec<TextBlock>, PipeError> {
             Ok(blocks
                 .iter()
-                .map(|block| TextBlock::from_content(block.type_block.clone(), Default::default(), block.content.clone()))
+                .map(|block| {
+                    TextBlock::from_content(
+                        block.type_block.clone(),
+                        Default::default(),
+                        block.content.clone(),
+                    )
+                })
                 .collect())
         }
     }
@@ -179,7 +197,10 @@ mod tests {
     }
 
     fn contents(blocks: &[TextBlock]) -> Vec<String> {
-        blocks.iter().map(|b| b.content.as_str().unwrap_or_default().to_string()).collect()
+        blocks
+            .iter()
+            .map(|b| b.content.as_str().unwrap_or_default().to_string())
+            .collect()
     }
 
     mod what_counts_as_declared {
@@ -199,8 +220,10 @@ mod tests {
 
         #[test]
         fn the_set_is_normalised_so_two_spellings_of_one_fund_are_one_entry() {
-            let previous =
-                vec![Extracted::Fund(Fund::new("Alpha Fund")), Extracted::Fund(Fund::new("ALPHA  FUND"))];
+            let previous = vec![
+                Extracted::Fund(Fund::new("Alpha Fund")),
+                Extracted::Fund(Fund::new("ALPHA  FUND")),
+            ];
             assert_eq!(declared_funds(&FilterData::Previous(&previous)).len(), 1);
         }
 
@@ -213,7 +236,8 @@ mod tests {
         #[test]
         fn the_target_companies_data_declares_nothing_rather_than_failing() {
             // The first step of a schedule receives the target companies, not previous results.
-            let companies: Vec<crate::formats_utils::text_filter::matcher::CompanyMatchInfos> = Vec::new();
+            let companies: Vec<crate::formats_utils::text_filter::matcher::CompanyMatchInfos> =
+                Vec::new();
             assert!(declared_funds(&FilterData::TargetCompanies(&companies)).is_empty());
         }
     }
@@ -224,21 +248,30 @@ mod tests {
         #[test]
         fn a_block_naming_a_declared_fund_passes() {
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
-            let got = wrapped().filter(&[block("Alpha Fund")], &FilterData::Previous(&previous)).unwrap();
+            let got = wrapped()
+                .filter(&[block("Alpha Fund")], &FilterData::Previous(&previous))
+                .unwrap();
             assert_eq!(contents(&got), ["Alpha Fund"]);
         }
 
         #[test]
         fn the_comparison_is_the_engines_own_fund_identity_and_not_a_literal_one() {
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
-            let got = wrapped().filter(&[block("  ALPHA   FUND ")], &FilterData::Previous(&previous)).unwrap();
+            let got = wrapped()
+                .filter(
+                    &[block("  ALPHA   FUND ")],
+                    &FilterData::Previous(&previous),
+                )
+                .unwrap();
             assert_eq!(got.len(), 1);
         }
 
         #[test]
         fn a_block_naming_another_fund_is_dropped() {
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
-            let got = wrapped().filter(&[block("Beta Fund")], &FilterData::Previous(&previous)).unwrap();
+            let got = wrapped()
+                .filter(&[block("Beta Fund")], &FilterData::Previous(&previous))
+                .unwrap();
             assert!(got.is_empty());
         }
 
@@ -246,7 +279,9 @@ mod tests {
         fn only_the_blocks_that_agree_are_kept_when_several_arrive() {
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
             let blocks = [block("Alpha Fund"), block("Beta Fund")];
-            let got = wrapped().filter(&blocks, &FilterData::Previous(&previous)).unwrap();
+            let got = wrapped()
+                .filter(&blocks, &FilterData::Previous(&previous))
+                .unwrap();
             assert_eq!(contents(&got), ["Alpha Fund"]);
         }
 
@@ -254,7 +289,9 @@ mod tests {
         fn nothing_declared_drops_everything_rather_than_passing_it() {
             // The annex cannot be matched against the report it belongs to: the datum is dropped,
             // loudly, because the likely cause is the main document not being in the same job.
-            let got = wrapped().filter(&[block("Alpha Fund")], &FilterData::EMPTY).unwrap();
+            let got = wrapped()
+                .filter(&[block("Alpha Fund")], &FilterData::EMPTY)
+                .unwrap();
             assert!(got.is_empty());
         }
 
@@ -279,7 +316,10 @@ mod tests {
 
         #[test]
         fn it_defers_to_the_wrapped_pipe_on_whether_threads_pay_off() {
-            assert_eq!(wrapped().scales_with_threads(), PassEverything.scales_with_threads());
+            assert_eq!(
+                wrapped().scales_with_threads(),
+                PassEverything.scales_with_threads()
+            );
         }
     }
 }

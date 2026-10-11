@@ -21,7 +21,9 @@ body_set = PdfLineSelection(font="ArialMT", font_size=(6.95, 6.97))
 ```
 
 The size range is not fussiness: a PDF's nominal 7-point body text is rarely exactly 7.0, and a
-range is how you say "the body face" rather than "this one line".
+range is how you say "the body face" rather than "this one line". The same holds across documents
+of one format: a title set at 26.00 points in one PDF is 26.03 in the next, and a single size is
+matched within a thousandth of a point.
 
 ## Composing selections, and building one relative to another
 Selections compose with `&`, which is ordinary conjunction. The useful part is that they can also be
@@ -110,6 +112,10 @@ which is the right reading: a portfolio page without its heading is not a portfo
 
 Text anchors are matched **verbatim**, with `^` and `$` meaning start and end — so prefix, suffix,
 substring and exact are all expressible, and nothing else is.
+
+The line is matched **as the PDF spells it**, without trimming. Many title lines end in a space —
+`'SIDERA FUNDS '`, `'CHALLENGE FUNDS '` — and on those `'^SIDERA FUNDS$'` finds nothing. Unless
+you have seen the exact line in `inspect-page`, anchor at the start only.
 
 That is a deliberate restriction, not a missing feature. Regular expressions appear in
 `text_filter`, where **meaning** is being read out of a block; a layout predicate does not need them

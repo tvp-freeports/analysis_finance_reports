@@ -16,7 +16,10 @@ use crate::core::classes::{BlockValue, BlockValueError};
 use crate::core::promisable::{PromisableFields, Promised};
 use crate::core::promise::Promise;
 
-use super::{FloatConstraint, OutputClassError, optional_promised_from_value, pending_of, promised_from_value};
+use super::{
+    FloatConstraint, OutputClassError, optional_promised_from_value, pending_of,
+    promised_from_value,
+};
 
 /// The tolerance of the accounting equation.
 const BALANCE_TOLERANCE: f64 = 1e-4;
@@ -54,7 +57,8 @@ impl FundAssets {
             });
         }
 
-        let currency = promised_from_value("currency", currency, |v| v.currency_or_fail("currency"))?;
+        let currency =
+            promised_from_value("currency", currency, |v| v.currency_or_fail("currency"))?;
         let date = optional_promised_from_value("date", date, |v| v.date_or_fail("date"))?;
 
         Ok(Self {
@@ -78,7 +82,11 @@ impl PromisableFields for FundAssets {
         out
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         match field {
             "date" => {
                 self.date = Some(Promised::Resolved(value.date_or_fail("date")?));
@@ -96,9 +104,9 @@ impl PromisableFields for FundAssets {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::promisable::{Fulfilled, fulfill_promises};
     use crate::core::promise::Promise as P;
     use crate::core::promise_resolution::FlatPromiseMap;
-    use crate::core::promisable::{Fulfilled, fulfill_promises};
 
     fn eur() -> BlockValue {
         BlockValue::from(Currency::EUR)
@@ -125,22 +133,33 @@ mod tests {
 
         #[test]
         fn a_null_date_is_the_same_as_no_date() {
-            let assets = FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), Some(&BlockValue::Null)).unwrap();
+            let assets =
+                FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), Some(&BlockValue::Null)).unwrap();
             assert!(assets.date.is_none());
         }
 
         #[test]
         fn a_resolved_date_is_carried_through() {
             let date = Date::new(2024, 12, 31).unwrap();
-            let assets =
-                FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), Some(&BlockValue::from(date))).unwrap();
+            let assets = FundAssets::build(
+                "X",
+                100.0,
+                40.0,
+                60.0,
+                &eur(),
+                Some(&BlockValue::from(date)),
+            )
+            .unwrap();
             assert_eq!(assets.date.and_then(|d| d.resolved().copied()), Some(date));
         }
 
         #[test]
         fn rejects_unbalanced_equation() {
             let err = FundAssets::build("X", 100.0, 40.0, 61.0, &eur(), None).unwrap_err();
-            assert!(matches!(err, OutputClassError::UnbalancedFundAssets { .. }), "{err:?}");
+            assert!(
+                matches!(err, OutputClassError::UnbalancedFundAssets { .. }),
+                "{err:?}"
+            );
         }
 
         #[test]
@@ -169,7 +188,11 @@ mod tests {
             let err = FundAssets::build("X", -1.0, 40.0, 60.0, &eur(), None).unwrap_err();
             assert!(matches!(
                 err,
-                OutputClassError::OutOfRange { field: "tot_assets", constraint: FloatConstraint::NonNegative, .. }
+                OutputClassError::OutOfRange {
+                    field: "tot_assets",
+                    constraint: FloatConstraint::NonNegative,
+                    ..
+                }
             ));
         }
 
@@ -178,7 +201,11 @@ mod tests {
             let err = FundAssets::build("X", 100.0, -40.0, 60.0, &eur(), None).unwrap_err();
             assert!(matches!(
                 err,
-                OutputClassError::OutOfRange { field: "liabilities", constraint: FloatConstraint::NonNegative, .. }
+                OutputClassError::OutOfRange {
+                    field: "liabilities",
+                    constraint: FloatConstraint::NonNegative,
+                    ..
+                }
             ));
         }
 
@@ -187,20 +214,38 @@ mod tests {
             let err = FundAssets::build("X", 100.0, 40.0, -60.0, &eur(), None).unwrap_err();
             assert!(matches!(
                 err,
-                OutputClassError::OutOfRange { field: "net_assets", constraint: FloatConstraint::NonNegative, .. }
+                OutputClassError::OutOfRange {
+                    field: "net_assets",
+                    constraint: FloatConstraint::NonNegative,
+                    ..
+                }
             ));
         }
 
         #[test]
         fn a_wrongly_typed_currency_is_a_field_error_naming_the_field() {
-            let err = FundAssets::build("X", 100.0, 40.0, 60.0, &BlockValue::from("EUR"), None).unwrap_err();
-            assert!(matches!(err, OutputClassError::Field { field: "currency", .. }));
+            let err = FundAssets::build("X", 100.0, 40.0, 60.0, &BlockValue::from("EUR"), None)
+                .unwrap_err();
+            assert!(matches!(
+                err,
+                OutputClassError::Field {
+                    field: "currency",
+                    ..
+                }
+            ));
         }
 
         #[test]
         fn a_wrongly_typed_date_is_a_field_error_naming_the_field() {
-            let err =
-                FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), Some(&BlockValue::from(1i64))).unwrap_err();
+            let err = FundAssets::build(
+                "X",
+                100.0,
+                40.0,
+                60.0,
+                &eur(),
+                Some(&BlockValue::from(1i64)),
+            )
+            .unwrap_err();
             assert!(matches!(err, OutputClassError::Field { field: "date", .. }));
         }
     }
@@ -222,13 +267,22 @@ mod tests {
 
         #[test]
         fn reports_every_pending_field_in_declaration_order() {
-            let pending: Vec<_> = promised_assets().pending().into_iter().map(|(f, _)| f).collect();
+            let pending: Vec<_> = promised_assets()
+                .pending()
+                .into_iter()
+                .map(|(f, _)| f)
+                .collect();
             assert_eq!(pending, vec!["date", "currency"]);
         }
 
         #[test]
         fn a_fully_resolved_fund_assets_reports_nothing_pending() {
-            assert!(FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), None).unwrap().pending().is_empty());
+            assert!(
+                FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), None)
+                    .unwrap()
+                    .pending()
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -236,24 +290,38 @@ mod tests {
             let mut assets = promised_assets();
             let map = FlatPromiseMap::from_pairs([
                 ("cur-id".to_string(), BlockValue::from(Currency::USD)),
-                ("date-id".to_string(), BlockValue::from(Date::new(2024, 1, 1).unwrap())),
+                (
+                    "date-id".to_string(),
+                    BlockValue::from(Date::new(2024, 1, 1).unwrap()),
+                ),
             ]);
-            assert_eq!(fulfill_promises(&mut assets, &map).unwrap(), Fulfilled::InPlace);
+            assert_eq!(
+                fulfill_promises(&mut assets, &map).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(assets.currency.resolved(), Some(&Currency::USD));
-            assert_eq!(assets.date.and_then(|d| d.resolved().copied()), Some(Date::new(2024, 1, 1).unwrap()));
+            assert_eq!(
+                assets.date.and_then(|d| d.resolved().copied()),
+                Some(Date::new(2024, 1, 1).unwrap())
+            );
         }
 
         #[test]
         fn resolving_with_a_wrongly_typed_value_reports_the_field() {
             let mut assets = promised_assets();
-            let err = assets.resolve_field("currency", BlockValue::from(1i64)).unwrap_err();
+            let err = assets
+                .resolve_field("currency", BlockValue::from(1i64))
+                .unwrap_err();
             assert!(err.to_string().contains("currency"), "{err}");
         }
 
         #[test]
         fn a_non_strict_unresolvable_promise_drops_the_entity() {
             let mut assets = promised_assets();
-            assert_eq!(fulfill_promises(&mut assets, &FlatPromiseMap::new()).unwrap(), Fulfilled::Dropped);
+            assert_eq!(
+                fulfill_promises(&mut assets, &FlatPromiseMap::new()).unwrap(),
+                Fulfilled::Dropped
+            );
         }
     }
 

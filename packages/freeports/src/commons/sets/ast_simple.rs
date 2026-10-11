@@ -94,7 +94,11 @@ where
 {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self(AstNode::Branch(Box::new(self.0), SetOps::Union, Box::new(rhs.0)))
+        Self(AstNode::Branch(
+            Box::new(self.0),
+            SetOps::Union,
+            Box::new(rhs.0),
+        ))
     }
 }
 
@@ -105,7 +109,11 @@ where
 {
     type Output = Self;
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self(AstNode::Branch(Box::new(self.0), SetOps::Inter, Box::new(rhs.0)))
+        Self(AstNode::Branch(
+            Box::new(self.0),
+            SetOps::Inter,
+            Box::new(rhs.0),
+        ))
     }
 }
 
@@ -116,7 +124,11 @@ where
 {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        Self(AstNode::Branch(Box::new(self.0), SetOps::Sub, Box::new(rhs.0)))
+        Self(AstNode::Branch(
+            Box::new(self.0),
+            SetOps::Sub,
+            Box::new(rhs.0),
+        ))
     }
 }
 
@@ -295,8 +307,8 @@ mod tests {
 
     mod containment {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(TestSet::new(["liquore", "text", "kkk"]), "text", true; "leaf hit")]
         #[test_case(TestSet::new(["liquore", "text", "kkk"]), "gulm", false; "leaf miss")]

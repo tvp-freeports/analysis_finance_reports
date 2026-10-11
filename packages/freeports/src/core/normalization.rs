@@ -108,7 +108,11 @@ fn normalize(input: &str, punctuation_separates: bool) -> String {
 /// ```
 pub fn normalize_string(input: &str, lower: bool) -> String {
     let trimmed = input.trim();
-    let cased = if lower { trimmed.to_lowercase() } else { trimmed.to_string() };
+    let cased = if lower {
+        trimmed.to_lowercase()
+    } else {
+        trimmed.to_string()
+    };
     cased.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
@@ -127,7 +131,11 @@ pub fn normalize_string(input: &str, lower: bool) -> String {
 /// ```
 pub fn normalize_word(input: &str, lower: bool) -> String {
     let concatenated: String = input.split_whitespace().collect();
-    if lower { concatenated.to_lowercase() } else { concatenated }
+    if lower {
+        concatenated.to_lowercase()
+    } else {
+        concatenated
+    }
 }
 
 #[cfg(test)]
@@ -172,7 +180,10 @@ mod tests {
         fn never_leaves_double_spaces_or_edges() {
             for input in ["  a - b  ", "a,,,b", "a + + b", "-a-", "  Café  ,  Fund  "] {
                 let out = deep_normalize_string(input);
-                assert!(!out.contains("  "), "double spaces in {out:?} (input {input:?})");
+                assert!(
+                    !out.contains("  "),
+                    "double spaces in {out:?} (input {input:?})"
+                );
                 assert_eq!(out.trim(), out, "unclean edges in {out:?}");
             }
         }
@@ -209,9 +220,18 @@ mod tests {
 
         #[test]
         fn never_leaves_double_spaces_or_edges() {
-            for input in [".a.", "a..b", " (c) ", "AMAZON.COM  INC.", "  Café . Fund  "] {
+            for input in [
+                ".a.",
+                "a..b",
+                " (c) ",
+                "AMAZON.COM  INC.",
+                "  Café . Fund  ",
+            ] {
                 let out = deep_normalize_string_split_on_punctuation(input);
-                assert!(!out.contains("  "), "double spaces in {out:?} (input {input:?})");
+                assert!(
+                    !out.contains("  "),
+                    "double spaces in {out:?} (input {input:?})"
+                );
                 assert_eq!(out.trim(), out, "unclean edges in {out:?}");
             }
         }
@@ -220,7 +240,11 @@ mod tests {
         fn is_idempotent() {
             for input in ["AMAZON.COM INC", "Café  Fund–A", "ØMEGA/AB", "  "] {
                 let once = deep_normalize_string_split_on_punctuation(input);
-                assert_eq!(deep_normalize_string_split_on_punctuation(&once), once, "input: {input:?}");
+                assert_eq!(
+                    deep_normalize_string_split_on_punctuation(&once),
+                    once,
+                    "input: {input:?}"
+                );
             }
         }
     }
@@ -246,7 +270,11 @@ mod tests {
             for input in ["  A  B  ", "Café Fund", ""] {
                 for lower in [true, false] {
                     let once = normalize_string(input, lower);
-                    assert_eq!(normalize_string(&once, lower), once, "input {input:?} lower {lower}");
+                    assert_eq!(
+                        normalize_string(&once, lower),
+                        once,
+                        "input {input:?} lower {lower}"
+                    );
                 }
             }
         }
@@ -271,7 +299,10 @@ mod tests {
         #[test]
         fn never_contains_spaces() {
             for input in ["  a b  c ", "\t\n", "x", ""] {
-                assert!(!normalize_word(input, false).contains(char::is_whitespace), "input {input:?}");
+                assert!(
+                    !normalize_word(input, false).contains(char::is_whitespace),
+                    "input {input:?}"
+                );
             }
         }
     }

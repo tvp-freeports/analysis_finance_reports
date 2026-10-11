@@ -8,9 +8,9 @@ use std::path::PathBuf;
 
 use pyo3::prelude::*;
 
+use crate::core::tracing_setup::log_error;
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 use crate::input::companies_db;
-use crate::core::tracing_setup::log_error;
 
 /// The Python shim of a compiled target company.
 ///
@@ -65,7 +65,12 @@ pub fn py_get_target_companies(
         "get_target_companies called from Python"
     );
     companies_db::compile_target_companies(&input_db_directory, &target_lists)
-        .map(|companies| companies.into_iter().map(PyCompanyMatchInfos::from).collect())
+        .map(|companies| {
+            companies
+                .into_iter()
+                .map(PyCompanyMatchInfos::from)
+                .collect()
+        })
         .map_err(|e| {
             // Past this point the error only lives as a Python exception, invisible to this
             // crate's tracing/CSV pipeline (rule 1: log before it is absorbed by PyO3).

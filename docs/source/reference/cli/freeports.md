@@ -52,7 +52,8 @@ The format name, as `metadata/formats.csv` of the repository synthesises it — 
 `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`.
 
 Omit it and the engine tries to infer it from the URL of each document, using the repository's
-`url_mapping.csv`; the first matching prefix wins. Inference works only for documents that *have* a
+`url_mapping.csv`: the longest matching prefix wins, then the row with the more specific name, then
+the row that comes first. Inference works only for documents that *have* a
 URL. Two documents inferring **different** formats is an error rather than a choice made silently.
 Giving `-f` explicitly while inference also succeeds and disagrees is a warning, not an error: you
 were explicit, so you win, but you are told.

@@ -42,7 +42,9 @@ use serde::Deserialize;
 
 use crate::core::classes::BlockType;
 use crate::core::pipeline::{PdfExtractPipe, TextFilterPipe};
-use crate::formats_utils::pdf_extract::labelled_column::{LabelledColumnArgs, PdfExtractLabelledColumnStandard};
+use crate::formats_utils::pdf_extract::labelled_column::{
+    LabelledColumnArgs, PdfExtractLabelledColumnStandard,
+};
 use crate::formats_utils::pdf_extract::labelled_value::{
     LabelledValueArgs, LabelledValueTake, LabelledValueWhere, LabelledValueWindow,
     PdfExtractLabelledValueStandard,
@@ -54,7 +56,9 @@ use crate::formats_utils::pdf_extract::select::pdf_line::text::TextSet;
 use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::formats_utils::pdf_extract::sfdr_sign::{PdfExtractSfdrSignStandard, SfdrSignArgs};
 use crate::formats_utils::text_filter::declared_funds::TextFilterOnlyDeclaredFunds;
-use crate::formats_utils::text_filter::standard_funcs::{StandardFuncsError, TextFilterSfdrSignStandard};
+use crate::formats_utils::text_filter::standard_funcs::{
+    StandardFuncsError, TextFilterSfdrSignStandard,
+};
 
 use std::sync::Arc;
 
@@ -88,7 +92,10 @@ pub const ITALIAN: Annex = Annex {
     product: &["Nome del prodotto"],
     product_prefix: "Nome del prodotto: ",
     identifier: &["dentificativo della persona giuridica"],
-    band: &["Caratteristiche ambientali e/o sociali", "biettivo di investimento sostenibile"],
+    band: &[
+        "Caratteristiche ambientali e/o sociali",
+        "biettivo di investimento sostenibile",
+    ],
 };
 
 /// English — measured on UBS-EN23, KAIROS-EN23, FINECO-EN23@IR and @LUX, ASTERIA-EN24,
@@ -106,7 +113,10 @@ pub const ENGLISH: Annex = Annex {
     product: &["Product name"],
     product_prefix: "Product name: ",
     identifier: &["Legal entity identifier", "Legal Entity Identifier"],
-    band: &["Environmental and/or social characteristics", "Sustainable investment objective"],
+    band: &[
+        "Environmental and/or social characteristics",
+        "Sustainable investment objective",
+    ],
 };
 
 /// Spanish — **measured on no document**: see the module documentation.
@@ -120,7 +130,10 @@ pub const SPANISH: Annex = Annex {
     product: &["Nombre del producto"],
     product_prefix: "Nombre del producto: ",
     identifier: &["dentificador de entidad jur"],
-    band: &["Características medioambientales o sociales", "bjetivo de inversión sostenible"],
+    band: &[
+        "Características medioambientales o sociales",
+        "bjetivo de inversión sostenible",
+    ],
 };
 
 /// French — the labels are measured (AMUNDI-EN24 p777), the rest is not: no document of the
@@ -135,7 +148,10 @@ pub const FRENCH: Annex = Annex {
     product: &["Nom du produit"],
     product_prefix: "Nom du produit: ",
     identifier: &["dentifiant d’entité juridique"],
-    band: &["Caractéristiques environnementales et/ou sociales", "bjectif d’investissement durable"],
+    band: &[
+        "Caractéristiques environnementales et/ou sociales",
+        "bjectif d’investissement durable",
+    ],
 };
 
 /// The language a configuration names, case-insensitively.
@@ -167,7 +183,11 @@ fn text_set(text: &str) -> PdfLineSet {
 /// `Yes`/`No` on a hundred forms and `X Oui`/`Non` on two, and the labels are to be **measured**,
 /// not deduced from the document's language.
 fn anchors(texts: &[&str]) -> Option<PdfLineSelection> {
-    texts.iter().map(|text| text_set(text)).reduce(|a, b| a | b).map(OptionallyRelative::Absolute)
+    texts
+        .iter()
+        .map(|text| text_set(text))
+        .reduce(|a, b| a | b)
+        .map(OptionallyRelative::Absolute)
 }
 
 /// The three forms an answer label really takes.
@@ -326,8 +346,9 @@ fn chosen_label(
 pub fn pdf_extract(
     input: &InputSfdrAnnexPdfExtract,
 ) -> Result<Vec<Arc<dyn PdfExtractPipe>>, SfdrAnnexError> {
-    let annex =
-        language(&input.language).ok_or_else(|| SfdrAnnexError::UnknownLanguage { name: input.language.clone() })?;
+    let annex = language(&input.language).ok_or_else(|| SfdrAnnexError::UnknownLanguage {
+        name: input.language.clone(),
+    })?;
 
     let sign = PdfExtractSfdrSignStandard::new(SfdrSignArgs {
         fallback_labels: Some((
@@ -367,20 +388,27 @@ pub fn pdf_extract(
     // between. Both run on every page, in this order, and the `text_filter` takes **the first block
     // that, with the label removed, is not empty**. `All` and not `First` because a pipe finding
     // nothing is the normal case here, not a defect of the page.
-    pipes.push(Arc::new(PdfExtractLabelledValueStandard::new(LabelledValueArgs {
-        take: LabelledValueTake::All,
-        ..LabelledValueArgs::new(product_label.clone(), PRODUCT_BLOCK, "fund")
-    })));
-    pipes.push(Arc::new(PdfExtractLabelledValueStandard::new(LabelledValueArgs {
-        r#where: LabelledValueWhere::Right,
-        value: Some(not_blank()),
-        take: LabelledValueTake::All,
-        // Two line heights to the right of the label and no further: the product name begins where
-        // the label ends, while the legal entity identifier — on the same band and of the same
-        // shape — begins a hundred and fifty points further along.
-        window: Some(LabelledValueWindow { reach: Some(2.0), across: input.product_across.unwrap_or(0.0) }),
-        ..LabelledValueArgs::new(product_label, PRODUCT_BLOCK, "fund")
-    })));
+    pipes.push(Arc::new(PdfExtractLabelledValueStandard::new(
+        LabelledValueArgs {
+            take: LabelledValueTake::All,
+            ..LabelledValueArgs::new(product_label.clone(), PRODUCT_BLOCK, "fund")
+        },
+    )));
+    pipes.push(Arc::new(PdfExtractLabelledValueStandard::new(
+        LabelledValueArgs {
+            r#where: LabelledValueWhere::Right,
+            value: Some(not_blank()),
+            take: LabelledValueTake::All,
+            // Two line heights to the right of the label and no further: the product name begins where
+            // the label ends, while the legal entity identifier — on the same band and of the same
+            // shape — begins a hundred and fifty points further along.
+            window: Some(LabelledValueWindow {
+                reach: Some(2.0),
+                across: input.product_across.unwrap_or(0.0),
+            }),
+            ..LabelledValueArgs::new(product_label, PRODUCT_BLOCK, "fund")
+        },
+    )));
     Ok(pipes)
 }
 
@@ -388,8 +416,9 @@ pub fn pdf_extract(
 pub fn text_filter(
     input: &InputSfdrAnnexTextFilter,
 ) -> Result<Vec<Arc<dyn TextFilterPipe>>, SfdrAnnexError> {
-    let annex =
-        language(&input.language).ok_or_else(|| SfdrAnnexError::UnknownLanguage { name: input.language.clone() })?;
+    let annex = language(&input.language).ok_or_else(|| SfdrAnnexError::UnknownLanguage {
+        name: input.language.clone(),
+    })?;
     let (strings, patterns) = match &input.product_prefix {
         // The language's own prefix is a plain string, not a pattern: it is the annex's wording.
         None => (vec![annex.product_prefix.to_string()], Vec::new()),
@@ -405,9 +434,18 @@ pub fn text_filter(
             (strings, patterns)
         }
     };
-    let pipe = TextFilterSfdrSignStandard::new(None, strings, patterns, input.demand_investment_funds_match)?;
+    let pipe = TextFilterSfdrSignStandard::new(
+        None,
+        strings,
+        patterns,
+        input.demand_investment_funds_match,
+    )?;
     let pipe: Arc<dyn TextFilterPipe> = Arc::new(pipe);
-    Ok(vec![if input.demand_declared_fund { Arc::new(TextFilterOnlyDeclaredFunds::new(pipe)) } else { pipe }])
+    Ok(vec![if input.demand_declared_fund {
+        Arc::new(TextFilterOnlyDeclaredFunds::new(pipe))
+    } else {
+        pipe
+    }])
 }
 
 #[cfg(test)]
@@ -510,7 +548,10 @@ mod tests {
                 ] {
                     assert!(!texts.is_empty(), "{name} leaves {field} empty");
                 }
-                assert!(!annex.product_prefix.is_empty(), "{name} leaves product_prefix empty");
+                assert!(
+                    !annex.product_prefix.is_empty(),
+                    "{name} leaves product_prefix empty"
+                );
             }
         }
     }
@@ -539,12 +580,23 @@ mod tests {
             let mut input = extract_input("ENGLISH");
             input.title = Some(Vec::new());
             let error = expect_extract_error(&input);
-            assert!(matches!(error, SfdrAnnexError::EmptyAnchors("title")), "{error}");
+            assert!(
+                matches!(error, SfdrAnnexError::EmptyAnchors("title")),
+                "{error}"
+            );
         }
 
         #[test]
         fn each_overridable_anchor_is_refused_empty_under_its_own_name() {
-            for field in ["question", "affirmative", "negative", "made", "promoted", "title", "product"] {
+            for field in [
+                "question",
+                "affirmative",
+                "negative",
+                "made",
+                "promoted",
+                "title",
+                "product",
+            ] {
                 let mut input = extract_input("ENGLISH");
                 match field {
                     "question" => input.question = Some(Vec::new()),
@@ -556,7 +608,10 @@ mod tests {
                     _ => input.product = Some(Vec::new()),
                 }
                 let error = expect_extract_error(&input);
-                assert!(matches!(error, SfdrAnnexError::EmptyAnchors(named) if named == field), "{field}: {error}");
+                assert!(
+                    matches!(error, SfdrAnnexError::EmptyAnchors(named) if named == field),
+                    "{field}: {error}"
+                );
             }
         }
 
@@ -569,7 +624,10 @@ mod tests {
             assert!(pdf_extract(&input).is_ok());
             input.product_joined = true;
             let error = expect_extract_error(&input);
-            assert!(matches!(error, SfdrAnnexError::EmptyAnchors("identifier")), "{error}");
+            assert!(
+                matches!(error, SfdrAnnexError::EmptyAnchors("identifier")),
+                "{error}"
+            );
         }
 
         #[test]
@@ -600,13 +658,21 @@ mod tests {
             input.demand_declared_fund = true;
             let pipes = text_filter(&input).unwrap();
             assert_eq!(pipes.len(), 1);
-            assert!(pipes[0].name().contains("only declared funds"), "{}", pipes[0].name());
+            assert!(
+                pipes[0].name().contains("only declared funds"),
+                "{}",
+                pipes[0].name()
+            );
         }
 
         #[test]
         fn not_demanding_it_leaves_the_pipe_unwrapped() {
             let pipes = text_filter(&filter_input("SPANISH")).unwrap();
-            assert!(!pipes[0].name().contains("only declared funds"), "{}", pipes[0].name());
+            assert!(
+                !pipes[0].name().contains("only declared funds"),
+                "{}",
+                pipes[0].name()
+            );
         }
 
         #[test]
@@ -617,8 +683,13 @@ mod tests {
         #[test]
         fn a_malformed_pattern_is_reported_rather_than_compiled() {
             let mut input = filter_input("ENGLISH");
-            input.product_prefix = Some(vec![PrefixSpec::Pattern { pattern: "(unclosed".to_string() }]);
-            assert!(matches!(expect_filter_error(&input), SfdrAnnexError::TextFilter(_)));
+            input.product_prefix = Some(vec![PrefixSpec::Pattern {
+                pattern: "(unclosed".to_string(),
+            }]);
+            assert!(matches!(
+                expect_filter_error(&input),
+                SfdrAnnexError::TextFilter(_)
+            ));
         }
 
         #[test]
@@ -626,7 +697,9 @@ mod tests {
             let mut input = filter_input("ITALIAN");
             input.product_prefix = Some(vec![
                 PrefixSpec::Literal("Nome del prodotto: ".to_string()),
-                PrefixSpec::Pattern { pattern: r" \(.*\)".to_string() },
+                PrefixSpec::Pattern {
+                    pattern: r" \(.*\)".to_string(),
+                },
             ]);
             assert_eq!(text_filter(&input).unwrap().len(), 1);
         }

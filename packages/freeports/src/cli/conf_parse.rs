@@ -19,8 +19,8 @@
 //! no fields set — not an error here, only when validated as an actual input.
 //!
 //! Parsing never panics on any input, whatever its shape, which the stress test below exercises.
-use std::path::PathBuf;
 use crate::core::tracing_setup::log_error;
+use std::path::PathBuf;
 
 /// The separator between several document specifiers, shared by batch rows and the environment: one
 /// constant rather than two literals that could drift apart.
@@ -37,11 +37,19 @@ pub struct DocumentSpec {
 pub enum DocumentSpecError {
     /// A form requiring a URL scheme was used, but no scheme was found at the head of the
     /// specifier.
-    #[error("document specifier {specifier:?} has {segment_count} segments but no http(s):// scheme was found")]
-    MissingUrlScheme { specifier: String, segment_count: usize },
+    #[error(
+        "document specifier {specifier:?} has {segment_count} segments but no http(s):// scheme was found"
+    )]
+    MissingUrlScheme {
+        specifier: String,
+        segment_count: usize,
+    },
     /// Zero, or four or more segments: no form of the grammar accepts them.
     #[error("document specifier {specifier:?} has {segment_count} segments, expected 1 to 3")]
-    InvalidSegmentCount { specifier: String, segment_count: usize },
+    InvalidSegmentCount {
+        specifier: String,
+        segment_count: usize,
+    },
     /// Da `input_should_be_specified`: né `url` né `path` sono specificati.
     #[error("you have to specify at least one of: the url, the pdf file path, or both")]
     InputNotSpecified,
@@ -61,7 +69,11 @@ fn abspath(segment: &str) -> PathBuf {
     std::env::current_dir()
         .map(|cwd| cwd.join(&path))
         .unwrap_or_else(|e| {
-            tracing::warn!(error = log_error(&e), segment, "cannot read the current directory, keeping this document path relative: {e}");
+            tracing::warn!(
+                error = log_error(&e),
+                segment,
+                "cannot read the current directory, keeping this document path relative: {e}"
+            );
             path
         })
 }
@@ -101,11 +113,19 @@ impl DocumentSpec {
     pub fn parse(specifier: &str) -> Result<DocumentSpec, DocumentSpecError> {
         let trimmed = specifier.trim();
         if trimmed.is_empty() {
-            return Ok(DocumentSpec { url: None, path: None, name: None });
+            return Ok(DocumentSpec {
+                url: None,
+                path: None,
+                name: None,
+            });
         }
 
         let first_escaped = trimmed.starts_with('"');
-        let mut rest = if first_escaped { &trimmed[1..] } else { trimmed };
+        let mut rest = if first_escaped {
+            &trimmed[1..]
+        } else {
+            trimmed
+        };
 
         let mut url_scheme: Option<&str> = None;
         for scheme in URL_SCHEMES {
@@ -131,19 +151,34 @@ impl DocumentSpec {
                 None => {
                     let path = abspath(&segments[0]);
                     let name = path.to_string_lossy().into_owned();
-                    Ok(DocumentSpec { url: None, path: Some(path), name: Some(name) })
+                    Ok(DocumentSpec {
+                        url: None,
+                        path: Some(path),
+                        name: Some(name),
+                    })
                 }
                 Some(scheme) => {
                     let url = format!("{scheme}{}", segments[0]);
-                    Ok(DocumentSpec { url: Some(url.clone()), path: None, name: Some(url) })
+                    Ok(DocumentSpec {
+                        url: Some(url.clone()),
+                        path: None,
+                        name: Some(url),
+                    })
                 }
             },
             2 if trailing_colon => match url_scheme {
-                None => Err(DocumentSpecError::MissingUrlScheme { specifier: specifier.to_string(), segment_count: 2 }),
+                None => Err(DocumentSpecError::MissingUrlScheme {
+                    specifier: specifier.to_string(),
+                    segment_count: 2,
+                }),
                 Some(scheme) => {
                     let url = format!("{scheme}{}", segments[0]);
                     let path = abspath(&segments[1]);
-                    Ok(DocumentSpec { url: Some(url.clone()), path: Some(path), name: Some(url) })
+                    Ok(DocumentSpec {
+                        url: Some(url.clone()),
+                        path: Some(path),
+                        name: Some(url),
+                    })
                 }
             },
             2 => {
@@ -151,26 +186,42 @@ impl DocumentSpec {
                 match url_scheme {
                     None => {
                         let path = abspath(&segments[0]);
-                        Ok(DocumentSpec { url: None, path: Some(path), name: Some(name) })
+                        Ok(DocumentSpec {
+                            url: None,
+                            path: Some(path),
+                            name: Some(name),
+                        })
                     }
                     Some(scheme) => {
                         let url = format!("{scheme}{}", segments[0]);
-                        Ok(DocumentSpec { url: Some(url), path: None, name: Some(name) })
+                        Ok(DocumentSpec {
+                            url: Some(url),
+                            path: None,
+                            name: Some(name),
+                        })
                     }
                 }
             }
             3 => match url_scheme {
-                None => Err(DocumentSpecError::MissingUrlScheme { specifier: specifier.to_string(), segment_count: 3 }),
+                None => Err(DocumentSpecError::MissingUrlScheme {
+                    specifier: specifier.to_string(),
+                    segment_count: 3,
+                }),
                 Some(scheme) => {
                     let url = format!("{scheme}{}", segments[0]);
                     let path = abspath(&segments[1]);
                     let name = segments[2].clone();
-                    Ok(DocumentSpec { url: Some(url), path: Some(path), name: Some(name) })
+                    Ok(DocumentSpec {
+                        url: Some(url),
+                        path: Some(path),
+                        name: Some(name),
+                    })
                 }
             },
-            segment_count => {
-                Err(DocumentSpecError::InvalidSegmentCount { specifier: specifier.to_string(), segment_count })
-            }
+            segment_count => Err(DocumentSpecError::InvalidSegmentCount {
+                specifier: specifier.to_string(),
+                segment_count,
+            }),
         }
     }
 
@@ -178,7 +229,11 @@ impl DocumentSpec {
     /// string, say — is a valid parse but not a specified document. Keeping the two apart lets a
     /// caller parse a value it does not yet require.
     pub fn input_should_be_specified(&self) -> Result<(), DocumentSpecError> {
-        if self.url.is_none() && self.path.is_none() { Err(DocumentSpecError::InputNotSpecified) } else { Ok(()) }
+        if self.url.is_none() && self.path.is_none() {
+            Err(DocumentSpecError::InputNotSpecified)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -188,7 +243,9 @@ mod tests {
     use std::path::PathBuf;
 
     fn cwd_join(name: &str) -> PathBuf {
-        std::env::current_dir().expect("cwd must be readable in a test process").join(name)
+        std::env::current_dir()
+            .expect("cwd must be readable in a test process")
+            .join(name)
     }
 
     fn display(p: &PathBuf) -> String {
@@ -211,7 +268,10 @@ mod tests {
         fn only_a_url_becomes_url_and_its_own_name() {
             let spec = DocumentSpec::parse("https://example.com/report.pdf").unwrap();
             assert_eq!(spec.url, Some("https://example.com/report.pdf".to_string()));
-            assert_eq!(spec.name, Some("https://example.com/report.pdf".to_string()));
+            assert_eq!(
+                spec.name,
+                Some("https://example.com/report.pdf".to_string())
+            );
             assert_eq!(spec.path, None);
         }
 
@@ -250,7 +310,11 @@ mod tests {
             let spec = DocumentSpec::parse("https://example.com/x:report.pdf:").unwrap();
             assert_eq!(spec.url, Some("https://example.com/x".to_string()));
             assert_eq!(spec.path, Some(cwd_join("report.pdf")));
-            assert_eq!(spec.name, Some("https://example.com/x".to_string()), "name must fall back to the url");
+            assert_eq!(
+                spec.name,
+                Some("https://example.com/x".to_string()),
+                "name must fall back to the url"
+            );
         }
 
         #[test]
@@ -259,7 +323,9 @@ mod tests {
             let result = std::panic::catch_unwind(|| DocumentSpec::parse("report.pdf:other:"));
             assert!(result.is_ok(), "must not panic");
             match result.unwrap() {
-                Err(DocumentSpecError::MissingUrlScheme { segment_count, .. }) => assert_eq!(segment_count, 2),
+                Err(DocumentSpecError::MissingUrlScheme { segment_count, .. }) => {
+                    assert_eq!(segment_count, 2)
+                }
                 other => panic!("expected MissingUrlScheme, got {other:?}"),
             }
         }
@@ -282,7 +348,9 @@ mod tests {
             let result = std::panic::catch_unwind(|| DocumentSpec::parse("a:b:c"));
             assert!(result.is_ok(), "must not panic");
             match result.unwrap() {
-                Err(DocumentSpecError::MissingUrlScheme { segment_count, .. }) => assert_eq!(segment_count, 3),
+                Err(DocumentSpecError::MissingUrlScheme { segment_count, .. }) => {
+                    assert_eq!(segment_count, 3)
+                }
                 other => panic!("expected MissingUrlScheme, got {other:?}"),
             }
         }
@@ -317,7 +385,8 @@ mod tests {
 
         #[test]
         fn a_colon_inside_a_quoted_name_segment_is_preserved() {
-            let spec = DocumentSpec::parse(r#"https://example.com/x:report.pdf:"my:name""#).unwrap();
+            let spec =
+                DocumentSpec::parse(r#"https://example.com/x:report.pdf:"my:name""#).unwrap();
             assert_eq!(spec.url, Some("https://example.com/x".to_string()));
             assert_eq!(spec.path, Some(cwd_join("report.pdf")));
             assert_eq!(spec.name, Some("my:name".to_string()));
@@ -325,7 +394,9 @@ mod tests {
 
         #[test]
         fn all_three_segments_quoted_together() {
-            let spec = DocumentSpec::parse(r#""https://example.com:8080/x":"weird:file.pdf":"my:name""#).unwrap();
+            let spec =
+                DocumentSpec::parse(r#""https://example.com:8080/x":"weird:file.pdf":"my:name""#)
+                    .unwrap();
             assert_eq!(spec.url, Some("https://example.com:8080/x".to_string()));
             assert_eq!(spec.path, Some(cwd_join("weird:file.pdf")));
             assert_eq!(spec.name, Some("my:name".to_string()));
@@ -345,13 +416,27 @@ mod tests {
         #[test]
         fn an_empty_string_parses_to_all_none() {
             let spec = DocumentSpec::parse("").unwrap();
-            assert_eq!(spec, DocumentSpec { url: None, path: None, name: None });
+            assert_eq!(
+                spec,
+                DocumentSpec {
+                    url: None,
+                    path: None,
+                    name: None
+                }
+            );
         }
 
         #[test]
         fn a_whitespace_only_string_is_stripped_to_the_same_all_none_result() {
             let spec = DocumentSpec::parse("   ").unwrap();
-            assert_eq!(spec, DocumentSpec { url: None, path: None, name: None });
+            assert_eq!(
+                spec,
+                DocumentSpec {
+                    url: None,
+                    path: None,
+                    name: None
+                }
+            );
         }
 
         #[test]
@@ -359,7 +444,9 @@ mod tests {
             let result = std::panic::catch_unwind(|| DocumentSpec::parse("\"\""));
             assert!(result.is_ok(), "must not panic");
             match result.unwrap() {
-                Err(DocumentSpecError::InvalidSegmentCount { segment_count, .. }) => assert_eq!(segment_count, 0),
+                Err(DocumentSpecError::InvalidSegmentCount { segment_count, .. }) => {
+                    assert_eq!(segment_count, 0)
+                }
                 other => panic!("expected InvalidSegmentCount(0), got {other:?}"),
             }
         }
@@ -373,7 +460,9 @@ mod tests {
             let result = std::panic::catch_unwind(|| DocumentSpec::parse("a:b:c:d"));
             assert!(result.is_ok(), "must not panic");
             match result.unwrap() {
-                Err(DocumentSpecError::InvalidSegmentCount { segment_count, .. }) => assert_eq!(segment_count, 4),
+                Err(DocumentSpecError::InvalidSegmentCount { segment_count, .. }) => {
+                    assert_eq!(segment_count, 4)
+                }
                 other => panic!("expected InvalidSegmentCount(4), got {other:?}"),
             }
         }
@@ -383,7 +472,10 @@ mod tests {
             let specifier = "a:b:c:d:e:f:g:h";
             let result = std::panic::catch_unwind(|| DocumentSpec::parse(specifier));
             assert!(result.is_ok(), "must not panic");
-            assert!(matches!(result.unwrap(), Err(DocumentSpecError::InvalidSegmentCount { .. })));
+            assert!(matches!(
+                result.unwrap(),
+                Err(DocumentSpecError::InvalidSegmentCount { .. })
+            ));
         }
     }
 
@@ -392,33 +484,58 @@ mod tests {
 
         #[test]
         fn neither_url_nor_path_is_an_error() {
-            let spec = DocumentSpec { url: None, path: None, name: None };
-            assert!(matches!(spec.input_should_be_specified(), Err(DocumentSpecError::InputNotSpecified)));
+            let spec = DocumentSpec {
+                url: None,
+                path: None,
+                name: None,
+            };
+            assert!(matches!(
+                spec.input_should_be_specified(),
+                Err(DocumentSpecError::InputNotSpecified)
+            ));
         }
 
         #[test]
         fn neither_url_nor_path_but_a_name_is_still_an_error() {
             // `name` alone never satisfies the requirement -- only `url`/`path` count.
-            let spec = DocumentSpec { url: None, path: None, name: Some("whatever".to_string()) };
-            assert!(matches!(spec.input_should_be_specified(), Err(DocumentSpecError::InputNotSpecified)));
+            let spec = DocumentSpec {
+                url: None,
+                path: None,
+                name: Some("whatever".to_string()),
+            };
+            assert!(matches!(
+                spec.input_should_be_specified(),
+                Err(DocumentSpecError::InputNotSpecified)
+            ));
         }
 
         #[test]
         fn only_url_is_fine() {
-            let spec = DocumentSpec { url: Some("https://example.com".to_string()), path: None, name: None };
+            let spec = DocumentSpec {
+                url: Some("https://example.com".to_string()),
+                path: None,
+                name: None,
+            };
             assert!(spec.input_should_be_specified().is_ok());
         }
 
         #[test]
         fn only_path_is_fine() {
-            let spec = DocumentSpec { url: None, path: Some(PathBuf::from("/tmp/x.pdf")), name: None };
+            let spec = DocumentSpec {
+                url: None,
+                path: Some(PathBuf::from("/tmp/x.pdf")),
+                name: None,
+            };
             assert!(spec.input_should_be_specified().is_ok());
         }
 
         #[test]
         fn both_url_and_path_is_fine() {
-            let spec =
-                DocumentSpec { url: Some("https://example.com".to_string()), path: Some(PathBuf::from("/tmp/x.pdf")), name: None };
+            let spec = DocumentSpec {
+                url: Some("https://example.com".to_string()),
+                path: Some(PathBuf::from("/tmp/x.pdf")),
+                name: None,
+            };
             assert!(spec.input_should_be_specified().is_ok());
         }
     }
@@ -455,14 +572,18 @@ mod tests {
                     for p2 in pieces {
                         for joiner in joiners {
                             let specifier = format!("{scheme}{p1}{joiner}{p2}");
-                            let result = std::panic::catch_unwind(|| DocumentSpec::parse(&specifier));
+                            let result =
+                                std::panic::catch_unwind(|| DocumentSpec::parse(&specifier));
                             assert!(result.is_ok(), "parse panicked on {specifier:?}");
                             generated += 1;
                         }
                     }
                 }
             }
-            assert!(generated >= 100, "expected at least 100 generated cases, got {generated}");
+            assert!(
+                generated >= 100,
+                "expected at least 100 generated cases, got {generated}"
+            );
         }
 
         #[test]
@@ -474,14 +595,18 @@ mod tests {
                     for b in bodies {
                         for c in bodies {
                             let specifier = format!("{scheme}{a}:{b}:{c}");
-                            let result = std::panic::catch_unwind(|| DocumentSpec::parse(&specifier));
+                            let result =
+                                std::panic::catch_unwind(|| DocumentSpec::parse(&specifier));
                             assert!(result.is_ok(), "parse panicked on {specifier:?}");
                             generated += 1;
                         }
                     }
                 }
             }
-            assert!(generated >= 100, "expected at least 100 generated cases, got {generated}");
+            assert!(
+                generated >= 100,
+                "expected at least 100 generated cases, got {generated}"
+            );
         }
     }
 }

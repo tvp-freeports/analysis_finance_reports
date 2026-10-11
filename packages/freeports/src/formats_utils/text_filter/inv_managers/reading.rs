@@ -58,12 +58,17 @@ pub const NOTE_MARKS: &str = "*†‡¹²³⁴⁵";
 #[derive(Debug, thiserror::Error)]
 pub enum ReadingError {
     #[error("the reader's '{field}' is not a valid expression: {message}")]
-    InvalidPattern { field: &'static str, message: String },
+    InvalidPattern {
+        field: &'static str,
+        message: String,
+    },
 }
 
 fn compile(field: &'static str, pattern: &str) -> Result<Regex, ReadingError> {
-    Regex::new(pattern)
-        .map_err(|e| ReadingError::InvalidPattern { field, message: e.description().to_string() })
+    Regex::new(pattern).map_err(|e| ReadingError::InvalidPattern {
+        field,
+        message: e.description().to_string(),
+    })
 }
 
 pub fn compile_all(field: &'static str, patterns: &[String]) -> Result<Vec<Regex>, ReadingError> {
@@ -204,9 +209,7 @@ impl Spec {
         match self {
             Spec::Parenthetical(spec) => match &spec.block_type {
                 Some(wanted) => block.type_block == *wanted,
-                None => {
-                    count_of(accumulated, &spec.opener) > count_of(accumulated, &spec.closer)
-                }
+                None => count_of(accumulated, &spec.opener) > count_of(accumulated, &spec.closer),
             },
             // A list goes on as long as the lines composing it go on.
             Spec::Listing(_) => self.opens(block),
@@ -231,16 +234,28 @@ impl Spec {
 }
 
 fn count_of(text: &str, needle: &str) -> usize {
-    if needle.is_empty() { 0 } else { text.matches(needle).count() }
+    if needle.is_empty() {
+        0
+    } else {
+        text.matches(needle).count()
+    }
 }
 
 fn joined(lines: &[String]) -> String {
-    lines.iter().map(|line| line.trim()).filter(|line| !line.is_empty()).collect::<Vec<_>>().join(" ")
+    lines
+        .iter()
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn read_parenthetical(spec: &Parenthetical, lines: &[String]) -> Specified {
     let text = joined(lines);
-    let partial = spec.partial_markers.iter().any(|marker| text.contains(marker.as_str()));
+    let partial = spec
+        .partial_markers
+        .iter()
+        .any(|marker| text.contains(marker.as_str()));
     let mut body = text.as_str();
     if let Some(rest) = body.strip_prefix(spec.opener.as_str()) {
         body = rest;
@@ -251,7 +266,8 @@ fn read_parenthetical(spec: &Parenthetical, lines: &[String]) -> Specified {
     let mut body = body.to_string();
     if !spec.markers.is_empty() {
         let found = spec.markers.iter().find_map(|marker| {
-            body.find(marker.as_str()).map(|position| position + marker.len())
+            body.find(marker.as_str())
+                .map(|position| position + marker.len())
         });
         match found {
             Some(position) => body = body[position..].to_string(),
@@ -291,7 +307,10 @@ fn read_listing(spec: &Listing, lines: &[String]) -> Specified {
         });
     }
     let text = funds.join("\n");
-    (Some(split(&text, &["\n".to_string()], &spec.note_marks)), false)
+    (
+        Some(split(&text, &["\n".to_string()], &spec.note_marks)),
+        false,
+    )
 }
 
 /// The reader a format declares: one of the shapes a page ties a manager to its sub-funds in.
@@ -424,19 +443,42 @@ impl Reader {
     /// The declarations read off the blocks, in the order the page writes them.
     pub fn read(&self, blocks: &[&PdfBlock]) -> Vec<Declared> {
         match self {
-            Reader::Named { separators, note_marks, group_key, wrapped, retired } => {
-                read_named(blocks, separators, note_marks, group_key, wrapped, retired)
-            }
+            Reader::Named {
+                separators,
+                note_marks,
+                group_key,
+                wrapped,
+                retired,
+            } => read_named(blocks, separators, note_marks, group_key, wrapped, retired),
             Reader::Adjacent { .. } => self.read_adjacent(blocks),
             Reader::ConnectorLine { .. } => self.read_connector_line(blocks),
-            Reader::Table { fund_col, manager_col, row_key, col_key, note_marks } => {
-                read_table(blocks, *fund_col, *manager_col, row_key, col_key, note_marks)
-            }
+            Reader::Table {
+                fund_col,
+                manager_col,
+                row_key,
+                col_key,
+                note_marks,
+            } => read_table(
+                blocks,
+                *fund_col,
+                *manager_col,
+                row_key,
+                col_key,
+                note_marks,
+            ),
         }
     }
 
     fn read_adjacent(&self, blocks: &[&PdfBlock]) -> Vec<Declared> {
-        let Reader::Adjacent { spec, where_, take, group_key, strip, note_type, retired } = self
+        let Reader::Adjacent {
+            spec,
+            where_,
+            take,
+            group_key,
+            strip,
+            note_type,
+            retired,
+        } = self
         else {
             unreachable!("read_adjacent is only called on Adjacent")
         };
@@ -484,14 +526,18 @@ impl Reader {
                     continue;
                 }
             }
-            let position = text.find(connector.as_str()).expect("the connector was just found");
+            let position = text
+                .find(connector.as_str())
+                .expect("the connector was just found");
             let (names, funds) = (&text[..position], &text[position + connector.len()..]);
-            let funds =
-                split(funds.trim().trim_end_matches(|c| terminators.contains(c)), fund_separators, note_marks);
+            let funds = split(
+                funds.trim().trim_end_matches(|c| terminators.contains(c)),
+                fund_separators,
+                note_marks,
+            );
             for name in split(names, manager_separators, "") {
-                declarations.push(
-                    Declared::from_block(renamed(entry[0], &name)).with_funds(funds.iter()),
-                );
+                declarations
+                    .push(Declared::from_block(renamed(entry[0], &name)).with_funds(funds.iter()));
             }
         }
         declarations
@@ -516,13 +562,14 @@ fn read_named(
             name = format!("{name} {}", lines[index]);
             index += 1;
         }
-        let gone = lines.iter().any(|line| retired.iter().any(|p| p.find(line).is_some()));
+        let gone = lines
+            .iter()
+            .any(|line| retired.iter().any(|p| p.find(line).is_some()));
         if gone {
             tracing::debug!("'{name}' is qualified as no longer in charge: not extracted");
         }
         for piece in split(&name, separators, note_marks) {
-            declarations
-                .push(Declared::from_block(renamed(entry[0], &piece)).with_retired(gone));
+            declarations.push(Declared::from_block(renamed(entry[0], &piece)).with_retired(gone));
         }
     }
     declarations
@@ -538,7 +585,8 @@ fn read_table(
 ) -> Vec<Declared> {
     let mut rows: BTreeMap<i64, BTreeMap<i64, &PdfBlock>> = BTreeMap::new();
     for block in blocks {
-        let (Some(row), Some(col)) = (cell_index(block, row_key), cell_index(block, col_key)) else {
+        let (Some(row), Some(col)) = (cell_index(block, row_key), cell_index(block, col_key))
+        else {
             continue;
         };
         rows.entry(row).or_default().insert(col, block);
@@ -611,7 +659,9 @@ enum Event<'a> {
 /// three pieces (EURIZON-EN23 p9 has one thirty-one lines long), with the groups a bracket never
 /// closed would stay open for the rest of the page (MEDIOLANUM-IT24.A p5).
 fn scan<'a>(blocks: &[&'a PdfBlock], spec: &Spec, group_key: &str) -> Vec<Event<'a>> {
-    let grouped = blocks.iter().any(|block| group_of(block, group_key).is_some());
+    let grouped = blocks
+        .iter()
+        .any(|block| group_of(block, group_key).is_some());
     let mut events = Vec::new();
     let mut lines: Vec<String> = Vec::new();
     // `None` here is "no group seen yet", which is not the same as "the group is absent": the first
@@ -672,9 +722,9 @@ fn below(
             Event::Entry => named = false,
             Event::Spec(payload) => match declarations.last_mut() {
                 Some(last) => merge(last, payload),
-                None => tracing::debug!(
-                    "a specification opens the section before any manager is named"
-                ),
+                None => {
+                    tracing::debug!("a specification opens the section before any manager is named")
+                }
             },
             Event::Text(block) if !named && names(block) => {
                 named = true;
@@ -743,7 +793,9 @@ fn retire(declarations: &mut [Declared], block: &PdfBlock, retired: &[Regex]) {
     if retired.is_empty() {
         return;
     }
-    let Some(last) = declarations.last_mut() else { return };
+    let Some(last) = declarations.last_mut() else {
+        return;
+    };
     let text = block_text(block);
     if retired.iter().any(|pattern| pattern.find(&text).is_some()) {
         last.retired = true;
@@ -791,7 +843,11 @@ fn stripped(block: &PdfBlock, strip: &[Regex]) -> PdfBlock {
     for pattern in strip {
         name = pattern.replace_all(&name, "").trim().to_string();
     }
-    if name.is_empty() { (*block).clone() } else { renamed(block, &name) }
+    if name.is_empty() {
+        (*block).clone()
+    } else {
+        renamed(block, &name)
+    }
 }
 
 /// The specification that arrived afterwards, attached to the declaration waiting for it.
@@ -816,7 +872,10 @@ fn composed(names: Vec<String>, umbrella: Option<&str>) -> Vec<String> {
     match umbrella {
         None => names,
         Some("") => names,
-        Some(umbrella) => names.into_iter().map(|name| format!("{umbrella} {name}")).collect(),
+        Some(umbrella) => names
+            .into_iter()
+            .map(|name| format!("{umbrella} {name}"))
+            .collect(),
     }
 }
 
@@ -832,7 +891,10 @@ fn entries<'a>(blocks: &[&'a PdfBlock], group_key: &str) -> Vec<Vec<&'a PdfBlock
         if group.is_none() || previous.is_none() || group != previous {
             entries.push(Vec::new());
         }
-        entries.last_mut().expect("an entry was just opened").push(block);
+        entries
+            .last_mut()
+            .expect("an entry was just opened")
+            .push(block);
         previous = group;
     }
     entries
@@ -863,7 +925,11 @@ fn split(text: &str, separators: &[String], note_marks: &str) -> Vec<String> {
             .flat_map(|part| part.split(separator.as_str()).map(str::to_string))
             .collect();
     }
-    parts.iter().map(|part| clean(part, note_marks)).filter(|name| !name.is_empty()).collect()
+    parts
+        .iter()
+        .map(|part| clean(part, note_marks))
+        .filter(|name| !name.is_empty())
+        .collect()
 }
 
 /// A name without spare spaces and without the note mark trailing it (`R16`).
@@ -871,7 +937,10 @@ fn clean(text: &str, note_marks: &str) -> String {
     if note_marks.is_empty() {
         return text.trim().to_string();
     }
-    text.trim().trim_end_matches(|c| note_marks.contains(c)).trim().to_string()
+    text.trim()
+        .trim_end_matches(|c| note_marks.contains(c))
+        .trim()
+        .to_string()
 }
 
 #[cfg(test)]
@@ -1001,8 +1070,19 @@ mod tests {
         #[test]
         fn one_name_one_declaration_with_no_funds_said() {
             // ASTERIA-EN23 p3: a label, one name underneath, and `R15` does the rest.
-            let got = read(&Reader::default(), &[block("Asteria Investment Managers SA")]);
-            assert_eq!(said(&got), [("Asteria Investment Managers SA".to_string(), None, false, false)]);
+            let got = read(
+                &Reader::default(),
+                &[block("Asteria Investment Managers SA")],
+            );
+            assert_eq!(
+                said(&got),
+                [(
+                    "Asteria Investment Managers SA".to_string(),
+                    None,
+                    false,
+                    false
+                )]
+            );
         }
 
         #[test]
@@ -1054,12 +1134,18 @@ mod tests {
             ];
             let got = read(&wrapping(), &blocks);
             // The comma **stays**: an output name is the one the document writes.
-            assert_eq!(names(&got), ["Sumitomo Mitsui DS Asset Management Company, Limited"]);
+            assert_eq!(
+                names(&got),
+                ["Sumitomo Mitsui DS Asset Management Company, Limited"]
+            );
         }
 
         #[test]
         fn a_name_that_does_not_wrap_takes_only_its_own_line() {
-            let blocks = [grouped(0, "Danske Bank A/S"), grouped(0, "Holmens Kanal 2-12")];
+            let blocks = [
+                grouped(0, "Danske Bank A/S"),
+                grouped(0, "Holmens Kanal 2-12"),
+            ];
             let got = read(&wrapping(), &blocks);
             assert_eq!(names(&got), ["Danske Bank A/S"]);
         }
@@ -1076,21 +1162,36 @@ mod tests {
             let blocks = [grouped(0, "Acme Asset Management,"), grouped(0, "Limited")];
             let got = read(&wrapping(), &blocks);
             let kept = got[0].block.as_ref().expect("the block is kept");
-            assert_eq!(kept.content.as_str(), Some("Acme Asset Management, Limited"));
+            assert_eq!(
+                kept.content.as_str(),
+                Some("Acme Asset Management, Limited")
+            );
         }
 
         #[test]
         fn a_qualification_on_any_line_of_the_entry_retires_it() {
-            let blocks = [grouped(0, "Acme Asset Management"), grouped(0, "(until 30 June 2024)")];
+            let blocks = [
+                grouped(0, "Acme Asset Management"),
+                grouped(0, "(until 30 June 2024)"),
+            ];
             let got = read(&wrapping(), &blocks);
-            assert_eq!(said(&got), [("Acme Asset Management".to_string(), None, false, true)]);
+            assert_eq!(
+                said(&got),
+                [("Acme Asset Management".to_string(), None, false, true)]
+            );
         }
 
         #[test]
         fn an_entry_whose_lines_carry_no_qualification_is_in_charge() {
-            let blocks = [grouped(0, "Acme Asset Management"), grouped(0, "25 Some Street")];
+            let blocks = [
+                grouped(0, "Acme Asset Management"),
+                grouped(0, "25 Some Street"),
+            ];
             let got = read(&wrapping(), &blocks);
-            assert_eq!(said(&got), [("Acme Asset Management".to_string(), None, false, false)]);
+            assert_eq!(
+                said(&got),
+                [("Acme Asset Management".to_string(), None, false, false)]
+            );
         }
 
         #[test]
@@ -1111,9 +1212,15 @@ mod tests {
                 grouped(0, "Acme Asset Management"),
                 grouped(0, "(in respect of Alpha Fund and Beta Fund)"),
             ];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
             assert_eq!(names(&got), ["Acme Asset Management"]);
-            assert_eq!(funds_of(&got, "Acme Asset Management"), Some(vec!["Alpha Fund".to_string(), "Beta Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Acme Asset Management"),
+                Some(vec!["Alpha Fund".to_string(), "Beta Fund".to_string()])
+            );
         }
 
         #[test]
@@ -1124,8 +1231,14 @@ mod tests {
                 grouped(0, "(in respect of Alpha Fund,"),
                 grouped(0, "Beta Fund)"),
             ];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
-            assert_eq!(funds_of(&got, "Acme Asset Management"), Some(vec!["Alpha Fund".to_string(), "Beta Fund".to_string()]));
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
+            assert_eq!(
+                funds_of(&got, "Acme Asset Management"),
+                Some(vec!["Alpha Fund".to_string(), "Beta Fund".to_string()])
+            );
         }
 
         #[test]
@@ -1137,8 +1250,14 @@ mod tests {
                 grouped(0, "(in respect of Alpha Fund"),
                 grouped(1, "Other AM"),
             ];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
-            assert_eq!(funds_of(&got, "Acme Asset Management"), Some(vec!["Alpha Fund".to_string()]));
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
+            assert_eq!(
+                funds_of(&got, "Acme Asset Management"),
+                Some(vec!["Alpha Fund".to_string()])
+            );
             assert_eq!(names(&got), ["Acme Asset Management", "Other AM"]);
         }
 
@@ -1149,8 +1268,14 @@ mod tests {
                 grouped(0, "Acme Asset Management"),
                 grouped(0, "(as from 10 May 2023)"),
             ];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
-            assert_eq!(said(&got), [("Acme Asset Management".to_string(), None, false, false)]);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
+            assert_eq!(
+                said(&got),
+                [("Acme Asset Management".to_string(), None, false, false)]
+            );
         }
 
         #[test]
@@ -1161,7 +1286,10 @@ mod tests {
                 grouped(0, "(Only in respect of the Sub-Fund Alpha Fund)"),
             ];
             let got = read(&adjacent(Spec::Parenthetical(spec)), &blocks);
-            assert_eq!(funds_of(&got, "Acme AM"), Some(vec!["Alpha Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Acme AM"),
+                Some(vec!["Alpha Fund".to_string()])
+            );
         }
 
         #[test]
@@ -1174,10 +1302,21 @@ mod tests {
             };
             let blocks = [
                 grouped(0, "Acme AM"),
-                grouped(0, "(in charge for the USD nominated securities in the subfund Alpha Fund)"),
+                grouped(
+                    0,
+                    "(in charge for the USD nominated securities in the subfund Alpha Fund)",
+                ),
             ];
             let got = read(&adjacent(Spec::Parenthetical(spec)), &blocks);
-            assert_eq!(said(&got), [("Acme AM".to_string(), Some(vec!["Alpha Fund".to_string()]), true, false)]);
+            assert_eq!(
+                said(&got),
+                [(
+                    "Acme AM".to_string(),
+                    Some(vec!["Alpha Fund".to_string()]),
+                    true,
+                    false
+                )]
+            );
         }
 
         #[test]
@@ -1187,7 +1326,10 @@ mod tests {
                 grouped(0, "4th Floor, 25 Some Street"),
                 grouped(0, "Dublin 2, Ireland"),
             ];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
             assert_eq!(names(&got), ["Acme Asset Management"]);
         }
 
@@ -1199,7 +1341,10 @@ mod tests {
                 block_type: Some(BlockType::from("SPEC".to_string())),
                 ..Parenthetical::default()
             };
-            let blocks = [typed("MANAGER", "Acme AM"), typed("SPEC", "(in respect of Alpha Fund)")];
+            let blocks = [
+                typed("MANAGER", "Acme AM"),
+                typed("SPEC", "(in respect of Alpha Fund)"),
+            ];
             let reader = Reader::Adjacent {
                 spec: Spec::Parenthetical(spec),
                 where_: Where::Below,
@@ -1210,13 +1355,19 @@ mod tests {
                 retired: Vec::new(),
             };
             let got = read(&reader, &blocks);
-            assert_eq!(funds_of(&got, "Acme AM"), Some(vec!["Alpha Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Acme AM"),
+                Some(vec!["Alpha Fund".to_string()])
+            );
         }
 
         #[test]
         fn a_specification_before_any_name_is_dropped() {
             let blocks = [grouped(0, "(in respect of Alpha Fund)")];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
             assert!(got.is_empty(), "{:?}", names(&got));
         }
 
@@ -1228,9 +1379,15 @@ mod tests {
                 umbrella: Some("CoRe Series".to_string()),
                 ..Parenthetical::default()
             };
-            let blocks = [grouped(0, "Acme AM"), grouped(0, "(Only in respect of Alpha Fund)")];
+            let blocks = [
+                grouped(0, "Acme AM"),
+                grouped(0, "(Only in respect of Alpha Fund)"),
+            ];
             let got = read(&adjacent(Spec::Parenthetical(spec)), &blocks);
-            assert_eq!(funds_of(&got, "Acme AM"), Some(vec!["CoRe Series Alpha Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Acme AM"),
+                Some(vec!["CoRe Series Alpha Fund".to_string()])
+            );
         }
     }
 
@@ -1261,7 +1418,10 @@ mod tests {
             ];
             let got = read(&above(Spec::Parenthetical(spec), Take::All), &blocks);
             assert_eq!(names(&got), ["One AM", "Two AM", "Three AM"]);
-            assert_eq!(funds_of(&got, "Three AM"), Some(vec!["Alpha Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Three AM"),
+                Some(vec!["Alpha Fund".to_string()])
+            );
         }
 
         #[test]
@@ -1280,7 +1440,11 @@ mod tests {
         #[test]
         fn a_company_named_before_any_specification_is_dropped() {
             let spec = parenthetical(&["Only in respect of "]);
-            let blocks = [block("Early AM"), block("(Only in respect of Alpha Fund)"), block("One AM")];
+            let blocks = [
+                block("Early AM"),
+                block("(Only in respect of Alpha Fund)"),
+                block("One AM"),
+            ];
             let got = read(&above(Spec::Parenthetical(spec), Take::All), &blocks);
             assert_eq!(names(&got), ["One AM"]);
         }
@@ -1314,14 +1478,18 @@ mod tests {
         #[test]
         fn a_declared_umbrella_covers_a_list_whose_own_line_never_arrives() {
             // UBS-EN23 p4: the umbrella is in roman while the sub-funds are in italic.
-            let listing =
-                Listing { umbrella: Some("BPER International SICAV".to_string()), ..Listing::default() };
+            let listing = Listing {
+                umbrella: Some("BPER International SICAV".to_string()),
+                ..Listing::default()
+            };
             let blocks = [block("– Open Selection Defence"), block("One AM")];
             let got = read(&above(Spec::Listing(listing), Take::First), &blocks);
             // The item prefix comes off before the umbrella goes in front of it.
             assert_eq!(
                 funds_of(&got, "One AM"),
-                Some(vec!["BPER International SICAV Open Selection Defence".to_string()])
+                Some(vec![
+                    "BPER International SICAV Open Selection Defence".to_string()
+                ])
             );
         }
 
@@ -1363,7 +1531,10 @@ mod tests {
                 retired: Vec::new(),
             };
             let got = read(&reader, &blocks);
-            assert_eq!(funds_of(&got, "One AM"), Some(vec!["USA Equity".to_string()]));
+            assert_eq!(
+                funds_of(&got, "One AM"),
+                Some(vec!["USA Equity".to_string()])
+            );
         }
     }
 
@@ -1383,8 +1554,11 @@ mod tests {
                 where_: Where::Below,
                 take: Take::All,
                 group_key: "group".to_string(),
-                strip: compile_all("strip", &strip.iter().map(|s| s.to_string()).collect::<Vec<_>>())
-                    .expect("literal patterns compile"),
+                strip: compile_all(
+                    "strip",
+                    &strip.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                )
+                .expect("literal patterns compile"),
                 note_type: note_type.map(|t| BlockType::from(t.to_string())),
                 retired: compile_all(
                     "retired",
@@ -1417,29 +1591,52 @@ mod tests {
         #[test]
         fn a_qualification_at_the_end_of_the_name_retires_it_too() {
             // EURIZON-EN21 p7: `Pramerica SGR S.p.A. (until June 30, 2021)`.
-            let blocks = [typed("MANAGER", "Pramerica SGR S.p.A. (until June 30, 2021)")];
+            let blocks = [typed(
+                "MANAGER",
+                "Pramerica SGR S.p.A. (until June 30, 2021)",
+            )];
             let got = read(
-                &with_retired(&[r"\(until\b"], &[r"\s*\((?:since|until)\b[^)]*\)?\s*$"], None),
+                &with_retired(
+                    &[r"\(until\b"],
+                    &[r"\s*\((?:since|until)\b[^)]*\)?\s*$"],
+                    None,
+                ),
                 &blocks,
             );
             // Recognised **before** `strip`, which is what takes the tail off the output name.
-            assert_eq!(said(&got), [("Pramerica SGR S.p.A.".to_string(), None, false, true)]);
+            assert_eq!(
+                said(&got),
+                [("Pramerica SGR S.p.A.".to_string(), None, false, true)]
+            );
         }
 
         #[test]
         fn a_manager_still_in_charge_is_not_retired() {
-            let blocks = [typed("MANAGER", "Eurizon Capital SGR S.p.A. (since July 1, 2021)")];
+            let blocks = [typed(
+                "MANAGER",
+                "Eurizon Capital SGR S.p.A. (since July 1, 2021)",
+            )];
             let got = read(
-                &with_retired(&[r"\(until\b"], &[r"\s*\((?:since|until)\b[^)]*\)?\s*$"], None),
+                &with_retired(
+                    &[r"\(until\b"],
+                    &[r"\s*\((?:since|until)\b[^)]*\)?\s*$"],
+                    None,
+                ),
                 &blocks,
             );
-            assert_eq!(said(&got), [("Eurizon Capital SGR S.p.A.".to_string(), None, false, false)]);
+            assert_eq!(
+                said(&got),
+                [("Eurizon Capital SGR S.p.A.".to_string(), None, false, false)]
+            );
         }
 
         #[test]
         fn a_note_typed_block_is_never_taken_for_a_name() {
             // Without groups every block is an entry of its own, so the address would become a name.
-            let blocks = [typed("MANAGER", "One AM"), typed("NOTE", "(until June 30, 2021)")];
+            let blocks = [
+                typed("MANAGER", "One AM"),
+                typed("NOTE", "(until June 30, 2021)"),
+            ];
             let got = read(&with_retired(&[r"\(until\b"], &[], Some("NOTE")), &blocks);
             assert_eq!(said(&got), [("One AM".to_string(), None, false, true)]);
         }
@@ -1476,18 +1673,30 @@ mod tests {
         #[test]
         fn the_left_side_keeps_a_comma_inside_a_company_name() {
             // `Vontobel Asset Management S.A., Milan Branch` is **one** manager.
-            let blocks = [block("Vontobel Asset Management S.A., Milan Branch for Alpha Fund")];
+            let blocks = [block(
+                "Vontobel Asset Management S.A., Milan Branch for Alpha Fund",
+            )];
             let got = read(&connector_line(), &blocks);
-            assert_eq!(names(&got), ["Vontobel Asset Management S.A., Milan Branch"]);
+            assert_eq!(
+                names(&got),
+                ["Vontobel Asset Management S.A., Milan Branch"]
+            );
         }
 
         #[test]
         fn two_managers_on_one_line_become_two_declarations() {
-            let blocks =
-                [block("FIL Investments International and FIL (Luxembourg) S.A. for Alpha Fund")];
+            let blocks = [block(
+                "FIL Investments International and FIL (Luxembourg) S.A. for Alpha Fund",
+            )];
             let got = read(&connector_line(), &blocks);
-            assert_eq!(names(&got), ["FIL Investments International", "FIL (Luxembourg) S.A."]);
-            assert_eq!(funds_of(&got, "FIL (Luxembourg) S.A."), Some(vec!["Alpha Fund".to_string()]));
+            assert_eq!(
+                names(&got),
+                ["FIL Investments International", "FIL (Luxembourg) S.A."]
+            );
+            assert_eq!(
+                funds_of(&got, "FIL (Luxembourg) S.A."),
+                Some(vec!["Alpha Fund".to_string()])
+            );
         }
 
         #[test]
@@ -1500,7 +1709,10 @@ mod tests {
 
         #[test]
         fn a_line_with_no_connector_is_dropped() {
-            let got = read(&connector_line(), &[block("The Management Company explains.")]);
+            let got = read(
+                &connector_line(),
+                &[block("The Management Company explains.")],
+            );
             assert!(got.is_empty());
         }
 
@@ -1545,9 +1757,15 @@ mod tests {
 
         #[test]
         fn an_entry_spread_over_two_lines_is_read_as_one() {
-            let blocks = [grouped(0, "Acme Asset Management for"), grouped(0, "Alpha Fund.")];
+            let blocks = [
+                grouped(0, "Acme Asset Management for"),
+                grouped(0, "Alpha Fund."),
+            ];
             let got = read(&connector_line(), &blocks);
-            assert_eq!(funds_of(&got, "Acme Asset Management"), Some(vec!["Alpha Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Acme Asset Management"),
+                Some(vec!["Alpha Fund".to_string()])
+            );
         }
     }
 
@@ -1608,7 +1826,11 @@ mod tests {
 
         #[test]
         fn a_block_with_no_cell_metadata_is_not_part_of_the_table() {
-            let blocks = [block("A heading"), cell(0, 0, "Alpha Fund"), cell(0, 2, "Acme AM")];
+            let blocks = [
+                block("A heading"),
+                cell(0, 0, "Alpha Fund"),
+                cell(0, 2, "Acme AM"),
+            ];
             let got = read(&table(), &blocks);
             assert_eq!(names(&got), ["Acme AM"]);
         }
@@ -1617,7 +1839,10 @@ mod tests {
         fn the_note_mark_comes_off_each_sub_fund() {
             let blocks = [cell(0, 0, "Alpha Fund*"), cell(0, 2, "Acme AM")];
             let got = read(&table(), &blocks);
-            assert_eq!(funds_of(&got, "Acme AM"), Some(vec!["Alpha Fund".to_string()]));
+            assert_eq!(
+                funds_of(&got, "Acme AM"),
+                Some(vec!["Alpha Fund".to_string()])
+            );
         }
     }
 
@@ -1627,14 +1852,20 @@ mod tests {
         #[test]
         fn without_groups_every_block_is_an_entry_of_its_own() {
             let blocks = [block("One AM"), block("Two AM")];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
             assert_eq!(names(&got), ["One AM", "Two AM"]);
         }
 
         #[test]
         fn with_groups_a_second_line_of_the_same_entry_is_not_a_name() {
             let blocks = [grouped(0, "One AM"), grouped(0, "25 Some Street")];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
             assert_eq!(names(&got), ["One AM"]);
         }
 
@@ -1648,7 +1879,10 @@ mod tests {
                 )
             };
             let blocks = [as_text("0", "One AM"), as_text("0", "25 Some Street")];
-            let got = read(&adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))), &blocks);
+            let got = read(
+                &adjacent(Spec::Parenthetical(parenthetical(&["in respect of "]))),
+                &blocks,
+            );
             assert_eq!(names(&got), ["One AM"]);
         }
     }
@@ -1692,7 +1926,13 @@ mod tests {
                     grouped(3, "1 Boulevard Haussmann"),
                 ];
                 let got = read(&reader(), &blocks);
-                assert_eq!(names(&got), ["Algebris (UK) Limited", "BNP Paribas Asset Management France"]);
+                assert_eq!(
+                    names(&got),
+                    [
+                        "Algebris (UK) Limited",
+                        "BNP Paribas Asset Management France"
+                    ]
+                );
                 assert_eq!(
                     funds_of(&got, "Algebris (UK) Limited"),
                     Some(vec!["Global Macro Credit FAM Fund".to_string()])
@@ -1730,8 +1970,11 @@ mod tests {
                     where_: Where::Above,
                     take: Take::First,
                     group_key: "group".to_string(),
-                    strip: compile_all("strip", &strip.iter().map(|s| s.to_string()).collect::<Vec<_>>())
-                        .expect("literal patterns compile"),
+                    strip: compile_all(
+                        "strip",
+                        &strip.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                    )
+                    .expect("literal patterns compile"),
                     note_type: None,
                     retired: Vec::new(),
                 }
@@ -1746,7 +1989,9 @@ mod tests {
                 assert_eq!(names(&got), ["Banca Cesare Ponti"]);
                 assert_eq!(
                     funds_of(&got, "Banca Cesare Ponti"),
-                    Some(vec!["BPER International SICAV Open Selection Defence".to_string()])
+                    Some(vec![
+                        "BPER International SICAV Open Selection Defence".to_string()
+                    ])
                 );
             }
 
@@ -1790,7 +2035,10 @@ mod tests {
                     retired: Vec::new(),
                 };
                 let got = read(&reader, &blocks);
-                assert_eq!(names(&got), ["Morgan Stanley Investment Management Limited"]);
+                assert_eq!(
+                    names(&got),
+                    ["Morgan Stanley Investment Management Limited"]
+                );
             }
         }
 
@@ -1837,16 +2085,27 @@ mod tests {
                     "Sidera Funds SICAV – Equity Global",
                 ]);
                 let manco = Manco::Name("Carne Global Fund Managers (Luxembourg) S.A.".to_string());
-                let got =
-                    assign(read(&reader(), &page()), &funds, Some(&manco), &Default::default(), true);
+                let got = assign(
+                    read(&reader(), &page()),
+                    &funds,
+                    Some(&manco),
+                    &Default::default(),
+                    true,
+                );
                 assert_eq!(
-                    got.managers.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(),
+                    got.managers
+                        .iter()
+                        .map(|m| m.name.as_str())
+                        .collect::<Vec<_>>(),
                     [
                         "ARCA Fondi SGR S.p.A.",
                         "Goldman Sachs Asset Management International Ltd."
                     ]
                 );
-                assert!(!got.to_manco, "ARCA takes the residual, so the company stays only that");
+                assert!(
+                    !got.to_manco,
+                    "ARCA takes the residual, so the company stays only that"
+                );
             }
 
             #[test]
@@ -1854,14 +2113,24 @@ mod tests {
                 // `R21`: a part of a sub-fund does not take the sub-fund from whoever answers for
                 // the rest of it.
                 let funds = fund_set(["Sidera Funds SICAV – Global High Yield"]);
-                let got = assign(read(&reader(), &page()), &funds, None, &Default::default(), true);
+                let got = assign(
+                    read(&reader(), &page()),
+                    &funds,
+                    None,
+                    &Default::default(),
+                    true,
+                );
                 let residual = got
                     .managers
                     .iter()
                     .find(|m| m.name == "ARCA Fondi SGR S.p.A.")
                     .expect("ARCA is there");
                 assert_eq!(
-                    residual.funds.iter().map(MatchFund::name).collect::<Vec<_>>(),
+                    residual
+                        .funds
+                        .iter()
+                        .map(MatchFund::name)
+                        .collect::<Vec<_>>(),
                     ["Sidera Funds SICAV – Global High Yield"]
                 );
             }
@@ -1881,7 +2150,8 @@ mod tests {
             #[test]
             fn an_empty_parenthesis_names_nothing() {
                 // Not a sub-fund without a name: nothing at all.
-                let (funds, partial) = Spec::Parenthetical(Parenthetical::default()).read(&["()".to_string()]);
+                let (funds, partial) =
+                    Spec::Parenthetical(Parenthetical::default()).read(&["()".to_string()]);
                 assert_eq!(funds, Some(Vec::new()));
                 assert!(!partial);
             }
@@ -1933,7 +2203,10 @@ mod tests {
                 let got = read(&reader, &blocks);
                 assert_eq!(
                     names(&got),
-                    ["BNP Paribas Asset Management France", "Algebris (UK) Limited"]
+                    [
+                        "BNP Paribas Asset Management France",
+                        "Algebris (UK) Limited"
+                    ]
                 );
                 assert_eq!(
                     funds_of(&got, "BNP Paribas Asset Management France"),

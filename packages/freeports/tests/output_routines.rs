@@ -26,7 +26,11 @@ use freeports::output::routines::accumulate::accumulate;
 use freeports::output::routines::write::{OutFlags, OutStructureMode, write_files};
 
 fn page(number: u32, class: &str, results: Vec<Extracted>) -> PageOutcome {
-    PageOutcome { page: number, class: PageClass::new(class), results }
+    PageOutcome {
+        page: number,
+        class: PageClass::new(class),
+        results,
+    }
 }
 
 fn equity_with_promised_market_value(fund: &str, promise_id: &str) -> Extracted {
@@ -57,11 +61,18 @@ fn a_two_document_run_with_a_cross_page_promise_writes_the_expected_csvs() {
         id: DocumentId::new("Report One"),
         format: FormatName::new("STD"),
         pages: vec![
-            page(1, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-id")]),
+            page(
+                1,
+                "investments",
+                vec![equity_with_promised_market_value("Alpha Fund", "mv-id")],
+            ),
             page(
                 2,
                 "funds",
-                vec![Extracted::Fund(Fund::new("Alpha Fund")), promises(vec![("mv-id", BlockValue::from(1500.0))])],
+                vec![
+                    Extracted::Fund(Fund::new("Alpha Fund")),
+                    promises(vec![("mv-id", BlockValue::from(1500.0))]),
+                ],
             ),
         ],
     };
@@ -91,14 +102,35 @@ fn a_two_document_run_with_a_cross_page_promise_writes_the_expected_csvs() {
     assert_eq!(tables.investments.len(), 2);
     assert_eq!(tables.funds.len(), 2);
 
-    let alpha = tables.funds.iter().find(|f| f.name == "ALPHA FUND").expect("Alpha Fund must be present");
-    assert_eq!(alpha.report_page, Some(2), "Alpha Fund's debug info comes from its direct sighting");
-    let alpha_investment = tables.investments.iter().find(|r| r.fund_id == alpha.id).unwrap();
-    assert_eq!(alpha_investment.market_value, 1500.0, "the promised market value must be resolved before writing");
+    let alpha = tables
+        .funds
+        .iter()
+        .find(|f| f.name == "ALPHA FUND")
+        .expect("Alpha Fund must be present");
+    assert_eq!(
+        alpha.report_page,
+        Some(2),
+        "Alpha Fund's debug info comes from its direct sighting"
+    );
+    let alpha_investment = tables
+        .investments
+        .iter()
+        .find(|r| r.fund_id == alpha.id)
+        .unwrap();
+    assert_eq!(
+        alpha_investment.market_value, 1500.0,
+        "the promised market value must be resolved before writing"
+    );
 
     let dir = tempfile::tempdir().unwrap();
     let out = dir.path().join("out");
-    write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+    write_files(
+        &tables,
+        &out,
+        OutStructureMode::Regular,
+        OutFlags::default(),
+    )
+    .unwrap();
 
     let investments_csv = std::fs::read_to_string(out.join("investments.csv")).unwrap();
     let mut lines: Vec<&str> = investments_csv.lines().collect();
@@ -106,13 +138,21 @@ fn a_two_document_run_with_a_cross_page_promise_writes_the_expected_csvs() {
         lines.remove(0),
         "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency"
     );
-    assert_eq!(lines.len(), 2, "both investments must be written, promise already resolved");
+    assert_eq!(
+        lines.len(),
+        2,
+        "both investments must be written, promise already resolved"
+    );
     assert!(
-        lines.iter().any(|l| l.contains("Acme Corp") && l.contains("1500.0") && l.contains("Report One")),
+        lines
+            .iter()
+            .any(|l| l.contains("Acme Corp") && l.contains("1500.0") && l.contains("Report One")),
         "the resolved Alpha Fund investment must be present: {lines:?}"
     );
     assert!(
-        lines.iter().any(|l| l.contains("Other Corp") && l.contains("250.0") && l.contains("Report Two")),
+        lines
+            .iter()
+            .any(|l| l.contains("Other Corp") && l.contains("250.0") && l.contains("Report Two")),
         "the Beta Fund investment from the second document must be present: {lines:?}"
     );
 
@@ -140,7 +180,11 @@ fn a_non_strict_unresolvable_promise_drops_only_the_entity_that_depends_on_it() 
         id: DocumentId::new("Report"),
         format: FormatName::new("STD"),
         pages: vec![
-            page(1, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-id")]),
+            page(
+                1,
+                "investments",
+                vec![equity_with_promised_market_value("Alpha Fund", "mv-id")],
+            ),
             page(
                 2,
                 "investments",

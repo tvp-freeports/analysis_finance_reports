@@ -142,7 +142,11 @@ pub trait PromisableFields: Clone {
     /// `field` is always one of the names returned by [`PromisableFields::pending`]. The
     /// implementation converts the [`BlockValue`] into the field's type and reports a
     /// [`BlockValueError`] if it does not convert.
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError>;
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError>;
 }
 
 /// Resolves every promise of `entity` against `map`.
@@ -255,11 +259,18 @@ mod tests {
 
     impl Investment {
         fn new(fund: Promised<String>, quantity: Promised<i64>) -> Self {
-            Investment { fund, quantity, note: "fissa".into() }
+            Investment {
+                fund,
+                quantity,
+                note: "fissa".into(),
+            }
         }
 
         fn resolved(fund: &str, quantity: i64) -> Self {
-            Investment::new(Promised::Resolved(fund.into()), Promised::Resolved(quantity))
+            Investment::new(
+                Promised::Resolved(fund.into()),
+                Promised::Resolved(quantity),
+            )
         }
     }
 
@@ -283,7 +294,11 @@ mod tests {
             match field {
                 "fund" => self.fund = Promised::Resolved(value.str_or_fail(field)?.to_string()),
                 "quantity" => self.quantity = Promised::Resolved(value.int_or_fail(field)?),
-                other => return Err(BlockValueError::MissingField { field: other.to_string() }),
+                other => {
+                    return Err(BlockValueError::MissingField {
+                        field: other.to_string(),
+                    });
+                }
             }
             Ok(())
         }
@@ -326,14 +341,23 @@ mod tests {
 
         #[test]
         fn into_resolved_consumes_the_field() {
-            assert_eq!(Promised::Resolved("x".to_string()).into_resolved(), Some("x".to_string()));
+            assert_eq!(
+                Promised::Resolved("x".to_string()).into_resolved(),
+                Some("x".to_string())
+            );
             assert_eq!(pending("x").into_resolved(), None);
         }
 
         #[test]
         fn map_transforms_only_the_resolved_value() {
-            assert_eq!(Promised::Resolved(2_i64).map(|v| v * 2), Promised::Resolved(4));
-            assert_eq!(pending_i64("x").map(|v| v * 2), Promised::Pending(Promise::new("x")));
+            assert_eq!(
+                Promised::Resolved(2_i64).map(|v| v * 2),
+                Promised::Resolved(4)
+            );
+            assert_eq!(
+                pending_i64("x").map(|v| v * 2),
+                Promised::Pending(Promise::new("x"))
+            );
         }
 
         #[test]
@@ -344,7 +368,10 @@ mod tests {
 
         #[test]
         fn serializes_with_the_tag_that_says_which_of_the_two_it_is() {
-            assert_eq!(serde_json::to_string(&Promised::Resolved(3_i64)).unwrap(), r#"{"resolved":3}"#);
+            assert_eq!(
+                serde_json::to_string(&Promised::Resolved(3_i64)).unwrap(),
+                r#"{"resolved":3}"#
+            );
             assert_eq!(
                 serde_json::to_string(&pending_i64("fund[]!")).unwrap(),
                 r#"{"pending":"fund[]!"}"#
@@ -387,7 +414,10 @@ mod tests {
                 None,
             ] {
                 let json = serde_json::to_string(&field).unwrap();
-                assert_eq!(serde_json::from_str::<Option<Promised<i64>>>(&json).unwrap(), field);
+                assert_eq!(
+                    serde_json::from_str::<Option<Promised<i64>>>(&json).unwrap(),
+                    field
+                );
             }
         }
     }
@@ -400,7 +430,10 @@ mod tests {
         fn an_already_resolved_entity_stays_in_place_and_intact() {
             let mut entity = Investment::resolved("Acme", 10);
             let before = entity.clone();
-            assert_eq!(fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap(), Fulfilled::InPlace);
+            assert_eq!(
+                fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(entity, before);
         }
     }
@@ -413,15 +446,24 @@ mod tests {
         fn resolves_a_promised_field() {
             let mut entity = Investment::new(pending("fund"), Promised::Resolved(10));
             let map = flat_map(vec![("fund", BlockValue::from("Acme"))]);
-            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::InPlace);
+            assert_eq!(
+                fulfill_promises(&mut entity, &map).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(entity.fund, Promised::Resolved("Acme".into()));
         }
 
         #[test]
         fn resolves_multiple_fields_in_the_same_pass() {
             let mut entity = Investment::new(pending("fund"), pending_i64("qty"));
-            let map = flat_map(vec![("fund", BlockValue::from("Acme")), ("qty", BlockValue::Int(7))]);
-            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::InPlace);
+            let map = flat_map(vec![
+                ("fund", BlockValue::from("Acme")),
+                ("qty", BlockValue::Int(7)),
+            ]);
+            assert_eq!(
+                fulfill_promises(&mut entity, &map).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(entity, Investment::resolved("Acme", 7));
         }
 
@@ -466,7 +508,9 @@ mod tests {
             let mut entity = Investment::new(pending("assente!"), Promised::Resolved(1));
             assert_eq!(
                 fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap_err(),
-                PromisableError::Promise(PromiseError::Unresolved { id: "assente".into() })
+                PromisableError::Promise(PromiseError::Unresolved {
+                    id: "assente".into()
+                })
             );
         }
 
@@ -477,7 +521,10 @@ mod tests {
             let map = flat_map(vec![("fund", BlockValue::Promise(Promise::new("nowhere")))]);
 
             let mut non_strict = Investment::new(pending("fund"), Promised::Resolved(1));
-            assert_eq!(fulfill_promises(&mut non_strict, &map).unwrap(), Fulfilled::Dropped);
+            assert_eq!(
+                fulfill_promises(&mut non_strict, &map).unwrap(),
+                Fulfilled::Dropped
+            );
 
             let mut strict = Investment::new(pending("fund!"), Promised::Resolved(1));
             assert!(fulfill_promises(&mut strict, &map).is_err());
@@ -492,7 +539,10 @@ mod tests {
                 [("fund", BlockValue::Null)].into_iter().collect();
             let map = promises.flatten().unwrap();
             let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
-            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::Dropped);
+            assert_eq!(
+                fulfill_promises(&mut entity, &map).unwrap(),
+                Fulfilled::Dropped
+            );
         }
 
         #[test]
@@ -514,8 +564,14 @@ mod tests {
         #[test]
         fn an_unresolvable_normal_field_prevents_the_expansion() {
             let mut entity = Investment::new(pending("assente"), pending_i64("qty[]"));
-            let map = flat_map(vec![("qty", BlockValue::Int(1)), ("qty", BlockValue::Int(2))]);
-            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::Dropped);
+            let map = flat_map(vec![
+                ("qty", BlockValue::Int(1)),
+                ("qty", BlockValue::Int(2)),
+            ]);
+            assert_eq!(
+                fulfill_promises(&mut entity, &map).unwrap(),
+                Fulfilled::Dropped
+            );
         }
     }
 
@@ -539,7 +595,11 @@ mod tests {
                 ("fund", BlockValue::from("C")),
             ]);
             let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
-            let names: Vec<&str> = copies.iter().filter_map(|c| c.fund.resolved()).map(String::as_str).collect();
+            let names: Vec<&str> = copies
+                .iter()
+                .filter_map(|c| c.fund.resolved())
+                .map(String::as_str)
+                .collect();
             assert_eq!(names, vec!["A", "B", "C"]);
         }
 
@@ -587,12 +647,19 @@ mod tests {
                 ("qty", BlockValue::Int(2)),
             ]);
             let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
-            assert_eq!(copies, vec![Investment::resolved("Acme", 1), Investment::resolved("Acme", 2)]);
+            assert_eq!(
+                copies,
+                vec![
+                    Investment::resolved("Acme", 1),
+                    Investment::resolved("Acme", 2)
+                ]
+            );
         }
 
         #[test]
         fn a_multiple_on_a_scalar_value_produces_a_single_copy() {
-            let mut entity = Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
+            let mut entity =
+                Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
             let map = flat_map(vec![("qty", BlockValue::Int(9))]);
             assert_eq!(
                 expansions(fulfill_promises(&mut entity, &map).unwrap()),
@@ -633,7 +700,10 @@ mod tests {
                     },
                 }
             );
-            assert_eq!(err.to_string(), "field 'fund': field 'fund' expected str, found int");
+            assert_eq!(
+                err.to_string(),
+                "field 'fund': field 'fund' expected str, found int"
+            );
         }
 
         /// Three contributions for one id, the second of the wrong type: the expansion really
@@ -645,7 +715,8 @@ mod tests {
         /// and the failure were the assignment of a whole container.
         #[test]
         fn a_type_error_during_expansion_stops_everything() {
-            let mut entity = Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
+            let mut entity =
+                Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
             let map = flat_map(vec![
                 ("qty", BlockValue::Int(1)),
                 ("qty", BlockValue::from("non un numero")),

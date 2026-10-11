@@ -23,7 +23,9 @@ struct Fixture {
 
 impl Fixture {
     fn new(jobs: &[(&str, &str)]) -> Self {
-        let fixture = Self { dir: tempfile::TempDir::new().expect("temp dir") };
+        let fixture = Self {
+            dir: tempfile::TempDir::new().expect("temp dir"),
+        };
         fixture.write_repo();
         std::fs::create_dir_all(fixture.dir.path().join("cwd")).unwrap();
 
@@ -46,11 +48,15 @@ impl Fixture {
 
         let path = self.dir.path().join(format!("{name}.pdf"));
         Python::attach(|py| {
-            let fitz = PyModule::import(py, "fitz")
-                .expect("PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md");
+            let fitz = PyModule::import(py, "fitz").expect(
+                "PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md",
+            );
             let doc = fitz.call_method0("open").unwrap();
-            let page = doc.call_method1("new_page", (-1i64, 200.0f64, 300.0f64)).unwrap();
-            page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings")).unwrap();
+            let page = doc
+                .call_method1("new_page", (-1i64, 200.0f64, 300.0f64))
+                .unwrap();
+            page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings"))
+                .unwrap();
             doc.call_method1("save", (path.to_str().unwrap(),)).unwrap();
             doc.call_method0("close").unwrap();
         });
@@ -61,13 +67,19 @@ impl Fixture {
     fn write_repo(&self) {
         let repo = self.dir.path().join("formats_repo");
         for (relative, content) in [
-            ("metadata/formats.csv", "Name,Locale,Year,Country,Version\nA,EN,24,,\n"),
+            (
+                "metadata/formats.csv",
+                "Name,Locale,Year,Country,Version\nA,EN,24,,\n",
+            ),
             ("metadata/url_mapping.csv", "Format name,Url\n"),
             (
                 "content/orchestration/algorithms_schedule.csv",
                 "Format name,Page type,Filter next iteration\nA-EN24,investments,\n",
             ),
-            ("content/orchestration/mapping.csv", "ID,Page type\nA-EN24(investments),investments\n"),
+            (
+                "content/orchestration/mapping.csv",
+                "ID,Page type\nA-EN24(investments),investments\n",
+            ),
             ("content/orchestration/pageclassify_overwrite.csv", "ID\n"),
             (
                 "content/algorithms/structured/page_classify/args.csv",
@@ -82,12 +94,30 @@ impl Fixture {
                 "content/algorithms/structured/investments/additional_args.csv",
                 "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero\n",
             ),
-            ("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n"),
-            ("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n"),
-            ("content/algorithms/semistructured/formats_mapping.csv", "ID,pdf_extract,text_filter,deserialize\n"),
-            ("content/algorithms/semistructured/args/pdf_extract.yaml", "{}"),
-            ("content/algorithms/semistructured/args/text_filter.yaml", "{}"),
-            ("content/algorithms/semistructured/args/deserialize.yaml", "{}"),
+            (
+                "content/algorithms/structured/investments/partial_pipes.csv",
+                "ID,pdf_extract,text_filter,deserialize\n",
+            ),
+            (
+                "content/algorithms/structured/investments/deselection_lists.csv",
+                "ID,Deselection set\n",
+            ),
+            (
+                "content/algorithms/semistructured/formats_mapping.csv",
+                "ID,pdf_extract,text_filter,deserialize\n",
+            ),
+            (
+                "content/algorithms/semistructured/args/pdf_extract.yaml",
+                "{}",
+            ),
+            (
+                "content/algorithms/semistructured/args/text_filter.yaml",
+                "{}",
+            ),
+            (
+                "content/algorithms/semistructured/args/deserialize.yaml",
+                "{}",
+            ),
         ] {
             let path = repo.join(relative);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -129,10 +159,16 @@ impl Fixture {
             // puo' anche verificare che nient'altro ci finisca.
             .current_dir(self.cwd())
             .args(["--batch", self.path().join("jobs.csv").to_str().unwrap()])
-            .args(["--formats-directory", self.path().join("formats_repo").to_str().unwrap()])
+            .args([
+                "--formats-directory",
+                self.path().join("formats_repo").to_str().unwrap(),
+            ])
             .args(["--target-list", "TEST"])
             .args(["--out", out_dir.to_str().unwrap()])
-            .args(["--config", self.path().join("config.yaml").to_str().unwrap()])
+            .args([
+                "--config",
+                self.path().join("config.yaml").to_str().unwrap(),
+            ])
             .args(extra)
             .output()
             .expect("the freeports binary must be runnable");
@@ -151,12 +187,25 @@ mod one_worker_against_many {
     /// sequenza e in quattro processi, devono produrre gli **stessi byte**.
     #[test]
     fn the_output_of_four_workers_is_byte_identical_to_the_output_of_one() {
-        let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24"), ("third", "A-EN24"), ("fourth", "A-EN24")]);
+        let fixture = Fixture::new(&[
+            ("first", "A-EN24"),
+            ("second", "A-EN24"),
+            ("third", "A-EN24"),
+            ("fourth", "A-EN24"),
+        ]);
 
         let (sequential, sequential_out) = fixture.run(1, "out-sequential");
-        assert!(sequential.status.success(), "the sequential run failed: {}", String::from_utf8_lossy(&sequential.stderr));
+        assert!(
+            sequential.status.success(),
+            "the sequential run failed: {}",
+            String::from_utf8_lossy(&sequential.stderr)
+        );
         let (parallel, parallel_out) = fixture.run(4, "out-parallel");
-        assert!(parallel.status.success(), "the parallel run failed: {}", String::from_utf8_lossy(&parallel.stderr));
+        assert!(
+            parallel.status.success(),
+            "the parallel run failed: {}",
+            String::from_utf8_lossy(&parallel.stderr)
+        );
 
         for name in ["investments.csv", "funds.csv"] {
             assert_eq!(
@@ -175,9 +224,16 @@ mod one_worker_against_many {
 
         let (_, sequential_out) = fixture.run(1, "out-sequential");
         let (parallel, parallel_out) = fixture.run(16, "out-parallel");
-        assert!(parallel.status.success(), "the parallel run failed: {}", String::from_utf8_lossy(&parallel.stderr));
+        assert!(
+            parallel.status.success(),
+            "the parallel run failed: {}",
+            String::from_utf8_lossy(&parallel.stderr)
+        );
 
-        assert_eq!(read(&sequential_out.join("investments.csv")), read(&parallel_out.join("investments.csv")));
+        assert_eq!(
+            read(&sequential_out.join("investments.csv")),
+            read(&parallel_out.join("investments.csv"))
+        );
     }
 }
 
@@ -190,7 +246,12 @@ mod parallelism_options {
     use super::*;
 
     fn four_jobs() -> Fixture {
-        Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24"), ("third", "A-EN24"), ("fourth", "A-EN24")])
+        Fixture::new(&[
+            ("first", "A-EN24"),
+            ("second", "A-EN24"),
+            ("third", "A-EN24"),
+            ("fourth", "A-EN24"),
+        ])
     }
 
     /// I due livelli si scelgono separatamente, e nessuna delle quattro combinazioni sposta un
@@ -198,8 +259,13 @@ mod parallelism_options {
     #[test]
     fn every_combination_of_the_two_levels_produces_the_same_bytes() {
         let fixture = four_jobs();
-        let (sequential, reference) = fixture.run_args("out-sequential", &["--jobs", "1", "--pages", "1"]);
-        assert!(sequential.status.success(), "{}", String::from_utf8_lossy(&sequential.stderr));
+        let (sequential, reference) =
+            fixture.run_args("out-sequential", &["--jobs", "1", "--pages", "1"]);
+        assert!(
+            sequential.status.success(),
+            "{}",
+            String::from_utf8_lossy(&sequential.stderr)
+        );
 
         for (name, args) in [
             ("out-jobs-only", vec!["--jobs", "4", "--pages", "1"]),
@@ -208,9 +274,17 @@ mod parallelism_options {
             ("out-auto", vec!["--jobs", "auto", "--pages", "auto"]),
         ] {
             let (run, out_dir) = fixture.run_args(name, &args);
-            assert!(run.status.success(), "{args:?} failed: {}", String::from_utf8_lossy(&run.stderr));
+            assert!(
+                run.status.success(),
+                "{args:?} failed: {}",
+                String::from_utf8_lossy(&run.stderr)
+            );
             for file in ["investments.csv", "funds.csv"] {
-                assert_eq!(read(&reference.join(file)), read(&out_dir.join(file)), "{file} differs with {args:?}");
+                assert_eq!(
+                    read(&reference.join(file)),
+                    read(&out_dir.join(file)),
+                    "{file} differs with {args:?}"
+                );
             }
         }
     }
@@ -222,8 +296,15 @@ mod parallelism_options {
         let fixture = four_jobs();
         let (_, reference) = fixture.run_args("out-sequential", &["--jobs", "1", "--pages", "1"]);
         let (default_run, default_out) = fixture.run_args("out-default", &[]);
-        assert!(default_run.status.success(), "{}", String::from_utf8_lossy(&default_run.stderr));
-        assert_eq!(read(&reference.join("investments.csv")), read(&default_out.join("investments.csv")));
+        assert!(
+            default_run.status.success(),
+            "{}",
+            String::from_utf8_lossy(&default_run.stderr)
+        );
+        assert_eq!(
+            read(&reference.join("investments.csv")),
+            read(&default_out.join("investments.csv"))
+        );
     }
 
     /// `--workers` resta il default globale di **entrambi** i livelli: `--workers 1` e'
@@ -233,8 +314,15 @@ mod parallelism_options {
         let fixture = four_jobs();
         let (_, by_level) = fixture.run_args("out-by-level", &["--jobs", "1", "--pages", "1"]);
         let (global, global_out) = fixture.run_args("out-global", &["--workers", "1"]);
-        assert!(global.status.success(), "{}", String::from_utf8_lossy(&global.stderr));
-        assert_eq!(read(&by_level.join("investments.csv")), read(&global_out.join("investments.csv")));
+        assert!(
+            global.status.success(),
+            "{}",
+            String::from_utf8_lossy(&global.stderr)
+        );
+        assert_eq!(
+            read(&by_level.join("investments.csv")),
+            read(&global_out.join("investments.csv"))
+        );
     }
 
     /// Un override per livello batte il default globale anche sulla stessa riga di comando.
@@ -243,8 +331,15 @@ mod parallelism_options {
         let fixture = four_jobs();
         let (_, reference) = fixture.run_args("out-sequential", &["--jobs", "1", "--pages", "1"]);
         let (run, out_dir) = fixture.run_args("out-mixed", &["--workers", "4", "--jobs", "1"]);
-        assert!(run.status.success(), "{}", String::from_utf8_lossy(&run.stderr));
-        assert_eq!(read(&reference.join("investments.csv")), read(&out_dir.join("investments.csv")));
+        assert!(
+            run.status.success(),
+            "{}",
+            String::from_utf8_lossy(&run.stderr)
+        );
+        assert_eq!(
+            read(&reference.join("investments.csv")),
+            read(&out_dir.join("investments.csv"))
+        );
     }
 
     /// Un valore malformato si ferma alla riga di comando, nominando l'opzione sbagliata: nessun
@@ -253,7 +348,10 @@ mod parallelism_options {
     fn a_malformed_value_stops_the_run_and_names_the_option() {
         let fixture = four_jobs();
         let (run, _) = fixture.run_args("out-invalid", &["--pages", "0"]);
-        assert!(!run.status.success(), "a malformed --pages must not run any job");
+        assert!(
+            !run.status.success(),
+            "a malformed --pages must not run any job"
+        );
         let stderr = String::from_utf8_lossy(&run.stderr);
         assert!(stderr.contains("--pages"), "{stderr}");
     }
@@ -269,10 +367,20 @@ mod artifacts_stay_where_they_belong {
     fn the_log_csv_lands_next_to_the_output_and_never_in_the_working_directory() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, out_dir) = fixture.run(2, "out");
-        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
-        assert!(out_dir.join(".log.csv").is_file(), "the run log is not next to the output");
-        assert!(!fixture.cwd().join(".log.csv").exists(), "a .log.csv was left in the working directory");
+        assert!(
+            out_dir.join(".log.csv").is_file(),
+            "the run log is not next to the output"
+        );
+        assert!(
+            !fixture.cwd().join(".log.csv").exists(),
+            "a .log.csv was left in the working directory"
+        );
     }
 
     /// Il `.log.csv` del padre assorbe le righe dei figli: deve restare **un solo** header, e ogni
@@ -283,19 +391,33 @@ mod artifacts_stay_where_they_belong {
     fn the_absorbed_child_rows_have_the_same_columns_as_the_header() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, out_dir) = fixture.run(2, "out");
-        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         let content = std::fs::read_to_string(out_dir.join(".log.csv")).expect("read .log.csv");
         let mut reader = csv::Reader::from_reader(content.as_bytes());
         let columns = reader.headers().expect("the header row").len();
         assert_eq!(
-            reader.headers().expect("the header row").iter().collect::<Vec<_>>().last(),
+            reader
+                .headers()
+                .expect("the header row")
+                .iter()
+                .collect::<Vec<_>>()
+                .last(),
             Some(&"Message"),
             "the header is not the one the engine writes: {content}"
         );
         for (i, record) in reader.records().enumerate() {
             let record = record.unwrap_or_else(|e| panic!("row {} is malformed: {e}", i + 1));
-            assert_eq!(record.len(), columns, "row {} has the wrong number of cells", i + 1);
+            assert_eq!(
+                record.len(),
+                columns,
+                "row {} has the wrong number of cells",
+                i + 1
+            );
         }
         assert_eq!(
             content.matches("Report,Page,Activity").count(),
@@ -314,9 +436,14 @@ mod artifacts_stay_where_they_belong {
         let leftovers: Vec<String> = std::fs::read_dir(&out_dir)
             .unwrap()
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
-            .filter(|name| name.starts_with("job-") || name == "report.json" || name == "request.json")
+            .filter(|name| {
+                name.starts_with("job-") || name == "report.json" || name == "request.json"
+            })
             .collect();
-        assert!(leftovers.is_empty(), "worker files were left among the results: {leftovers:?}");
+        assert!(
+            leftovers.is_empty(),
+            "worker files were left among the results: {leftovers:?}"
+        );
     }
 
     /// Le righe dei figli devono arrivare nel registro della corsa: e' l'unico posto in cui
@@ -328,11 +455,18 @@ mod artifacts_stay_where_they_belong {
     fn the_run_log_absorbs_what_the_workers_logged() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, _) = fixture.run_with(2, "out", &["-vvv"]);
-        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         let jsonl = String::from_utf8(read(&fixture.cwd().join("freeports.log.jsonl"))).unwrap();
         // Lo span `job` lo apre solo chi esegue un job, e in questa corsa i job li eseguono i figli.
-        assert!(jsonl.contains("job finished"), "no worker record reached the run log:\n{jsonl}");
+        assert!(
+            jsonl.contains("job finished"),
+            "no worker record reached the run log:\n{jsonl}"
+        );
     }
 
     /// Il registro strutturato e' **l'unico** registro diagnostico, e alla verbosita' massima
@@ -341,16 +475,29 @@ mod artifacts_stay_where_they_belong {
     fn at_trace_verbosity_the_jsonl_log_is_written_and_is_the_only_one() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, out_dir) = fixture.run_with(2, "out", &["-vvv"]);
-        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
-        assert!(fixture.cwd().join("freeports.log.jsonl").is_file(), "the structured log is missing");
+        assert!(
+            fixture.cwd().join("freeports.log.jsonl").is_file(),
+            "the structured log is missing"
+        );
         for dir in [fixture.cwd(), out_dir] {
             let other_logs: Vec<String> = std::fs::read_dir(&dir)
                 .unwrap()
                 .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
-                .filter(|name| name.contains("log.yaml") || name.contains("log.yml") || name == "freeports.log")
+                .filter(|name| {
+                    name.contains("log.yaml") || name.contains("log.yml") || name == "freeports.log"
+                })
                 .collect();
-            assert!(other_logs.is_empty(), "a second diagnostic log was written in {}: {other_logs:?}", dir.display());
+            assert!(
+                other_logs.is_empty(),
+                "a second diagnostic log was written in {}: {other_logs:?}",
+                dir.display()
+            );
         }
     }
 
@@ -366,17 +513,30 @@ mod artifacts_stay_where_they_belong {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         std::fs::write(fixture.path().join("config.yaml"), "verbosity: trace\n").unwrap();
         let (output, _) = fixture.run(2, "out");
-        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         let jsonl = fixture.cwd().join("freeports.log.jsonl");
-        assert!(jsonl.is_file(), "`verbosity: trace` in the configuration file must produce the structured log");
+        assert!(
+            jsonl.is_file(),
+            "`verbosity: trace` in the configuration file must produce the structured log"
+        );
         let content = String::from_utf8(read(&jsonl)).unwrap();
         // Lo span `job` lo apre solo chi esegue un job: se c'e', anche cio' che hanno scritto i
         // figli e' arrivato nel registro del padre, che e' la meta' che prima si perdeva.
-        assert!(content.contains("job finished"), "no worker record reached the run log:\n{content}");
+        assert!(
+            content.contains("job finished"),
+            "no worker record reached the run log:\n{content}"
+        );
         // E cio' che il padre ha scritto dopo aver risolto la configurazione c'e' al livello nuovo:
         // senza il ricaricamento del filtro, i `debug!` sarebbero gia' stati spenti al callsite.
-        assert!(content.contains("\"DEBUG\""), "the reloaded filter did not raise the level:\n{content}");
+        assert!(
+            content.contains("\"DEBUG\""),
+            "the reloaded filter did not raise the level:\n{content}"
+        );
     }
 
     /// Sotto alla verbosita' massima il registro strutturato **non esiste**, e non esiste come
@@ -389,13 +549,20 @@ mod artifacts_stay_where_they_belong {
     fn below_trace_verbosity_the_working_directory_stays_empty(extra: &[&str]) {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, _) = fixture.run_with(2, "out", extra);
-        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         let leftovers: Vec<String> = std::fs::read_dir(fixture.cwd())
             .unwrap()
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
             .collect();
-        assert!(leftovers.is_empty(), "the run left files in the working directory: {leftovers:?}");
+        assert!(
+            leftovers.is_empty(),
+            "the run left files in the working directory: {leftovers:?}"
+        );
     }
 }
 
@@ -424,9 +591,18 @@ mod a_failing_job {
                 .lines()
                 .find(|line| line.contains("job 1 failed"))
                 .map(|line| line.to_string())
-                .unwrap_or_else(|| panic!("no failure line in:\n{}", String::from_utf8_lossy(&output.stderr)))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "no failure line in:\n{}",
+                        String::from_utf8_lossy(&output.stderr)
+                    )
+                })
         };
-        assert_eq!(failure_line(&sequential), failure_line(&parallel), "the same failure is reported differently");
+        assert_eq!(
+            failure_line(&sequential),
+            failure_line(&parallel),
+            "the same failure is reported differently"
+        );
     }
 
     /// Il punto del piano, misurato da fuori: **un job che fallisce costa i propri risultati e non
@@ -445,7 +621,10 @@ mod a_failing_job {
             "written, but not everything was read:\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
-        assert!(out_dir.join("investments.csv").is_file(), "the sound job's results must be on disk");
+        assert!(
+            out_dir.join("investments.csv").is_file(),
+            "the sound job's results must be on disk"
+        );
         assert!(out_dir.join("funds.csv").is_file());
     }
 
@@ -470,9 +649,20 @@ mod a_failing_job {
         let fixture = Fixture::new(&[("first", "A-NOPE24"), ("second", "A-ALSO-NOPE24")]);
         let (output, out_dir) = fixture.run(2, "out");
 
-        assert_eq!(output.status.code(), Some(1), "a run that produced nothing must fail");
-        assert!(!out_dir.join("investments.csv").exists(), "six empty tables are worse than none");
-        assert!(message_of(&output).contains("A-NOPE24"), "got: {}", message_of(&output));
+        assert_eq!(
+            output.status.code(),
+            Some(1),
+            "a run that produced nothing must fail"
+        );
+        assert!(
+            !out_dir.join("investments.csv").exists(),
+            "six empty tables are worse than none"
+        );
+        assert!(
+            message_of(&output).contains("A-NOPE24"),
+            "got: {}",
+            message_of(&output)
+        );
     }
 
     /// E una corsa in cui tutto e' andato bene esce con `0`: il `3` deve distinguere, non allarmare.
@@ -481,7 +671,12 @@ mod a_failing_job {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, out_dir) = fixture.run(2, "out");
 
-        assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8_lossy(&output.stderr));
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         assert!(out_dir.join("investments.csv").is_file());
     }
 }

@@ -73,7 +73,9 @@ impl PageCarryover {
         let mut out = BTreeMap::new();
         for entries in data.previous().iter().filter_map(Extracted::as_promises) {
             for (key, value) in entries.iter() {
-                let Some(tail) = key.strip_prefix(&prefix) else { continue };
+                let Some(tail) = key.strip_prefix(&prefix) else {
+                    continue;
+                };
                 if let Ok(page) = tail.parse::<i64>() {
                     out.insert(page, value.clone());
                 }
@@ -131,7 +133,10 @@ mod tests {
 
     #[test]
     fn what_each_page_left_is_read_back_by_its_number() {
-        let promises = left(&[("ubs-fund-page-14", "UBS Alpha"), ("ubs-fund-page-20", "UBS Beta")]);
+        let promises = left(&[
+            ("ubs-fund-page-14", "UBS Alpha"),
+            ("ubs-fund-page-20", "UBS Beta"),
+        ]);
         let got = carry().deposited(&FilterData::Previous(&promises));
         assert_eq!(got.len(), 2);
         assert_eq!(text(&got[&14]), "UBS Alpha");
@@ -142,13 +147,21 @@ mod tests {
     #[test]
     fn another_carryover_of_the_same_run_is_left_alone() {
         let promises = left(&[("ubs-esg-fund-page-14", "Something else")]);
-        assert!(carry().deposited(&FilterData::Previous(&promises)).is_empty());
+        assert!(
+            carry()
+                .deposited(&FilterData::Previous(&promises))
+                .is_empty()
+        );
     }
 
     #[test]
     fn a_tail_that_is_not_a_number_is_not_a_page() {
         let promises = left(&[("ubs-fund-page-fourteen", "Nonsense")]);
-        assert!(carry().deposited(&FilterData::Previous(&promises)).is_empty());
+        assert!(
+            carry()
+                .deposited(&FilterData::Previous(&promises))
+                .is_empty()
+        );
     }
 
     /// The nearest **before**, which is the whole point: between the title and the statement sit
@@ -168,7 +181,10 @@ mod tests {
     /// its own page, and taking that page's own deposit would pair a title with itself.
     #[test]
     fn the_page_itself_does_not_count_as_before_it() {
-        let promises = left(&[("ubs-fund-page-10", "UBS Alpha"), ("ubs-fund-page-16", "UBS Beta")]);
+        let promises = left(&[
+            ("ubs-fund-page-10", "UBS Alpha"),
+            ("ubs-fund-page-16", "UBS Beta"),
+        ]);
         let got = carry().nearest(&FilterData::Previous(&promises), 16);
         assert_eq!(got.as_ref().map(text), Some("UBS Alpha".to_string()));
     }
@@ -176,6 +192,10 @@ mod tests {
     #[test]
     fn nothing_before_it_is_an_error_and_no_value() {
         let promises = left(&[("ubs-fund-page-20", "UBS Gamma")]);
-        assert!(carry().nearest(&FilterData::Previous(&promises), 16).is_none());
+        assert!(
+            carry()
+                .nearest(&FilterData::Previous(&promises), 16)
+                .is_none()
+        );
     }
 }

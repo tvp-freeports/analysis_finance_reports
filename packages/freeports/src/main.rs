@@ -23,13 +23,13 @@
 
 use clap::Parser;
 
-use freeports::cli::config_locations::cmd::CliArgs;
+use freeports::cli::config_locations::cmd::{CliArgs, Command};
 use freeports::cli::run::RunCompleteness;
-use freeports::cli::{run, worker};
+use freeports::cli::{classify, run, worker};
 use freeports::core::tracing_setup::{self, Verbosity, panic_message};
 
 fn main() {
-    let args = CliArgs::parse();
+    let mut args = CliArgs::parse();
 
     // Checked before anything else: a worker process resolves no configuration and starts no
     // logging of its own in the current directory. Both were already decided by the parent, and
@@ -45,7 +45,8 @@ fn main() {
         return;
     }
 
-    let verbosity = Verbosity::from_verbose_and_quiet_counts(args.verbose, args.quiet);
+    let (verbose, quiet) = args.verbosity_counts();
+    let verbosity = Verbosity::from_verbose_and_quiet_counts(verbose, quiet);
     let log_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
     let log_handle = match tracing_setup::init(verbosity, &log_dir) {
         Ok(handle) => handle,
@@ -65,21 +66,24 @@ fn main() {
     // contains a child's at the job, and this one contains everything else — configuration
     // resolution, the formats repository, the writing of the results — so that a panic anywhere
     // still closes the log files below instead of taking them down with it.
-    let run_result = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        run::execute(args, &log_handle)
-    })) {
-        Ok(result) => result,
-        Err(payload) => {
-            let message = panic_message(payload.as_ref());
-            tracing::error!("the engine panicked outside any page: {message}");
-            eprintln!("freeports: {message}");
-            // Closed before exiting, and the failure of the close deliberately ignored: the run's
-            // diagnostic rows are held in memory until here, so skipping this would lose the log of
-            // precisely the run whose log is worth reading.
-            let _ = log_handle.close();
-            std::process::exit(1);
-        }
-    };
+    let command = args.command.take();
+    let run_result =
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| match command {
+            Some(Command::Classify(classify_args)) => classify::execute(classify_args, &log_handle),
+            None => run::execute(args, &log_handle),
+        })) {
+            Ok(result) => result,
+            Err(payload) => {
+                let message = panic_message(payload.as_ref());
+                tracing::error!("the engine panicked outside any page: {message}");
+                eprintln!("freeports: {message}");
+                // Closed before exiting, and the failure of the close deliberately ignored: the run's
+                // diagnostic rows are held in memory until here, so skipping this would lose the log of
+                // precisely the run whose log is worth reading.
+                let _ = log_handle.close();
+                std::process::exit(1);
+            }
+        };
     // Always attempted, whatever `run_result` says: the diagnostic rows of a job that failed are
     // exactly the ones worth having on disk.
     let close_result = log_handle.close();

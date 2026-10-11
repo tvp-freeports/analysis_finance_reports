@@ -14,6 +14,7 @@ If you want to know which of these you need, you are asking a guide's question:
 cli/index
 configuration/index
 design/index
+formats/index
 ../validation/index
 glossary
 misc
@@ -25,6 +26,7 @@ misc
 | {doc}`cli/index` | every option of `freeports`, `freeports-dev` and `freeports-validate` |
 | {doc}`configuration/index` | the four places a setting can come from, and how they merge |
 | {doc}`design/index` | the algorithm, chapter by chapter, with each claim marked implemented, planned or accepted limit |
+| {doc}`formats/index` | how formats are named, and the two files that let a repository recognise a document's format |
 | {doc}`../validation/index` | the published methodologies themselves — hashed artefacts, not ordinary prose |
 | {doc}`glossary` | the words this project uses in a particular way |
 | {doc}`misc` | whatever a section has not been written for yet |

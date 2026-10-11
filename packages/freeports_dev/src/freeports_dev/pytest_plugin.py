@@ -496,6 +496,24 @@ class PipelineTest(Function):
         )
 
 
+class ClassificationTest(Function):
+    def __init__(self, name, parent, format_name, **kwargs):
+        super().__init__(name=name, parent=parent, callobj=self.runtest, **kwargs)
+        self.format_name = format_name
+
+    def runtest(self):
+        from freeports_dev.classification_check import (
+            classification_failure,
+            classify_document,
+        )
+
+        outcome = classify_document(
+            self.parent.path / "report.pdf", _formats_cache["repo_dir"]
+        )
+        failure = classification_failure(self.format_name, outcome)
+        assert failure is None, failure
+
+
 class ReportVariant(Collector):
     def __init__(self, name, document_variant, **kwargs):
         super().__init__(name=name, **kwargs)
@@ -567,6 +585,13 @@ class ReportVariant(Collector):
             test.add_marker(pytest.mark.integration_tests)
             yield test
 
+        if inventory.has_classification:
+            test = ClassificationTest.from_parent(
+                parent=self, name="test_classification", format_name=self.format_name
+            )
+            test.add_marker(pytest.mark.classification_tests)
+            yield test
+
 
 class FreeportsFormat(Directory):
     def __init__(self, format_name, **kwargs):
@@ -590,6 +615,14 @@ class FreeportsFormat(Directory):
                 path=path,
                 document_variant=variant,
             )
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "classification_tests: the document-classification test of a format's test report, "
+        "which opens the PDF and is slower",
+    )
 
 
 @pytest.hookimpl(tryfirst=True)

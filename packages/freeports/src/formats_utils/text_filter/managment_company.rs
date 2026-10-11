@@ -64,7 +64,10 @@ use super::standard_txt_blk_builders::{
 #[derive(Debug, thiserror::Error)]
 pub enum ManagmentCompanyError {
     #[error("the reader's '{field}' is not a valid expression fragment: {message}")]
-    InvalidFragment { field: &'static str, message: String },
+    InvalidFragment {
+        field: &'static str,
+        message: String,
+    },
     #[error("no management company line on a page classified for one")]
     NoLine,
     #[error("the management company line has an unexpected shape: {line:?}")]
@@ -78,7 +81,12 @@ impl ManagmentCompanyError {
     fn into_pipe_error(self, pipe: &str) -> PipeError {
         match self {
             ManagmentCompanyError::NoLine | ManagmentCompanyError::UnexpectedShape { .. } => {
-                PipeError::page_parse(pipe, PageError::ParseFail { message: self.to_string() })
+                PipeError::page_parse(
+                    pipe,
+                    PageError::ParseFail {
+                        message: self.to_string(),
+                    },
+                )
             }
             other => PipeError::extraction(pipe, other.to_string()),
         }
@@ -101,8 +109,16 @@ pub struct Between {
 impl Between {
     /// Builds the reader from the two fragments, either of which may be empty.
     pub fn new(after: &str, before: &str) -> Result<Self, ManagmentCompanyError> {
-        let head = if after.is_empty() { String::new() } else { format!("(?:{after})\\s*") };
-        let tail = if before.is_empty() { "\\s*$".to_string() } else { format!("(?={before})") };
+        let head = if after.is_empty() {
+            String::new()
+        } else {
+            format!("(?:{after})\\s*")
+        };
+        let tail = if before.is_empty() {
+            "\\s*$".to_string()
+        } else {
+            format!("(?={before})")
+        };
         let source = format!("{head}(.+?){tail}");
         let pattern = Regex::new(&source).map_err(|e| ManagmentCompanyError::InvalidFragment {
             field: if after.is_empty() { "before" } else { "after" },
@@ -120,7 +136,9 @@ impl Between {
 
 impl std::fmt::Debug for Between {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Between").field("source", &self.source).finish()
+        f.debug_struct("Between")
+            .field("source", &self.source)
+            .finish()
     }
 }
 
@@ -169,7 +187,9 @@ fn when(text: &str) -> Option<(String, Date)> {
         // The bracket was there but held no date: not a temporal qualification, and a piece of
         // information we cannot read rather than a line to drop in silence (`R25`).
         Err(_) => {
-            tracing::warn!("a parenthesis next to a management company did not carry a date: {written:?}");
+            tracing::warn!(
+                "a parenthesis next to a management company did not carry a date: {written:?}"
+            );
             None
         }
     }
@@ -181,8 +201,10 @@ impl AmongLines {
         match self {
             AmongLines::First => texts.first().copied(),
             AmongLines::MostRecent => {
-                let qualified: Vec<(&'a str, (String, Date))> =
-                    texts.iter().filter_map(|text| when(text).map(|w| (*text, w))).collect();
+                let qualified: Vec<(&'a str, (String, Date))> = texts
+                    .iter()
+                    .filter_map(|text| when(text).map(|w| (*text, w)))
+                    .collect();
                 // No line with a bracket means the company is a single one, and `First` is the
                 // answer rather than nothing.
                 if qualified.is_empty() {
@@ -193,7 +215,9 @@ impl AmongLines {
                     // An open period beats a closed one at the same date: whoever came in on the
                     // first of July was there at closing, whoever left on the thirtieth of June
                     // was not.
-                    .max_by_key(|(_, (verb, date))| (*date, !OPEN_ENDED.contains(&verb.as_str())))?;
+                    .max_by_key(|(_, (verb, date))| {
+                        (*date, !OPEN_ENDED.contains(&verb.as_str()))
+                    })?;
                 if qualified.len() > 1 {
                     let (verb, date) = &chosen.1;
                     tracing::info!(
@@ -209,7 +233,12 @@ impl AmongLines {
 
 /// The funds this job has seen so far, which the block carries by `R26`.
 fn resolved_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
-    data.previous().iter().filter_map(Extracted::as_fund).filter_map(Fund::name).map(MatchFund::new).collect()
+    data.previous()
+        .iter()
+        .filter_map(Extracted::as_fund)
+        .filter_map(Fund::name)
+        .map(MatchFund::new)
+        .collect()
 }
 
 /// The `manco` `text_filter`: picks the line, reads the name out of it, declares it over the funds.
@@ -226,8 +255,15 @@ pub struct TextFilterManagmentCompanyInLine {
 }
 
 impl TextFilterManagmentCompanyInLine {
-    pub fn new(after: &str, before: &str, among: AmongLines) -> Result<Self, ManagmentCompanyError> {
-        Ok(Self { reader: Between::new(after, before)?, among })
+    pub fn new(
+        after: &str,
+        before: &str,
+        among: AmongLines,
+    ) -> Result<Self, ManagmentCompanyError> {
+        Ok(Self {
+            reader: Between::new(after, before)?,
+            among,
+        })
     }
 
     pub fn call(
@@ -241,11 +277,16 @@ impl TextFilterManagmentCompanyInLine {
             .filter_map(|b| b.content.as_str().map(|text| (b, text)))
             .collect();
         let texts: Vec<&str> = candidates.iter().map(|(_, text)| *text).collect();
-        let chosen = self.among.choose(&texts).ok_or(ManagmentCompanyError::NoLine)?;
-        let name = self
-            .reader
-            .read(chosen)
-            .ok_or_else(|| ManagmentCompanyError::UnexpectedShape { line: chosen.to_string() })?;
+        let chosen = self
+            .among
+            .choose(&texts)
+            .ok_or(ManagmentCompanyError::NoLine)?;
+        let name =
+            self.reader
+                .read(chosen)
+                .ok_or_else(|| ManagmentCompanyError::UnexpectedShape {
+                    line: chosen.to_string(),
+                })?;
         let funds = resolved_funds(data);
         // The originating block travels with the value **when it cannot contradict it**: that is
         // the one rule `TextBlock::new` lays down, and it is why there is no constructor taking a
@@ -272,8 +313,13 @@ impl TextFilterPipe for TextFilterManagmentCompanyInLine {
         "TextFilterManagmentCompanyInLine"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks, data).map_err(|e| e.into_pipe_error(TextFilterPipe::name(self)))
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data)
+            .map_err(|e| e.into_pipe_error(TextFilterPipe::name(self)))
     }
 }
 
@@ -295,7 +341,10 @@ pub struct TextFilterManagmentCompanyImposed {
 
 impl TextFilterManagmentCompanyImposed {
     pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), warned: std::sync::atomic::AtomicBool::new(false) }
+        Self {
+            name: name.into(),
+            warned: std::sync::atomic::AtomicBool::new(false),
+        }
     }
 
     pub fn call(&self, data: &FilterData<'_>) -> Vec<TextBlock> {
@@ -307,7 +356,9 @@ impl TextFilterManagmentCompanyImposed {
             );
         }
         let funds = resolved_funds(data);
-        vec![standard_management_company_txt_blk_from_content(&self.name, &funds)]
+        vec![standard_management_company_txt_blk_from_content(
+            &self.name, &funds,
+        )]
     }
 }
 
@@ -341,22 +392,36 @@ mod tests {
         fn the_label_opens_the_line_and_the_name_is_the_rest() {
             // ANIMA_SGR-IT24 D1 p3, in every page's header.
             let reader = Between::new("Società di Gestione del Risparmio", "").unwrap();
-            assert_eq!(reader.read("Società di Gestione del Risparmio ANIMA SGR S.p.A.").as_deref(), Some("ANIMA SGR S.p.A."));
+            assert_eq!(
+                reader
+                    .read("Società di Gestione del Risparmio ANIMA SGR S.p.A.")
+                    .as_deref(),
+                Some("ANIMA SGR S.p.A.")
+            );
         }
 
         #[test]
         fn a_parenthesis_closes_the_name() {
             // EURIZON-EN21 p7.
             let reader = Between::new("", r"\(").unwrap();
-            assert_eq!(reader.read("Eurizon Capital S.A. (since July 1, 2021)").as_deref(), Some("Eurizon Capital S.A."));
+            assert_eq!(
+                reader
+                    .read("Eurizon Capital S.A. (since July 1, 2021)")
+                    .as_deref(),
+                Some("Eurizon Capital S.A.")
+            );
         }
 
         #[test]
         fn the_name_sits_in_the_middle_of_a_sentence() {
             // FIDEURAM-EN23 p67, whose line closes on a parenthesis that has to be protected.
             let reader = Between::new("managed by", r"\(the").unwrap();
-            let line = "The Fund is managed by Fideuram Asset Management (the “Management Company”)";
-            assert_eq!(reader.read(line).as_deref(), Some("Fideuram Asset Management"));
+            let line =
+                "The Fund is managed by Fideuram Asset Management (the “Management Company”)";
+            assert_eq!(
+                reader.read(line).as_deref(),
+                Some("Fideuram Asset Management")
+            );
         }
 
         #[test]
@@ -364,13 +429,19 @@ mod tests {
             // EURIZON-IT24 D1 p7.
             let reader = Between::new("gestione", ",").unwrap();
             let line = "della società di gestione Eurizon Capital SGR S.p.A., con sede in Milano";
-            assert_eq!(reader.read(line).as_deref(), Some("Eurizon Capital SGR S.p.A."));
+            assert_eq!(
+                reader.read(line).as_deref(),
+                Some("Eurizon Capital SGR S.p.A.")
+            );
         }
 
         #[test]
         fn stating_neither_fragment_reads_the_whole_line() {
             let reader = Between::new("", "").unwrap();
-            assert_eq!(reader.read("Acme Asset Management").as_deref(), Some("Acme Asset Management"));
+            assert_eq!(
+                reader.read("Acme Asset Management").as_deref(),
+                Some("Acme Asset Management")
+            );
         }
 
         #[test]
@@ -382,15 +453,33 @@ mod tests {
         #[test]
         fn the_name_comes_back_trimmed() {
             let reader = Between::new("label", ",").unwrap();
-            assert_eq!(reader.read("label    Acme AM   , rest").as_deref(), Some("Acme AM"));
+            assert_eq!(
+                reader.read("label    Acme AM   , rest").as_deref(),
+                Some("Acme AM")
+            );
         }
 
         #[test]
         fn a_malformed_fragment_is_refused_naming_the_field_it_came_from() {
             let error = Between::new("", "(unclosed").unwrap_err();
-            assert!(matches!(error, ManagmentCompanyError::InvalidFragment { field: "before", .. }), "{error}");
+            assert!(
+                matches!(
+                    error,
+                    ManagmentCompanyError::InvalidFragment {
+                        field: "before",
+                        ..
+                    }
+                ),
+                "{error}"
+            );
             let error = Between::new("(unclosed", "").unwrap_err();
-            assert!(matches!(error, ManagmentCompanyError::InvalidFragment { field: "after", .. }), "{error}");
+            assert!(
+                matches!(
+                    error,
+                    ManagmentCompanyError::InvalidFragment { field: "after", .. }
+                ),
+                "{error}"
+            );
         }
     }
 
@@ -420,24 +509,36 @@ mod tests {
         fn the_address_lines_do_not_compete_because_they_carry_no_qualification() {
             let only_addresses = ["37/A, Avenue J.F. Kennedy", "L-1855 Luxembourg"];
             // No qualification anywhere means the company is a single one: the first line answers.
-            assert_eq!(AmongLines::MostRecent.choose(&only_addresses), Some(only_addresses[0]));
+            assert_eq!(
+                AmongLines::MostRecent.choose(&only_addresses),
+                Some(only_addresses[0])
+            );
         }
 
         #[test]
         fn an_open_period_beats_a_closed_one_at_the_same_date() {
-            let lines = ["Outgoing S.A. (until July 1, 2021)", "Incoming S.A. (since July 1, 2021)"];
+            let lines = [
+                "Outgoing S.A. (until July 1, 2021)",
+                "Incoming S.A. (since July 1, 2021)",
+            ];
             assert_eq!(AmongLines::MostRecent.choose(&lines), Some(lines[1]));
         }
 
         #[test]
         fn of_outgoing_companies_only_the_last_to_leave_is_kept() {
-            let lines = ["First S.A. (until March 31, 2021)", "Second S.A. (until June 30, 2021)"];
+            let lines = [
+                "First S.A. (until March 31, 2021)",
+                "Second S.A. (until June 30, 2021)",
+            ];
             assert_eq!(AmongLines::MostRecent.choose(&lines), Some(lines[1]));
         }
 
         #[test]
         fn an_italian_qualification_is_read_too() {
-            let lines = ["Uscente S.p.A. (fino al 30 giugno 2021)", "Entrante S.p.A. (dal 1 July 2021)"];
+            let lines = [
+                "Uscente S.p.A. (fino al 30 giugno 2021)",
+                "Entrante S.p.A. (dal 1 July 2021)",
+            ];
             assert_eq!(AmongLines::MostRecent.choose(&lines), Some(lines[1]));
         }
 
@@ -471,14 +572,19 @@ mod tests {
         #[test]
         fn it_emits_one_block_carrying_the_name_read_out_of_the_line() {
             let blocks = [block("Società di Gestione del Risparmio ANIMA SGR S.p.A.")];
-            let got = pipe("Società di Gestione del Risparmio", "").call(&blocks, &FilterData::EMPTY).unwrap();
+            let got = pipe("Società di Gestione del Risparmio", "")
+                .call(&blocks, &FilterData::EMPTY)
+                .unwrap();
             assert_eq!(got.len(), 1);
             assert_eq!(name_of(&got), "ANIMA SGR S.p.A.");
         }
 
         #[test]
         fn blocks_of_another_type_are_not_candidates() {
-            let blocks = [PdfBlock::bare(BlockType::FUND_NAME, "Alpha Fund"), block("label Acme AM")];
+            let blocks = [
+                PdfBlock::bare(BlockType::FUND_NAME, "Alpha Fund"),
+                block("label Acme AM"),
+            ];
             let got = pipe("label", "").call(&blocks, &FilterData::EMPTY).unwrap();
             assert_eq!(name_of(&got), "Acme AM");
         }
@@ -488,25 +594,41 @@ mod tests {
             let error = pipe("label", "").call(&[], &FilterData::EMPTY).unwrap_err();
             assert!(matches!(error, ManagmentCompanyError::NoLine), "{error}");
             let as_pipe_error = error.into_pipe_error("p");
-            assert!(matches!(as_pipe_error, PipeError::PageParse { .. }), "{as_pipe_error}");
+            assert!(
+                matches!(as_pipe_error, PipeError::PageParse { .. }),
+                "{as_pipe_error}"
+            );
         }
 
         #[test]
         fn a_line_of_the_wrong_shape_fails_the_page_quoting_the_line() {
             let blocks = [block("37/A, Avenue J.F. Kennedy")];
-            let error = pipe("Management Company:", "").call(&blocks, &FilterData::EMPTY).unwrap_err();
+            let error = pipe("Management Company:", "")
+                .call(&blocks, &FilterData::EMPTY)
+                .unwrap_err();
             assert!(error.to_string().contains("Avenue J.F. Kennedy"), "{error}");
-            assert!(matches!(error.into_pipe_error("p"), PipeError::PageParse { .. }));
+            assert!(matches!(
+                error.into_pipe_error("p"),
+                PipeError::PageParse { .. }
+            ));
         }
 
         #[test]
         fn the_block_carries_the_funds_the_job_has_seen() {
             // `R26`: the company is one to many over the document, so the block declares it over
             // every fund extracted so far.
-            let previous = vec![Extracted::Fund(Fund::new("Alpha Fund")), Extracted::Fund(Fund::new("Beta Fund"))];
+            let previous = vec![
+                Extracted::Fund(Fund::new("Alpha Fund")),
+                Extracted::Fund(Fund::new("Beta Fund")),
+            ];
             let blocks = [block("label Acme AM")];
-            let got = pipe("label", "").call(&blocks, &FilterData::Previous(&previous)).unwrap();
-            assert!(!got[0].metadata.is_empty(), "the managed funds did not reach the block");
+            let got = pipe("label", "")
+                .call(&blocks, &FilterData::Previous(&previous))
+                .unwrap();
+            assert!(
+                !got[0].metadata.is_empty(),
+                "the managed funds did not reach the block"
+            );
         }
 
         /// `P9`: where the reader takes the line **whole**, the block travels with the value.
@@ -534,9 +656,14 @@ mod tests {
         #[test]
         fn a_name_cut_out_of_a_line_carries_no_block() {
             let blocks = [block("Società di Gestione del Risparmio ANIMA SGR S.p.A.")];
-            let got = pipe("Società di Gestione del Risparmio", "").call(&blocks, &FilterData::EMPTY).unwrap();
+            let got = pipe("Società di Gestione del Risparmio", "")
+                .call(&blocks, &FilterData::EMPTY)
+                .unwrap();
             assert_eq!(name_of(&got), "ANIMA SGR S.p.A.");
-            assert!(got[0].pdf_block.is_none(), "the block says more than the value does");
+            assert!(
+                got[0].pdf_block.is_none(),
+                "the block says more than the value does"
+            );
         }
 
         /// The trimming alone is enough to make them differ, and that is the measured case.
@@ -545,7 +672,10 @@ mod tests {
             let blocks = [block("  Acme Asset Management  ")];
             let got = pipe("", "").call(&blocks, &FilterData::EMPTY).unwrap();
             assert_eq!(name_of(&got), "Acme Asset Management");
-            assert!(got[0].pdf_block.is_none(), "the value is trimmed and the block is not");
+            assert!(
+                got[0].pdf_block.is_none(),
+                "the value is trimmed and the block is not"
+            );
         }
 
         #[test]
@@ -554,8 +684,12 @@ mod tests {
                 block("Pramerica Management Company S.A. (until June 30, 2021)"),
                 block("Eurizon Capital S.A. (since July 1, 2021)"),
             ];
-            let pipe = TextFilterManagmentCompanyInLine::new("", r"\(", AmongLines::MostRecent).unwrap();
-            assert_eq!(name_of(&pipe.call(&blocks, &FilterData::EMPTY).unwrap()), "Eurizon Capital S.A.");
+            let pipe =
+                TextFilterManagmentCompanyInLine::new("", r"\(", AmongLines::MostRecent).unwrap();
+            assert_eq!(
+                name_of(&pipe.call(&blocks, &FilterData::EMPTY).unwrap()),
+                "Eurizon Capital S.A."
+            );
         }
     }
 
@@ -579,7 +713,8 @@ mod tests {
         #[test]
         fn it_declares_the_name_over_the_funds_the_job_has_seen() {
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
-            let got = TextFilterManagmentCompanyImposed::new("Acme AM").call(&FilterData::Previous(&previous));
+            let got = TextFilterManagmentCompanyImposed::new("Acme AM")
+                .call(&FilterData::Previous(&previous));
             assert!(!got[0].metadata.is_empty());
         }
 

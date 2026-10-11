@@ -165,6 +165,29 @@ class TestTheSinglePageFigure:
         assert not scan_variant(document, "F").has_single_page_triple
 
 
+class TestTheClassificationTest:
+    """Phase 13: one document-classification test per document — it needs only a PDF to classify.
+
+    Asked of the inventory, like every other "does this test exist", so that the plugin and
+    `freeports-dev coverage` cannot disagree about it.
+    """
+
+    def test_a_document_with_a_report_has_one(self, tmp_path):
+        document = make_document(tmp_path / "F", pages={})
+        assert scan_variant(document, "F").has_classification
+
+    def test_it_needs_no_fixture_and_no_out_directory(self, tmp_path):
+        document = make_document(tmp_path / "F", pages={}, out=False)
+        inventory = scan_variant(document, "F")
+        assert inventory.has_classification
+        assert not inventory.has_integration
+        assert not inventory.pdf_extract_pages
+
+    def test_a_document_without_a_report_has_none(self, tmp_path):
+        document = make_document(tmp_path / "F", pages={1: ["pdf_blks"]}, report=False)
+        assert not scan_variant(document, "F", strict=False).has_classification
+
+
 class TestADocumentTheRulesCannotDescribe:
     """Strict for pytest, which must fail at collection; forgiving for the report, which must print."""
 

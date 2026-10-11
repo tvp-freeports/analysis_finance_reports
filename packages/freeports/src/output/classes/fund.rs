@@ -37,12 +37,16 @@ pub struct Fund {
 impl Fund {
     /// Builds a fund from a name already known.
     pub fn new(name: &str) -> Self {
-        Self { n_name: Promised::Resolved(deep_normalize_string(name)) }
+        Self {
+            n_name: Promised::Resolved(deep_normalize_string(name)),
+        }
     }
 
     /// Builds a fund from a [`BlockValue`], which may be a string or a promise.
     pub fn from_value(value: &BlockValue) -> Result<Self, OutputClassError> {
-        let n_name = promised_from_value("name", value, |v| v.str_or_fail("name").map(deep_normalize_string))?;
+        let n_name = promised_from_value("name", value, |v| {
+            v.str_or_fail("name").map(deep_normalize_string)
+        })?;
         Ok(Self { n_name })
     }
 
@@ -67,7 +71,11 @@ impl PromisableFields for Fund {
         pending_of("name", &self.n_name).into_iter().collect()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         match field {
             // Always normalised, here too; see the module documentation.
             "name" => {
@@ -82,21 +90,27 @@ impl PromisableFields for Fund {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::promisable::{Fulfilled, fulfill_promises};
     use crate::core::promise::Promise;
     use crate::core::promise_resolution::FlatPromiseMap;
-    use crate::core::promisable::{Fulfilled, fulfill_promises};
 
     mod construction {
         use super::*;
 
         #[test]
         fn normalizes_and_uppercases_the_name_it_exposes() {
-            assert_eq!(Fund::new("  Alpha   Fund  ").name(), Some("ALPHA FUND".to_string()));
+            assert_eq!(
+                Fund::new("  Alpha   Fund  ").name(),
+                Some("ALPHA FUND".to_string())
+            );
         }
 
         #[test]
         fn keeps_the_lowercase_normalized_form_for_comparisons() {
-            assert_eq!(Fund::new("Alpha Fund").normalized_name(), Some("alpha fund"));
+            assert_eq!(
+                Fund::new("Alpha Fund").normalized_name(),
+                Some("alpha fund")
+            );
         }
 
         #[test]
@@ -152,7 +166,8 @@ mod tests {
         fn resolving_a_promise_normalizes_the_name_exactly_like_construction() {
             // Resolving through a promise must normalise, exactly as the constructor does.
             let mut fund = promised_fund();
-            fund.resolve_field("name", BlockValue::from("  Alpha   Fund ")).unwrap();
+            fund.resolve_field("name", BlockValue::from("  Alpha   Fund "))
+                .unwrap();
             assert_eq!(fund, Fund::new("Alpha Fund"));
             assert_eq!(fund.name(), Some("ALPHA FUND".to_string()));
         }
@@ -166,8 +181,14 @@ mod tests {
         #[test]
         fn fulfilling_against_a_map_produces_the_same_fund_as_direct_construction() {
             let mut fund = promised_fund();
-            let map = FlatPromiseMap::from_pairs([("fund-id".to_string(), BlockValue::from("Alpha Fund"))]);
-            assert_eq!(fulfill_promises(&mut fund, &map).unwrap(), Fulfilled::InPlace);
+            let map = FlatPromiseMap::from_pairs([(
+                "fund-id".to_string(),
+                BlockValue::from("Alpha Fund"),
+            )]);
+            assert_eq!(
+                fulfill_promises(&mut fund, &map).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(fund, Fund::new("Alpha Fund"));
         }
     }
@@ -185,7 +206,10 @@ mod tests {
         #[test]
         fn the_serialized_form_is_the_normalized_name_not_the_promise_wrapper() {
             let json = serde_json::to_string(&Fund::new("Alpha Fund")).unwrap();
-            assert!(json.contains("alpha fund"), "unexpected serialization: {json}");
+            assert!(
+                json.contains("alpha fund"),
+                "unexpected serialization: {json}"
+            );
         }
     }
 }

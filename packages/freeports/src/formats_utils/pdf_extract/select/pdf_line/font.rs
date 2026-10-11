@@ -9,7 +9,9 @@
 //! partially overlapping. That is what makes a set of fonts a plain disjoint set, with no interval
 //! arithmetic behind it.
 
-use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
+use crate::commons::sets::indipendent_atoms::{
+    AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet,
+};
 use crate::commons::sets::{Container, Overlappable, SetRelation};
 use crate::formats_utils::pdf_extract::pdf_line::Font;
 
@@ -23,7 +25,11 @@ impl Container for Font {
 impl Overlappable<Self> for Font {
     fn set_relation(&self, other: &Self) -> SetRelation {
         use SetRelation::*;
-        if self.inner() == other.inner() { Equal } else { Disjoint }
+        if self.inner() == other.inner() {
+            Equal
+        } else {
+            Disjoint
+        }
     }
 }
 
@@ -55,8 +61,8 @@ impl FontSet {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commons::sets::{Container, Overlappable, SetRelation};
     use crate::commons::sets::indipendent_atoms::AtomOperations;
+    use crate::commons::sets::{Container, Overlappable, SetRelation};
     use crate::formats_utils::pdf_extract::pdf_line::Font;
     use std::collections::HashSet;
 
@@ -93,7 +99,9 @@ mod tests {
         use super::*;
 
         #[test]
-        #[should_panic(expected = "internal error: entered unreachable code: Font cannot be overlapping another")]
+        #[should_panic(
+            expected = "internal error: entered unreachable code: Font cannot be overlapping another"
+        )]
         fn subtract_overlapping_is_unreachable() {
             let a = Font::new("A");
             let b = Font::new("B");
@@ -101,7 +109,9 @@ mod tests {
         }
 
         #[test]
-        #[should_panic(expected = "internal error: entered unreachable code: Font cannot be overlapping another")]
+        #[should_panic(
+            expected = "internal error: entered unreachable code: Font cannot be overlapping another"
+        )]
         fn intersect_overlapping_is_unreachable() {
             let a = Font::new("A");
             let b = Font::new("B");
@@ -109,7 +119,9 @@ mod tests {
         }
 
         #[test]
-        #[should_panic(expected = "internal error: entered unreachable code: Font cannot be a subset of another")]
+        #[should_panic(
+            expected = "internal error: entered unreachable code: Font cannot be a subset of another"
+        )]
         fn subtract_subset_is_unreachable() {
             let a = Font::new("A");
             let b = Font::new("B");

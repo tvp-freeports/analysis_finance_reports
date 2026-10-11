@@ -96,7 +96,13 @@ impl TextFilterLabelledAssets {
         assets: TextFilterAssetsStandard,
         resume: Option<Carryover>,
     ) -> Self {
-        Self { record, fund, fund_key, assets, resume }
+        Self {
+            record,
+            fund,
+            fund_key,
+            assets,
+            resume,
+        }
     }
 
     /// Whether the page writes its own sub-fund's name, in a block that is there and not empty.
@@ -105,10 +111,12 @@ impl TextFilterLabelledAssets {
     /// not read, and treating it as an answer costs the row. It is EURIZON-IT24's reading of `C23`,
     /// taken as the rule.
     fn page_names_its_fund(&self, blocks: &[PdfBlock]) -> bool {
-        let Some(block_type) = self.record.fields.get(&self.fund_key) else { return false };
-        blocks
-            .iter()
-            .any(|blk| &blk.type_block == block_type && !record::as_text(&blk.content).trim().is_empty())
+        let Some(block_type) = self.record.fields.get(&self.fund_key) else {
+            return false;
+        };
+        blocks.iter().any(|blk| {
+            &blk.type_block == block_type && !record::as_text(&blk.content).trim().is_empty()
+        })
     }
 
     /// What the page does not write and the job already knows, ready for [`Record::call`].
@@ -116,7 +124,11 @@ impl TextFilterLabelledAssets {
     /// An empty map is the ordinary case. `None` means *this page cannot be attributed to anybody*,
     /// and then no block comes out at all — the diagnosis has already been said by whoever could
     /// not answer.
-    fn also(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Option<BTreeMap<String, BlockValue>> {
+    fn also(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Option<BTreeMap<String, BlockValue>> {
         let mut also = BTreeMap::new();
         match &self.fund {
             FundFrom::Page => {}
@@ -130,9 +142,13 @@ impl TextFilterLabelledAssets {
                     }
                 }
             }
-            FundFrom::NearestPage { carry, page_block_type } => {
+            FundFrom::NearestPage {
+                carry,
+                page_block_type,
+            } => {
                 let page = blocks.iter().find(|blk| &blk.type_block == page_block_type);
-                let number = page.and_then(|blk| record::as_text(&blk.content).trim().parse::<i64>().ok());
+                let number =
+                    page.and_then(|blk| record::as_text(&blk.content).trim().parse::<i64>().ok());
                 let Some(number) = number else {
                     tracing::debug!(
                         "this page carries no printed number: nothing can be carried over to it"
@@ -150,7 +166,9 @@ impl TextFilterLabelledAssets {
         blocks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, StandardFuncsError> {
-        let Some(also) = self.also(blocks, data) else { return Ok(Vec::new()) };
+        let Some(also) = self.also(blocks, data) else {
+            return Ok(Vec::new());
+        };
         let gathered = self.record.call(blocks, &also);
         let filtered = self.assets.call(&gathered, data)?;
         Ok(match &self.resume {
@@ -165,8 +183,13 @@ impl TextFilterPipe for TextFilterLabelledAssets {
         "TextFilterLabelledAssets"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks, data).map_err(|e| e.into_pipe_error(TextFilterPipe::name(self)))
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data)
+            .map_err(|e| e.into_pipe_error(TextFilterPipe::name(self)))
     }
 }
 
@@ -193,14 +216,21 @@ mod tests {
         pairs
             .iter()
             .map(|(type_block, text)| {
-                PdfBlock::new(BlockType::from(type_block.to_string()), BTreeMap::new(), BlockValue::from(*text))
+                PdfBlock::new(
+                    BlockType::from(type_block.to_string()),
+                    BTreeMap::new(),
+                    BlockValue::from(*text),
+                )
             })
             .collect()
     }
 
     /// The statement block as the standard assets `text_filter` hands it on.
     fn statement(pairs: &[(&str, &str)]) -> TextBlock {
-        let metadata = pairs.iter().map(|(k, v)| (k.to_string(), BlockValue::from(*v))).collect();
+        let metadata = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), BlockValue::from(*v)))
+            .collect();
         TextBlock::from_content(BlockType::RELEVANT_BLOCK, metadata, "")
     }
 
@@ -221,7 +251,10 @@ mod tests {
     fn record(pairs: &[(&str, &str)]) -> Record {
         Record::new(
             BlockType::RELEVANT_BLOCK,
-            pairs.iter().map(|(k, v)| (k.to_string(), BlockType::from(v.to_string()))).collect(),
+            pairs
+                .iter()
+                .map(|(k, v)| (k.to_string(), BlockType::from(v.to_string())))
+                .collect(),
         )
         .expect("a record these tests spell right")
     }
@@ -252,7 +285,10 @@ mod tests {
 
         impl<S: tracing::Subscriber> Layer<S> for Capturing {
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
-                let mut kept = Event { level: event.metadata().level().to_string(), ..Event::default() };
+                let mut kept = Event {
+                    level: event.metadata().level().to_string(),
+                    ..Event::default()
+                };
                 event.record(&mut kept);
                 self.0.lock().unwrap().push(kept);
             }
@@ -267,7 +303,9 @@ mod tests {
         }
 
         pub(super) fn said(events: &[Event], level: &str, needle: &str) -> bool {
-            events.iter().any(|e| e.level == level && e.message.contains(needle))
+            events
+                .iter()
+                .any(|e| e.level == level && e.message.contains(needle))
         }
     }
 
@@ -285,13 +323,18 @@ mod tests {
 
         #[test]
         fn each_block_type_fills_its_own_key() {
-            let gathered = record(&[("fund", "FUND_NAME"), ("tot_assets", "TOT_ASSETS")])
-                .call(&bare(&[("FUND_NAME", FUND), ("TOT_ASSETS", TOT_ASSETS)]), &BTreeMap::new());
+            let gathered = record(&[("fund", "FUND_NAME"), ("tot_assets", "TOT_ASSETS")]).call(
+                &bare(&[("FUND_NAME", FUND), ("TOT_ASSETS", TOT_ASSETS)]),
+                &BTreeMap::new(),
+            );
 
             assert_eq!(gathered.len(), 1);
             assert_eq!(
                 metadata_of(&gathered),
-                vec![("fund".to_string(), FUND.to_string()), ("tot_assets".to_string(), TOT_ASSETS.to_string())]
+                vec![
+                    ("fund".to_string(), FUND.to_string()),
+                    ("tot_assets".to_string(), TOT_ASSETS.to_string())
+                ]
             );
         }
 
@@ -303,12 +346,16 @@ mod tests {
             )
             .unwrap();
             let gathered = declared.call(&bare(&[("FUND_NAME", FUND)]), &BTreeMap::new());
-            assert_eq!(gathered[0].type_block, BlockType::from("STATEMENT".to_string()));
+            assert_eq!(
+                gathered[0].type_block,
+                BlockType::from("STATEMENT".to_string())
+            );
         }
 
         #[test]
         fn by_default_the_block_is_the_one_the_standard_filters_expect() {
-            let gathered = record(&[("fund", "FUND_NAME")]).call(&bare(&[("FUND_NAME", FUND)]), &BTreeMap::new());
+            let gathered = record(&[("fund", "FUND_NAME")])
+                .call(&bare(&[("FUND_NAME", FUND)]), &BTreeMap::new());
             assert_eq!(gathered[0].type_block, BlockType::RELEVANT_BLOCK);
         }
 
@@ -318,7 +365,10 @@ mod tests {
                 &bare(&[("FUND_NAME", FUND), ("PAGE_CLASS", "fund_assets_begin")]),
                 &BTreeMap::new(),
             );
-            assert_eq!(metadata_of(&gathered), vec![("fund".to_string(), FUND.to_string())]);
+            assert_eq!(
+                metadata_of(&gathered),
+                vec![("fund".to_string(), FUND.to_string())]
+            );
         }
 
         #[test]
@@ -327,27 +377,42 @@ mod tests {
                 record(&[("fund", "FUND_NAME"), ("currency", "CURRENCY_STATEMENT")])
                     .call(&bare(&[("FUND_NAME", FUND)]), &BTreeMap::new())
             });
-            assert_eq!(metadata_of(&gathered), vec![("fund".to_string(), FUND.to_string())]);
+            assert_eq!(
+                metadata_of(&gathered),
+                vec![("fund".to_string(), FUND.to_string())]
+            );
             assert!(capture::said(&events, "WARN", "currency"), "{events:?}");
         }
 
         #[test]
         fn two_blocks_of_one_type_take_the_first_and_say_so() {
             let (gathered, events) = capture::events(|| {
-                record(&[("net_assets", "NET_ASSETS")])
-                    .call(&bare(&[("NET_ASSETS", NET_ASSETS), ("NET_ASSETS", "1.702.020")]), &BTreeMap::new())
+                record(&[("net_assets", "NET_ASSETS")]).call(
+                    &bare(&[("NET_ASSETS", NET_ASSETS), ("NET_ASSETS", "1.702.020")]),
+                    &BTreeMap::new(),
+                )
             });
-            assert_eq!(metadata_of(&gathered), vec![("net_assets".to_string(), NET_ASSETS.to_string())]);
-            assert!(capture::said(&events, "WARN", "one statement"), "{events:?}");
+            assert_eq!(
+                metadata_of(&gathered),
+                vec![("net_assets".to_string(), NET_ASSETS.to_string())]
+            );
+            assert!(
+                capture::said(&events, "WARN", "one statement"),
+                "{events:?}"
+            );
         }
 
         #[test]
         fn a_page_with_nothing_expected_on_it_yields_no_statement() {
             let (gathered, events) = capture::events(|| {
-                record(&[("fund", "FUND_NAME")]).call(&bare(&[("SOMETHING_ELSE", "x")]), &BTreeMap::new())
+                record(&[("fund", "FUND_NAME")])
+                    .call(&bare(&[("SOMETHING_ELSE", "x")]), &BTreeMap::new())
             });
             assert!(gathered.is_empty());
-            assert!(capture::said(&events, "WARN", "no statement is read"), "{events:?}");
+            assert!(
+                capture::said(&events, "WARN", "no statement is read"),
+                "{events:?}"
+            );
         }
 
         #[test]
@@ -370,7 +435,10 @@ mod tests {
 
         #[test]
         fn the_identifier_joins_the_field_and_the_fund() {
-            assert_eq!(carry(&["tot_assets"]).promise_id("tot_assets", FUND), format!("tot_assets@{FUND}"));
+            assert_eq!(
+                carry(&["tot_assets"]).promise_id("tot_assets", FUND),
+                format!("tot_assets@{FUND}")
+            );
         }
 
         #[test]
@@ -381,7 +449,10 @@ mod tests {
                 "::".to_string(),
             )
             .unwrap();
-            assert_eq!(other.promise_id("tot_assets", FUND), format!("tot_assets::{FUND}"));
+            assert_eq!(
+                other.promise_id("tot_assets", FUND),
+                format!("tot_assets::{FUND}")
+            );
         }
 
         #[test]
@@ -406,7 +477,10 @@ mod tests {
             let block = statement(&[("fund", FUND), ("tot_assets", TOT_ASSETS)]);
             let (entries, events) =
                 capture::events(|| deposited(&carry(&["tot_assets", "liabilities"]), &block));
-            assert_eq!(entries, vec![(format!("tot_assets@{FUND}"), TOT_ASSETS.to_string())]);
+            assert_eq!(
+                entries,
+                vec![(format!("tot_assets@{FUND}"), TOT_ASSETS.to_string())]
+            );
             assert!(capture::said(&events, "WARN", "liabilities"), "{events:?}");
         }
 
@@ -415,24 +489,37 @@ mod tests {
             let block = statement(&[("tot_assets", TOT_ASSETS)]);
             let (entries, events) = capture::events(|| deposited(&carry(&["tot_assets"]), &block));
             assert!(entries.is_empty());
-            assert!(capture::said(&events, "ERROR", "cannot leave anything"), "{events:?}");
+            assert!(
+                capture::said(&events, "ERROR", "cannot leave anything"),
+                "{events:?}"
+            );
         }
 
         #[test]
         fn the_fund_key_is_a_parameter() {
-            let other =
-                promise::Carryover::new(vec!["tot_assets".to_string()], "comparto".to_string(), "@".to_string())
-                    .unwrap();
+            let other = promise::Carryover::new(
+                vec!["tot_assets".to_string()],
+                "comparto".to_string(),
+                "@".to_string(),
+            )
+            .unwrap();
             let block = statement(&[("comparto", FUND), ("tot_assets", TOT_ASSETS)]);
-            assert_eq!(deposited(&other, &block), vec![(format!("tot_assets@{FUND}"), TOT_ASSETS.to_string())]);
+            assert_eq!(
+                deposited(&other, &block),
+                vec![(format!("tot_assets@{FUND}"), TOT_ASSETS.to_string())]
+            );
         }
 
         #[test]
         fn a_carryover_with_no_field_or_no_separator_is_refused_when_it_is_built() {
             assert!(promise::Carryover::new(vec![], "fund".to_string(), "@".to_string()).is_err());
             assert!(
-                promise::Carryover::new(vec!["tot_assets".to_string()], "fund".to_string(), String::new())
-                    .is_err()
+                promise::Carryover::new(
+                    vec!["tot_assets".to_string()],
+                    "fund".to_string(),
+                    String::new()
+                )
+                .is_err()
             );
         }
     }
@@ -458,7 +545,10 @@ mod tests {
         fn the_two_pages_may_write_the_name_differently() {
             let left = promises(&[("tot_assets@ARCA  opportunità green 2027 VIII", "1")]);
             let available = carry(&["tot_assets"]).promised(&FilterData::Previous(&left));
-            assert!(available.contains_key(&MatchFund::new(FUND)), "{available:?}");
+            assert!(
+                available.contains_key(&MatchFund::new(FUND)),
+                "{available:?}"
+            );
         }
 
         /// Split by known prefix and not on the separator, because a sub-fund's name may contain it.
@@ -466,19 +556,30 @@ mod tests {
         fn a_fund_name_containing_the_separator_survives() {
             let left = promises(&[("tot_assets@Alpha @ Beta", "1")]);
             let available = carry(&["tot_assets"]).promised(&FilterData::Previous(&left));
-            assert!(available.contains_key(&MatchFund::new("Alpha @ Beta")), "{available:?}");
+            assert!(
+                available.contains_key(&MatchFund::new("Alpha @ Beta")),
+                "{available:?}"
+            );
         }
 
         #[test]
         fn promises_of_another_datum_are_left_alone() {
             let left = promises(&[("esg-fund-page-3", "Whatever")]);
-            assert!(carry(&["tot_assets"]).promised(&FilterData::Previous(&left)).is_empty());
+            assert!(
+                carry(&["tot_assets"])
+                    .promised(&FilterData::Previous(&left))
+                    .is_empty()
+            );
         }
 
         #[test]
         fn results_that_are_not_promises_are_skipped() {
             let left = vec![Extracted::Fund(Fund::new("Alpha"))];
-            assert!(carry(&["tot_assets"]).promised(&FilterData::Previous(&left)).is_empty());
+            assert!(
+                carry(&["tot_assets"])
+                    .promised(&FilterData::Previous(&left))
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -487,7 +588,8 @@ mod tests {
                 (&format!("tot_assets@{FUND}"), TOT_ASSETS),
                 (&format!("liabilities@{FUND}"), LIABILITIES),
             ]);
-            let available = carry(&["tot_assets", "liabilities"]).promised(&FilterData::Previous(&left));
+            let available =
+                carry(&["tot_assets", "liabilities"]).promised(&FilterData::Previous(&left));
             assert_eq!(available[&MatchFund::new(FUND)].len(), 2);
         }
     }
@@ -496,20 +598,32 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        fn resumed(fields: &[&str], blocks: Vec<TextBlock>, left: &[(&str, &str)]) -> Vec<TextBlock> {
+        fn resumed(
+            fields: &[&str],
+            blocks: Vec<TextBlock>,
+            left: &[(&str, &str)],
+        ) -> Vec<TextBlock> {
             let left = promises(left);
             carry(fields).resume(blocks, &FilterData::Previous(&left))
         }
 
         fn field(block: &TextBlock, key: &str) -> String {
-            block.metadata.get(key).map(record::as_text).unwrap_or_default()
+            block
+                .metadata
+                .get(key)
+                .map(record::as_text)
+                .unwrap_or_default()
         }
 
         #[test]
         fn the_carried_value_joins_the_metadata_of_its_own_fund() {
             let got = resumed(
                 &["tot_assets"],
-                vec![statement(&[("fund", FUND), ("liabilities", LIABILITIES), ("net_assets", NET_ASSETS)])],
+                vec![statement(&[
+                    ("fund", FUND),
+                    ("liabilities", LIABILITIES),
+                    ("net_assets", NET_ASSETS),
+                ])],
                 &[(&format!("tot_assets@{FUND}"), TOT_ASSETS)],
             );
             assert_eq!(got.len(), 1);
@@ -532,7 +646,11 @@ mod tests {
                 BTreeMap::from([("fund".to_string(), BlockValue::from(FUND))]),
                 "some content",
             );
-            let got = resumed(&["tot_assets"], vec![block], &[(&format!("tot_assets@{FUND}"), "1")]);
+            let got = resumed(
+                &["tot_assets"],
+                vec![block],
+                &[(&format!("tot_assets@{FUND}"), "1")],
+            );
             assert_eq!(got[0].type_block, BlockType::from("STATEMENT".to_string()));
             assert_eq!(got[0].content.as_str(), Some("some content"));
         }
@@ -541,19 +659,25 @@ mod tests {
         fn each_fund_gets_its_own_and_nobody_elses() {
             let got = resumed(
                 &["tot_assets"],
-                vec![statement(&[("fund", "Alpha")]), statement(&[("fund", "Beta")])],
+                vec![
+                    statement(&[("fund", "Alpha")]),
+                    statement(&[("fund", "Beta")]),
+                ],
                 &[("tot_assets@Alpha", "10"), ("tot_assets@Beta", "20")],
             );
             assert_eq!(
-                got.iter().map(|b| field(b, "tot_assets")).collect::<Vec<_>>(),
+                got.iter()
+                    .map(|b| field(b, "tot_assets"))
+                    .collect::<Vec<_>>(),
                 vec!["10".to_string(), "20".to_string()]
             );
         }
 
         #[test]
         fn a_statement_whose_other_page_never_arrived_is_dropped_loudly() {
-            let (got, events) =
-                capture::events(|| resumed(&["tot_assets"], vec![statement(&[("fund", FUND)])], &[]));
+            let (got, events) = capture::events(|| {
+                resumed(&["tot_assets"], vec![statement(&[("fund", FUND)])], &[])
+            });
             assert!(got.is_empty());
             assert!(capture::said(&events, "ERROR", FUND), "{events:?}");
         }
@@ -582,14 +706,21 @@ mod tests {
                 )
             });
             assert!(got.is_empty());
-            assert!(capture::said(&events, "ERROR", "nothing was carried over"), "{events:?}");
+            assert!(
+                capture::said(&events, "ERROR", "nothing was carried over"),
+                "{events:?}"
+            );
         }
 
         #[test]
         fn what_was_already_in_the_metadata_is_not_lost() {
             let got = resumed(
                 &["tot_assets"],
-                vec![statement(&[("fund", FUND), ("currency", "EUR"), ("date", "30/12/2024")])],
+                vec![statement(&[
+                    ("fund", FUND),
+                    ("currency", "EUR"),
+                    ("date", "30/12/2024"),
+                ])],
                 &[(&format!("tot_assets@{FUND}"), TOT_ASSETS)],
             );
             assert_eq!(field(&got[0], "currency"), "EUR");
@@ -603,27 +734,44 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        fn pipe(fund: FundFrom, fields: &[(&str, &str)], resume: Option<&[&str]>) -> TextFilterLabelledAssets {
+        fn pipe(
+            fund: FundFrom,
+            fields: &[(&str, &str)],
+            resume: Option<&[&str]>,
+        ) -> TextFilterLabelledAssets {
             TextFilterLabelledAssets::new(
                 record(fields),
                 fund,
                 "fund".to_string(),
-                crate::formats_utils::text_filter::standard_funcs::TextFilterAssetsStandard::new(None, vec![])
-                    .unwrap(),
+                crate::formats_utils::text_filter::standard_funcs::TextFilterAssetsStandard::new(
+                    None,
+                    vec![],
+                )
+                .unwrap(),
                 resume.map(carry),
             )
         }
 
         fn declared(names: &[&str]) -> Vec<Extracted> {
-            names.iter().map(|name| Extracted::Fund(Fund::new(name))).collect()
+            names
+                .iter()
+                .map(|name| Extracted::Fund(Fund::new(name)))
+                .collect()
         }
 
         fn field(block: &TextBlock, key: &str) -> String {
-            block.metadata.get(key).map(record::as_text).unwrap_or_default()
+            block
+                .metadata
+                .get(key)
+                .map(record::as_text)
+                .unwrap_or_default()
         }
 
-        const FIELDS: [(&str, &str); 3] =
-            [("fund", "FUND_NAME"), ("currency", "CURRENCY_STATEMENT"), ("tot_assets", "TOT_ASSETS")];
+        const FIELDS: [(&str, &str); 3] = [
+            ("fund", "FUND_NAME"),
+            ("currency", "CURRENCY_STATEMENT"),
+            ("tot_assets", "TOT_ASSETS"),
+        ];
 
         /// The ordinary case, which is six of the nine measured pipelines: the page names its own
         /// sub-fund, and the row comes out with the three amounts in its metadata.
@@ -632,7 +780,11 @@ mod tests {
             let known = declared(&[FUND]);
             let got = pipe(FundFrom::Page, &FIELDS, None)
                 .call(
-                    &bare(&[("FUND_NAME", FUND), ("CURRENCY_STATEMENT", "EUR"), ("TOT_ASSETS", TOT_ASSETS)]),
+                    &bare(&[
+                        ("FUND_NAME", FUND),
+                        ("CURRENCY_STATEMENT", "EUR"),
+                        ("TOT_ASSETS", TOT_ASSETS),
+                    ]),
                     &FilterData::Previous(&known),
                 )
                 .unwrap();
@@ -648,7 +800,11 @@ mod tests {
             let known = declared(&["Some other fund"]);
             let got = pipe(FundFrom::Page, &FIELDS, None)
                 .call(
-                    &bare(&[("FUND_NAME", FUND), ("CURRENCY_STATEMENT", "EUR"), ("TOT_ASSETS", TOT_ASSETS)]),
+                    &bare(&[
+                        ("FUND_NAME", FUND),
+                        ("CURRENCY_STATEMENT", "EUR"),
+                        ("TOT_ASSETS", TOT_ASSETS),
+                    ]),
                     &FilterData::Previous(&known),
                 )
                 .unwrap();
@@ -663,13 +819,20 @@ mod tests {
             let (got, events) = capture::events(|| {
                 pipe(FundFrom::SoleIfAbsent, &FIELDS, None)
                     .call(
-                        &bare(&[("FUND_NAME", FUND), ("CURRENCY_STATEMENT", "EUR"), ("TOT_ASSETS", TOT_ASSETS)]),
+                        &bare(&[
+                            ("FUND_NAME", FUND),
+                            ("CURRENCY_STATEMENT", "EUR"),
+                            ("TOT_ASSETS", TOT_ASSETS),
+                        ]),
                         &FilterData::Previous(&known),
                     )
                     .unwrap()
             });
             assert_eq!(got.len(), 1);
-            assert!(!capture::said(&events, "WARN", "declares one fund only"), "{events:?}");
+            assert!(
+                !capture::said(&events, "WARN", "declares one fund only"),
+                "{events:?}"
+            );
         }
 
         #[test]
@@ -685,7 +848,10 @@ mod tests {
             });
             assert_eq!(got.len(), 1);
             assert_eq!(field(&got[0], "fund"), Fund::new(FUND).name().unwrap());
-            assert!(capture::said(&events, "WARN", "declares one fund only"), "{events:?}");
+            assert!(
+                capture::said(&events, "WARN", "declares one fund only"),
+                "{events:?}"
+            );
         }
 
         /// An empty block of the right type: the fallback **is** asked, and then the page's own
@@ -704,7 +870,11 @@ mod tests {
             let (got, events) = capture::events(|| {
                 pipe(FundFrom::SoleIfAbsent, &FIELDS, None)
                     .call(
-                        &bare(&[("FUND_NAME", "  "), ("CURRENCY_STATEMENT", "EUR"), ("TOT_ASSETS", TOT_ASSETS)]),
+                        &bare(&[
+                            ("FUND_NAME", "  "),
+                            ("CURRENCY_STATEMENT", "EUR"),
+                            ("TOT_ASSETS", TOT_ASSETS),
+                        ]),
                         &FilterData::Previous(&known),
                     )
                     .unwrap()
@@ -712,7 +882,10 @@ mod tests {
             assert!(got.is_empty(), "la pagina vince col suo blocco vuoto");
             // The fallback did run, which is the half of the behaviour that is right: the page was
             // read as silent, and the document answered.
-            assert!(capture::said(&events, "WARN", "declares one fund only"), "{events:?}");
+            assert!(
+                capture::said(&events, "WARN", "declares one fund only"),
+                "{events:?}"
+            );
         }
 
         /// UBS-EN23's shape: the statement does not name its sub-fund at all, and the title is on
@@ -722,9 +895,13 @@ mod tests {
             let carry_page =
                 page::PageCarryover::new("ubs-fund".to_string(), "-page-".to_string()).unwrap();
             let entries: crate::core::pipeline::PromiseEntries =
-                [("ubs-fund-page-14".to_string(), FUND)].into_iter().collect();
-            let known: Vec<Extracted> =
-                vec![Extracted::Promises(entries), Extracted::Fund(Fund::new(FUND))];
+                [("ubs-fund-page-14".to_string(), FUND)]
+                    .into_iter()
+                    .collect();
+            let known: Vec<Extracted> = vec![
+                Extracted::Promises(entries),
+                Extracted::Fund(Fund::new(FUND)),
+            ];
 
             let fields = [
                 ("currency", "CURRENCY_STATEMENT"),
@@ -764,7 +941,10 @@ mod tests {
                     carry: carry_page,
                     page_block_type: BlockType::from("ASSETS_PAGE".to_string()),
                 },
-                &[("currency", "CURRENCY_STATEMENT"), ("tot_assets", "TOT_ASSETS")],
+                &[
+                    ("currency", "CURRENCY_STATEMENT"),
+                    ("tot_assets", "TOT_ASSETS"),
+                ],
                 None,
             )
             .call(&bare(&[("CURRENCY_STATEMENT", "EUR")]), &FilterData::EMPTY)
@@ -777,9 +957,13 @@ mod tests {
         #[test]
         fn the_second_page_gathers_filters_and_then_resumes() {
             let promised: crate::core::pipeline::PromiseEntries =
-                [(format!("tot_assets@{FUND}"), TOT_ASSETS)].into_iter().collect();
-            let known: Vec<Extracted> =
-                vec![Extracted::Promises(promised), Extracted::Fund(Fund::new(FUND))];
+                [(format!("tot_assets@{FUND}"), TOT_ASSETS)]
+                    .into_iter()
+                    .collect();
+            let known: Vec<Extracted> = vec![
+                Extracted::Promises(promised),
+                Extracted::Fund(Fund::new(FUND)),
+            ];
 
             let fields = [
                 ("fund", "FUND_NAME"),
@@ -815,8 +999,10 @@ mod tests {
         fn what_the_first_page_deposits_is_what_the_second_finds() {
             let carried = carry(&["tot_assets"]);
 
-            let first = record(&[("fund", "FUND_NAME"), ("tot_assets", "TOT_ASSETS")])
-                .call(&bare(&[("FUND_NAME", FUND), ("TOT_ASSETS", TOT_ASSETS)]), &BTreeMap::new());
+            let first = record(&[("fund", "FUND_NAME"), ("tot_assets", "TOT_ASSETS")]).call(
+                &bare(&[("FUND_NAME", FUND), ("TOT_ASSETS", TOT_ASSETS)]),
+                &BTreeMap::new(),
+            );
             let deposited = carried.deposit(&first[0].metadata);
 
             let second = record(&[
@@ -825,17 +1011,25 @@ mod tests {
                 ("net_assets", "NET_ASSETS"),
             ])
             .call(
-                &bare(&[("FUND_NAME", FUND), ("LIABILITIES", LIABILITIES), ("NET_ASSETS", NET_ASSETS)]),
+                &bare(&[
+                    ("FUND_NAME", FUND),
+                    ("LIABILITIES", LIABILITIES),
+                    ("NET_ASSETS", NET_ASSETS),
+                ]),
                 &BTreeMap::new(),
             );
-            let as_text = TextBlock::from_content(BlockType::RELEVANT_BLOCK, second[0].metadata.clone(), "");
+            let as_text =
+                TextBlock::from_content(BlockType::RELEVANT_BLOCK, second[0].metadata.clone(), "");
 
             let left = vec![Extracted::Promises(deposited)];
             let got = carried.resume(vec![as_text], &FilterData::Previous(&left));
 
             assert_eq!(got.len(), 1);
             assert_eq!(record::as_text(&got[0].metadata["tot_assets"]), TOT_ASSETS);
-            assert_eq!(record::as_text(&got[0].metadata["liabilities"]), LIABILITIES);
+            assert_eq!(
+                record::as_text(&got[0].metadata["liabilities"]),
+                LIABILITIES
+            );
             assert_eq!(record::as_text(&got[0].metadata["net_assets"]), NET_ASSETS);
         }
     }
@@ -845,52 +1039,72 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn funds(names: &[&str]) -> Vec<Extracted> {
-            names.iter().map(|name| Extracted::Fund(Fund::new(name))).collect()
+            names
+                .iter()
+                .map(|name| Extracted::Fund(Fund::new(name)))
+                .collect()
         }
 
         /// The name comes back as `Fund` writes it — normalised — which is how `funds.csv` writes it.
         #[test]
         fn the_only_fund_of_the_report_is_the_one() {
             let declared = funds(&[FUND]);
-            let (got, _) = capture::events(|| document::sole_fund(&FilterData::Previous(&declared)));
+            let (got, _) =
+                capture::events(|| document::sole_fund(&FilterData::Previous(&declared)));
             assert_eq!(got, Fund::new(FUND).name());
         }
 
         #[test]
         fn attributing_it_is_an_imposed_value_and_says_so() {
             let declared = funds(&[FUND]);
-            let (_, events) = capture::events(|| document::sole_fund(&FilterData::Previous(&declared)));
-            assert!(capture::said(&events, "WARN", "declares one fund only"), "{events:?}");
+            let (_, events) =
+                capture::events(|| document::sole_fund(&FilterData::Previous(&declared)));
+            assert!(
+                capture::said(&events, "WARN", "declares one fund only"),
+                "{events:?}"
+            );
         }
 
         #[test]
         fn two_funds_are_not_a_choice_to_make() {
             let declared = funds(&["Alpha", "Beta"]);
-            let (got, events) = capture::events(|| document::sole_fund(&FilterData::Previous(&declared)));
+            let (got, events) =
+                capture::events(|| document::sole_fund(&FilterData::Previous(&declared)));
             assert_eq!(got, None);
-            assert!(capture::said(&events, "ERROR", "would be a guess"), "{events:?}");
+            assert!(
+                capture::said(&events, "ERROR", "would be a guess"),
+                "{events:?}"
+            );
         }
 
         #[test]
         fn no_fund_at_all_is_an_error_too() {
             let (got, events) = capture::events(|| document::sole_fund(&FilterData::Previous(&[])));
             assert_eq!(got, None);
-            assert!(capture::said(&events, "ERROR", "nobody to attribute"), "{events:?}");
+            assert!(
+                capture::said(&events, "ERROR", "nobody to attribute"),
+                "{events:?}"
+            );
         }
 
         #[test]
         fn also_fills_what_the_page_does_not_declare() {
             let also = BTreeMap::from([("fund".to_string(), BlockValue::from(FUND))]);
-            let gathered = record(&[("tot_assets", "TOT_ASSETS")]).call(&bare(&[("TOT_ASSETS", "31.363.698")]), &also);
+            let gathered = record(&[("tot_assets", "TOT_ASSETS")])
+                .call(&bare(&[("TOT_ASSETS", "31.363.698")]), &also);
             assert_eq!(record::as_text(&gathered[0].metadata["fund"]), FUND);
-            assert_eq!(record::as_text(&gathered[0].metadata["tot_assets"]), "31.363.698");
+            assert_eq!(
+                record::as_text(&gathered[0].metadata["tot_assets"]),
+                "31.363.698"
+            );
         }
 
         /// `also` is a fallback, never an override: what the page declares always wins.
         #[test]
         fn what_the_page_declares_wins_over_what_it_is_told() {
             let also = BTreeMap::from([("fund".to_string(), BlockValue::from("Un altro fondo"))]);
-            let gathered = record(&[("fund", "FUND_NAME")]).call(&bare(&[("FUND_NAME", FUND)]), &also);
+            let gathered =
+                record(&[("fund", "FUND_NAME")]).call(&bare(&[("FUND_NAME", FUND)]), &also);
             assert_eq!(record::as_text(&gathered[0].metadata["fund"]), FUND);
         }
 
@@ -902,7 +1116,10 @@ mod tests {
                     .call(&bare(&[("TOT_ASSETS", "1")]), &also)
             });
             assert_eq!(record::as_text(&gathered[0].metadata["fund"]), FUND);
-            assert!(!capture::said(&events, "WARN", "no 'FUND_NAME' block"), "{events:?}");
+            assert!(
+                !capture::said(&events, "WARN", "no 'FUND_NAME' block"),
+                "{events:?}"
+            );
         }
     }
 }

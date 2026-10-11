@@ -6,12 +6,18 @@ use crate::core::match_fund::MatchFund;
 use crate::core::normalization;
 use crate::formats_utils::text_filter::standard_funcs::extract_currency_from_text;
 
-use crate::python::consts::PyCurrency;
 use crate::core::tracing_setup::log_error;
+use crate::python::consts::PyCurrency;
 
 /// The Python shim of a fund identity: a name that knows how to compare itself with another after
 /// deep normalisation.
-#[pyclass(name = "MatchFund", module = "freeports.utils.text_filter", frozen, eq, hash)]
+#[pyclass(
+    name = "MatchFund",
+    module = "freeports.utils.text_filter",
+    frozen,
+    eq,
+    hash
+)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PyMatchFund(MatchFund);
 
@@ -80,11 +86,16 @@ pub fn py_normalize_word(input: &str, lower: bool) -> String {
 #[pyfunction]
 #[pyo3(name = "extract_currency_from_text", signature = (text))]
 pub fn py_extract_currency_from_text(text: &str) -> PyResult<PyCurrency> {
-    extract_currency_from_text(text).map(PyCurrency::from).map_err(|e| {
-        // Past this point the error only lives as a Python exception (rule 1 of L2).
-        tracing::error!(error = log_error(&e), "extract_currency_from_text failed: {e}");
-        pyo3::exceptions::PyValueError::new_err(e.to_string())
-    })
+    extract_currency_from_text(text)
+        .map(PyCurrency::from)
+        .map_err(|e| {
+            // Past this point the error only lives as a Python exception (rule 1 of L2).
+            tracing::error!(
+                error = log_error(&e),
+                "extract_currency_from_text failed: {e}"
+            );
+            pyo3::exceptions::PyValueError::new_err(e.to_string())
+        })
 }
 
 /// The two decorators that replace a filtering pipe's filter-data argument with the set of
@@ -175,7 +186,9 @@ fn match_funds_from<'py>(
                 }
                 // Not yet resolved (still a promise): nothing lost, just not comparable yet -
                 // same "kept pending" situation as `promise_resolution::reference kept pending`.
-                Err(_) => tracing::trace!("filter_data entry skipped: its name is not resolved yet"),
+                Err(_) => {
+                    tracing::trace!("filter_data entry skipped: its name is not resolved yet")
+                }
             }
         }
     }

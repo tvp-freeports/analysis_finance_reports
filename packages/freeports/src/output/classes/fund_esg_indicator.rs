@@ -27,8 +27,13 @@ impl FundEsgIndicator {
         name: impl Into<String>,
         value: impl Into<String>,
     ) -> Result<Self, OutputClassError> {
-        let fund = promised_from_value("fund", fund, |v| v.str_or_fail("fund").map(str::to_string))?;
-        Ok(Self { fund, name: name.into(), value: value.into() })
+        let fund =
+            promised_from_value("fund", fund, |v| v.str_or_fail("fund").map(str::to_string))?;
+        Ok(Self {
+            fund,
+            name: name.into(),
+            value: value.into(),
+        })
     }
 }
 
@@ -37,7 +42,11 @@ impl PromisableFields for FundEsgIndicator {
         pending_of("fund", &self.fund).into_iter().collect()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         match field {
             "fund" => {
                 self.fund = Promised::Resolved(value.str_or_fail("fund")?.to_string());
@@ -51,8 +60,8 @@ impl PromisableFields for FundEsgIndicator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::promise_resolution::FlatPromiseMap;
     use crate::core::promisable::{Fulfilled, fulfill_promises};
+    use crate::core::promise_resolution::FlatPromiseMap;
 
     mod construction {
         use super::*;
@@ -60,15 +69,21 @@ mod tests {
         #[test]
         fn builds_an_indicator_from_a_resolved_fund_name() {
             let indicator =
-                FundEsgIndicator::build(&BlockValue::from("Alpha Fund"), "GHG intensity", "12.3").unwrap();
-            assert_eq!(indicator.fund.resolved().map(String::as_str), Some("Alpha Fund"));
+                FundEsgIndicator::build(&BlockValue::from("Alpha Fund"), "GHG intensity", "12.3")
+                    .unwrap();
+            assert_eq!(
+                indicator.fund.resolved().map(String::as_str),
+                Some("Alpha Fund")
+            );
             assert_eq!(indicator.name, "GHG intensity");
             assert_eq!(indicator.value, "12.3");
         }
 
         #[test]
         fn arbitrary_indicator_and_value_strings_are_accepted_verbatim() {
-            let indicator = FundEsgIndicator::build(&BlockValue::from("X"), "Any Indicator", "Any Value").unwrap();
+            let indicator =
+                FundEsgIndicator::build(&BlockValue::from("X"), "Any Indicator", "Any Value")
+                    .unwrap();
             assert_eq!(indicator.name, "Any Indicator");
             assert_eq!(indicator.value, "Any Value");
         }
@@ -116,22 +131,40 @@ mod tests {
         #[test]
         fn resolving_the_fund_field_works_in_place() {
             let mut indicator = promised_indicator();
-            indicator.resolve_field("fund", BlockValue::from("Resolved Fund")).unwrap();
-            assert_eq!(indicator.fund.resolved().map(String::as_str), Some("Resolved Fund"));
+            indicator
+                .resolve_field("fund", BlockValue::from("Resolved Fund"))
+                .unwrap();
+            assert_eq!(
+                indicator.fund.resolved().map(String::as_str),
+                Some("Resolved Fund")
+            );
         }
 
         #[test]
         fn resolving_with_a_non_string_value_is_an_error() {
             let mut indicator = promised_indicator();
-            assert!(indicator.resolve_field("fund", BlockValue::from(1i64)).is_err());
+            assert!(
+                indicator
+                    .resolve_field("fund", BlockValue::from(1i64))
+                    .is_err()
+            );
         }
 
         #[test]
         fn fulfilling_against_a_map_resolves_the_fund_field() {
             let mut indicator = promised_indicator();
-            let map = FlatPromiseMap::from_pairs([("fund-id".to_string(), BlockValue::from("Resolved Fund"))]);
-            assert_eq!(fulfill_promises(&mut indicator, &map).unwrap(), Fulfilled::InPlace);
-            assert_eq!(indicator.fund.resolved().map(String::as_str), Some("Resolved Fund"));
+            let map = FlatPromiseMap::from_pairs([(
+                "fund-id".to_string(),
+                BlockValue::from("Resolved Fund"),
+            )]);
+            assert_eq!(
+                fulfill_promises(&mut indicator, &map).unwrap(),
+                Fulfilled::InPlace
+            );
+            assert_eq!(
+                indicator.fund.resolved().map(String::as_str),
+                Some("Resolved Fund")
+            );
         }
     }
 
@@ -142,7 +175,10 @@ mod tests {
         fn a_resolved_indicator_survives_a_json_roundtrip() {
             let indicator = FundEsgIndicator::build(&BlockValue::from("X"), "n", "v").unwrap();
             let json = serde_json::to_string(&indicator).unwrap();
-            assert_eq!(serde_json::from_str::<FundEsgIndicator>(&json).unwrap(), indicator);
+            assert_eq!(
+                serde_json::from_str::<FundEsgIndicator>(&json).unwrap(),
+                indicator
+            );
         }
     }
 }

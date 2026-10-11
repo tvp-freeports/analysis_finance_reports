@@ -55,15 +55,22 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::pdf_line::PdfLine;
+    use super::*;
 
     /// A throwaway PDF line for the tests: the content does not matter, only the length of the
     /// slice handed to `contextualize`, which is how a relative implementation is shown to really
     /// receive its context.
     fn some_lines(n: usize) -> Vec<PdfLine> {
         (0..n)
-            .map(|i| PdfLine::new("Arial", 10.0, &format!("line {i}"), (0.0, i as f32, 1.0, i as f32 + 1.0)))
+            .map(|i| {
+                PdfLine::new(
+                    "Arial",
+                    10.0,
+                    &format!("line {i}"),
+                    (0.0, i as f32, 1.0, i as f32 + 1.0),
+                )
+            })
             .collect()
     }
 
@@ -96,7 +103,8 @@ mod tests {
 
         #[test]
         fn relative_variant_delegates_contextualize_to_the_inner_r() {
-            let value: OptionallyRelative<usize, CountLines> = OptionallyRelative::Relative(CountLines);
+            let value: OptionallyRelative<usize, CountLines> =
+                OptionallyRelative::Relative(CountLines);
             assert_eq!(value.contextualize(&some_lines(3)), 3);
         }
 
@@ -110,7 +118,8 @@ mod tests {
 
         #[test]
         fn clone_of_relative_variant_contextualizes_to_the_same_value() {
-            let value: OptionallyRelative<usize, CountLines> = OptionallyRelative::Relative(CountLines);
+            let value: OptionallyRelative<usize, CountLines> =
+                OptionallyRelative::Relative(CountLines);
             let cloned = value.clone();
             let lines = some_lines(5);
             assert_eq!(value.contextualize(&lines), cloned.contextualize(&lines));

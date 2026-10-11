@@ -28,29 +28,42 @@ use std::path::PathBuf;
 
 use crate::cli::conf_parse::{DOC_SPEC_SEPARATOR, DocumentSpec, DocumentSpecError};
 use crate::cli::parallelism_config::Workers;
-use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
+use crate::cli::partial_config::{
+    PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports,
+};
 use crate::core::tracing_setup::Verbosity;
 use crate::core::tracing_setup::log_error;
 use crate::output::routines::write::OutStructureMode;
 
-
-
 macro_rules! freeports_env {
-    ($var:literal) => (concat!("FREEPORTS_",$var))
+    ($var:literal) => {
+        concat!("FREEPORTS_", $var)
+    };
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum EnvConfigError {
     #[error("invalid document specifier {value:?} in {variable}: {source}")]
-    InvalidReportSpecifier { variable: &'static str, value: String, source: DocumentSpecError },
+    InvalidReportSpecifier {
+        variable: &'static str,
+        value: String,
+        source: DocumentSpecError,
+    },
     #[error("{source}")]
     ReportsConflict { source: SourceReportsConflict },
-    #[error("invalid FREEPORTS_VERBOSITY {value:?}, expected one of: silent, erroronly, warn, info, debug, trace")]
+    #[error(
+        "invalid FREEPORTS_VERBOSITY {value:?}, expected one of: silent, erroronly, warn, info, debug, trace"
+    )]
     InvalidVerbosity { value: String },
-    #[error("invalid FREEPORTS_OUT_PROFILE {value:?}, expected one of: regular, single_file, structured")]
+    #[error(
+        "invalid FREEPORTS_OUT_PROFILE {value:?}, expected one of: regular, single_file, structured"
+    )]
     InvalidOutProfile { value: String },
     #[error("invalid value for {variable}: {value:?}")]
-    InvalidValue { variable: &'static str, value: String },
+    InvalidValue {
+        variable: &'static str,
+        value: String,
+    },
 }
 
 fn env_var(name: &str) -> Option<String> {
@@ -58,7 +71,11 @@ fn env_var(name: &str) -> Option<String> {
         Ok(value) => Some(value),
         Err(std::env::VarError::NotPresent) => None,
         Err(e @ std::env::VarError::NotUnicode(_)) => {
-            tracing::warn!(error = log_error(&e), name, "ignoring non-unicode environment variable: {e}");
+            tracing::warn!(
+                error = log_error(&e),
+                name,
+                "ignoring non-unicode environment variable: {e}"
+            );
             None
         }
     }
@@ -72,7 +89,9 @@ fn parse_verbosity(value: &str) -> Result<Verbosity, EnvConfigError> {
         "info" => Ok(Verbosity::Info),
         "debug" => Ok(Verbosity::Debug),
         "trace" => Ok(Verbosity::Trace),
-        _ => Err(EnvConfigError::InvalidVerbosity { value: value.to_string() }),
+        _ => Err(EnvConfigError::InvalidVerbosity {
+            value: value.to_string(),
+        }),
     }
 }
 
@@ -83,7 +102,9 @@ fn parse_out_profile(value: &str) -> Result<OutStructureMode, EnvConfigError> {
         "regular" => Ok(OutStructureMode::Regular),
         "single_file" => Ok(OutStructureMode::SingleFile),
         "structured" => Ok(OutStructureMode::Structured),
-        _ => Err(EnvConfigError::InvalidOutProfile { value: value.to_string() }),
+        _ => Err(EnvConfigError::InvalidOutProfile {
+            value: value.to_string(),
+        }),
     }
 }
 
@@ -91,14 +112,20 @@ fn parse_bool(variable: &'static str, value: &str) -> Result<bool, EnvConfigErro
     match value.to_ascii_lowercase().as_str() {
         "true" | "yes" | "1" | "y" | "t" => Ok(true),
         "false" | "no" | "0" | "n" | "f" => Ok(false),
-        _ => Err(EnvConfigError::InvalidValue { variable, value: value.to_string() }),
+        _ => Err(EnvConfigError::InvalidValue {
+            variable,
+            value: value.to_string(),
+        }),
     }
 }
 
 /// The three parallelism variables share the same grammar — `auto` or a positive integer — and
 /// differ only in the name appearing in the error.
 fn parse_workers(variable: &'static str, value: &str) -> Result<Workers, EnvConfigError> {
-    Workers::parse(value).map_err(|_| EnvConfigError::InvalidValue { variable, value: value.to_string() })
+    Workers::parse(value).map_err(|_| EnvConfigError::InvalidValue {
+        variable,
+        value: value.to_string(),
+    })
 }
 
 /// Wraps `load_impl` to log any failure exactly once -- this is the only place all four
@@ -107,7 +134,10 @@ fn parse_workers(variable: &'static str, value: &str) -> Result<Workers, EnvConf
 pub fn load() -> Result<PartialConfig, EnvConfigError> {
     let result = load_impl();
     if let Err(e) = &result {
-        tracing::error!(error = log_error(e), "invalid configuration from environment variables: {e}");
+        tracing::error!(
+            error = log_error(e),
+            "invalid configuration from environment variables: {e}"
+        );
     }
     result
 }
@@ -115,44 +145,62 @@ pub fn load() -> Result<PartialConfig, EnvConfigError> {
 fn load_impl() -> Result<PartialConfig, EnvConfigError> {
     let url = env_var(freeports_env!("URL"));
     let pdf = env_var(freeports_env!("PDF"));
-    let singular =
-        if url.is_some() || pdf.is_some() { Some(DocumentSpec { url, path: pdf.map(PathBuf::from), name: None }) } else { None };
+    let singular = if url.is_some() || pdf.is_some() {
+        Some(DocumentSpec {
+            url,
+            path: pdf.map(PathBuf::from),
+            name: None,
+        })
+    } else {
+        None
+    };
 
     let plural = env_var(freeports_env!("REPORTS"))
         .map(|value| {
             value
                 .split(DOC_SPEC_SEPARATOR)
                 .map(|s| {
-                    DocumentSpec::parse(s).map_err(|source| EnvConfigError::InvalidReportSpecifier {
-                        variable: freeports_env!("REPORTS"),
-                        value: s.to_string(),
-                        source,
+                    DocumentSpec::parse(s).map_err(|source| {
+                        EnvConfigError::InvalidReportSpecifier {
+                            variable: freeports_env!("REPORTS"),
+                            value: s.to_string(),
+                            source,
+                        }
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()
         })
         .transpose()?;
 
-    let reports = resolve_singular_and_plural_reports(singular, plural).map_err(|source| EnvConfigError::ReportsConflict { source })?;
+    let reports = resolve_singular_and_plural_reports(singular, plural)
+        .map_err(|source| EnvConfigError::ReportsConflict { source })?;
 
-    let verbosity = env_var(freeports_env!("VERBOSITY")).map(|v| parse_verbosity(&v)).transpose()?;
-    let n_workers =
-        env_var(freeports_env!("N_WORKERS")).map(|v| parse_workers(freeports_env!("N_WORKERS"), &v)).transpose()?;
+    let verbosity = env_var(freeports_env!("VERBOSITY"))
+        .map(|v| parse_verbosity(&v))
+        .transpose()?;
+    let n_workers = env_var(freeports_env!("N_WORKERS"))
+        .map(|v| parse_workers(freeports_env!("N_WORKERS"), &v))
+        .transpose()?;
     let parallelism_jobs = env_var(freeports_env!("PARALLELISM_JOBS"))
         .map(|v| parse_workers(freeports_env!("PARALLELISM_JOBS"), &v))
         .transpose()?;
     let parallelism_pages = env_var(freeports_env!("PARALLELISM_PAGES"))
         .map(|v| parse_workers(freeports_env!("PARALLELISM_PAGES"), &v))
         .transpose()?;
-    let save_pdf = env_var(freeports_env!("SAVE_PDF")).map(|v| parse_bool(freeports_env!("SAVE_PDF"), &v)).transpose()?;
-    let out_profile = env_var(freeports_env!("OUT_PROFILE")).map(|v| parse_out_profile(&v)).transpose()?;
+    let save_pdf = env_var(freeports_env!("SAVE_PDF"))
+        .map(|v| parse_bool(freeports_env!("SAVE_PDF"), &v))
+        .transpose()?;
+    let out_profile = env_var(freeports_env!("OUT_PROFILE"))
+        .map(|v| parse_out_profile(&v))
+        .transpose()?;
     // The two output flags are read independently, each leaving its field unset when its variable
     // is absent: naming one of them must not switch the other off.
     let separate_out = env_var(freeports_env!("SEPARATE_OUT"))
         .map(|v| parse_bool(freeports_env!("SEPARATE_OUT"), &v))
         .transpose()?;
-    let compressed =
-        env_var(freeports_env!("ARCHIVE")).map(|v| parse_bool(freeports_env!("ARCHIVE"), &v)).transpose()?;
+    let compressed = env_var(freeports_env!("ARCHIVE"))
+        .map(|v| parse_bool(freeports_env!("ARCHIVE"), &v))
+        .transpose()?;
 
     Ok(PartialConfig {
         verbosity,
@@ -218,14 +266,19 @@ mod tests {
     impl EnvScope {
         fn new() -> Self {
             let lock = ENV_LOCK.lock().unwrap_or_else(|poison| poison.into_inner());
-            let originals: Vec<(&'static str, Option<String>)> =
-                ALL_VARS.iter().map(|&k| (k, std::env::var(k).ok())).collect();
+            let originals: Vec<(&'static str, Option<String>)> = ALL_VARS
+                .iter()
+                .map(|&k| (k, std::env::var(k).ok()))
+                .collect();
             for &k in ALL_VARS {
                 // SAFETY: serialized by `ENV_LOCK`, no other thread in this test binary reads
                 // `FREEPORTS_*` concurrently while this guard is alive.
                 unsafe { std::env::remove_var(k) };
             }
-            Self { _lock: lock, originals }
+            Self {
+                _lock: lock,
+                originals,
+            }
         }
 
         fn set(&self, key: &str, value: &str) {
@@ -287,7 +340,10 @@ mod tests {
             let scope = EnvScope::new();
             scope.set(freeports_env!("CONFIG_FILE"), "/etc/freeports.yaml");
             let config = load().unwrap();
-            assert_eq!(config.config_file, Some(PathBuf::from("/etc/freeports.yaml")));
+            assert_eq!(
+                config.config_file,
+                Some(PathBuf::from("/etc/freeports.yaml"))
+            );
         }
 
         #[test]
@@ -295,7 +351,10 @@ mod tests {
             let scope = EnvScope::new();
             scope.set(freeports_env!("FORMATS_REPO_PATH"), "/opt/formats");
             let config = load().unwrap();
-            assert_eq!(config.formats_repo_path, Some(PathBuf::from("/opt/formats")));
+            assert_eq!(
+                config.formats_repo_path,
+                Some(PathBuf::from("/opt/formats"))
+            );
         }
 
         #[test]
@@ -344,7 +403,10 @@ mod tests {
             let scope = EnvScope::new();
             scope.set(freeports_env!("PARALLELISM_PAGES"), "lots");
             let error = load().unwrap_err().to_string();
-            assert!(error.contains(freeports_env!("PARALLELISM_PAGES")), "{error}");
+            assert!(
+                error.contains(freeports_env!("PARALLELISM_PAGES")),
+                "{error}"
+            );
         }
 
         #[test]
@@ -411,7 +473,10 @@ mod tests {
         #[test_case::test_case("structured", OutStructureMode::Structured)]
         #[test_case::test_case("STRUCTURED", OutStructureMode::Structured; "case insensitive")]
         #[test_case::test_case("Single_File", OutStructureMode::SingleFile; "mixed case")]
-        fn every_profile_name_is_accepted_as_the_command_line_spells_it(value: &str, expected: OutStructureMode) {
+        fn every_profile_name_is_accepted_as_the_command_line_spells_it(
+            value: &str,
+            expected: OutStructureMode,
+        ) {
             let scope = EnvScope::new();
             scope.set(freeports_env!("OUT_PROFILE"), value);
             assert_eq!(load().unwrap().out_profile, Some(expected));
@@ -422,7 +487,12 @@ mod tests {
             let scope = EnvScope::new();
             scope.set(freeports_env!("OUT_PROFILE"), "flat");
             let error = load().unwrap_err();
-            assert_eq!(error, EnvConfigError::InvalidOutProfile { value: "flat".to_string() });
+            assert_eq!(
+                error,
+                EnvConfigError::InvalidOutProfile {
+                    value: "flat".to_string()
+                }
+            );
             assert!(error.to_string().contains("single_file"), "{error}");
         }
 
@@ -447,7 +517,10 @@ mod tests {
         #[test_case::test_case("false", false; "lowercase false")]
         #[test_case::test_case("NO", false; "uppercase no")]
         #[test_case::test_case("0", false; "zero")]
-        fn the_separate_out_flag_accepts_the_same_booleans_as_save_pdf(value: &str, expected: bool) {
+        fn the_separate_out_flag_accepts_the_same_booleans_as_save_pdf(
+            value: &str,
+            expected: bool,
+        ) {
             let scope = EnvScope::new();
             scope.set(freeports_env!("SEPARATE_OUT"), value);
             assert_eq!(load().unwrap().separate_out, Some(expected));
@@ -565,7 +638,10 @@ mod tests {
             let config = load().unwrap();
             let reports = config.reports.expect("reports must be set");
             assert_eq!(reports.len(), 1);
-            assert_eq!(reports[0].url.as_deref(), Some("https://example.com/report.pdf"));
+            assert_eq!(
+                reports[0].url.as_deref(),
+                Some("https://example.com/report.pdf")
+            );
             assert_eq!(reports[0].path, None);
         }
 
@@ -588,7 +664,10 @@ mod tests {
             let config = load().unwrap();
             let reports = config.reports.expect("reports must be set");
             assert_eq!(reports.len(), 1);
-            assert_eq!(reports[0].url.as_deref(), Some("https://example.com/report.pdf"));
+            assert_eq!(
+                reports[0].url.as_deref(),
+                Some("https://example.com/report.pdf")
+            );
             assert_eq!(reports[0].path, Some(PathBuf::from("/tmp/report.pdf")));
         }
 
@@ -647,7 +726,10 @@ mod tests {
         #[test]
         fn an_invalid_element_is_a_typed_error_not_a_panic() {
             let scope = EnvScope::new();
-            let value = format!("a:b:c:d{sep}ok.pdf", sep = crate::cli::conf_parse::DOC_SPEC_SEPARATOR);
+            let value = format!(
+                "a:b:c:d{sep}ok.pdf",
+                sep = crate::cli::conf_parse::DOC_SPEC_SEPARATOR
+            );
             scope.set(freeports_env!("REPORTS"), &value);
             let result = std::panic::catch_unwind(|| load());
             assert!(result.is_ok(), "must not panic");
@@ -663,7 +745,10 @@ mod tests {
             let scope = EnvScope::new();
             scope.set(freeports_env!("REPORTS"), "https://example.com/a.pdf");
             scope.set(freeports_env!("URL"), "https://example.com/b.pdf");
-            assert!(load().is_err(), "FREEPORTS_REPORTS + FREEPORTS_URL together must be rejected, not silently merged");
+            assert!(
+                load().is_err(),
+                "FREEPORTS_REPORTS + FREEPORTS_URL together must be rejected, not silently merged"
+            );
         }
 
         #[test]
@@ -695,7 +780,10 @@ mod tests {
                 scope.set(var, "not\u{1}valid???€");
             }
             let result = std::panic::catch_unwind(|| load());
-            assert!(result.is_ok(), "env::load must never panic, regardless of how malformed the environment is");
+            assert!(
+                result.is_ok(),
+                "env::load must never panic, regardless of how malformed the environment is"
+            );
         }
     }
 }

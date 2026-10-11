@@ -71,7 +71,10 @@ fn page_key() -> String {
 impl InputPrintedPage {
     /// The foot's selection and the key, for the decorator.
     pub fn build(&self) -> Result<(PdfLineSelection, String), SelectionConfigError> {
-        Ok((self.selection.build("page_number.selection")?, self.key.clone()))
+        Ok((
+            self.selection.build("page_number.selection")?,
+            self.key.clone(),
+        ))
     }
 }
 
@@ -95,9 +98,11 @@ mod tests {
 
         #[test]
         fn the_foot_may_be_a_union_of_two_bands() {
-            let pipe = input(&format!("{FOOT}block_type: ASSETS_PAGE\nname: assets page\n"))
-                .build()
-                .expect("a union of two areas is one selection");
+            let pipe = input(&format!(
+                "{FOOT}block_type: ASSETS_PAGE\nname: assets page\n"
+            ))
+            .build()
+            .expect("a union of two areas is one selection");
             assert_eq!(PdfExtractPipe::name(&pipe), "assets page");
         }
 
@@ -124,7 +129,10 @@ mod tests {
                 "selection: {area: {y_min: 795}}\nname: n\n",
                 "selection: {area: {y_min: 795}}\nblock_type: X\n",
             ] {
-                assert!(serde_yaml::from_str::<InputPageNumber>(yaml).is_err(), "{yaml}");
+                assert!(
+                    serde_yaml::from_str::<InputPageNumber>(yaml).is_err(),
+                    "{yaml}"
+                );
             }
         }
     }
@@ -139,13 +147,17 @@ mod tests {
 
         #[test]
         fn the_key_defaults_to_the_one_every_measured_pipeline_uses() {
-            let (_, key) = printed("selection: {area: {y_min: 795}}\n").build().expect("a foot");
+            let (_, key) = printed("selection: {area: {y_min: 795}}\n")
+                .build()
+                .expect("a foot");
             assert_eq!(key, "page");
         }
 
         #[test]
         fn the_key_can_be_named() {
-            let (_, key) = printed("selection: {area: {y_min: 795}}\nkey: sheet\n").build().expect("a foot");
+            let (_, key) = printed("selection: {area: {y_min: 795}}\nkey: sheet\n")
+                .build()
+                .expect("a foot");
             assert_eq!(key, "sheet");
         }
 
@@ -153,9 +165,18 @@ mod tests {
         /// one of several selections in the same entry.
         #[test]
         fn a_malformed_foot_is_named_by_its_cell() {
-            let error = printed("selection: '^795'\n").build().err().expect("a bare anchor is a font name");
+            let error = printed("selection: '^795'\n")
+                .build()
+                .err()
+                .expect("a bare anchor is a font name");
             assert!(
-                matches!(error, SelectionConfigError::NotASelection { field: "page_number.selection", .. }),
+                matches!(
+                    error,
+                    SelectionConfigError::NotASelection {
+                        field: "page_number.selection",
+                        ..
+                    }
+                ),
                 "{error}"
             );
         }

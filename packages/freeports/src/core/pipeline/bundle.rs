@@ -61,7 +61,11 @@ impl PipelinesBundle {
     /// The names of the incomplete pipelines, for the error messages of whoever loads a formats
     /// repository.
     pub fn incomplete(&self) -> Vec<&PipelineName> {
-        self.0.iter().filter(|p| !p.is_complete()).map(|p| &p.name).collect()
+        self.0
+            .iter()
+            .filter(|p| !p.is_complete())
+            .map(|p| &p.name)
+            .collect()
     }
 
     /// Whether **every** pipeline in the bundle scales with threads.
@@ -154,8 +158,12 @@ mod tests {
     fn classifying_pipeline(name: &str, class: Option<&str>) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-        pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-        pipeline.deserialize.push(ConstantClassifier::pipe("classify", class));
+        pipeline
+            .text_filter
+            .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+        pipeline
+            .deserialize
+            .push(ConstantClassifier::pipe("classify", class));
         pipeline
     }
 
@@ -165,10 +173,12 @@ mod tests {
 
         #[test]
         fn pipelines_keep_their_insertion_order() {
-            let bundle: PipelinesBundle =
-                [classifying_pipeline("a", None), classifying_pipeline("b", None)]
-                    .into_iter()
-                    .collect();
+            let bundle: PipelinesBundle = [
+                classifying_pipeline("a", None),
+                classifying_pipeline("b", None),
+            ]
+            .into_iter()
+            .collect();
             let names: Vec<&str> = bundle.iter().map(|p| p.name.as_str()).collect();
             assert_eq!(names, vec!["a", "b"]);
         }
@@ -183,8 +193,7 @@ mod tests {
 
         #[test]
         fn a_pipeline_is_retrievable_by_name() {
-            let bundle: PipelinesBundle =
-                [classifying_pipeline("a", None)].into_iter().collect();
+            let bundle: PipelinesBundle = [classifying_pipeline("a", None)].into_iter().collect();
             assert!(bundle.get(&PipelineName::new("a")).is_some());
             assert!(bundle.get(&PipelineName::new("b")).is_none());
         }
@@ -202,8 +211,7 @@ mod tests {
 
         #[test]
         fn a_bundle_of_complete_pipelines_is_complete() {
-            let bundle: PipelinesBundle =
-                [classifying_pipeline("a", None)].into_iter().collect();
+            let bundle: PipelinesBundle = [classifying_pipeline("a", None)].into_iter().collect();
             assert!(bundle.is_complete());
             assert!(bundle.incomplete().is_empty());
         }
@@ -211,7 +219,9 @@ mod tests {
         #[test]
         fn an_incomplete_pipeline_is_reported_by_name() {
             let bundle: PipelinesBundle =
-                [classifying_pipeline("good", None), Pipeline::new("bad")].into_iter().collect();
+                [classifying_pipeline("good", None), Pipeline::new("bad")]
+                    .into_iter()
+                    .collect();
             assert!(!bundle.is_complete());
             assert_eq!(bundle.incomplete(), vec![&PipelineName::new("bad")]);
         }
@@ -228,12 +238,16 @@ mod tests {
 
         #[test]
         fn the_results_of_every_pipeline_are_concatenated_in_order() {
-            let bundle: PipelinesBundle =
-                [classifying_pipeline("a", Some("x")), classifying_pipeline("b", Some("y"))]
-                    .into_iter()
-                    .collect();
+            let bundle: PipelinesBundle = [
+                classifying_pipeline("a", Some("x")),
+                classifying_pipeline("b", Some("y")),
+            ]
+            .into_iter()
+            .collect();
 
-            let out = bundle.apply(&page_with(&["line"]), &FilterData::EMPTY).unwrap();
+            let out = bundle
+                .apply(&page_with(&["line"]), &FilterData::EMPTY)
+                .unwrap();
             assert_eq!(
                 out,
                 vec![
@@ -245,7 +259,9 @@ mod tests {
 
         #[test]
         fn an_empty_bundle_produces_nothing() {
-            let out = PipelinesBundle::new().apply(&page_with(&["a"]), &FilterData::EMPTY).unwrap();
+            let out = PipelinesBundle::new()
+                .apply(&page_with(&["a"]), &FilterData::EMPTY)
+                .unwrap();
             assert!(out.is_empty());
         }
 
@@ -255,9 +271,12 @@ mod tests {
             failing.pdf_extract = Default::default();
             failing.pdf_extract.push(FailingExtract::fatal("boom"));
 
-            let bundle: PipelinesBundle =
-                [failing, classifying_pipeline("never reached", None)].into_iter().collect();
-            let err = bundle.apply(&page_with(&["a"]), &FilterData::EMPTY).unwrap_err();
+            let bundle: PipelinesBundle = [failing, classifying_pipeline("never reached", None)]
+                .into_iter()
+                .collect();
+            let err = bundle
+                .apply(&page_with(&["a"]), &FilterData::EMPTY)
+                .unwrap_err();
             assert_eq!(err.pipe(), "boom");
         }
 
@@ -265,10 +284,14 @@ mod tests {
         fn a_page_failure_travels_out_of_the_bundle_unchanged() {
             let mut failing = classifying_pipeline("bad", None);
             failing.pdf_extract = Default::default();
-            failing.pdf_extract.push(FailingExtract::page_parse("skipper"));
+            failing
+                .pdf_extract
+                .push(FailingExtract::page_parse("skipper"));
 
             let bundle: PipelinesBundle = [failing].into_iter().collect();
-            let err = bundle.apply(&page_with(&["a"]), &FilterData::EMPTY).unwrap_err();
+            let err = bundle
+                .apply(&page_with(&["a"]), &FilterData::EMPTY)
+                .unwrap_err();
             assert!(err.is_page_failure());
         }
     }
@@ -278,14 +301,19 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn two_pipeline_bundle() -> PipelinesBundle {
-            [classifying_pipeline("a", Some("x")), classifying_pipeline("b", Some("y"))]
-                .into_iter()
-                .collect()
+            [
+                classifying_pipeline("a", Some("x")),
+                classifying_pipeline("b", Some("y")),
+            ]
+            .into_iter()
+            .collect()
         }
 
         #[test]
         fn apply_pdf_extract_concatenates_the_first_segment_of_every_pipeline() {
-            let blocks = two_pipeline_bundle().apply_pdf_extract(&page_with(&["l"])).unwrap();
+            let blocks = two_pipeline_bundle()
+                .apply_pdf_extract(&page_with(&["l"]))
+                .unwrap();
             assert_eq!(blocks.len(), 2);
         }
 

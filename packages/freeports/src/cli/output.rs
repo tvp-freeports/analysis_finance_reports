@@ -6,9 +6,9 @@
 
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::DocumentOutcome;
+use crate::core::tracing_setup::log_error;
 use crate::output::routines::accumulate::{AccumulateError, accumulate_jobs};
 use crate::output::routines::write::{OutStructureMode, WriteFilesError, write_files};
-use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum OutputError {
@@ -26,7 +26,11 @@ pub enum OutputError {
 /// different places depending on how it was launched.
 pub fn log_csv_dir(config: &FreeportsConfig) -> std::path::PathBuf {
     if config.out_profile == OutStructureMode::SingleFile {
-        config.out_path.parent().unwrap_or(std::path::Path::new(".")).to_path_buf()
+        config
+            .out_path
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .to_path_buf()
     } else {
         config.out_path.clone()
     }
@@ -34,7 +38,10 @@ pub fn log_csv_dir(config: &FreeportsConfig) -> std::path::PathBuf {
 
 /// Opens the output span around the write and logs the outcome exactly once. The output path is the
 /// coordinate identifying this write, so it goes on the span rather than on the individual events.
-pub fn write_results(config: &FreeportsConfig, jobs: &[Vec<DocumentOutcome>]) -> Result<(), OutputError> {
+pub fn write_results(
+    config: &FreeportsConfig,
+    jobs: &[Vec<DocumentOutcome>],
+) -> Result<(), OutputError> {
     let span = tracing::info_span!("output", out_path = %config.out_path.display());
     let _guard = span.enter();
 
@@ -55,17 +62,25 @@ pub fn write_results(config: &FreeportsConfig, jobs: &[Vec<DocumentOutcome>]) ->
 ///
 /// **`accumulate_jobs` e non `accumulate`**: le promesse si risolvono per job, le tabelle restano
 /// condivise. La sua documentazione dice perche'.
-fn write_results_impl(config: &FreeportsConfig, jobs: &[Vec<DocumentOutcome>]) -> Result<(), OutputError> {
+fn write_results_impl(
+    config: &FreeportsConfig,
+    jobs: &[Vec<DocumentOutcome>],
+) -> Result<(), OutputError> {
     let tables = accumulate_jobs(jobs)?;
-    write_files(&tables, &config.out_path, config.out_profile, config.out_flags)?;
+    write_files(
+        &tables,
+        &config.out_path,
+        config.out_profile,
+        config.out_flags,
+    )?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::cli::parallelism_config::ParallelismConfig;
     use super::*;
     use crate::cli::freeports_config::FreeportsConfig;
+    use crate::cli::parallelism_config::ParallelismConfig;
     use crate::core::algorithm::{DocumentOutcome, PageOutcome};
     use crate::core::pipeline::Extracted;
     use crate::core::schedule::PageClass;
@@ -118,16 +133,25 @@ mod tests {
             }];
             write_results(&config, std::slice::from_ref(&outcomes)).unwrap();
             let content = std::fs::read_to_string(dir.path().join("funds.csv")).unwrap();
-            assert!(content.contains("ALPHA FUND"), "expected the fund's normalized name in funds.csv, got:\n{content}");
+            assert!(
+                content.contains("ALPHA FUND"),
+                "expected the fund's normalized name in funds.csv, got:\n{content}"
+            );
         }
 
         #[test]
         fn out_profile_and_out_flags_from_the_config_are_honored() {
             let dir = tempfile::tempdir().unwrap();
-            let config = config_at(dir.path().join("out.csv").as_path(), OutStructureMode::SingleFile);
+            let config = config_at(
+                dir.path().join("out.csv").as_path(),
+                OutStructureMode::SingleFile,
+            );
             write_results(&config, &[]).unwrap();
             assert!(dir.path().join("out.csv").is_file());
-            assert!(!dir.path().join("investments.csv").exists(), "SingleFile must not also produce the Regular layout");
+            assert!(
+                !dir.path().join("investments.csv").exists(),
+                "SingleFile must not also produce the Regular layout"
+            );
         }
     }
 
@@ -140,7 +164,10 @@ mod tests {
             // parent does not exist forces the underlying `write_files` I/O to fail, which must
             // surface here as `OutputError::Write`, not a panic.
             let dir = tempfile::tempdir().unwrap();
-            let config = config_at(&dir.path().join("missing_subdir").join("out.csv"), OutStructureMode::SingleFile);
+            let config = config_at(
+                &dir.path().join("missing_subdir").join("out.csv"),
+                OutStructureMode::SingleFile,
+            );
             let result = std::panic::catch_unwind(|| write_results(&config, &[]));
             assert!(result.is_ok(), "must not panic");
             assert!(matches!(result.unwrap(), Err(OutputError::Write(_))));

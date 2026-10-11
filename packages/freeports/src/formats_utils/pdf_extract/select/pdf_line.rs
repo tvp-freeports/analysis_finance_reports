@@ -93,34 +93,65 @@ impl PdfLineSet {
         Self::from_leaf(SelectPdfLineSet::Area(area))
     }
     #[allow(clippy::too_many_arguments)]
-    pub fn new(font: Option<&str>, font_size: Option<(f32, f32)>, text: Option<&str>, area: Option<(f32, f32, f32, f32)>) -> Self {
+    pub fn new(
+        font: Option<&str>,
+        font_size: Option<(f32, f32)>,
+        text: Option<&str>,
+        area: Option<(f32, f32, f32, f32)>,
+    ) -> Self {
         match (font, font_size, text, area) {
             (None, None, None, None) => Self::select_fontsize(0.0, 1e6),
             (Some(f), None, None, None) => Self::select_font(f),
             (None, Some((a, b)), None, None) => Self::select_fontsize(a, b),
             (None, None, Some(t), None) => Self::select_text(t),
             (None, None, None, Some((x0, y0, x1, y1))) => Self::select_area(x0, y0, x1, y1),
-            (Some(f), Some((a, b)), None, None) => Self::select_font(f) & Self::select_fontsize(a, b),
-            (Some(f), None, Some(t), None) => Self::select_font(f) & Self::select_text(t),
-            (Some(f), None, None, Some((x0, y0, x1, y1))) => Self::select_font(f) & Self::select_area(x0, y0, x1, y1),
-            (None, Some((a, b)), Some(t), None) => Self::select_fontsize(a, b) & Self::select_text(t),
-            (None, Some((a, b)), None, Some((x0, y0, x1, y1))) => Self::select_fontsize(a, b) & Self::select_area(x0, y0, x1, y1),
-            (None, None, Some(t), Some((x0, y0, x1, y1))) => Self::select_text(t) & Self::select_area(x0, y0, x1, y1),
-            (Some(f), Some((a, b)), Some(t), None) => Self::select_font(f) & Self::select_fontsize(a, b) & Self::select_text(t),
-            (Some(f), Some((a, b)), None, Some((x0, y0, x1, y1))) => {
-                Self::select_font(f) & Self::select_fontsize(a, b) & Self::select_area(x0, y0, x1, y1)
+            (Some(f), Some((a, b)), None, None) => {
+                Self::select_font(f) & Self::select_fontsize(a, b)
             }
-            (Some(f), None, Some(t), Some((x0, y0, x1, y1))) => Self::select_font(f) & Self::select_text(t) & Self::select_area(x0, y0, x1, y1),
+            (Some(f), None, Some(t), None) => Self::select_font(f) & Self::select_text(t),
+            (Some(f), None, None, Some((x0, y0, x1, y1))) => {
+                Self::select_font(f) & Self::select_area(x0, y0, x1, y1)
+            }
+            (None, Some((a, b)), Some(t), None) => {
+                Self::select_fontsize(a, b) & Self::select_text(t)
+            }
+            (None, Some((a, b)), None, Some((x0, y0, x1, y1))) => {
+                Self::select_fontsize(a, b) & Self::select_area(x0, y0, x1, y1)
+            }
+            (None, None, Some(t), Some((x0, y0, x1, y1))) => {
+                Self::select_text(t) & Self::select_area(x0, y0, x1, y1)
+            }
+            (Some(f), Some((a, b)), Some(t), None) => {
+                Self::select_font(f) & Self::select_fontsize(a, b) & Self::select_text(t)
+            }
+            (Some(f), Some((a, b)), None, Some((x0, y0, x1, y1))) => {
+                Self::select_font(f)
+                    & Self::select_fontsize(a, b)
+                    & Self::select_area(x0, y0, x1, y1)
+            }
+            (Some(f), None, Some(t), Some((x0, y0, x1, y1))) => {
+                Self::select_font(f) & Self::select_text(t) & Self::select_area(x0, y0, x1, y1)
+            }
             (None, Some((a, b)), Some(t), Some((x0, y0, x1, y1))) => {
-                Self::select_fontsize(a, b) & Self::select_text(t) & Self::select_area(x0, y0, x1, y1)
+                Self::select_fontsize(a, b)
+                    & Self::select_text(t)
+                    & Self::select_area(x0, y0, x1, y1)
             }
             (Some(f), Some((a, b)), Some(t), Some((x0, y0, x1, y1))) => {
-                Self::select_font(f) & Self::select_fontsize(a, b) & Self::select_text(t) & Self::select_area(x0, y0, x1, y1)
+                Self::select_font(f)
+                    & Self::select_fontsize(a, b)
+                    & Self::select_text(t)
+                    & Self::select_area(x0, y0, x1, y1)
             }
         }
     }
     #[allow(clippy::too_many_arguments)]
-    pub fn from_sets(font: Option<FontSet>, font_size: Option<FontSizeInterval>, text: Option<TextSet>, area: Option<Area>) -> Self {
+    pub fn from_sets(
+        font: Option<FontSet>,
+        font_size: Option<FontSizeInterval>,
+        text: Option<TextSet>,
+        area: Option<Area>,
+    ) -> Self {
         match (font, font_size, text, area) {
             (None, None, None, None) => Self::fontsize(FontSizeInterval::new(0.0, 1e6)),
             (Some(f), None, None, None) => Self::font(f),
@@ -133,11 +164,19 @@ impl PdfLineSet {
             (None, Some(fs), Some(t), None) => Self::fontsize(fs) & Self::text(t),
             (None, Some(fs), None, Some(a)) => Self::fontsize(fs) & Self::area(a),
             (None, None, Some(t), Some(a)) => Self::text(t) & Self::area(a),
-            (Some(f), Some(fs), Some(t), None) => Self::font(f) & Self::fontsize(fs) & Self::text(t),
-            (Some(f), Some(fs), None, Some(a)) => Self::font(f) & Self::fontsize(fs) & Self::area(a),
+            (Some(f), Some(fs), Some(t), None) => {
+                Self::font(f) & Self::fontsize(fs) & Self::text(t)
+            }
+            (Some(f), Some(fs), None, Some(a)) => {
+                Self::font(f) & Self::fontsize(fs) & Self::area(a)
+            }
             (Some(f), None, Some(t), Some(a)) => Self::font(f) & Self::text(t) & Self::area(a),
-            (None, Some(fs), Some(t), Some(a)) => Self::fontsize(fs) & Self::text(t) & Self::area(a),
-            (Some(f), Some(fs), Some(t), Some(a)) => Self::font(f) & Self::fontsize(fs) & Self::text(t) & Self::area(a),
+            (None, Some(fs), Some(t), Some(a)) => {
+                Self::fontsize(fs) & Self::text(t) & Self::area(a)
+            }
+            (Some(f), Some(fs), Some(t), Some(a)) => {
+                Self::font(f) & Self::fontsize(fs) & Self::text(t) & Self::area(a)
+            }
         }
     }
 }
@@ -284,7 +323,12 @@ mod tests {
                 Some(TextSet::new("^Alpha$")),
                 Some(Area::new(0.0, 0.0, 20.0, 20.0)),
             );
-            let b = PdfLineSet::new(Some("Arial"), Some((10.0, 15.0)), Some("^Alpha$"), Some((0.0, 0.0, 20.0, 20.0)));
+            let b = PdfLineSet::new(
+                Some("Arial"),
+                Some((10.0, 15.0)),
+                Some("^Alpha$"),
+                Some((0.0, 0.0, 20.0, 20.0)),
+            );
             for line in &lines {
                 assert_eq!(a.contains(line), b.contains(line));
             }

@@ -28,7 +28,9 @@ pub enum GroupedLinesConfigError {
     Take(String),
     /// `take: first` with nothing to join means *the first group, one block per line*, which is
     /// the same as `all` for every caller downstream and almost certainly not what was meant.
-    #[error("field 'take': 'first' needs 'join', because one block per line carries its group number already")]
+    #[error(
+        "field 'take': 'first' needs 'join', because one block per line carries its group number already"
+    )]
     TakeWithoutJoin,
 }
 
@@ -96,7 +98,9 @@ mod tests {
 
         #[test]
         fn four_of_them_are_enough() {
-            entry("").build().expect("a band, a block, a name and a gap");
+            entry("")
+                .build()
+                .expect("a band, a block, a name and a gap");
         }
 
         #[test]
@@ -107,7 +111,10 @@ mod tests {
                 "selection: {font: x}\nblock_type: X\ngap: 20.0\n",
                 "selection: {font: x}\nblock_type: X\nname: n\n",
             ] {
-                assert!(serde_yaml::from_str::<InputGroupedLines>(yaml).is_err(), "{yaml}");
+                assert!(
+                    serde_yaml::from_str::<InputGroupedLines>(yaml).is_err(),
+                    "{yaml}"
+                );
             }
         }
 
@@ -131,14 +138,22 @@ mod tests {
             assert_eq!(error, None, "twenty is positive");
             let input = input("selection: {font: x}\nblock_type: X\nname: n\ngap: 0.0\n");
             assert_eq!(
-                input.build().err().expect("zero separates nothing").to_string(),
+                input
+                    .build()
+                    .err()
+                    .expect("zero separates nothing")
+                    .to_string(),
                 "field 'gap': must be a positive distance, found 0"
             );
         }
 
         #[test]
         fn a_negative_gap_is_refused_too() {
-            assert!(input("selection: {font: x}\nblock_type: X\nname: n\ngap: -3.0\n").build().is_err());
+            assert!(
+                input("selection: {font: x}\nblock_type: X\nname: n\ngap: -3.0\n")
+                    .build()
+                    .is_err()
+            );
         }
     }
 
@@ -147,7 +162,9 @@ mod tests {
 
         #[test]
         fn without_join_one_block_per_line() {
-            entry("").build().expect("the group number travels in the metadata");
+            entry("")
+                .build()
+                .expect("the group number travels in the metadata");
         }
 
         #[test]
@@ -157,20 +174,31 @@ mod tests {
 
         #[test]
         fn take_first_keeps_the_first_group() {
-            entry("join: ''\ntake: first").build().expect("the first group alone");
+            entry("join: ''\ntake: first")
+                .build()
+                .expect("the first group alone");
         }
 
         /// `first` without `join` would mean *the first group, one block per line*, which is what
         /// `all` already gives every caller: the group number is in the metadata either way.
         #[test]
         fn take_first_without_join_is_refused() {
-            let error = entry("take: first").build().err().expect("a combination that says nothing");
-            assert!(matches!(error, GroupedLinesConfigError::TakeWithoutJoin), "{error}");
+            let error = entry("take: first")
+                .build()
+                .err()
+                .expect("a combination that says nothing");
+            assert!(
+                matches!(error, GroupedLinesConfigError::TakeWithoutJoin),
+                "{error}"
+            );
         }
 
         #[test]
         fn an_unknown_take_is_named_in_the_refusal() {
-            let error = entry("join: ' '\ntake: last").build().err().expect("'last' is not a word here");
+            let error = entry("join: ' '\ntake: last")
+                .build()
+                .err()
+                .expect("'last' is not a word here");
             assert!(error.to_string().contains("'last'"), "{error}");
         }
     }

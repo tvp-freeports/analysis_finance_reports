@@ -24,8 +24,11 @@ fn pattern(text: &str) -> FormatPattern {
 }
 
 fn text(t: &str) -> PdfLineSelection {
-    pdfline_selection_from_dict(&InputPdfLineSet { text: Some(t.to_string()), ..Default::default() })
-        .expect("a text selection is always valid")
+    pdfline_selection_from_dict(&InputPdfLineSet {
+        text: Some(t.to_string()),
+        ..Default::default()
+    })
+    .expect("a text selection is always valid")
 }
 
 fn cover() -> Page {
@@ -33,8 +36,18 @@ fn cover() -> Page {
         1,
         (595.0, 842.0),
         vec![
-            PdfLine::new("TrebuchetMS", 26.0, "Relazione di gestione", (0.0, 0.0, 300.0, 26.0)),
-            PdfLine::new("Arial", 10.0, "Mediolanum Gestione Fondi SGR", (0.0, 40.0, 300.0, 50.0)),
+            PdfLine::new(
+                "TrebuchetMS",
+                26.0,
+                "Relazione di gestione",
+                (0.0, 0.0, 300.0, 26.0),
+            ),
+            PdfLine::new(
+                "Arial",
+                10.0,
+                "Mediolanum Gestione Fondi SGR",
+                (0.0, 40.0, 300.0, 50.0),
+            ),
         ],
         vec![],
     )
@@ -45,10 +58,19 @@ fn cover() -> Page {
 fn pipeline(steps: Vec<(Vec<PdfLineSelection>, &str)>) -> Pipeline {
     let mut pipeline = Pipeline::new("document_classify");
     for (selections, name) in steps {
-        pipeline.pdf_extract.push(Arc::new(PdfExtractDocClassifyStandard::new(selections, pattern(name))));
+        pipeline
+            .pdf_extract
+            .push(Arc::new(PdfExtractDocClassifyStandard::new(
+                selections,
+                pattern(name),
+            )));
     }
-    pipeline.text_filter.push(Arc::new(TextFilterDocClassifyStandard));
-    pipeline.deserialize.push(Arc::new(DeserializerDocClassifyStandard));
+    pipeline
+        .text_filter
+        .push(Arc::new(TextFilterDocClassifyStandard));
+    pipeline
+        .deserialize
+        .push(Arc::new(DeserializerDocClassifyStandard));
     pipeline
 }
 
@@ -61,22 +83,37 @@ mod outcomes {
 
     #[test]
     fn a_partial_pattern_crosses_the_three_pipes() {
-        let p = pipeline(vec![(vec![text("Relazione"), text("Mediolanum Gestione")], "MEDIOLANUM-IT24.*")]);
-        assert_eq!(outcome(&p, &cover()).unwrap(), vec![Extracted::DocClass(Some(pattern("MEDIOLANUM-IT24.*")))]);
+        let p = pipeline(vec![(
+            vec![text("Relazione"), text("Mediolanum Gestione")],
+            "MEDIOLANUM-IT24.*",
+        )]);
+        assert_eq!(
+            outcome(&p, &cover()).unwrap(),
+            vec![Extracted::DocClass(Some(pattern("MEDIOLANUM-IT24.*")))]
+        );
     }
 
     #[test]
     fn a_complete_pattern_crosses_the_three_pipes() {
         let p = pipeline(vec![(vec![text("Mediolanum")], "MEDIOLANUM-IT24.A")]);
         let out = outcome(&p, &cover()).unwrap();
-        assert_eq!(out, vec![Extracted::DocClass(Some(pattern("MEDIOLANUM-IT24.A")))]);
+        assert_eq!(
+            out,
+            vec![Extracted::DocClass(Some(pattern("MEDIOLANUM-IT24.A")))]
+        );
         assert!(matches!(&out[0], Extracted::DocClass(Some(p)) if p.is_complete()));
     }
 
     #[test]
     fn nothing_recognised_is_one_explicit_empty_doc_class() {
-        let p = pipeline(vec![(vec![text("Amundi")], "AMUNDI-EN24"), (vec![text("Annual Report")], "MEDIOLANUM-EN")]);
-        assert_eq!(outcome(&p, &cover()).unwrap(), vec![Extracted::DocClass(None)]);
+        let p = pipeline(vec![
+            (vec![text("Amundi")], "AMUNDI-EN24"),
+            (vec![text("Annual Report")], "MEDIOLANUM-EN"),
+        ]);
+        assert_eq!(
+            outcome(&p, &cover()).unwrap(),
+            vec![Extracted::DocClass(None)]
+        );
     }
 
     #[test]
@@ -86,25 +123,40 @@ mod outcomes {
             (vec![text("Mediolanum")], "MEDIOLANUM"),
             (vec![text("Fideuram")], "FIDEURAM-IT23@*"),
         ]);
-        assert_eq!(outcome(&p, &cover()).unwrap(), vec![Extracted::DocClass(Some(pattern("MEDIOLANUM")))]);
+        assert_eq!(
+            outcome(&p, &cover()).unwrap(),
+            vec![Extracted::DocClass(Some(pattern("MEDIOLANUM")))]
+        );
     }
 
     #[test]
     fn zero_selections_make_an_unconditional_step() {
         let p = pipeline(vec![(Vec::new(), "ASTERIA-EN23")]);
         let image_cover = Page::new(1, (595.0, 842.0), vec![], vec![]);
-        assert_eq!(outcome(&p, &image_cover).unwrap(), vec![Extracted::DocClass(Some(pattern("ASTERIA-EN23")))]);
+        assert_eq!(
+            outcome(&p, &image_cover).unwrap(),
+            vec![Extracted::DocClass(Some(pattern("ASTERIA-EN23")))]
+        );
     }
 
     #[test]
     fn two_pipes_recognising_the_same_pattern_give_it_once() {
-        let p = pipeline(vec![(vec![text("Relazione")], "MEDIOLANUM"), (vec![text("Mediolanum")], "MEDIOLANUM")]);
-        assert_eq!(outcome(&p, &cover()).unwrap(), vec![Extracted::DocClass(Some(pattern("MEDIOLANUM")))]);
+        let p = pipeline(vec![
+            (vec![text("Relazione")], "MEDIOLANUM"),
+            (vec![text("Mediolanum")], "MEDIOLANUM"),
+        ]);
+        assert_eq!(
+            outcome(&p, &cover()).unwrap(),
+            vec![Extracted::DocClass(Some(pattern("MEDIOLANUM")))]
+        );
     }
 
     #[test]
     fn two_pipes_recognising_different_patterns_fail_the_pipeline_naming_the_filter() {
-        let p = pipeline(vec![(vec![text("Relazione")], "MEDIOLANUM"), (vec![text("Mediolanum")], "AMUNDI")]);
+        let p = pipeline(vec![
+            (vec![text("Relazione")], "MEDIOLANUM"),
+            (vec![text("Mediolanum")], "AMUNDI"),
+        ]);
         let err = outcome(&p, &cover()).unwrap_err();
         assert_eq!(err.pipe(), "TextFilterDocClassifyStandard");
         assert!(!err.is_page_failure());

@@ -16,9 +16,12 @@
 use serde::Deserialize;
 
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    AssetsColumn, AssetsPairing, AssetsStandardArgs, PdfExtractAssetsStandard, PdfExtractStandardFuncsError,
+    AssetsColumn, AssetsPairing, AssetsStandardArgs, PdfExtractAssetsStandard,
+    PdfExtractStandardFuncsError,
 };
-use crate::formats_utils::text_filter::standard_funcs::{StandardFuncsError, TextFilterAssetsStandard};
+use crate::formats_utils::text_filter::standard_funcs::{
+    StandardFuncsError, TextFilterAssetsStandard,
+};
 
 use super::selection::{InputSelection, SelectionConfigError};
 
@@ -56,7 +59,13 @@ pub struct InputAmount {
 impl InputAmount {
     fn build(&self, field: &'static str) -> Result<AssetsColumn, SelectionConfigError> {
         let mut column = AssetsColumn::new(self.anchor.build(field)?);
-        if let Some(InputWindow { dx, dy, width, height }) = self.window {
+        if let Some(InputWindow {
+            dx,
+            dy,
+            width,
+            height,
+        }) = self.window
+        {
             column.vector = (dx, dy);
             column.width = width;
             column.height = height;
@@ -104,7 +113,9 @@ impl InputAssetsByPosition {
         if self.value_step < 1 {
             return Err(AssetsByPositionError::Step(self.value_step));
         }
-        let optional = |cell: &Option<InputSelection>, field| cell.as_ref().map(|s| s.build(field)).transpose();
+        let optional = |cell: &Option<InputSelection>, field| {
+            cell.as_ref().map(|s| s.build(field)).transpose()
+        };
         let args = AssetsStandardArgs {
             date: optional(&self.date_set, "date_set")?.into_iter().collect(),
             table_condition: true,
@@ -139,7 +150,10 @@ pub struct InputAssetsFilter {
 
 impl InputAssetsFilter {
     pub fn build(&self) -> Result<TextFilterAssetsStandard, StandardFuncsError> {
-        TextFilterAssetsStandard::new(self.date_regex.as_deref(), self.remove_from_fund.clone().into_iter().collect())
+        TextFilterAssetsStandard::new(
+            self.date_regex.as_deref(),
+            self.remove_from_fund.clone().into_iter().collect(),
+        )
     }
 }
 
@@ -169,14 +183,19 @@ net_assets: {anchor: {text: NET ASSETS}}
     #[test]
     fn a_step_below_one_is_refused() {
         let parsed = input(&format!("{MINIMAL}value_step: 0\n"));
-        assert!(matches!(parsed.build(), Err(AssetsByPositionError::Step(0))));
+        assert!(matches!(
+            parsed.build(),
+            Err(AssetsByPositionError::Step(0))
+        ));
     }
 
     #[test]
     fn a_key_it_does_not_know_is_refused() {
         // The structured table's switch has no meaning here: pairing is by position by definition.
-        let error = serde_yaml::from_str::<InputAssetsByPosition>(&format!("{MINIMAL}pair_by_abscissa: true\n"))
-            .unwrap_err();
+        let error = serde_yaml::from_str::<InputAssetsByPosition>(&format!(
+            "{MINIMAL}pair_by_abscissa: true\n"
+        ))
+        .unwrap_err();
         assert!(error.to_string().contains("pair_by_abscissa"), "{error}");
     }
 
@@ -191,12 +210,18 @@ net_assets: {anchor: {text: NET ASSETS}}
 ",
         );
         let window = parsed.tot_assets.window.expect("the window");
-        assert_eq!((window.dx, window.dy, window.width, window.height), (1.2, -0.1, 100.0, 1.2));
+        assert_eq!(
+            (window.dx, window.dy, window.width, window.height),
+            (1.2, -0.1, 100.0, 1.2)
+        );
     }
 
     #[test]
     fn the_filter_refuses_a_regex_that_does_not_compile() {
-        let filter = InputAssetsFilter { date_regex: None, remove_from_fund: Some("(unclosed".to_string()) };
+        let filter = InputAssetsFilter {
+            date_regex: None,
+            remove_from_fund: Some("(unclosed".to_string()),
+        };
         assert!(filter.build().is_err());
     }
 }

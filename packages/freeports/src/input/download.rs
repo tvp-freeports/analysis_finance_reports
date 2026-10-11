@@ -12,11 +12,18 @@ use std::time::Duration;
 #[derive(Debug, thiserror::Error)]
 pub enum DownloadError {
     #[error("{code} {status_text} error for url: {url}")]
-    Status { url: String, code: u16, status_text: String },
+    Status {
+        url: String,
+        code: u16,
+        status_text: String,
+    },
     #[error("transport error for url {url}: {message}")]
     Transport { url: String, message: String },
     #[error("cannot write downloaded pdf to {}: {source}", path.display())]
-    Io { path: PathBuf, source: std::io::Error },
+    Io {
+        path: PathBuf,
+        source: std::io::Error,
+    },
 }
 
 /// A blocking GET on `url`, with a ten-second timeout. If `pdf` is given, a copy of the downloaded
@@ -29,22 +36,36 @@ pub enum DownloadError {
 /// write does not invalidate the bytes already downloaded, but it is reported rather than silently
 /// yielding a partial result.
 pub fn download_pdf(url: &str, pdf: Option<&Path>) -> Result<Vec<u8>, DownloadError> {
-    let response = ureq::get(url).timeout(Duration::from_secs(10)).call().map_err(|e| match e {
-        ureq::Error::Status(code, response) => {
-            DownloadError::Status { url: url.to_string(), code, status_text: response.status_text().to_string() }
-        }
-        ureq::Error::Transport(transport) => DownloadError::Transport { url: url.to_string(), message: transport.to_string() },
-    })?;
+    let response = ureq::get(url)
+        .timeout(Duration::from_secs(10))
+        .call()
+        .map_err(|e| match e {
+            ureq::Error::Status(code, response) => DownloadError::Status {
+                url: url.to_string(),
+                code,
+                status_text: response.status_text().to_string(),
+            },
+            ureq::Error::Transport(transport) => DownloadError::Transport {
+                url: url.to_string(),
+                message: transport.to_string(),
+            },
+        })?;
 
     let mut buf = Vec::new();
     response
         .into_reader()
         .read_to_end(&mut buf)
-        .map_err(|source| DownloadError::Io { path: pdf.map(Path::to_path_buf).unwrap_or_default(), source })?;
+        .map_err(|source| DownloadError::Io {
+            path: pdf.map(Path::to_path_buf).unwrap_or_default(),
+            source,
+        })?;
     tracing::debug!(url, byte_count = buf.len(), "download completed");
 
     if let Some(path) = pdf {
-        std::fs::write(path, &buf).map_err(|source| DownloadError::Io { path: path.to_path_buf(), source })?;
+        std::fs::write(path, &buf).map_err(|source| DownloadError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
         tracing::info!(path = %path.display(), byte_count = buf.len(), "downloaded pdf written to disk");
     }
 
@@ -88,7 +109,10 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = dir.path().join("report.pdf");
             let content = download_pdf(&url, Some(&path)).unwrap();
-            assert_eq!(content, b"hello", "the returned bytes must not be affected by also saving to disk");
+            assert_eq!(
+                content, b"hello",
+                "the returned bytes must not be affected by also saving to disk"
+            );
             assert_eq!(std::fs::read(&path).unwrap(), b"hello");
         }
 
@@ -123,7 +147,8 @@ mod tests {
 
         #[test]
         fn a_500_response_is_a_typed_status_error() {
-            let url = serve_once(b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n");
+            let url =
+                serve_once(b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n");
             let err = download_pdf(&url, None).unwrap_err();
             match err {
                 DownloadError::Status { code, .. } => assert_eq!(code, 500),
@@ -155,14 +180,25 @@ mod tests {
             let url = format!("http://{addr}/report.pdf");
 
             let err = download_pdf(&url, None).unwrap_err();
-            assert!(matches!(err, DownloadError::Transport { .. }), "expected DownloadError::Transport, got {err:?}");
+            assert!(
+                matches!(err, DownloadError::Transport { .. }),
+                "expected DownloadError::Transport, got {err:?}"
+            );
         }
 
         #[test]
         fn an_unroutable_host_is_a_typed_transport_error_not_a_panic() {
-            let result = std::panic::catch_unwind(|| download_pdf("http://this-host-does-not-exist.invalid/report.pdf", None));
-            assert!(result.is_ok(), "download_pdf must never panic on an unreachable host");
-            assert!(matches!(result.unwrap(), Err(DownloadError::Transport { .. })));
+            let result = std::panic::catch_unwind(|| {
+                download_pdf("http://this-host-does-not-exist.invalid/report.pdf", None)
+            });
+            assert!(
+                result.is_ok(),
+                "download_pdf must never panic on an unreachable host"
+            );
+            assert!(matches!(
+                result.unwrap(),
+                Err(DownloadError::Transport { .. })
+            ));
         }
     }
 
@@ -175,7 +211,10 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = dir.path().join("missing_subdir").join("report.pdf");
             let err = download_pdf(&url, Some(&path)).unwrap_err();
-            assert!(matches!(err, DownloadError::Io { .. }), "expected DownloadError::Io, got {err:?}");
+            assert!(
+                matches!(err, DownloadError::Io { .. }),
+                "expected DownloadError::Io, got {err:?}"
+            );
         }
     }
 }

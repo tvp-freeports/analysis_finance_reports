@@ -29,7 +29,9 @@ use crate::formats_utils::text_filter::carryover::page::{PageCarryover, PageCarr
 use crate::formats_utils::text_filter::carryover::promise::{Carryover, CarryoverError};
 use crate::formats_utils::text_filter::carryover::record::{Record, RecordError};
 use crate::formats_utils::text_filter::carryover::{FundFrom, TextFilterLabelledAssets};
-use crate::formats_utils::text_filter::standard_funcs::{StandardFuncsError, TextFilterAssetsStandard};
+use crate::formats_utils::text_filter::standard_funcs::{
+    StandardFuncsError, TextFilterAssetsStandard,
+};
 
 use super::super::super::structured::fund_assets::{AmountCast, DateCast};
 
@@ -141,7 +143,11 @@ fn fund_from(input: &InputLabelledAssets) -> Result<FundFrom, CarryoverConfigErr
     Ok(match &input.fund {
         None => FundFrom::Page,
         Some(InputFundFrom::SoleIfAbsent) => FundFrom::SoleIfAbsent,
-        Some(InputFundFrom::NearestPage { field, page_block_type, separator }) => FundFrom::NearestPage {
+        Some(InputFundFrom::NearestPage {
+            field,
+            page_block_type,
+            separator,
+        }) => FundFrom::NearestPage {
             carry: PageCarryover::new(field.clone(), separator.clone())?,
             page_block_type: BlockType::from(page_block_type.clone()),
         },
@@ -149,12 +155,19 @@ fn fund_from(input: &InputLabelledAssets) -> Result<FundFrom, CarryoverConfigErr
 }
 
 /// Builds the `labelled_assets` pipe.
-pub fn text_filter(input: &InputLabelledAssets) -> Result<TextFilterLabelledAssets, CarryoverConfigError> {
-    let assets = TextFilterAssetsStandard::new(input.date_regex.as_deref(), input.remove_from_fund.clone())?;
+pub fn text_filter(
+    input: &InputLabelledAssets,
+) -> Result<TextFilterLabelledAssets, CarryoverConfigError> {
+    let assets =
+        TextFilterAssetsStandard::new(input.date_regex.as_deref(), input.remove_from_fund.clone())?;
     let resume = if input.resume.is_empty() {
         None
     } else {
-        Some(Carryover::new(input.resume.clone(), input.fund_key.clone(), input.separator.clone())?)
+        Some(Carryover::new(
+            input.resume.clone(),
+            input.fund_key.clone(),
+            input.separator.clone(),
+        )?)
     };
     Ok(TextFilterLabelledAssets::new(
         record_of(input)?,
@@ -166,8 +179,14 @@ pub fn text_filter(input: &InputLabelledAssets) -> Result<TextFilterLabelledAsse
 }
 
 /// Builds the `carryover_deposit` pipe.
-pub fn deposit(input: &InputCarryoverDeposit) -> Result<DeserializeCarryoverDeposit, CarryoverConfigError> {
-    let carry = Carryover::new(input.fields.clone(), input.fund_key.clone(), input.separator.clone())?;
+pub fn deposit(
+    input: &InputCarryoverDeposit,
+) -> Result<DeserializeCarryoverDeposit, CarryoverConfigError> {
+    let carry = Carryover::new(
+        input.fields.clone(),
+        input.fund_key.clone(),
+        input.separator.clone(),
+    )?;
     Ok(DeserializeCarryoverDeposit::new(carry))
 }
 
@@ -175,11 +194,15 @@ pub fn deposit(input: &InputCarryoverDeposit) -> Result<DeserializeCarryoverDepo
 pub fn assets(input: &InputAssets) -> Result<DeserializerAssetsStandard, CarryoverConfigError> {
     let amount: AmountCast = match &input.amount_cast {
         None => AmountCast::default(),
-        Some(name) => name.parse().map_err(|message| CarryoverConfigError::Cast(name.clone(), message))?,
+        Some(name) => name
+            .parse()
+            .map_err(|message| CarryoverConfigError::Cast(name.clone(), message))?,
     };
     let date: DateCast = match &input.date_cast {
         None => DateCast::default(),
-        Some(name) => name.parse().map_err(|message| CarryoverConfigError::Cast(name.clone(), message))?,
+        Some(name) => name
+            .parse()
+            .map_err(|message| CarryoverConfigError::Cast(name.clone(), message))?,
     };
     Ok(DeserializerAssetsStandard::with_converters(
         amount.converter(),
@@ -217,7 +240,10 @@ mod tests {
         #[test]
         fn a_record_with_no_field_is_refused_when_the_repository_loads() {
             let input = parsed("gather: {}\n");
-            assert!(matches!(text_filter(&input), Err(CarryoverConfigError::Record(_))));
+            assert!(matches!(
+                text_filter(&input),
+                Err(CarryoverConfigError::Record(_))
+            ));
         }
 
         #[test]
@@ -251,7 +277,10 @@ mod tests {
                  fund:\n  kind: nearest_page\n  field: ubs-fund\n  page_block_type: ASSETS_PAGE\n",
             );
             match fund_from(&input).unwrap() {
-                FundFrom::NearestPage { carry, page_block_type } => {
+                FundFrom::NearestPage {
+                    carry,
+                    page_block_type,
+                } => {
                     assert_eq!(carry.promise_id(14), "ubs-fund-page-14");
                     assert_eq!(page_block_type, BlockType::from("ASSETS_PAGE".to_string()));
                 }
@@ -285,7 +314,10 @@ mod tests {
         #[test]
         fn a_deposit_with_no_field_is_refused_when_the_repository_loads() {
             let deposited: InputCarryoverDeposit = serde_yaml::from_str("fields: []\n").unwrap();
-            assert!(matches!(deposit(&deposited), Err(CarryoverConfigError::Carryover(_))));
+            assert!(matches!(
+                deposit(&deposited),
+                Err(CarryoverConfigError::Carryover(_))
+            ));
         }
     }
 
@@ -302,7 +334,8 @@ mod tests {
         /// typography (`R31`), and MEDIOLANUM-ES24.A's Spanish month.
         #[test]
         fn the_two_the_measured_formats_name() {
-            let magnitude: InputAssets = serde_yaml::from_str("amount_cast: float + magnitude\n").unwrap();
+            let magnitude: InputAssets =
+                serde_yaml::from_str("amount_cast: float + magnitude\n").unwrap();
             assert!(assets(&magnitude).is_ok());
             let spanish: InputAssets = serde_yaml::from_str("date_cast: es_month\n").unwrap();
             assert!(assets(&spanish).is_ok());

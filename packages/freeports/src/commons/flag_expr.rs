@@ -194,7 +194,12 @@ pub fn evaluate(expression: &str, names: &HashMap<String, u64>) -> Result<u64, F
         return Err(FlagExprError::EmptyExpression);
     }
     let universe = names.values().fold(0u64, |acc, b| acc | b);
-    let mut parser = Parser { tokens: &tokens, pos: 0, names, universe };
+    let mut parser = Parser {
+        tokens: &tokens,
+        pos: 0,
+        names,
+        universe,
+    };
     let value = parser.parse_or()?;
     if parser.pos != tokens.len() {
         return Err(FlagExprError::TrailingTokens);
@@ -379,7 +384,10 @@ mod tests {
 
         #[test]
         fn lowercase_input_resolves_the_same_bit_as_uppercase() {
-            assert_eq!(evaluate("a", &names()).unwrap(), evaluate("A", &names()).unwrap());
+            assert_eq!(
+                evaluate("a", &names()).unwrap(),
+                evaluate("A", &names()).unwrap()
+            );
         }
 
         #[test]
@@ -414,7 +422,10 @@ mod tests {
 
         #[test]
         fn is_optional_around_operators() {
-            assert_eq!(evaluate("A|B", &names()).unwrap(), evaluate("A | B", &names()).unwrap());
+            assert_eq!(
+                evaluate("A|B", &names()).unwrap(),
+                evaluate("A | B", &names()).unwrap()
+            );
         }
 
         #[test]
@@ -502,12 +513,18 @@ mod tests {
 
             #[test]
             fn rejects_the_empty_string() {
-                assert!(matches!(evaluate("", &names()), Err(FlagExprError::EmptyExpression)));
+                assert!(matches!(
+                    evaluate("", &names()),
+                    Err(FlagExprError::EmptyExpression)
+                ));
             }
 
             #[test]
             fn rejects_a_whitespace_only_string() {
-                assert!(matches!(evaluate("   ", &names()), Err(FlagExprError::EmptyExpression)));
+                assert!(matches!(
+                    evaluate("   ", &names()),
+                    Err(FlagExprError::EmptyExpression)
+                ));
             }
         }
 
@@ -516,22 +533,34 @@ mod tests {
 
             #[test]
             fn rejects_a_trailing_operator_with_no_right_operand() {
-                assert!(matches!(evaluate("A |", &names()), Err(FlagExprError::UnexpectedToken)));
+                assert!(matches!(
+                    evaluate("A |", &names()),
+                    Err(FlagExprError::UnexpectedToken)
+                ));
             }
 
             #[test]
             fn rejects_a_leading_operator_with_no_left_operand() {
-                assert!(matches!(evaluate("| A", &names()), Err(FlagExprError::UnexpectedToken)));
+                assert!(matches!(
+                    evaluate("| A", &names()),
+                    Err(FlagExprError::UnexpectedToken)
+                ));
             }
 
             #[test]
             fn rejects_an_empty_parenthesized_group() {
-                assert!(matches!(evaluate("()", &names()), Err(FlagExprError::UnexpectedToken)));
+                assert!(matches!(
+                    evaluate("()", &names()),
+                    Err(FlagExprError::UnexpectedToken)
+                ));
             }
 
             #[test]
             fn rejects_a_lone_unary_operator() {
-                assert!(matches!(evaluate("~", &names()), Err(FlagExprError::UnexpectedToken)));
+                assert!(matches!(
+                    evaluate("~", &names()),
+                    Err(FlagExprError::UnexpectedToken)
+                ));
             }
         }
 
@@ -540,7 +569,10 @@ mod tests {
 
             #[test]
             fn rejects_a_group_with_no_closing_paren() {
-                assert!(matches!(evaluate("(A", &names()), Err(FlagExprError::UnclosedParenthesis)));
+                assert!(matches!(
+                    evaluate("(A", &names()),
+                    Err(FlagExprError::UnclosedParenthesis)
+                ));
             }
 
             #[test]
@@ -549,7 +581,10 @@ mod tests {
                 // reached (there's no operator joining them) — so the parser is looking for `)`
                 // and finds `B` instead. This is a closing-paren failure, not a trailing-tokens
                 // one, because it happens *inside* the still-open group.
-                assert!(matches!(evaluate("(A B)", &names()), Err(FlagExprError::UnclosedParenthesis)));
+                assert!(matches!(
+                    evaluate("(A B)", &names()),
+                    Err(FlagExprError::UnclosedParenthesis)
+                ));
             }
         }
 
@@ -558,12 +593,18 @@ mod tests {
 
             #[test]
             fn rejects_a_second_name_with_no_operator_between() {
-                assert!(matches!(evaluate("A B", &names()), Err(FlagExprError::TrailingTokens)));
+                assert!(matches!(
+                    evaluate("A B", &names()),
+                    Err(FlagExprError::TrailingTokens)
+                ));
             }
 
             #[test]
             fn rejects_a_dangling_closing_paren() {
-                assert!(matches!(evaluate("A)", &names()), Err(FlagExprError::TrailingTokens)));
+                assert!(matches!(
+                    evaluate("A)", &names()),
+                    Err(FlagExprError::TrailingTokens)
+                ));
             }
 
             #[test]
@@ -647,7 +688,11 @@ mod tests {
             for _ in 0..200 {
                 let (expr, value) = random_expr(&mut rng, 3);
                 let negated_twice = format!("~~({expr})");
-                assert_eq!(evaluate(&negated_twice, &names).unwrap(), value, "expr = {expr}");
+                assert_eq!(
+                    evaluate(&negated_twice, &names).unwrap(),
+                    value,
+                    "expr = {expr}"
+                );
             }
         }
 
@@ -723,13 +768,20 @@ mod tests {
         #[allow(clippy::type_complexity)] // local table of (name, fn) pairs, not worth a named type.
         fn exhaustive_pairs_of_names_and_operators_match_bitwise_ground_truth() {
             let names = alphabet_names();
-            let ops: [(&str, fn(u64, u64) -> u64); 3] =
-                [("|", |x, y| x | y), ("&", |x, y| x & y), ("^", |x, y| x ^ y)];
+            let ops: [(&str, fn(u64, u64) -> u64); 3] = [
+                ("|", |x, y| x | y),
+                ("&", |x, y| x & y),
+                ("^", |x, y| x ^ y),
+            ];
             for (name_a, bit_a) in ALPHABET {
                 for (name_b, bit_b) in ALPHABET {
                     for (op, f) in ops {
                         let expr = format!("{name_a} {op} {name_b}");
-                        assert_eq!(evaluate(&expr, &names).unwrap(), f(bit_a, bit_b), "expr = {expr}");
+                        assert_eq!(
+                            evaluate(&expr, &names).unwrap(),
+                            f(bit_a, bit_b),
+                            "expr = {expr}"
+                        );
                     }
                 }
             }
@@ -738,7 +790,11 @@ mod tests {
         #[test]
         fn inverting_the_full_universe_always_leaves_nothing() {
             let names = alphabet_names();
-            let full = ALPHABET.iter().map(|(n, _)| *n).collect::<Vec<_>>().join(" | ");
+            let full = ALPHABET
+                .iter()
+                .map(|(n, _)| *n)
+                .collect::<Vec<_>>()
+                .join(" | ");
             assert_eq!(evaluate(&format!("~({full})"), &names).unwrap(), 0);
         }
     }

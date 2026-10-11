@@ -73,7 +73,10 @@ impl PromiseMap {
     /// Insertion order is significant: it is page order, and the later one wins when the promise is
     /// not *multiple* (see [`FlatPromiseMap::fulfill`]).
     pub fn push(&mut self, id: impl Into<String>, value: impl Into<BlockValue>) {
-        self.entries.entry(id.into()).or_default().push(value.into());
+        self.entries
+            .entry(id.into())
+            .or_default()
+            .push(value.into());
     }
 
     /// Pours every pair produced by a pipe into the multimap.
@@ -177,7 +180,11 @@ impl PromiseMap {
                         // The referenced id does not exist, or left no contributions: the promise
                         // stays pending. Not an error, but a detail worth having when debugging.
                         None => {
-                            tracing::trace!(id, target = promise.id(), "reference kept pending: target has no contributions");
+                            tracing::trace!(
+                                id,
+                                target = promise.id(),
+                                "reference kept pending: target has no contributions"
+                            );
                             flattened.push(contribution.clone());
                         }
                     }
@@ -233,7 +240,10 @@ impl FlatPromiseMap {
     /// - ordinary promise: **the last** candidate wins — the contribution of the latest page — returned
     ///   as it is, so if it is a list, that list is what comes out.
     pub fn fulfill(&self, promise: &Promise) -> Result<BlockValue, PromiseError> {
-        let contributions = self.entries.get(promise.id()).ok_or_else(|| promise.unresolved())?;
+        let contributions = self
+            .entries
+            .get(promise.id())
+            .ok_or_else(|| promise.unresolved())?;
         let candidates: Vec<&BlockValue> =
             contributions.iter().filter(|v| !v.is_promise()).collect();
         if candidates.len() != contributions.len() {
@@ -258,7 +268,10 @@ impl FlatPromiseMap {
                 "a promise that is not 'multiple' was kept with several different values; the last one wins and the others are lost"
             );
         }
-        candidates.last().map(|v| (*v).clone()).ok_or_else(|| promise.unresolved())
+        candidates
+            .last()
+            .map(|v| (*v).clone())
+            .ok_or_else(|| promise.unresolved())
     }
 }
 
@@ -305,7 +318,10 @@ impl FlatPromiseMap {
     {
         let mut entries: BTreeMap<String, Vec<BlockValue>> = BTreeMap::new();
         for (id, contribution) in pairs {
-            entries.entry(id.into()).or_default().push(contribution.into());
+            entries
+                .entry(id.into())
+                .or_default()
+                .push(contribution.into());
         }
         FlatPromiseMap { entries }
     }
@@ -328,7 +344,10 @@ mod tests {
             let mut map = PromiseMap::new();
             map.push("fund", 1_i64);
             map.push("fund", 2_i64);
-            assert_eq!(map.get("fund"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
+            assert_eq!(
+                map.get("fund"),
+                Some(&[BlockValue::Int(1), BlockValue::Int(2)][..])
+            );
         }
 
         #[test]
@@ -336,7 +355,10 @@ mod tests {
             let mut map = PromiseMap::new();
             map.merge([("a", 1_i64), ("b", 2_i64)]);
             map.merge([("a", 3_i64)]);
-            assert_eq!(map.get("a"), Some(&[BlockValue::Int(1), BlockValue::Int(3)][..]));
+            assert_eq!(
+                map.get("a"),
+                Some(&[BlockValue::Int(1), BlockValue::Int(3)][..])
+            );
             assert_eq!(map.get("b"), Some(&[BlockValue::Int(2)][..]));
             assert_eq!(map.len(), 2);
         }
@@ -351,14 +373,21 @@ mod tests {
 
         #[test]
         fn is_built_from_an_iterator() {
-            let map: PromiseMap = [("a", 1_i64), ("a", 2_i64), ("b", 3_i64)].into_iter().collect();
-            assert_eq!(map.get("a"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
+            let map: PromiseMap = [("a", 1_i64), ("a", 2_i64), ("b", 3_i64)]
+                .into_iter()
+                .collect();
+            assert_eq!(
+                map.get("a"),
+                Some(&[BlockValue::Int(1), BlockValue::Int(2)][..])
+            );
             assert_eq!(map.len(), 2);
         }
 
         #[test]
         fn iterates_in_key_order() {
-            let map: PromiseMap = [("z", 1_i64), ("a", 2_i64), ("m", 3_i64)].into_iter().collect();
+            let map: PromiseMap = [("z", 1_i64), ("a", 2_i64), ("m", 3_i64)]
+                .into_iter()
+                .collect();
             let keys: Vec<&str> = map.iter().map(|(k, _)| k.as_str()).collect();
             assert_eq!(keys, vec!["a", "m", "z"]);
         }
@@ -373,14 +402,19 @@ mod tests {
         #[test]
         fn a_single_contribution_stays_alone() {
             let map: PromiseMap = [("x", 42_i64)].into_iter().collect();
-            assert_eq!(map.flatten().unwrap().get("x"), Some(&[BlockValue::Int(42)][..]));
+            assert_eq!(
+                map.flatten().unwrap().get("x"),
+                Some(&[BlockValue::Int(42)][..])
+            );
         }
 
         /// Several contributions stay several: they are not packed into a [`BlockValue::List`],
         /// which would be indistinguishable from a single list-valued contribution.
         #[test]
         fn multiple_contributions_stay_separate() {
-            let map: PromiseMap = [("x", 1_i64), ("x", 2_i64), ("x", 3_i64)].into_iter().collect();
+            let map: PromiseMap = [("x", 1_i64), ("x", 2_i64), ("x", 3_i64)]
+                .into_iter()
+                .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(
                 flat.get("x"),
@@ -408,8 +442,12 @@ mod tests {
         /// contributions.
         #[test]
         fn a_null_only_id_disappears_from_the_flat_map() {
-            let map: PromiseMap =
-                [("solo-null", BlockValue::Null), ("solo-null", BlockValue::Null)].into_iter().collect();
+            let map: PromiseMap = [
+                ("solo-null", BlockValue::Null),
+                ("solo-null", BlockValue::Null),
+            ]
+            .into_iter()
+            .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("solo-null"), None);
             assert!(flat.is_empty());
@@ -419,10 +457,13 @@ mod tests {
         /// value: it disappears, the others do not.
         #[test]
         fn a_null_contribution_disappears_from_among_the_others() {
-            let map: PromiseMap =
-                [("x", BlockValue::Int(1)), ("x", BlockValue::Null), ("x", BlockValue::Int(2))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [
+                ("x", BlockValue::Int(1)),
+                ("x", BlockValue::Null),
+                ("x", BlockValue::Int(2)),
+            ]
+            .into_iter()
+            .collect();
             assert_eq!(
                 map.flatten().unwrap().get("x"),
                 Some(&[BlockValue::Int(1), BlockValue::Int(2)][..])
@@ -431,8 +472,12 @@ mod tests {
 
         #[test]
         fn resolves_a_simple_reference() {
-            let map: PromiseMap =
-                [("source", promise("target")), ("target", BlockValue::Int(99))].into_iter().collect();
+            let map: PromiseMap = [
+                ("source", promise("target")),
+                ("target", BlockValue::Int(99)),
+            ]
+            .into_iter()
+            .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("source"), Some(&[BlockValue::Int(99)][..]));
             assert_eq!(flat.get("target"), Some(&[BlockValue::Int(99)][..]));
@@ -440,8 +485,13 @@ mod tests {
 
         #[test]
         fn resolves_a_chain_of_references() {
-            let map: PromiseMap =
-                [("a", promise("b")), ("b", promise("c")), ("c", BlockValue::Int(7))].into_iter().collect();
+            let map: PromiseMap = [
+                ("a", promise("b")),
+                ("b", promise("c")),
+                ("c", BlockValue::Int(7)),
+            ]
+            .into_iter()
+            .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("a"), Some(&[BlockValue::Int(7)][..]));
             assert_eq!(flat.get("b"), Some(&[BlockValue::Int(7)][..]));
@@ -453,10 +503,13 @@ mod tests {
         /// it, exactly like a target with one list-valued contribution.
         #[test]
         fn a_reference_receives_the_contributions_of_its_target() {
-            let map: PromiseMap =
-                [("src", promise("t")), ("t", BlockValue::Int(1)), ("t", BlockValue::Int(2))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [
+                ("src", promise("t")),
+                ("t", BlockValue::Int(1)),
+                ("t", BlockValue::Int(2)),
+            ]
+            .into_iter()
+            .collect();
             let flat = map.flatten().unwrap();
             let expected = [BlockValue::Int(1), BlockValue::Int(2)];
             assert_eq!(flat.get("src"), Some(&expected[..]));
@@ -476,17 +529,26 @@ mod tests {
             .into_iter()
             .collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("x"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
+            assert_eq!(
+                flat.get("x"),
+                Some(&[BlockValue::Int(1), BlockValue::Int(2)][..])
+            );
         }
 
         #[test]
         fn unpromised_contributions_stay_alongside_resolved_ones() {
-            let map: PromiseMap =
-                [("x", BlockValue::from("fisso")), ("x", promise("a")), ("a", BlockValue::Int(5))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [
+                ("x", BlockValue::from("fisso")),
+                ("x", promise("a")),
+                ("a", BlockValue::Int(5)),
+            ]
+            .into_iter()
+            .collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("x"), Some(&[BlockValue::from("fisso"), BlockValue::Int(5)][..]));
+            assert_eq!(
+                flat.get("x"),
+                Some(&[BlockValue::from("fisso"), BlockValue::Int(5)][..])
+            );
         }
 
         /// Contributions inherited from a reference are spliced **in the promise's place**, not
@@ -526,7 +588,12 @@ mod tests {
             assert_eq!(
                 flat.get("x"),
                 Some(
-                    &[BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(1), BlockValue::Int(2)][..]
+                    &[
+                        BlockValue::Int(1),
+                        BlockValue::Int(2),
+                        BlockValue::Int(1),
+                        BlockValue::Int(2)
+                    ][..]
                 )
             );
             assert_eq!(
@@ -538,23 +605,31 @@ mod tests {
                     BlockValue::Int(2),
                 ])
             );
-            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), BlockValue::Int(2));
+            assert_eq!(
+                flat.fulfill(&Promise::new("x")).unwrap(),
+                BlockValue::Int(2)
+            );
         }
 
         #[test]
         fn the_promise_flags_do_not_affect_flattening() {
             // Strict and multiple matter when an entity is resolved, not here: `flatten` replaces
             // the promise with the referenced id's contributions either way.
-            let map: PromiseMap =
-                [("src", promise("t[]!")), ("t", BlockValue::Int(1))].into_iter().collect();
-            assert_eq!(map.flatten().unwrap().get("src"), Some(&[BlockValue::Int(1)][..]));
+            let map: PromiseMap = [("src", promise("t[]!")), ("t", BlockValue::Int(1))]
+                .into_iter()
+                .collect();
+            assert_eq!(
+                map.flatten().unwrap().get("src"),
+                Some(&[BlockValue::Int(1)][..])
+            );
         }
 
         #[test]
         fn does_not_descend_into_containers() {
             let nested = BlockValue::List(vec![promise("t")]);
-            let map: PromiseMap =
-                [("src", nested.clone()), ("t", BlockValue::Int(1))].into_iter().collect();
+            let map: PromiseMap = [("src", nested.clone()), ("t", BlockValue::Int(1))]
+                .into_iter()
+                .collect();
             assert_eq!(map.flatten().unwrap().get("src"), Some(&[nested][..]));
         }
 
@@ -575,12 +650,18 @@ mod tests {
 
             let flat = map.flatten().unwrap();
             for (id, contributions) in flat.iter() {
-                assert!(!contributions.is_empty(), "l'id `{id}` ha un vettore di contributi vuoto");
+                assert!(
+                    !contributions.is_empty(),
+                    "l'id `{id}` ha un vettore di contributi vuoto"
+                );
             }
             assert_eq!(flat.get("solo-null"), None);
             assert_eq!(flat.get("senza-contributi"), None);
             // An empty container, in contrast, is a real value and stays.
-            assert_eq!(flat.get("contenitore-vuoto"), Some(&[BlockValue::List(Vec::new())][..]));
+            assert_eq!(
+                flat.get("contenitore-vuoto"),
+                Some(&[BlockValue::List(Vec::new())][..])
+            );
         }
     }
 
@@ -594,15 +675,19 @@ mod tests {
         use std::collections::BTreeSet;
 
         fn one_list_contribution() -> FlatPromiseMap {
-            let map: PromiseMap =
-                [("x", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [(
+                "x",
+                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
+            )]
+            .into_iter()
+            .collect();
             map.flatten().unwrap()
         }
 
         fn two_scalar_contributions() -> FlatPromiseMap {
-            let map: PromiseMap = [("x", BlockValue::Int(1)), ("x", BlockValue::Int(2))].into_iter().collect();
+            let map: PromiseMap = [("x", BlockValue::Int(1)), ("x", BlockValue::Int(2))]
+                .into_iter()
+                .collect();
             map.flatten().unwrap()
         }
 
@@ -614,9 +699,17 @@ mod tests {
             let scalars = two_scalar_contributions();
             assert_eq!(
                 container.get("x"),
-                Some(&[BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])][..])
+                Some(
+                    &[BlockValue::List(vec![
+                        BlockValue::Int(1),
+                        BlockValue::Int(2)
+                    ])][..]
+                )
             );
-            assert_eq!(scalars.get("x"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
+            assert_eq!(
+                scalars.get("x"),
+                Some(&[BlockValue::Int(1), BlockValue::Int(2)][..])
+            );
             assert_ne!(container, scalars);
         }
 
@@ -631,7 +724,9 @@ mod tests {
         #[test]
         fn a_normal_promise_on_two_scalar_contributions_still_returns_the_last() {
             assert_eq!(
-                two_scalar_contributions().fulfill(&Promise::new("x")).unwrap(),
+                two_scalar_contributions()
+                    .fulfill(&Promise::new("x"))
+                    .unwrap(),
                 BlockValue::Int(2)
             );
         }
@@ -639,15 +734,22 @@ mod tests {
         #[test]
         fn a_multiple_promise_on_a_single_list_contribution_wraps_it() {
             assert_eq!(
-                one_list_contribution().fulfill(&Promise::new("x[]")).unwrap(),
-                BlockValue::List(vec![BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])])
+                one_list_contribution()
+                    .fulfill(&Promise::new("x[]"))
+                    .unwrap(),
+                BlockValue::List(vec![BlockValue::List(vec![
+                    BlockValue::Int(1),
+                    BlockValue::Int(2)
+                ])])
             );
         }
 
         #[test]
         fn a_multiple_promise_on_two_scalar_contributions_returns_both() {
             assert_eq!(
-                two_scalar_contributions().fulfill(&Promise::new("x[]")).unwrap(),
+                two_scalar_contributions()
+                    .fulfill(&Promise::new("x[]"))
+                    .unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
             );
         }
@@ -659,7 +761,10 @@ mod tests {
             let map: PromiseMap = [("x", BlockValue::List(Vec::new()))].into_iter().collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("x"), Some(&[BlockValue::List(Vec::new())][..]));
-            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), BlockValue::List(Vec::new()));
+            assert_eq!(
+                flat.fulfill(&Promise::new("x")).unwrap(),
+                BlockValue::List(Vec::new())
+            );
             assert_eq!(
                 flat.fulfill(&Promise::new("x[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::List(Vec::new())])
@@ -687,7 +792,10 @@ mod tests {
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("x"), Some(&[set.clone()][..]));
             assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), set.clone());
-            assert_eq!(flat.fulfill(&Promise::new("x[]")).unwrap(), BlockValue::List(vec![set]));
+            assert_eq!(
+                flat.fulfill(&Promise::new("x[]")).unwrap(),
+                BlockValue::List(vec![set])
+            );
         }
 
         #[test]
@@ -700,7 +808,10 @@ mod tests {
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("x"), Some(&[inner.clone()][..]));
             assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), inner.clone());
-            assert_eq!(flat.fulfill(&Promise::new("x[]")).unwrap(), BlockValue::List(vec![inner]));
+            assert_eq!(
+                flat.fulfill(&Promise::new("x[]")).unwrap(),
+                BlockValue::List(vec![inner])
+            );
         }
 
         /// The same distinction seen through a reference: `src` inherits **one** contribution,
@@ -708,7 +819,9 @@ mod tests {
         #[test]
         fn a_reference_to_an_id_whose_only_contribution_is_a_list_yields_the_list() {
             let list = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
-            let map: PromiseMap = [("src", promise("t")), ("t", list.clone())].into_iter().collect();
+            let map: PromiseMap = [("src", promise("t")), ("t", list.clone())]
+                .into_iter()
+                .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("src"), Some(&[list.clone()][..]));
             assert_eq!(flat.get("t"), Some(&[list.clone()][..]));
@@ -720,7 +833,10 @@ mod tests {
         #[test]
         fn flattening_a_list_contribution_twice_does_not_unwrap_it() {
             let map: PromiseMap = [
-                ("contenitore", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])),
+                (
+                    "contenitore",
+                    BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
+                ),
                 ("separati", BlockValue::Int(1)),
                 ("separati", BlockValue::Int(2)),
             ]
@@ -755,7 +871,10 @@ mod tests {
             let mut map = PromiseMap::new();
             map.push("source", Promise::new("vuoto"));
             map.entries.insert("vuoto".into(), Vec::new());
-            assert_eq!(map.flatten().unwrap().get("source"), Some(&[promise("vuoto")][..]));
+            assert_eq!(
+                map.flatten().unwrap().get("source"),
+                Some(&[promise("vuoto")][..])
+            );
         }
 
         /// `Null`s are already gone when splicing looks at the target, so an id of nothing but
@@ -763,8 +882,9 @@ mod tests {
         /// and inherits no `Null`.
         #[test]
         fn a_reference_to_a_null_only_target_stays_pending() {
-            let map: PromiseMap =
-                [("source", promise("t")), ("t", BlockValue::Null)].into_iter().collect();
+            let map: PromiseMap = [("source", promise("t")), ("t", BlockValue::Null)]
+                .into_iter()
+                .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("source"), Some(&[promise("t")][..]));
             assert_eq!(flat.get("t"), None);
@@ -772,7 +892,9 @@ mod tests {
 
         #[test]
         fn a_chain_that_ends_in_nothing_stops_on_the_pending_promise() {
-            let map: PromiseMap = [("a", promise("b")), ("b", promise("nowhere"))].into_iter().collect();
+            let map: PromiseMap = [("a", promise("b")), ("b", promise("nowhere"))]
+                .into_iter()
+                .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("b"), Some(&[promise("nowhere")][..]));
             assert_eq!(flat.get("a"), Some(&[promise("nowhere")][..]));
@@ -780,10 +902,13 @@ mod tests {
 
         #[test]
         fn a_pending_reference_does_not_prevent_others_from_resolving() {
-            let map: PromiseMap =
-                [("a", promise("nowhere")), ("b", promise("c")), ("c", BlockValue::Int(3))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [
+                ("a", promise("nowhere")),
+                ("b", promise("c")),
+                ("c", BlockValue::Int(3)),
+            ]
+            .into_iter()
+            .collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("a"), Some(&[promise("nowhere")][..]));
             assert_eq!(flat.get("b"), Some(&[BlockValue::Int(3)][..]));
@@ -799,27 +924,40 @@ mod tests {
             let map: PromiseMap = [("a", promise("a"))].into_iter().collect();
             assert_eq!(
                 map.flatten().unwrap_err(),
-                PromiseError::Circular { chain: vec!["a".into(), "a".into()] }
+                PromiseError::Circular {
+                    chain: vec!["a".into(), "a".into()]
+                }
             );
         }
 
         #[test]
         fn two_ids_that_reference_each_other_are_a_cycle() {
-            let map: PromiseMap = [("a", promise("b")), ("b", promise("a"))].into_iter().collect();
+            let map: PromiseMap = [("a", promise("b")), ("b", promise("a"))]
+                .into_iter()
+                .collect();
             assert_eq!(
                 map.flatten().unwrap_err(),
-                PromiseError::Circular { chain: vec!["a".into(), "b".into(), "a".into()] }
+                PromiseError::Circular {
+                    chain: vec!["a".into(), "b".into(), "a".into()]
+                }
             );
         }
 
         #[test]
         fn the_reported_chain_covers_the_whole_cycle() {
-            let map: PromiseMap =
-                [("a", promise("b")), ("b", promise("c")), ("c", promise("a"))].into_iter().collect();
+            let map: PromiseMap = [
+                ("a", promise("b")),
+                ("b", promise("c")),
+                ("c", promise("a")),
+            ]
+            .into_iter()
+            .collect();
             let err = map.flatten().unwrap_err();
             assert_eq!(
                 err,
-                PromiseError::Circular { chain: vec!["a".into(), "b".into(), "c".into(), "a".into()] }
+                PromiseError::Circular {
+                    chain: vec!["a".into(), "b".into(), "c".into(), "a".into()]
+                }
             );
             assert_eq!(err.to_string(), "circular promise chain: a -> b -> c -> a");
         }
@@ -829,13 +967,18 @@ mod tests {
         /// there.
         #[test]
         fn a_path_that_enters_a_cycle_also_reports_the_entry_point() {
-            let map: PromiseMap =
-                [("ingresso", promise("a")), ("a", promise("b")), ("b", promise("a"))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [
+                ("ingresso", promise("a")),
+                ("a", promise("b")),
+                ("b", promise("a")),
+            ]
+            .into_iter()
+            .collect();
             assert_eq!(
                 map.flatten().unwrap_err(),
-                PromiseError::Circular { chain: vec!["a".into(), "b".into(), "a".into()] }
+                PromiseError::Circular {
+                    chain: vec!["a".into(), "b".into(), "a".into()]
+                }
             );
         }
 
@@ -843,19 +986,35 @@ mod tests {
         /// contributions were inserted in: error messages are reproducible.
         #[test]
         fn the_reported_chain_is_deterministic() {
-            let forward: PromiseMap =
-                [("a", promise("b")), ("b", promise("c")), ("c", promise("a"))].into_iter().collect();
-            let reversed: PromiseMap =
-                [("c", promise("a")), ("b", promise("c")), ("a", promise("b"))].into_iter().collect();
-            assert_eq!(forward.flatten().unwrap_err(), reversed.flatten().unwrap_err());
+            let forward: PromiseMap = [
+                ("a", promise("b")),
+                ("b", promise("c")),
+                ("c", promise("a")),
+            ]
+            .into_iter()
+            .collect();
+            let reversed: PromiseMap = [
+                ("c", promise("a")),
+                ("b", promise("c")),
+                ("a", promise("b")),
+            ]
+            .into_iter()
+            .collect();
+            assert_eq!(
+                forward.flatten().unwrap_err(),
+                reversed.flatten().unwrap_err()
+            );
         }
 
         #[test]
         fn a_cycle_fails_the_entire_flattening() {
-            let map: PromiseMap =
-                [("sano", BlockValue::Int(1)), ("a", promise("b")), ("b", promise("a"))]
-                    .into_iter()
-                    .collect();
+            let map: PromiseMap = [
+                ("sano", BlockValue::Int(1)),
+                ("a", promise("b")),
+                ("b", promise("a")),
+            ]
+            .into_iter()
+            .collect();
             assert!(map.flatten().is_err());
         }
     }
@@ -873,7 +1032,10 @@ mod tests {
         #[test]
         fn a_scalar_value_resolves_to_itself() {
             let map = flat(vec![("fund", BlockValue::from("Acme"))]);
-            assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::from("Acme"));
+            assert_eq!(
+                map.fulfill(&Promise::new("fund")).unwrap(),
+                BlockValue::from("Acme")
+            );
         }
 
         /// The later one wins: that is page order.
@@ -884,7 +1046,10 @@ mod tests {
                 ("fund", BlockValue::Int(2)),
                 ("fund", BlockValue::Int(3)),
             ]);
-            assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::Int(3));
+            assert_eq!(
+                map.fulfill(&Promise::new("fund")).unwrap(),
+                BlockValue::Int(3)
+            );
         }
 
         #[test]
@@ -895,7 +1060,10 @@ mod tests {
                 BlockValue::List(vec![BlockValue::Int(1)])
             );
 
-            let several = flat(vec![("fund", BlockValue::Int(1)), ("fund", BlockValue::Int(2))]);
+            let several = flat(vec![
+                ("fund", BlockValue::Int(1)),
+                ("fund", BlockValue::Int(2)),
+            ]);
             assert_eq!(
                 several.fulfill(&Promise::new("fund[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
@@ -945,7 +1113,10 @@ mod tests {
                 ("fund", promise("nowhere")),
                 ("fund", BlockValue::Int(2)),
             ]);
-            assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::Int(2));
+            assert_eq!(
+                map.fulfill(&Promise::new("fund")).unwrap(),
+                BlockValue::Int(2)
+            );
             assert_eq!(
                 map.fulfill(&Promise::new("fund[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
@@ -977,7 +1148,10 @@ mod tests {
         #[test]
         fn strict_does_not_change_the_resolution_outcome() {
             let map = flat(vec![("fund", BlockValue::Int(1))]);
-            assert_eq!(map.fulfill(&Promise::new("fund!")).unwrap(), BlockValue::Int(1));
+            assert_eq!(
+                map.fulfill(&Promise::new("fund!")).unwrap(),
+                BlockValue::Int(1)
+            );
             let empty = FlatPromiseMap::new();
             assert_eq!(
                 empty.fulfill(&Promise::new("fund!")).unwrap_err(),
@@ -1032,7 +1206,10 @@ mod tests {
         #[test]
         fn the_last_contribution_is_still_the_one_returned() {
             let map = FlatPromiseMap::from_pairs([("x", BlockValue::from("first"))]);
-            assert_eq!(map.fulfill(&Promise::new("x")).unwrap(), BlockValue::from("first"));
+            assert_eq!(
+                map.fulfill(&Promise::new("x")).unwrap(),
+                BlockValue::from("first")
+            );
         }
 
         #[test]
@@ -1041,7 +1218,10 @@ mod tests {
             map.merge([("x", BlockValue::from("a")), ("x", BlockValue::from("b"))]);
             let flat = map.flatten().unwrap();
             let all = flat.fulfill(&Promise::new("x[]")).unwrap();
-            assert_eq!(all, BlockValue::List(vec![BlockValue::from("a"), BlockValue::from("b")]));
+            assert_eq!(
+                all,
+                BlockValue::List(vec![BlockValue::from("a"), BlockValue::from("b")])
+            );
         }
     }
 
@@ -1064,7 +1244,10 @@ mod tests {
                 ("b", BlockValue::Int(2)),
                 ("c", BlockValue::from("x")),
                 ("d", promise("nowhere")),
-                ("e", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])),
+                (
+                    "e",
+                    BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
+                ),
             ]
             .into_iter()
             .collect();
@@ -1093,7 +1276,11 @@ mod tests {
             map.push(format!("id{LENGTH}"), 42_i64);
             let flat = map.flatten().unwrap();
             for i in 0..=LENGTH {
-                assert_eq!(flat.get(&format!("id{i}")), Some(&[BlockValue::Int(42)][..]), "id{i}");
+                assert_eq!(
+                    flat.get(&format!("id{i}")),
+                    Some(&[BlockValue::Int(42)][..]),
+                    "id{i}"
+                );
             }
         }
 
@@ -1107,7 +1294,10 @@ mod tests {
             }
             let flat = map.flatten().unwrap();
             for i in 0..200 {
-                assert_eq!(flat.get(&format!("src{i}")), Some(&[BlockValue::Int(7)][..]));
+                assert_eq!(
+                    flat.get(&format!("src{i}")),
+                    Some(&[BlockValue::Int(7)][..])
+                );
             }
         }
 
@@ -1118,7 +1308,10 @@ mod tests {
             const LENGTH: usize = 300;
             let mut map = PromiseMap::new();
             for i in 0..LENGTH {
-                map.push(format!("id{i:03}"), Promise::new(&format!("id{:03}", (i + 1) % LENGTH)));
+                map.push(
+                    format!("id{i:03}"),
+                    Promise::new(&format!("id{:03}", (i + 1) % LENGTH)),
+                );
             }
             match map.flatten().unwrap_err() {
                 PromiseError::Circular { chain } => assert_eq!(chain.len(), LENGTH + 1),
@@ -1134,7 +1327,10 @@ mod tests {
                 let mut map = PromiseMap::new();
                 for i in 0..n_contributions {
                     map.push("scalari", i as i64);
-                    map.push("contenitori", BlockValue::List(vec![BlockValue::Int(i as i64)]));
+                    map.push(
+                        "contenitori",
+                        BlockValue::List(vec![BlockValue::Int(i as i64)]),
+                    );
                     map.push("misti", i as i64);
                     map.push("misti", BlockValue::List(vec![BlockValue::Int(i as i64)]));
                 }

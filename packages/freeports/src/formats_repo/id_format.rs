@@ -33,29 +33,42 @@ fn pipeline_pattern() -> String {
 }
 
 /// The `(pipeline)` group, wherever it occurs in the string.
-static PIPELINE_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(&pipeline_pattern()).expect("pattern fisso e valido"));
+static PIPELINE_REGEXP: Lazy<Regex> =
+    Lazy::new(|| Regex::new(&pipeline_pattern()).expect("pattern fisso e valido"));
 
 /// The optional tail to strip in order to obtain the format name. Anchored only on the right,
 /// relying on an unanchored search to find the leftmost position the tail matches from.
-static SUFFIX_STRIP_REGEXP: Lazy<Regex> =
-    Lazy::new(|| Regex::new(&format!(r"({})?({INDEX_PATTERN})?$", pipeline_pattern())).expect("pattern fisso e valido"));
+static SUFFIX_STRIP_REGEXP: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(&format!(r"({})?({INDEX_PATTERN})?$", pipeline_pattern()))
+        .expect("pattern fisso e valido")
+});
 
 /// An index at the very end of the string.
 static INDEX_AT_END_REGEXP: Lazy<Regex> =
     Lazy::new(|| Regex::new(&format!(r"{INDEX_PATTERN}$")).expect("pattern fisso e valido"));
 
 static EXPANDABLE_NO_INDEX_REGEXP: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(&format!(r"^{FORMAT_NAME_PATTERN}({})?$", pipeline_pattern())).expect("pattern fisso e valido")
+    Regex::new(&format!(
+        r"^{FORMAT_NAME_PATTERN}({})?$",
+        pipeline_pattern()
+    ))
+    .expect("pattern fisso e valido")
 });
 
 static EXPANDABLE_REGEXP: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(&format!(r"^{FORMAT_NAME_PATTERN}({})?({INDEX_PATTERN})?$", pipeline_pattern()))
-        .expect("pattern fisso e valido")
+    Regex::new(&format!(
+        r"^{FORMAT_NAME_PATTERN}({})?({INDEX_PATTERN})?$",
+        pipeline_pattern()
+    ))
+    .expect("pattern fisso e valido")
 });
 
 static COMPLETE_REGEXP: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(&format!(r"^{FORMAT_NAME_PATTERN}{}{INDEX_PATTERN}$", pipeline_pattern()))
-        .expect("pattern fisso e valido")
+    Regex::new(&format!(
+        r"^{FORMAT_NAME_PATTERN}{}{INDEX_PATTERN}$",
+        pipeline_pattern()
+    ))
+    .expect("pattern fisso e valido")
 });
 
 /// How strict an id's form must be, depending on which table holds it.
@@ -134,7 +147,10 @@ pub fn derive_pipeline_name(id: &str, default: Option<&str>) -> Option<String> {
 
 /// The index declared at the end of the id, if there is one.
 pub fn derive_pipe_index(id: &str) -> Option<u32> {
-    INDEX_AT_END_REGEXP.captures(id).and_then(|caps| caps.at(1)).and_then(|digits| digits.parse().ok())
+    INDEX_AT_END_REGEXP
+        .captures(id)
+        .and_then(|caps| caps.at(1))
+        .and_then(|digits| digits.parse().ok())
 }
 
 /// Whether `id` conforms to the required form.
@@ -156,17 +172,26 @@ pub fn id_matches(id: &str, format: IdFormat) -> bool {
 /// - [`FkRelation::OneToMaybe`] — the index is read from the id; rows omitting it are numbered among themselves, **ignoring** those that have one. A quirk worth knowing, because it means an explicit index and a derived one can collide.
 ///
 /// The result is in input row order, one to one.
-pub fn computed_ids(ids: &[&str], pipeline_default: Option<&str>, relation: FkRelation) -> Vec<ComputedId> {
+pub fn computed_ids(
+    ids: &[&str],
+    pipeline_default: Option<&str>,
+    relation: FkRelation,
+) -> Vec<ComputedId> {
     let bases: Vec<(String, String)> = ids
         .iter()
         .map(|id| {
-            (derive_format_name(id), derive_pipeline_name(id, pipeline_default).unwrap_or_default())
+            (
+                derive_format_name(id),
+                derive_pipeline_name(id, pipeline_default).unwrap_or_default(),
+            )
         })
         .collect();
 
     let explicit: Vec<Option<u32>> = match relation {
         FkRelation::OneToOne => vec![None; ids.len()],
-        FkRelation::OneToMaybe | FkRelation::OneToMany => ids.iter().map(|id| derive_pipe_index(id)).collect(),
+        FkRelation::OneToMaybe | FkRelation::OneToMany => {
+            ids.iter().map(|id| derive_pipe_index(id)).collect()
+        }
     };
 
     let mut counters: HashMap<(String, String), u32> = HashMap::new();
@@ -184,7 +209,11 @@ pub fn computed_ids(ids: &[&str], pipeline_default: Option<&str>, relation: FkRe
                 index
             }
         };
-        out.push(ComputedId { format: base.0, pipeline: base.1, index });
+        out.push(ComputedId {
+            format: base.0,
+            pipeline: base.1,
+            index,
+        });
     }
     out
 }
@@ -222,12 +251,18 @@ mod tests {
 
         #[test]
         fn reads_the_declared_pipeline() {
-            assert_eq!(derive_pipeline_name("X-EN24(investments)", None), Some("investments".to_string()));
+            assert_eq!(
+                derive_pipeline_name("X-EN24(investments)", None),
+                Some("investments".to_string())
+            );
         }
 
         #[test]
         fn falls_back_to_the_default_when_no_group_is_declared() {
-            assert_eq!(derive_pipeline_name("X-EN24", Some("investments")), Some("investments".to_string()));
+            assert_eq!(
+                derive_pipeline_name("X-EN24", Some("investments")),
+                Some("investments".to_string())
+            );
         }
 
         #[test]
@@ -239,17 +274,26 @@ mod tests {
         fn an_explicit_empty_group_wins_over_the_default() {
             // The difference between a missing value and an empty one: `()` is a name that was
             // found, and it means the *format's* default pipeline, not the table's.
-            assert_eq!(derive_pipeline_name("X-EN24()", Some("investments")), Some(String::new()));
+            assert_eq!(
+                derive_pipeline_name("X-EN24()", Some("investments")),
+                Some(String::new())
+            );
         }
 
         #[test]
         fn reads_the_group_even_when_an_index_follows_it() {
-            assert_eq!(derive_pipeline_name("X-EN24(manco)/2", None), Some("manco".to_string()));
+            assert_eq!(
+                derive_pipeline_name("X-EN24(manco)/2", None),
+                Some("manco".to_string())
+            );
         }
 
         #[test]
         fn accepts_digits_and_underscores_in_the_name() {
-            assert_eq!(derive_pipeline_name("X-EN24(fund_assets_2)", None), Some("fund_assets_2".to_string()));
+            assert_eq!(
+                derive_pipeline_name("X-EN24(fund_assets_2)", None),
+                Some("fund_assets_2".to_string())
+            );
         }
     }
 
@@ -314,9 +358,16 @@ mod tests {
 
         #[test]
         fn the_computed_id_of_any_row_always_has_the_complete_shape() {
-            let ids = computed_ids(&["AMUNDI-EN24", "AMUNDI-EN24(manco)"], Some("investments"), FkRelation::OneToOne);
+            let ids = computed_ids(
+                &["AMUNDI-EN24", "AMUNDI-EN24(manco)"],
+                Some("investments"),
+                FkRelation::OneToOne,
+            );
             for id in ids {
-                assert!(id_matches(&id.to_string(), IdFormat::Complete), "{id} is not complete");
+                assert!(
+                    id_matches(&id.to_string(), IdFormat::Complete),
+                    "{id} is not complete"
+                );
             }
         }
     }
@@ -327,7 +378,10 @@ mod tests {
 
         #[test]
         fn one_to_one_forbids_an_explicit_index_in_the_id() {
-            assert_eq!(FkRelation::OneToOne.id_format(), IdFormat::ExpandableNoIndex);
+            assert_eq!(
+                FkRelation::OneToOne.id_format(),
+                IdFormat::ExpandableNoIndex
+            );
         }
 
         #[test]
@@ -343,13 +397,21 @@ mod tests {
 
         #[test]
         fn renders_as_the_reference_computed_id_column() {
-            let id = ComputedId { format: "AMUNDI-EN24".to_string(), pipeline: "investments".to_string(), index: 3 };
+            let id = ComputedId {
+                format: "AMUNDI-EN24".to_string(),
+                pipeline: "investments".to_string(),
+                index: 3,
+            };
             assert_eq!(id.to_string(), "AMUNDI-EN24(investments)/3");
         }
 
         #[test]
         fn an_empty_pipeline_name_renders_as_empty_parentheses() {
-            let id = ComputedId { format: "X-EN24".to_string(), pipeline: String::new(), index: 0 };
+            let id = ComputedId {
+                format: "X-EN24".to_string(),
+                pipeline: String::new(),
+                index: 0,
+            };
             assert_eq!(id.to_string(), "X-EN24()/0");
         }
     }
@@ -359,14 +421,21 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn ids(rows: &[&str]) -> Vec<String> {
-            computed_ids(rows, Some("investments"), FkRelation::OneToOne).iter().map(ComputedId::to_string).collect()
+            computed_ids(rows, Some("investments"), FkRelation::OneToOne)
+                .iter()
+                .map(ComputedId::to_string)
+                .collect()
         }
 
         #[test]
         fn numbers_the_rows_of_each_group_from_zero() {
             assert_eq!(
                 ids(&["A-EN24", "A-EN24", "A-EN24"]),
-                vec!["A-EN24(investments)/0", "A-EN24(investments)/1", "A-EN24(investments)/2"]
+                vec![
+                    "A-EN24(investments)/0",
+                    "A-EN24(investments)/1",
+                    "A-EN24(investments)/2"
+                ]
             );
         }
 
@@ -374,7 +443,11 @@ mod tests {
         fn each_format_has_its_own_counter() {
             assert_eq!(
                 ids(&["A-EN24", "B-EN24", "A-EN24"]),
-                vec!["A-EN24(investments)/0", "B-EN24(investments)/0", "A-EN24(investments)/1"]
+                vec![
+                    "A-EN24(investments)/0",
+                    "B-EN24(investments)/0",
+                    "A-EN24(investments)/1"
+                ]
             );
         }
 
@@ -382,7 +455,11 @@ mod tests {
         fn each_pipeline_of_a_format_has_its_own_counter() {
             assert_eq!(
                 ids(&["A-EN24", "A-EN24(manco)", "A-EN24"]),
-                vec!["A-EN24(investments)/0", "A-EN24(manco)/0", "A-EN24(investments)/1"]
+                vec![
+                    "A-EN24(investments)/0",
+                    "A-EN24(manco)/0",
+                    "A-EN24(investments)/1"
+                ]
             );
         }
 
@@ -410,7 +487,10 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn ids(rows: &[&str]) -> Vec<String> {
-            computed_ids(rows, Some("investments"), FkRelation::OneToMany).iter().map(ComputedId::to_string).collect()
+            computed_ids(rows, Some("investments"), FkRelation::OneToMany)
+                .iter()
+                .map(ComputedId::to_string)
+                .collect()
         }
 
         #[test]
@@ -422,7 +502,11 @@ mod tests {
         fn every_row_without_an_index_lands_on_zero() {
             assert_eq!(
                 ids(&["A-EN24", "A-EN24", "A-EN24"]),
-                vec!["A-EN24(investments)/0", "A-EN24(investments)/0", "A-EN24(investments)/0"]
+                vec![
+                    "A-EN24(investments)/0",
+                    "A-EN24(investments)/0",
+                    "A-EN24(investments)/0"
+                ]
             );
         }
 
@@ -437,7 +521,11 @@ mod tests {
         fn explicit_and_implicit_indexes_coexist_in_the_same_table() {
             assert_eq!(
                 ids(&["A-EN24", "A-EN24/1", "A-EN24"]),
-                vec!["A-EN24(investments)/0", "A-EN24(investments)/1", "A-EN24(investments)/0"]
+                vec![
+                    "A-EN24(investments)/0",
+                    "A-EN24(investments)/1",
+                    "A-EN24(investments)/0"
+                ]
             );
         }
     }
@@ -447,7 +535,10 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn ids(rows: &[&str]) -> Vec<String> {
-            computed_ids(rows, Some("investments"), FkRelation::OneToMaybe).iter().map(ComputedId::to_string).collect()
+            computed_ids(rows, Some("investments"), FkRelation::OneToMaybe)
+                .iter()
+                .map(ComputedId::to_string)
+                .collect()
         }
 
         #[test]
@@ -470,7 +561,11 @@ mod tests {
             // `/1`, which the second already declared.
             assert_eq!(
                 ids(&["A-EN24", "A-EN24/1", "A-EN24"]),
-                vec!["A-EN24(investments)/0", "A-EN24(investments)/1", "A-EN24(investments)/1"]
+                vec![
+                    "A-EN24(investments)/0",
+                    "A-EN24(investments)/1",
+                    "A-EN24(investments)/1"
+                ]
             );
         }
 
@@ -495,7 +590,11 @@ mod tests {
         #[test]
         fn the_page_classify_table_numbers_its_header_rows_by_explicit_index() {
             // Real rows from a formats repository's page-classify arguments table.
-            let out = computed_ids(&["CARNE-EN23/0", "CARNE-EN23/0", "CARNE-EN23/1"], Some(""), FkRelation::OneToMany);
+            let out = computed_ids(
+                &["CARNE-EN23/0", "CARNE-EN23/0", "CARNE-EN23/1"],
+                Some(""),
+                FkRelation::OneToMany,
+            );
             assert_eq!(
                 out.iter().map(ComputedId::to_string).collect::<Vec<_>>(),
                 vec!["CARNE-EN23()/0", "CARNE-EN23()/0", "CARNE-EN23()/1"]
@@ -504,18 +603,30 @@ mod tests {
 
         #[test]
         fn the_investments_args_table_numbers_bare_ids_by_position() {
-            let out = computed_ids(&["AMUNDI-EN24", "AMUNDI-IT24", "ANIMA-EN23"], Some("investments"), FkRelation::OneToOne);
+            let out = computed_ids(
+                &["AMUNDI-EN24", "AMUNDI-IT24", "ANIMA-EN23"],
+                Some("investments"),
+                FkRelation::OneToOne,
+            );
             assert_eq!(
                 out.iter().map(ComputedId::to_string).collect::<Vec<_>>(),
-                vec!["AMUNDI-EN24(investments)/0", "AMUNDI-IT24(investments)/0", "ANIMA-EN23(investments)/0"]
+                vec![
+                    "AMUNDI-EN24(investments)/0",
+                    "AMUNDI-IT24(investments)/0",
+                    "ANIMA-EN23(investments)/0"
+                ]
             );
         }
 
         #[test]
         fn an_additional_args_row_with_a_full_id_matches_the_args_row_it_refers_to() {
-            let principal = computed_ids(&["AMUNDI-IT24"], Some("investments"), FkRelation::OneToOne);
-            let secondary =
-                computed_ids(&["AMUNDI-IT24(investments)/0"], Some("investments"), FkRelation::OneToMaybe);
+            let principal =
+                computed_ids(&["AMUNDI-IT24"], Some("investments"), FkRelation::OneToOne);
+            let secondary = computed_ids(
+                &["AMUNDI-IT24(investments)/0"],
+                Some("investments"),
+                FkRelation::OneToMaybe,
+            );
             assert_eq!(principal, secondary);
         }
     }

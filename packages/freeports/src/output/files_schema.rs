@@ -19,32 +19,57 @@ use crate::commons::date::Date;
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum SchemaError {
     #[error("{field} must be greater than {bound}, got {value}")]
-    NotGreaterThan { field: &'static str, value: String, bound: String },
+    NotGreaterThan {
+        field: &'static str,
+        value: String,
+        bound: String,
+    },
     #[error("{field} must be greater than or equal to {bound}, got {value}")]
-    NotGreaterOrEqual { field: &'static str, value: String, bound: String },
+    NotGreaterOrEqual {
+        field: &'static str,
+        value: String,
+        bound: String,
+    },
     #[error("{field} must be in range [{min}, {max}], got {value}")]
-    OutOfRange { field: &'static str, value: String, min: String, max: String },
+    OutOfRange {
+        field: &'static str,
+        value: String,
+        min: String,
+        max: String,
+    },
 }
 
 fn positive_u32(field: &'static str, value: i64) -> Result<u32, SchemaError> {
     u32::try_from(value)
         .ok()
         .filter(|v| *v > 0)
-        .ok_or_else(|| SchemaError::NotGreaterThan { field, value: value.to_string(), bound: "0".to_string() })
+        .ok_or_else(|| SchemaError::NotGreaterThan {
+            field,
+            value: value.to_string(),
+            bound: "0".to_string(),
+        })
 }
 
 fn positive_u16(field: &'static str, value: i32) -> Result<u16, SchemaError> {
     u16::try_from(value)
         .ok()
         .filter(|v| *v > 0)
-        .ok_or_else(|| SchemaError::NotGreaterThan { field, value: value.to_string(), bound: "0".to_string() })
+        .ok_or_else(|| SchemaError::NotGreaterThan {
+            field,
+            value: value.to_string(),
+            bound: "0".to_string(),
+        })
 }
 
 fn positive_f64(field: &'static str, value: f64) -> Result<f64, SchemaError> {
     if value > 0.0 {
         Ok(value)
     } else {
-        Err(SchemaError::NotGreaterThan { field, value: value.to_string(), bound: "0".to_string() })
+        Err(SchemaError::NotGreaterThan {
+            field,
+            value: value.to_string(),
+            bound: "0".to_string(),
+        })
     }
 }
 
@@ -52,12 +77,21 @@ fn non_negative_f64(field: &'static str, value: f64) -> Result<f64, SchemaError>
     if value >= 0.0 {
         Ok(value)
     } else {
-        Err(SchemaError::NotGreaterOrEqual { field, value: value.to_string(), bound: "0".to_string() })
+        Err(SchemaError::NotGreaterOrEqual {
+            field,
+            value: value.to_string(),
+            bound: "0".to_string(),
+        })
     }
 }
 
 /// `pa.Check.in_range(min, max)` — incluso su entrambi i lati (default di pandera).
-fn in_range_inclusive_f64(field: &'static str, value: f64, min: f64, max: f64) -> Result<f64, SchemaError> {
+fn in_range_inclusive_f64(
+    field: &'static str,
+    value: f64,
+    min: f64,
+    max: f64,
+) -> Result<f64, SchemaError> {
     if value >= min && value <= max {
         Ok(value)
     } else {
@@ -72,7 +106,12 @@ fn in_range_inclusive_f64(field: &'static str, value: f64, min: f64, max: f64) -
 
 /// `pydantic.confloat(ge=min, lt=max)` — a differenza di `in_range_inclusive_f64`, esclude il
 /// limite superiore.
-fn in_range_half_open_f64(field: &'static str, value: f64, min: f64, max: f64) -> Result<f64, SchemaError> {
+fn in_range_half_open_f64(
+    field: &'static str,
+    value: f64,
+    min: f64,
+    max: f64,
+) -> Result<f64, SchemaError> {
     if value >= min && value < max {
         Ok(value)
     } else {
@@ -107,7 +146,12 @@ pub struct UniqueTable<Row> {
 
 impl<Row> UniqueTable<Row> {
     pub fn new(table: &'static str, field: &'static str) -> Self {
-        Self { table, field, seen: HashSet::new(), rows: Vec::new() }
+        Self {
+            table,
+            field,
+            seen: HashSet::new(),
+            rows: Vec::new(),
+        }
     }
 
     /// Adds `row` unless its key is already there, and says whether it was kept.
@@ -191,7 +235,9 @@ impl InvestmentRow {
             // Non-negative for the same reason as the market value: a report can carry a position
             // whose quantity has been written down to nothing, and the product's invariant is that
             // the number is not negative.
-            nominal_quantity: nominal_quantity.map(|v| non_negative_f64("Nominal/Quantity", v)).transpose()?,
+            nominal_quantity: nominal_quantity
+                .map(|v| non_negative_f64("Nominal/Quantity", v))
+                .transpose()?,
             // Zero is admissible here for the same reason as in
             // `InvestmentData::validate_ranges`: a frozen holding is reported at zero, and the
             // product's invariant is that the value is not negative, not that it is not zero.
@@ -201,7 +247,9 @@ impl InvestmentRow {
                 .map(|v| in_range_inclusive_f64("% net assets", v, 0.0, 1.0))
                 .transpose()?,
             fund_id: positive_u32("Fund ID", fund_id)?,
-            acquisition_cost: acquisition_cost.map(|v| non_negative_f64("Acquisition cost", v)).transpose()?,
+            acquisition_cost: acquisition_cost
+                .map(|v| non_negative_f64("Acquisition cost", v))
+                .transpose()?,
             acquisition_currency,
         })
     }
@@ -254,7 +302,9 @@ impl FundRow {
             management_company_id: management_company_id
                 .map(|v| positive_u32("Managment company ID", v))
                 .transpose()?,
-            report_page: report_page.map(|v| positive_u16("Report page", v)).transpose()?,
+            report_page: report_page
+                .map(|v| positive_u16("Report page", v))
+                .transpose()?,
             report,
         })
     }
@@ -405,7 +455,12 @@ pub struct AssetsManagerRow {
 }
 
 impl AssetsManagerRow {
-    pub fn new(id: i64, report_page: i32, report: String, name: String) -> Result<Self, SchemaError> {
+    pub fn new(
+        id: i64,
+        report_page: i32,
+        report: String,
+        name: String,
+    ) -> Result<Self, SchemaError> {
         Ok(Self {
             id: positive_u32("ID", id)?,
             report_page: positive_u16("Report page", report_page)?,
@@ -485,7 +540,9 @@ mod tests {
         }
     }
 
-    fn valid_investment(overrides: impl FnOnce(&mut InvestmentRowArgs)) -> Result<InvestmentRow, SchemaError> {
+    fn valid_investment(
+        overrides: impl FnOnce(&mut InvestmentRowArgs),
+    ) -> Result<InvestmentRow, SchemaError> {
         let mut args = InvestmentRowArgs::default();
         overrides(&mut args);
         args.build()
@@ -527,7 +584,10 @@ mod tests {
         fn rejects_non_positive_report_page(bad: i32) {
             assert!(matches!(
                 valid_investment(|a| a.report_page = bad),
-                Err(SchemaError::NotGreaterThan { field: "Report page", .. })
+                Err(SchemaError::NotGreaterThan {
+                    field: "Report page",
+                    ..
+                })
             ));
         }
 
@@ -540,7 +600,10 @@ mod tests {
         fn rejects_a_negative_nominal_quantity() {
             assert!(matches!(
                 valid_investment(|a| a.nominal_quantity = Some(-5.0)),
-                Err(SchemaError::NotGreaterOrEqual { field: "Nominal/Quantity", .. })
+                Err(SchemaError::NotGreaterOrEqual {
+                    field: "Nominal/Quantity",
+                    ..
+                })
             ));
         }
 
@@ -553,7 +616,10 @@ mod tests {
         fn rejects_a_negative_market_value() {
             assert!(matches!(
                 valid_investment(|a| a.market_value = -1.0),
-                Err(SchemaError::NotGreaterOrEqual { field: "Market value", .. })
+                Err(SchemaError::NotGreaterOrEqual {
+                    field: "Market value",
+                    ..
+                })
             ));
         }
 
@@ -568,7 +634,10 @@ mod tests {
         fn rejects_perc_net_assets_outside_unit_range(bad: f64) {
             assert!(matches!(
                 valid_investment(|a| a.perc_net_assets = Some(bad)),
-                Err(SchemaError::OutOfRange { field: "% net assets", .. })
+                Err(SchemaError::OutOfRange {
+                    field: "% net assets",
+                    ..
+                })
             ));
         }
 
@@ -577,7 +646,10 @@ mod tests {
         fn rejects_non_positive_fund_id(bad: i64) {
             assert!(matches!(
                 valid_investment(|a| a.fund_id = bad),
-                Err(SchemaError::NotGreaterThan { field: "Fund ID", .. })
+                Err(SchemaError::NotGreaterThan {
+                    field: "Fund ID",
+                    ..
+                })
             ));
         }
 
@@ -590,7 +662,10 @@ mod tests {
         fn rejects_negative_acquisition_cost() {
             assert!(matches!(
                 valid_investment(|a| a.acquisition_cost = Some(-0.01)),
-                Err(SchemaError::NotGreaterOrEqual { field: "Acquisition cost", .. })
+                Err(SchemaError::NotGreaterOrEqual {
+                    field: "Acquisition cost",
+                    ..
+                })
             ));
         }
 
@@ -598,8 +673,19 @@ mod tests {
         fn every_financial_instrument_variant_is_accepted() {
             for instrument in [FinancialInstrument::EQUITY, FinancialInstrument::BOND] {
                 let row = InvestmentRow::new(
-                    1, 1, "R".into(), "t".into(), "i".into(), instrument, None, 1.0, Currency::EUR, None, 1,
-                    None, None,
+                    1,
+                    1,
+                    "R".into(),
+                    "t".into(),
+                    "i".into(),
+                    instrument,
+                    None,
+                    1.0,
+                    Currency::EUR,
+                    None,
+                    1,
+                    None,
+                    None,
                 )
                 .unwrap();
                 assert_eq!(row.financial_instrument, instrument);
@@ -636,7 +722,10 @@ mod tests {
             // rifiutato.
             assert!(matches!(
                 BondAdditionalInfoRow::new(None, Some(1.0)),
-                Err(SchemaError::OutOfRange { field: "interest_rate", .. })
+                Err(SchemaError::OutOfRange {
+                    field: "interest_rate",
+                    ..
+                })
             ));
         }
 
@@ -691,9 +780,16 @@ mod tests {
         #[test_case(ChangeNameEventType::Renaming; "renaming")]
         #[test_case(ChangeNameEventType::Merging; "merging")]
         fn accepts_both_event_types(event_type: ChangeNameEventType) {
-            let row =
-                FundChangeNameRow::new(1, 1, "R".into(), 1, date(2024, 1, 1), event_type, "Old".into())
-                    .unwrap();
+            let row = FundChangeNameRow::new(
+                1,
+                1,
+                "R".into(),
+                1,
+                date(2024, 1, 1),
+                event_type,
+                "Old".into(),
+            )
+            .unwrap();
             assert_eq!(row.event_type, event_type);
         }
 
@@ -754,37 +850,59 @@ mod tests {
 
         #[test]
         fn accepts_null_date() {
-            let row = FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, 50.0, Currency::EUR)
-                .unwrap();
+            let row =
+                FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, 50.0, Currency::EUR)
+                    .unwrap();
             assert_eq!(row.date, None);
         }
 
         #[test]
         fn accepts_a_resolved_date() {
-            let row =
-                FundAssetsRow::new(1, 1, "R".into(), 1, Some(date(2024, 3, 1)), 100.0, 50.0, 50.0, Currency::EUR)
-                    .unwrap();
+            let row = FundAssetsRow::new(
+                1,
+                1,
+                "R".into(),
+                1,
+                Some(date(2024, 3, 1)),
+                100.0,
+                50.0,
+                50.0,
+                Currency::EUR,
+            )
+            .unwrap();
             assert_eq!(row.date, Some(date(2024, 3, 1)));
         }
 
         #[test_case(0.0; "total assets zero")]
         fn rejects_non_positive_total_assets(bad: f64) {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, bad, 50.0, 50.0, Currency::EUR).is_err());
+            assert!(
+                FundAssetsRow::new(1, 1, "R".into(), 1, None, bad, 50.0, 50.0, Currency::EUR)
+                    .is_err()
+            );
         }
 
         #[test_case(0.0; "total liabilities zero")]
         fn rejects_non_positive_total_liabilities(bad: f64) {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, bad, 50.0, Currency::EUR).is_err());
+            assert!(
+                FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, bad, 50.0, Currency::EUR)
+                    .is_err()
+            );
         }
 
         #[test_case(0.0; "total net assets zero")]
         fn rejects_non_positive_total_net_assets(bad: f64) {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, bad, Currency::EUR).is_err());
+            assert!(
+                FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, bad, Currency::EUR)
+                    .is_err()
+            );
         }
 
         #[test]
         fn rejects_non_positive_fund_id() {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), 0, None, 100.0, 50.0, 50.0, Currency::EUR).is_err());
+            assert!(
+                FundAssetsRow::new(1, 1, "R".into(), 0, None, 100.0, 50.0, 50.0, Currency::EUR)
+                    .is_err()
+            );
         }
     }
 
@@ -820,8 +938,9 @@ mod tests {
 
         #[test]
         fn allows_arbitrary_indicator_and_value_strings() {
-            let row = FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 1, "R".into())
-                .unwrap();
+            let row =
+                FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 1, "R".into())
+                    .unwrap();
             assert_eq!(row.indicator, "GHG intensity");
             assert_eq!(row.value, "12.3");
         }
@@ -893,7 +1012,10 @@ mod tests {
         fn a_repeated_key_is_counted_once_instead_of_failing() {
             let mut t: UniqueTable<u32> = UniqueTable::new("investments", "ID");
             t.push("1", 1);
-            assert!(!t.push("1", 99), "the second telling of the same fact is dropped");
+            assert!(
+                !t.push("1", 99),
+                "the second telling of the same fact is dropped"
+            );
             assert_eq!(t.len(), 1);
             assert_eq!(t.rows(), &[1]);
         }
@@ -954,7 +1076,12 @@ mod tests {
         #[test]
         fn not_greater_than_message() {
             assert_eq!(
-                SchemaError::NotGreaterThan { field: "ID", value: "0".into(), bound: "0".into() }.to_string(),
+                SchemaError::NotGreaterThan {
+                    field: "ID",
+                    value: "0".into(),
+                    bound: "0".into()
+                }
+                .to_string(),
                 "ID must be greater than 0, got 0"
             );
         }
@@ -962,8 +1089,12 @@ mod tests {
         #[test]
         fn not_greater_or_equal_message() {
             assert_eq!(
-                SchemaError::NotGreaterOrEqual { field: "Acquisition cost", value: "-0.01".into(), bound: "0".into() }
-                    .to_string(),
+                SchemaError::NotGreaterOrEqual {
+                    field: "Acquisition cost",
+                    value: "-0.01".into(),
+                    bound: "0".into()
+                }
+                .to_string(),
                 "Acquisition cost must be greater than or equal to 0, got -0.01"
             );
         }
@@ -971,8 +1102,13 @@ mod tests {
         #[test]
         fn out_of_range_message() {
             assert_eq!(
-                SchemaError::OutOfRange { field: "% net assets", value: "1.5".into(), min: "0".into(), max: "1".into() }
-                    .to_string(),
+                SchemaError::OutOfRange {
+                    field: "% net assets",
+                    value: "1.5".into(),
+                    min: "0".into(),
+                    max: "1".into()
+                }
+                .to_string(),
                 "% net assets must be in range [0, 1], got 1.5"
             );
         }

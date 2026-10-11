@@ -23,13 +23,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::cli::conf_parse::DocumentSpec;
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::{Algorithm, AlgorithmError, DocumentOutcome};
-use crate::core::parallelism::Parallelism;
 use crate::core::page::{Document, FormatName};
+use crate::core::parallelism::Parallelism;
+use crate::core::tracing_setup::log_error;
 use crate::formats_repo::LoadError;
 use crate::input::companies_db::{CompileTargetCompaniesError, compile_target_companies};
 use crate::input::document::{DocumentError, load_document};
 use crate::input::download::{DownloadError, download_pdf};
-use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JobError {
@@ -72,7 +72,7 @@ fn temp_download_path() -> PathBuf {
 ///
 /// Also reports whether the path was created here, and so is to be cleaned up afterwards, rather
 /// than coming from the spec.
-fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobError> {
+pub(crate) fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobError> {
     if let Some(path) = &spec.path
         && path.is_file()
     {
@@ -81,7 +81,10 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
     }
 
     // Guaranteed by validation: when the path is absent or not yet on disk, the URL is present.
-    let url = spec.url.as_deref().expect("freeports_config::validate guarantees a url here");
+    let url = spec
+        .url
+        .as_deref()
+        .expect("freeports_config::validate guarantees a url here");
     match &spec.path {
         Some(path) => {
             tracing::info!(url, path = %path.display(), "downloading document");
@@ -102,7 +105,10 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
 /// `parallelism` is how many pages at a time the engine may process. The job does not decide it: it
 /// is handed down by [`super::run`], the only place that knows how many jobs are running together
 /// and therefore how to divide the cores between them.
-pub fn run(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
+pub fn run(
+    config: &FreeportsConfig,
+    parallelism: Parallelism,
+) -> Result<Vec<DocumentOutcome>, JobError> {
     let span = tracing::info_span!("job", format = %config.format);
     let _guard = span.enter();
 
@@ -145,10 +151,16 @@ fn resolve_and_load(
 /// than data — a missing formats repository, an algorithm that will not load, target companies that
 /// will not compile — and belongs to the job, because no document contains it. A job in which *no*
 /// document could be read is [`JobError::NoDocumentReadable`], for the reason given there.
-fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
+fn run_impl(
+    config: &FreeportsConfig,
+    parallelism: Parallelism,
+) -> Result<Vec<DocumentOutcome>, JobError> {
     // Not logged here: `JobError::MissingFormatsRepoPath` relies solely on `run`'s outer wrapper
     // for its one log line, same as every other `JobError` variant.
-    let formats_repo_path = config.formats_repo_path.as_deref().ok_or(JobError::MissingFormatsRepoPath)?;
+    let formats_repo_path = config
+        .formats_repo_path
+        .as_deref()
+        .ok_or(JobError::MissingFormatsRepoPath)?;
     let algorithm = Algorithm::load(formats_repo_path, &FormatName::new(config.format.clone()))?;
 
     let mut documents = Vec::with_capacity(config.reports.len());
@@ -188,7 +200,9 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
     }
     // Not a job that succeeded with nothing in it: see `JobError::NoDocumentReadable`.
     if documents.is_empty() && !config.reports.is_empty() {
-        return Err(JobError::NoDocumentReadable { count: config.reports.len() });
+        return Err(JobError::NoDocumentReadable {
+            count: config.reports.len(),
+        });
     }
 
     // An absent input database path is treated as "no target companies available", never an error.
@@ -197,9 +211,14 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
     // type but no path constructs it any more. The end-to-end test exercising exactly this
     // combination — target lists given, no database directory — expects success, and that behaviour
     // is the one kept.
-    let companies = match (config.target_lists.is_empty(), config.input_db_path.as_deref()) {
+    let companies = match (
+        config.target_lists.is_empty(),
+        config.input_db_path.as_deref(),
+    ) {
         (true, _) | (false, None) => Vec::new(),
-        (false, Some(input_db_path)) => compile_target_companies(input_db_path, &config.target_lists)?,
+        (false, Some(input_db_path)) => {
+            compile_target_companies(input_db_path, &config.target_lists)?
+        }
     };
 
     let outcomes = algorithm.apply_multidocument_with(&documents, &companies, parallelism)?;
@@ -215,10 +234,10 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
 
 #[cfg(test)]
 mod tests {
-    use crate::cli::parallelism_config::ParallelismConfig;
     use super::*;
     use crate::cli::conf_parse::DocumentSpec;
     use crate::cli::freeports_config::FreeportsConfig;
+    use crate::cli::parallelism_config::ParallelismConfig;
     use crate::core::tracing_setup::Verbosity;
     use crate::output::routines::write::{OutFlags, OutStructureMode};
 
@@ -264,7 +283,10 @@ mod tests {
             let mut config = base_config(dir.path());
             config.formats_repo_path = None;
             let result = run(&config, Parallelism::SEQUENTIAL);
-            assert!(matches!(result, Err(JobError::MissingFormatsRepoPath)), "got {result:?}");
+            assert!(
+                matches!(result, Err(JobError::MissingFormatsRepoPath)),
+                "got {result:?}"
+            );
         }
     }
 
@@ -283,7 +305,9 @@ mod tests {
 
         impl MinimalRepo {
             fn build() -> Self {
-                let builder = Self { dir: tempfile::TempDir::new().unwrap() };
+                let builder = Self {
+                    dir: tempfile::TempDir::new().unwrap(),
+                };
                 builder
                     .write("metadata/formats.csv", "Name,Locale,Year,Country,Version\nA,EN,24,,\n")
                     .write("metadata/url_mapping.csv", "Format name,Url\nA-EN24,https://example.com/a\n")
@@ -330,17 +354,25 @@ mod tests {
         /// Builds a minimal PDF with text the fixture's classifier recognises.
         fn build_pdf(path: &std::path::Path) {
             Python::attach(|py| {
-                let fitz = PyModule::import(py, "fitz")
-                    .expect("PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md");
+                let fitz = PyModule::import(py, "fitz").expect(
+                    "PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md",
+                );
                 let doc = fitz.call_method0("open").unwrap();
-                let page = doc.call_method1("new_page", (-1i64, 200.0f64, 300.0f64)).unwrap();
-                page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings")).unwrap();
+                let page = doc
+                    .call_method1("new_page", (-1i64, 200.0f64, 300.0f64))
+                    .unwrap();
+                page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings"))
+                    .unwrap();
                 doc.call_method1("save", (path.to_str().unwrap(),)).unwrap();
                 doc.call_method0("close").unwrap();
             });
         }
 
-        fn config_for(dir: &std::path::Path, repo: &MinimalRepo, reports: Vec<DocumentSpec>) -> FreeportsConfig {
+        fn config_for(
+            dir: &std::path::Path,
+            repo: &MinimalRepo,
+            reports: Vec<DocumentSpec>,
+        ) -> FreeportsConfig {
             FreeportsConfig {
                 verbosity: Verbosity::Warn,
                 reports,
@@ -365,13 +397,18 @@ mod tests {
             let pdf_path = dir.path().join("local.pdf");
             build_pdf(&pdf_path);
 
-            let reports = vec![DocumentSpec { url: None, path: Some(pdf_path), name: Some("Local Report".to_string()) }];
+            let reports = vec![DocumentSpec {
+                url: None,
+                path: Some(pdf_path),
+                name: Some("Local Report".to_string()),
+            }];
             let config = config_for(dir.path(), &repo, reports);
 
             // No `url` at all: if `run` needed to download here it could not (nothing to
             // download from), so success alone already shows the existing local path was used
             // directly.
-            let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("must succeed without attempting any network access");
+            let outcomes = run(&config, Parallelism::SEQUENTIAL)
+                .expect("must succeed without attempting any network access");
             assert_eq!(outcomes.len(), 1);
             assert_eq!(outcomes[0].id.as_str(), "Local Report");
         }
@@ -396,17 +433,25 @@ mod tests {
                 if let Ok((mut stream, _)) = listener.accept() {
                     let mut buf = [0u8; 1024];
                     let _ = stream.read(&mut buf);
-                    let header = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", pdf_bytes.len());
+                    let header = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n",
+                        pdf_bytes.len()
+                    );
                     let _ = stream.write_all(header.as_bytes());
                     let _ = stream.write_all(&pdf_bytes);
                 }
             });
             let url = format!("http://{addr}/report.pdf");
 
-            let reports = vec![DocumentSpec { url: Some(url), path: None, name: Some("Downloaded Report".to_string()) }];
+            let reports = vec![DocumentSpec {
+                url: Some(url),
+                path: None,
+                name: Some("Downloaded Report".to_string()),
+            }];
             let config = config_for(dir.path(), &repo, reports);
 
-            let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("must download then load the document successfully");
+            let outcomes = run(&config, Parallelism::SEQUENTIAL)
+                .expect("must download then load the document successfully");
             assert_eq!(outcomes.len(), 1);
             assert_eq!(outcomes[0].id.as_str(), "Downloaded Report");
         }
@@ -421,8 +466,16 @@ mod tests {
             build_pdf(&pdf_b);
 
             let reports = vec![
-                DocumentSpec { url: None, path: Some(pdf_a), name: Some("Report A".to_string()) },
-                DocumentSpec { url: None, path: Some(pdf_b), name: Some("Report B".to_string()) },
+                DocumentSpec {
+                    url: None,
+                    path: Some(pdf_a),
+                    name: Some("Report A".to_string()),
+                },
+                DocumentSpec {
+                    url: None,
+                    path: Some(pdf_b),
+                    name: Some("Report B".to_string()),
+                },
             ];
             let config = config_for(dir.path(), &repo, reports);
 
@@ -439,12 +492,17 @@ mod tests {
             let pdf_path = dir.path().join("local.pdf");
             build_pdf(&pdf_path);
 
-            let reports = vec![DocumentSpec { url: None, path: Some(pdf_path), name: Some("Report".to_string()) }];
+            let reports = vec![DocumentSpec {
+                url: None,
+                path: Some(pdf_path),
+                name: Some("Report".to_string()),
+            }];
             let mut config = config_for(dir.path(), &repo, reports);
             config.target_lists = vec![]; // present (not absent -- that's rejected upstream by
             // `freeports_config::validate`), just empty.
 
-            let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("an empty target list must not prevent the job from running");
+            let outcomes = run(&config, Parallelism::SEQUENTIAL)
+                .expect("an empty target list must not prevent the job from running");
             assert_eq!(outcomes.len(), 1);
         }
 
@@ -472,14 +530,25 @@ mod tests {
                 let bad = unreadable(&dir.path().join("bad.pdf"));
 
                 let reports = vec![
-                    DocumentSpec { url: None, path: Some(bad), name: Some("Broken".to_string()) },
-                    DocumentSpec { url: None, path: Some(good), name: Some("Sound".to_string()) },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(bad),
+                        name: Some("Broken".to_string()),
+                    },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(good),
+                        name: Some("Sound".to_string()),
+                    },
                 ];
                 let config = config_for(dir.path(), &repo, reports);
 
                 let outcomes = run(&config, Parallelism::SEQUENTIAL)
                     .expect("one unreadable document must not fail the job");
-                assert_eq!(outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(), vec!["Sound"]);
+                assert_eq!(
+                    outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(),
+                    vec!["Sound"]
+                );
             }
 
             /// The order is the configuration's, whichever document fails: the sound one is kept
@@ -495,14 +564,29 @@ mod tests {
                 let bad = unreadable(&dir.path().join("middle.pdf"));
 
                 let reports = vec![
-                    DocumentSpec { url: None, path: Some(first), name: Some("First".to_string()) },
-                    DocumentSpec { url: None, path: Some(bad), name: Some("Middle".to_string()) },
-                    DocumentSpec { url: None, path: Some(last), name: Some("Last".to_string()) },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(first),
+                        name: Some("First".to_string()),
+                    },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(bad),
+                        name: Some("Middle".to_string()),
+                    },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(last),
+                        name: Some("Last".to_string()),
+                    },
                 ];
                 let config = config_for(dir.path(), &repo, reports);
 
                 let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("contained");
-                assert_eq!(outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(), vec!["First", "Last"]);
+                assert_eq!(
+                    outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(),
+                    vec!["First", "Last"]
+                );
             }
 
             /// A download that fails is the same kind of loss as a file that will not open, and is
@@ -525,12 +609,19 @@ mod tests {
                         path: Some(dir.path().join("never_arrives.pdf")),
                         name: Some("Unreachable".to_string()),
                     },
-                    DocumentSpec { url: None, path: Some(good), name: Some("Sound".to_string()) },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(good),
+                        name: Some("Sound".to_string()),
+                    },
                 ];
                 let config = config_for(dir.path(), &repo, reports);
 
                 let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("contained");
-                assert_eq!(outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(), vec!["Sound"]);
+                assert_eq!(
+                    outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(),
+                    vec!["Sound"]
+                );
             }
 
             /// And the floor: a job in which nothing could be read is a **failed job**, not a
@@ -541,8 +632,16 @@ mod tests {
                 let dir = tempfile::tempdir().unwrap();
                 let repo = MinimalRepo::build();
                 let reports = vec![
-                    DocumentSpec { url: None, path: Some(unreadable(&dir.path().join("a.pdf"))), name: Some("A".to_string()) },
-                    DocumentSpec { url: None, path: Some(unreadable(&dir.path().join("b.pdf"))), name: Some("B".to_string()) },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(unreadable(&dir.path().join("a.pdf"))),
+                        name: Some("A".to_string()),
+                    },
+                    DocumentSpec {
+                        url: None,
+                        path: Some(unreadable(&dir.path().join("b.pdf"))),
+                        name: Some("B".to_string()),
+                    },
                 ];
                 let config = config_for(dir.path(), &repo, reports);
 
@@ -559,7 +658,11 @@ mod tests {
                 let dir = tempfile::tempdir().unwrap();
                 let repo = MinimalRepo::build();
                 let config = config_for(dir.path(), &repo, vec![]);
-                assert!(run(&config, Parallelism::SEQUENTIAL).expect("no documents is not a failure").is_empty());
+                assert!(
+                    run(&config, Parallelism::SEQUENTIAL)
+                        .expect("no documents is not a failure")
+                        .is_empty()
+                );
             }
         }
     }

@@ -31,8 +31,8 @@ use std::path::PathBuf;
 use crate::cli::conf_parse::DocumentSpec;
 use crate::cli::parallelism_config::Workers;
 use crate::core::tracing_setup::Verbosity;
-use crate::output::routines::write::OutStructureMode;
 use crate::core::tracing_setup::log_error;
+use crate::output::routines::write::OutStructureMode;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PartialConfig {
@@ -88,7 +88,10 @@ pub struct MergedConfig {
 /// working directory rather than a literal `"."`.
 pub fn defaults() -> MergedConfig {
     let out_path = std::env::current_dir().unwrap_or_else(|e| {
-        tracing::warn!(error = log_error(&e), "cannot read the current directory, defaulting out_path to \".\": {e}");
+        tracing::warn!(
+            error = log_error(&e),
+            "cannot read the current directory, defaulting out_path to \".\": {e}"
+        );
         PathBuf::from(".")
     });
     MergedConfig {
@@ -116,7 +119,11 @@ pub fn defaults() -> MergedConfig {
 
 /// A field set in the overlay overwrites the corresponding one and records where it came from; a
 /// field left unset leaves both the value and its provenance untouched.
-pub fn overwrite(mut base: MergedConfig, overlay: PartialConfig, source: ConfigSource) -> MergedConfig {
+pub fn overwrite(
+    mut base: MergedConfig,
+    overlay: PartialConfig,
+    source: ConfigSource,
+) -> MergedConfig {
     macro_rules! apply {
         ($field:ident) => {
             if overlay.$field.is_some() {
@@ -174,7 +181,11 @@ mod tests {
     }
 
     fn spec(name: &str) -> DocumentSpec {
-        DocumentSpec { url: None, path: None, name: Some(name.to_string()) }
+        DocumentSpec {
+            url: None,
+            path: None,
+            name: Some(name.to_string()),
+        }
     }
 
     mod overwrite_basics {
@@ -183,7 +194,10 @@ mod tests {
         #[test]
         fn a_some_field_in_the_overlay_replaces_the_base_value() {
             let base = MergedConfig::default();
-            let overlay = PartialConfig { out_path: Some(PathBuf::from("/tmp/out")), ..empty_partial() };
+            let overlay = PartialConfig {
+                out_path: Some(PathBuf::from("/tmp/out")),
+                ..empty_partial()
+            };
             let merged = overwrite(base, overlay, ConfigSource::File);
             assert_eq!(merged.values.out_path, Some(PathBuf::from("/tmp/out")));
         }
@@ -191,7 +205,10 @@ mod tests {
         #[test]
         fn a_some_field_in_the_overlay_registers_its_source() {
             let base = MergedConfig::default();
-            let overlay = PartialConfig { out_path: Some(PathBuf::from("/tmp/out")), ..empty_partial() };
+            let overlay = PartialConfig {
+                out_path: Some(PathBuf::from("/tmp/out")),
+                ..empty_partial()
+            };
             let merged = overwrite(base, overlay, ConfigSource::File);
             assert_eq!(merged.sources.get("out_path"), Some(&ConfigSource::File));
         }
@@ -220,7 +237,10 @@ mod tests {
             let mut base = MergedConfig::default();
             base.values.save_pdf = Some(true);
             base.sources.insert("save_pdf", ConfigSource::Default);
-            let overlay = PartialConfig { out_path: Some(PathBuf::from("/tmp/out")), ..empty_partial() };
+            let overlay = PartialConfig {
+                out_path: Some(PathBuf::from("/tmp/out")),
+                ..empty_partial()
+            };
             let merged = overwrite(base, overlay, ConfigSource::File);
             assert_eq!(merged.values.save_pdf, Some(true));
             assert_eq!(merged.sources.get("save_pdf"), Some(&ConfigSource::Default));
@@ -233,22 +253,56 @@ mod tests {
         #[test]
         fn the_last_source_to_touch_a_field_wins_the_value() {
             let base = MergedConfig::default();
-            let file = PartialConfig { verbosity: Some(Verbosity::Trace), ..empty_partial() };
-            let env = PartialConfig { verbosity: Some(Verbosity::Debug), ..empty_partial() };
-            let cmd = PartialConfig { verbosity: Some(Verbosity::Info), ..empty_partial() };
+            let file = PartialConfig {
+                verbosity: Some(Verbosity::Trace),
+                ..empty_partial()
+            };
+            let env = PartialConfig {
+                verbosity: Some(Verbosity::Debug),
+                ..empty_partial()
+            };
+            let cmd = PartialConfig {
+                verbosity: Some(Verbosity::Info),
+                ..empty_partial()
+            };
 
-            let merged = overwrite(overwrite(overwrite(base, file, ConfigSource::File), env, ConfigSource::Env), cmd, ConfigSource::Cmd);
+            let merged = overwrite(
+                overwrite(
+                    overwrite(base, file, ConfigSource::File),
+                    env,
+                    ConfigSource::Env,
+                ),
+                cmd,
+                ConfigSource::Cmd,
+            );
             assert_eq!(merged.values.verbosity, Some(Verbosity::Info));
         }
 
         #[test]
         fn the_last_source_to_touch_a_field_wins_the_recorded_source() {
             let base = MergedConfig::default();
-            let file = PartialConfig { verbosity: Some(Verbosity::Trace), ..empty_partial() };
-            let env = PartialConfig { verbosity: Some(Verbosity::Debug), ..empty_partial() };
-            let cmd = PartialConfig { verbosity: Some(Verbosity::Info), ..empty_partial() };
+            let file = PartialConfig {
+                verbosity: Some(Verbosity::Trace),
+                ..empty_partial()
+            };
+            let env = PartialConfig {
+                verbosity: Some(Verbosity::Debug),
+                ..empty_partial()
+            };
+            let cmd = PartialConfig {
+                verbosity: Some(Verbosity::Info),
+                ..empty_partial()
+            };
 
-            let merged = overwrite(overwrite(overwrite(base, file, ConfigSource::File), env, ConfigSource::Env), cmd, ConfigSource::Cmd);
+            let merged = overwrite(
+                overwrite(
+                    overwrite(base, file, ConfigSource::File),
+                    env,
+                    ConfigSource::Env,
+                ),
+                cmd,
+                ConfigSource::Cmd,
+            );
             assert_eq!(merged.sources.get("verbosity"), Some(&ConfigSource::Cmd));
         }
 
@@ -257,11 +311,25 @@ mod tests {
             // file sets verbosity, env leaves it alone, cmd overrides again: env's `None` must
             // not erase file's contribution before cmd is applied.
             let base = MergedConfig::default();
-            let file = PartialConfig { verbosity: Some(Verbosity::Trace), ..empty_partial() };
+            let file = PartialConfig {
+                verbosity: Some(Verbosity::Trace),
+                ..empty_partial()
+            };
             let env = empty_partial(); // does not touch verbosity
-            let cmd = PartialConfig { verbosity: Some(Verbosity::Info), ..empty_partial() };
+            let cmd = PartialConfig {
+                verbosity: Some(Verbosity::Info),
+                ..empty_partial()
+            };
 
-            let merged = overwrite(overwrite(overwrite(base, file, ConfigSource::File), env, ConfigSource::Env), cmd, ConfigSource::Cmd);
+            let merged = overwrite(
+                overwrite(
+                    overwrite(base, file, ConfigSource::File),
+                    env,
+                    ConfigSource::Env,
+                ),
+                cmd,
+                ConfigSource::Cmd,
+            );
             assert_eq!(merged.values.verbosity, Some(Verbosity::Info));
         }
 
@@ -271,8 +339,20 @@ mod tests {
             let file = empty_partial();
             let env = empty_partial();
             let cmd = empty_partial();
-            let merged = overwrite(overwrite(overwrite(base, file, ConfigSource::File), env, ConfigSource::Env), cmd, ConfigSource::Cmd);
-            assert_eq!(merged.values.verbosity, Some(Verbosity::Warn), "must keep defaults()'s Warn, untouched by any source");
+            let merged = overwrite(
+                overwrite(
+                    overwrite(base, file, ConfigSource::File),
+                    env,
+                    ConfigSource::Env,
+                ),
+                cmd,
+                ConfigSource::Cmd,
+            );
+            assert_eq!(
+                merged.values.verbosity,
+                Some(Verbosity::Warn),
+                "must keep defaults()'s Warn, untouched by any source"
+            );
         }
     }
 
@@ -320,15 +400,25 @@ mod tests {
         fn one_source_setting_one_output_flag_does_not_erase_the_other() {
             let base = overwrite(
                 defaults(),
-                PartialConfig { compressed: Some(true), ..PartialConfig::default() },
+                PartialConfig {
+                    compressed: Some(true),
+                    ..PartialConfig::default()
+                },
                 ConfigSource::File,
             );
             let merged = overwrite(
                 base,
-                PartialConfig { separate_out: Some(true), ..PartialConfig::default() },
+                PartialConfig {
+                    separate_out: Some(true),
+                    ..PartialConfig::default()
+                },
                 ConfigSource::Env,
             );
-            assert_eq!(merged.values.compressed, Some(true), "the file's archive flag must survive");
+            assert_eq!(
+                merged.values.compressed,
+                Some(true),
+                "the file's archive flag must survive"
+            );
             assert_eq!(merged.values.separate_out, Some(true));
         }
 
@@ -375,7 +465,10 @@ mod tests {
 
         #[test]
         fn neither_present_is_none() {
-            assert_eq!(super::resolve_singular_and_plural_reports(None, None), Ok(None));
+            assert_eq!(
+                super::resolve_singular_and_plural_reports(None, None),
+                Ok(None)
+            );
         }
 
         #[test]
@@ -398,7 +491,8 @@ mod tests {
 
         #[test]
         fn both_present_is_a_conflict_error() {
-            let result = super::resolve_singular_and_plural_reports(Some(spec("a")), Some(vec![spec("b")]));
+            let result =
+                super::resolve_singular_and_plural_reports(Some(spec("a")), Some(vec![spec("b")]));
             assert_eq!(result, Err(SourceReportsConflict));
         }
 

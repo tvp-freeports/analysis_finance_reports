@@ -28,23 +28,44 @@
 use std::path::{Path, PathBuf};
 
 use crate::cli::conf_parse::{DOC_SPEC_SEPARATOR, DocumentSpec, DocumentSpecError};
-use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
+use crate::cli::partial_config::{
+    PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports,
+};
 use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum BatchError {
     #[error("cannot read {}: {source}", path.display())]
-    Io { path: PathBuf, #[source] source: std::io::Error },
+    Io {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
     #[error("cannot parse CSV {}: {source}", path.display())]
-    Csv { path: PathBuf, #[source] source: csv::Error },
+    Csv {
+        path: PathBuf,
+        #[source]
+        source: csv::Error,
+    },
     #[error("{}: unknown column {column:?}", path.display())]
     UnknownColumn { path: PathBuf, column: String },
     #[error("row {row}: invalid document specifier {value:?}: {source}")]
-    InvalidReportSpecifier { row: usize, value: String, source: DocumentSpecError },
+    InvalidReportSpecifier {
+        row: usize,
+        value: String,
+        source: DocumentSpecError,
+    },
     #[error("row {row}: {source}")]
-    ReportsConflict { row: usize, source: SourceReportsConflict },
+    ReportsConflict {
+        row: usize,
+        source: SourceReportsConflict,
+    },
     #[error("row {row}: invalid value for '{column}': {value:?}")]
-    InvalidValue { row: usize, column: &'static str, value: String },
+    InvalidValue {
+        row: usize,
+        column: &'static str,
+        value: String,
+    },
 }
 
 const KNOWN_COLUMNS: [&str; 5] = ["url", "pdf", "format", "save pdf", "target list"];
@@ -55,30 +76,53 @@ fn normalize_column(name: &str) -> String {
 
 fn non_empty(value: &str) -> Option<&str> {
     let trimmed = value.trim();
-    if trimmed.is_empty() { None } else { Some(trimmed) }
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    }
 }
 
 fn parse_bool(row: usize, value: &str) -> Result<bool, BatchError> {
     match value.to_ascii_lowercase().as_str() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(BatchError::InvalidValue { row, column: "save pdf", value: value.to_string() }),
+        _ => Err(BatchError::InvalidValue {
+            row,
+            column: "save pdf",
+            value: value.to_string(),
+        }),
     }
 }
 
-fn row_to_partial_config(row: usize, fields: &std::collections::HashMap<&str, String>) -> Result<PartialConfig, BatchError> {
-    let url = fields.get("url").and_then(|v| non_empty(v)).map(str::to_string);
+fn row_to_partial_config(
+    row: usize,
+    fields: &std::collections::HashMap<&str, String>,
+) -> Result<PartialConfig, BatchError> {
+    let url = fields
+        .get("url")
+        .and_then(|v| non_empty(v))
+        .map(str::to_string);
     let pdf = fields.get("pdf").and_then(|v| non_empty(v));
 
     let parts: Option<Vec<&str>> = pdf.map(|v| v.split(DOC_SPEC_SEPARATOR).collect());
 
     let (singular, plural) = match parts {
-        None => (url.map(|u| DocumentSpec { url: Some(u), path: None, name: None }), None),
+        None => (
+            url.map(|u| DocumentSpec {
+                url: Some(u),
+                path: None,
+                name: None,
+            }),
+            None,
+        ),
         Some(parts) if parts.len() == 1 => {
-            let mut spec = DocumentSpec::parse(parts[0]).map_err(|source| BatchError::InvalidReportSpecifier {
-                row,
-                value: parts[0].to_string(),
-                source,
+            let mut spec = DocumentSpec::parse(parts[0]).map_err(|source| {
+                BatchError::InvalidReportSpecifier {
+                    row,
+                    value: parts[0].to_string(),
+                    source,
+                }
             })?;
             if let Some(u) = url {
                 spec.url = Some(u);
@@ -89,22 +133,48 @@ fn row_to_partial_config(row: usize, fields: &std::collections::HashMap<&str, St
             let specs: Result<Vec<DocumentSpec>, BatchError> = parts
                 .iter()
                 .map(|p| {
-                    DocumentSpec::parse(p)
-                        .map_err(|source| BatchError::InvalidReportSpecifier { row, value: p.to_string(), source })
+                    DocumentSpec::parse(p).map_err(|source| BatchError::InvalidReportSpecifier {
+                        row,
+                        value: p.to_string(),
+                        source,
+                    })
                 })
                 .collect();
-            (url.map(|u| DocumentSpec { url: Some(u), path: None, name: None }), Some(specs?))
+            (
+                url.map(|u| DocumentSpec {
+                    url: Some(u),
+                    path: None,
+                    name: None,
+                }),
+                Some(specs?),
+            )
         }
     };
 
-    let reports =
-        resolve_singular_and_plural_reports(singular, plural).map_err(|source| BatchError::ReportsConflict { row, source })?;
+    let reports = resolve_singular_and_plural_reports(singular, plural)
+        .map_err(|source| BatchError::ReportsConflict { row, source })?;
 
-    let format = fields.get("format").and_then(|v| non_empty(v)).map(str::to_string);
-    let save_pdf = fields.get("save pdf").and_then(|v| non_empty(v)).map(|v| parse_bool(row, v)).transpose()?;
-    let target_lists = fields.get("target list").and_then(|v| non_empty(v)).map(|v| vec![v.to_string()]);
+    let format = fields
+        .get("format")
+        .and_then(|v| non_empty(v))
+        .map(str::to_string);
+    let save_pdf = fields
+        .get("save pdf")
+        .and_then(|v| non_empty(v))
+        .map(|v| parse_bool(row, v))
+        .transpose()?;
+    let target_lists = fields
+        .get("target list")
+        .and_then(|v| non_empty(v))
+        .map(|v| vec![v.to_string()]);
 
-    Ok(PartialConfig { reports, format, save_pdf, target_lists, ..PartialConfig::default() })
+    Ok(PartialConfig {
+        reports,
+        format,
+        save_pdf,
+        target_lists,
+        ..PartialConfig::default()
+    })
 }
 
 /// Batch job dispatch: wraps `load_jobs_impl` in its own span (`path` is the coordinate that
@@ -127,16 +197,26 @@ pub fn load_jobs(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
 /// Rows numbered from one, the header not counting, in file order. A CSV with only a header yields
 /// an empty list rather than an error.
 fn load_jobs_impl(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
-    let mut reader =
-        csv::ReaderBuilder::new().has_headers(true).from_path(path).map_err(|e| batch_csv_err(path, e))?;
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_path(path)
+        .map_err(|e| batch_csv_err(path, e))?;
 
-    let headers = reader.headers().map_err(|e| batch_csv_err(path, e))?.clone();
+    let headers = reader
+        .headers()
+        .map_err(|e| batch_csv_err(path, e))?
+        .clone();
     let mut column_map: Vec<&'static str> = Vec::with_capacity(headers.len());
     for header in headers.iter() {
         let normalized = normalize_column(header);
         match KNOWN_COLUMNS.iter().find(|&&known| known == normalized) {
             Some(&known) => column_map.push(known),
-            None => return Err(BatchError::UnknownColumn { path: path.to_path_buf(), column: header.to_string() }),
+            None => {
+                return Err(BatchError::UnknownColumn {
+                    path: path.to_path_buf(),
+                    column: header.to_string(),
+                });
+            }
         }
     }
 
@@ -156,9 +236,15 @@ fn load_jobs_impl(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
 
 fn batch_csv_err(path: &Path, source: csv::Error) -> BatchError {
     if source.is_io_error() {
-        BatchError::Io { path: path.to_path_buf(), source: source.into() }
+        BatchError::Io {
+            path: path.to_path_buf(),
+            source: source.into(),
+        }
     } else {
-        BatchError::Csv { path: path.to_path_buf(), source }
+        BatchError::Csv {
+            path: path.to_path_buf(),
+            source,
+        }
     }
 }
 
@@ -229,7 +315,10 @@ mod tests {
             let path = write_csv(dir.path(), "format,not_a_real_column\nA,1\n");
             let result = std::panic::catch_unwind(|| load_jobs(&path));
             assert!(result.is_ok(), "must not panic");
-            assert!(matches!(result.unwrap(), Err(BatchError::UnknownColumn { .. })));
+            assert!(matches!(
+                result.unwrap(),
+                Err(BatchError::UnknownColumn { .. })
+            ));
         }
     }
 
@@ -294,17 +383,26 @@ mod tests {
             let jobs = load_jobs(&path).unwrap();
             let reports = jobs[0].reports.clone().unwrap();
             assert_eq!(reports.len(), 1);
-            assert_eq!(reports[0].url.as_deref(), Some("https://example.com/report.pdf"));
+            assert_eq!(
+                reports[0].url.as_deref(),
+                Some("https://example.com/report.pdf")
+            );
         }
 
         #[test]
         fn url_and_a_separator_free_pdf_value_combine_into_one_spec() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write_csv(dir.path(), "format,url,pdf\nA,https://example.com/report.pdf,local.pdf\n");
+            let path = write_csv(
+                dir.path(),
+                "format,url,pdf\nA,https://example.com/report.pdf,local.pdf\n",
+            );
             let jobs = load_jobs(&path).unwrap();
             let reports = jobs[0].reports.clone().unwrap();
             assert_eq!(reports.len(), 1);
-            assert_eq!(reports[0].url.as_deref(), Some("https://example.com/report.pdf"));
+            assert_eq!(
+                reports[0].url.as_deref(),
+                Some("https://example.com/report.pdf")
+            );
         }
     }
 
@@ -317,7 +415,10 @@ mod tests {
             let path = write_csv(dir.path(), "format,save pdf\nA,true\nB,\n");
             let jobs = load_jobs(&path).unwrap();
             assert_eq!(jobs[0].save_pdf, Some(true));
-            assert_eq!(jobs[1].save_pdf, None, "an empty cell means the row doesn't set this field");
+            assert_eq!(
+                jobs[1].save_pdf, None,
+                "an empty cell means the row doesn't set this field"
+            );
         }
 
         #[test]

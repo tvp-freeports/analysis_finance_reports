@@ -608,6 +608,132 @@ class TestTheReportCannotStopTheRepositoryBeingCreated:
         assert "freeports-validate" in capsys.readouterr().out
 
 
+#: Where a formats repository declares how a document is recognised (document classification, §2.1
+#: of the specification). Relative to the repository root.
+DOC_CLASSIFY_YAML = "metadata/document_classify.yaml"
+
+#: What a YAML document with no classification rules reads as. The engine's loader accepts all
+#: three — an empty text or one of comments only (null), an empty list of entries, an empty mapping
+#: of pages — and every one of them classifies nothing.
+NO_RULES = (None, [], {})
+
+
+def _comment_lines(text):
+    """The comment lines of a YAML text, with the `#` and the surrounding blanks removed."""
+    return [
+        line.strip()[1:].strip()
+        for line in text.splitlines()
+        if line.strip().startswith("#")
+    ]
+
+
+class TestTheClassificationSeed:
+    """The seed `init-format-repo` writes for document classification, read where the code reads it.
+
+    In-process and fast, unlike the tests of the created repository below: a seed that stopped
+    being valid, or started declaring a rule, is caught at every commit.
+    """
+
+    @pytest.fixture
+    def seed(self):
+        """The seed's text, or `None` when there is none: each test then fails, not errors."""
+        return json.loads((LIB / "yaml_seeds.json").read_text()).get(DOC_CLASSIFY_YAML)
+
+    def test_the_declarative_file_is_seeded(self):
+        assert DOC_CLASSIFY_YAML in json.loads((LIB / "yaml_seeds.json").read_text())
+
+    def test_the_python_module_is_not_seeded(self):
+        """The author adds `document_classify.py` if they need it; a stub would take precedence."""
+        seeds = json.loads((LIB / "yaml_seeds.json").read_text())
+        assert not [path for path in seeds if path.endswith(".py")]
+
+    def test_no_python_package_is_seeded_either(self):
+        dirs = json.loads((LIB / "dirs.json").read_text())
+        assert not [d for d in dirs if "document_classify" in d]
+
+    def test_and_no_csv_is_seeded_under_its_name(self):
+        headers = json.loads((LIB / "csv_headers.json").read_text())
+        assert not [path for path in headers if "document_classify" in path]
+
+    def test_it_is_valid_yaml_with_no_rules(self, seed):
+        import yaml
+
+        assert seed is not None, f"no seed for {DOC_CLASSIFY_YAML}"
+        assert yaml.safe_load(seed) in NO_RULES
+
+    def test_it_ends_with_a_newline(self, seed):
+        assert seed is not None, f"no seed for {DOC_CLASSIFY_YAML}"
+        assert seed.endswith("\n")
+
+    def test_it_shows_the_minimal_form_in_a_comment(self, seed):
+        """A page key and a step under it with a `text` criterion, all commented out.
+
+        The page key is an integer on a line of its own (`1:` or `- 1:`); the criterion is written
+        in mapping form, which is the only form a selection takes in this YAML.
+        """
+        assert seed is not None, f"no seed for {DOC_CLASSIFY_YAML}"
+        comments = _comment_lines(seed)
+        assert any(re.fullmatch(r"(- )?-?[1-9][0-9]*:", line) for line in comments)
+        assert any("text:" in line for line in comments)
+
+    def test_it_points_to_the_documentation(self, seed):
+        """A link a reader can follow, on the project's documentation site."""
+        assert seed is not None, f"no seed for {DOC_CLASSIFY_YAML}"
+        assert any(
+            "https://docs.freeports.org/" in line for line in _comment_lines(seed)
+        )
+
+
+class TestTheRepositoryClassifiesNothingYet:
+    """A fresh repository carries the declarative file, empty of rules, and no Python beside it."""
+
+    def test_the_declarative_file_is_created(self, repo):
+        assert (repo / DOC_CLASSIFY_YAML).is_file()
+
+    def test_it_is_the_seed(self, repo):
+        seeds = json.loads((LIB / "yaml_seeds.json").read_text())
+        assert (repo / DOC_CLASSIFY_YAML).read_text(encoding="utf-8") == seeds[
+            DOC_CLASSIFY_YAML
+        ]
+
+    def test_the_python_module_is_not_created(self, repo):
+        assert not (repo / "metadata" / "document_classify.py").exists()
+
+    def test_nor_a_python_package(self, repo):
+        assert not (repo / "metadata" / "document_classify").exists()
+
+    def test_the_yaml_is_the_only_file_of_that_name_anywhere(self, repo):
+        found = sorted(
+            path.relative_to(repo).as_posix()
+            for path in repo.rglob("document_classify*")
+        )
+        assert found == [DOC_CLASSIFY_YAML]
+
+    def test_it_is_valid_yaml_with_no_rules(self, repo):
+        import yaml
+
+        text = (repo / DOC_CLASSIFY_YAML).read_text(encoding="utf-8")
+        assert yaml.safe_load(text) in NO_RULES
+
+    def test_it_carries_the_minimal_form_and_the_pointer_in_comments(self, repo):
+        comments = _comment_lines(
+            (repo / DOC_CLASSIFY_YAML).read_text(encoding="utf-8")
+        )
+        assert any(re.fullmatch(r"(- )?-?[1-9][0-9]*:", line) for line in comments)
+        assert any("https://docs.freeports.org/" in line for line in comments)
+
+    def test_the_engine_reads_the_repository(self, repo):
+        """No format is declared yet, so the engine finds none — and does not fail."""
+        from freeports.formats_repo import get_formats
+
+        assert list(get_formats(repo)) == []
+
+    def test_the_engine_matches_no_url_against_it(self, repo):
+        from freeports.formats_repo import url_to_format
+
+        assert url_to_format(repo, "https://example.org/annual-report-2024.pdf") is None
+
+
 class TestWhatWasAlreadyThere:
     """The skeleton this work extended, so extending it again does not quietly drop a piece."""
 

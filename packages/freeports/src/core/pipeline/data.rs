@@ -20,6 +20,8 @@ use crate::core::page::PageError;
 use crate::core::promise_resolution::PromiseMap;
 use crate::core::schedule::PageClass;
 use crate::formats_repo::format_pattern::FormatPattern;
+use crate::formats_utils::pdf_extract::commons::CommonsError;
+use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
 use crate::output::classes::fund::Fund;
 use crate::output::classes::fund_assets::FundAssets;
@@ -27,8 +29,6 @@ use crate::output::classes::fund_change_name::{FundMerge, FundRename};
 use crate::output::classes::fund_esg_indicator::FundEsgIndicator;
 use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
 use crate::output::classes::investment::{Bond, Equity};
-use crate::formats_utils::pdf_extract::commons::CommonsError;
-use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 
 /// The failure of a single pipe.
 ///
@@ -49,12 +49,20 @@ pub enum PipeError {
     Extraction { pipe: String, message: String },
     /// A field conversion failed.
     #[error("pipe `{pipe}` could not cast field `{field}`: {message}")]
-    Cast { pipe: String, field: String, message: String },
+    Cast {
+        pipe: String,
+        field: String,
+        message: String,
+    },
     /// A pipe **written by the format author**, in Python, raised.
     ///
     /// This is the boundary: no `PyErr` travels beyond `formats_repo`, it becomes this variant.
     #[error("author pipe `{pipe}` of pipeline `{pipeline}` failed: {message}")]
-    Author { pipeline: String, pipe: String, message: String },
+    Author {
+        pipeline: String,
+        pipe: String,
+        message: String,
+    },
     /// A `metadata` or `content` field did not have the expected type.
     #[error("pipe `{pipe}`: {source}")]
     Value {
@@ -66,11 +74,17 @@ pub enum PipeError {
 
 impl PipeError {
     pub fn page_parse(pipe: impl Into<String>, source: PageError) -> Self {
-        PipeError::PageParse { pipe: pipe.into(), source }
+        PipeError::PageParse {
+            pipe: pipe.into(),
+            source,
+        }
     }
 
     pub fn extraction(pipe: impl Into<String>, message: impl Into<String>) -> Self {
-        PipeError::Extraction { pipe: pipe.into(), message: message.into() }
+        PipeError::Extraction {
+            pipe: pipe.into(),
+            message: message.into(),
+        }
     }
 
     pub fn cast(
@@ -78,7 +92,11 @@ impl PipeError {
         field: impl Into<String>,
         message: impl Into<String>,
     ) -> Self {
-        PipeError::Cast { pipe: pipe.into(), field: field.into(), message: message.into() }
+        PipeError::Cast {
+            pipe: pipe.into(),
+            field: field.into(),
+            message: message.into(),
+        }
     }
 
     pub fn author(
@@ -94,7 +112,10 @@ impl PipeError {
     }
 
     pub fn value(pipe: impl Into<String>, source: BlockValueError) -> Self {
-        PipeError::Value { pipe: pipe.into(), source }
+        PipeError::Value {
+            pipe: pipe.into(),
+            source,
+        }
     }
 
     /// True only for [`PipeError::PageParse`]: the one failure the algorithm absorbs by skipping
@@ -124,12 +145,16 @@ impl PipeError {
     pub fn from_commons(pipe: impl Into<String>, error: CommonsError) -> Self {
         let pipe = pipe.into();
         match error {
-            CommonsError::PageParseFail { ref source } => {
-                PipeError::PageParse { source: PageError::ParseFail { message: source.to_string() }, pipe }
-            }
-            CommonsError::ExpectedTextNotFound { .. } => {
-                PipeError::Extraction { message: error.to_string(), pipe }
-            }
+            CommonsError::PageParseFail { ref source } => PipeError::PageParse {
+                source: PageError::ParseFail {
+                    message: source.to_string(),
+                },
+                pipe,
+            },
+            CommonsError::ExpectedTextNotFound { .. } => PipeError::Extraction {
+                message: error.to_string(),
+                pipe,
+            },
         }
     }
 }
@@ -394,7 +419,9 @@ mod tests {
         fn only_a_page_parse_failure_is_absorbed_by_the_algorithm() {
             let page_fail = PipeError::page_parse(
                 "p",
-                PageError::ParseFail { message: "no table".to_string() },
+                PageError::ParseFail {
+                    message: "no table".to_string(),
+                },
             );
             assert!(page_fail.is_page_failure());
 
@@ -402,7 +429,12 @@ mod tests {
                 PipeError::extraction("p", "m"),
                 PipeError::cast("p", "f", "m"),
                 PipeError::author("pl", "p", "m"),
-                PipeError::value("p", BlockValueError::MissingField { field: "f".to_string() }),
+                PipeError::value(
+                    "p",
+                    BlockValueError::MissingField {
+                        field: "f".to_string(),
+                    },
+                ),
             ] {
                 assert!(!other.is_page_failure(), "{other:?} must not be absorbed");
             }
@@ -411,11 +443,21 @@ mod tests {
         #[test]
         fn every_variant_names_the_pipe_that_produced_it() {
             let errors = [
-                PipeError::page_parse("a", PageError::ParseFail { message: String::new() }),
+                PipeError::page_parse(
+                    "a",
+                    PageError::ParseFail {
+                        message: String::new(),
+                    },
+                ),
                 PipeError::extraction("a", "m"),
                 PipeError::cast("a", "f", "m"),
                 PipeError::author("pl", "a", "m"),
-                PipeError::value("a", BlockValueError::MissingField { field: "f".to_string() }),
+                PipeError::value(
+                    "a",
+                    BlockValueError::MissingField {
+                        field: "f".to_string(),
+                    },
+                ),
             ];
             for err in errors {
                 assert_eq!(err.pipe(), "a");
@@ -429,9 +471,16 @@ mod tests {
 
         #[test]
         fn a_page_parse_failure_quotes_the_underlying_message() {
-            let err =
-                PipeError::page_parse("extract", PageError::ParseFail { message: "no table".into() });
-            assert_eq!(err.to_string(), "pipe `extract` could not parse the page: no table");
+            let err = PipeError::page_parse(
+                "extract",
+                PageError::ParseFail {
+                    message: "no table".into(),
+                },
+            );
+            assert_eq!(
+                err.to_string(),
+                "pipe `extract` could not parse the page: no table"
+            );
         }
 
         #[test]
@@ -460,8 +509,12 @@ mod tests {
 
         #[test]
         fn a_value_failure_forwards_the_block_value_message() {
-            let err =
-                PipeError::value("deser", BlockValueError::MissingField { field: "fund".into() });
+            let err = PipeError::value(
+                "deser",
+                BlockValueError::MissingField {
+                    field: "fund".into(),
+                },
+            );
             assert_eq!(err.to_string(), "pipe `deser`: missing field 'fund'");
         }
     }
@@ -473,7 +526,9 @@ mod tests {
         #[test]
         fn a_commons_page_failure_becomes_a_non_fatal_page_parse() {
             let commons = CommonsError::PageParseFail {
-                source: Box::new(CommonsError::ExpectedTextNotFound { name: "fund".to_string() }),
+                source: Box::new(CommonsError::ExpectedTextNotFound {
+                    name: "fund".to_string(),
+                }),
             };
             let err = PipeError::from_commons("extract", commons);
             assert!(err.is_page_failure());
@@ -490,12 +545,17 @@ mod tests {
 
         #[test]
         fn a_bare_not_found_becomes_a_fatal_extraction_failure() {
-            let commons = CommonsError::ExpectedTextNotFound { name: "fund".to_string() };
+            let commons = CommonsError::ExpectedTextNotFound {
+                name: "fund".to_string(),
+            };
             let err = PipeError::from_commons("extract", commons);
             assert!(!err.is_page_failure());
             assert_eq!(
                 err,
-                PipeError::extraction("extract", "Pdf block during extraction of \"fund\" not found")
+                PipeError::extraction(
+                    "extract",
+                    "Pdf block during extraction of \"fund\" not found"
+                )
             );
         }
     }
@@ -506,24 +566,35 @@ mod tests {
 
         #[test]
         fn keeps_the_order_in_which_the_pipe_produced_them() {
-            let entries: PromiseEntries =
-                [("id", BlockValue::from("first")), ("id", BlockValue::from("second"))]
-                    .into_iter()
-                    .collect();
+            let entries: PromiseEntries = [
+                ("id", BlockValue::from("first")),
+                ("id", BlockValue::from("second")),
+            ]
+            .into_iter()
+            .collect();
             let values: Vec<&BlockValue> = entries.iter().map(|(_, v)| v).collect();
-            assert_eq!(values, vec![&BlockValue::from("first"), &BlockValue::from("second")]);
+            assert_eq!(
+                values,
+                vec![&BlockValue::from("first"), &BlockValue::from("second")]
+            );
         }
 
         #[test]
         fn merging_appends_every_contribution_under_its_id() {
-            let entries: PromiseEntries =
-                [("a", BlockValue::from(1i64)), ("b", BlockValue::from(2i64)), ("a", BlockValue::from(3i64))]
-                    .into_iter()
-                    .collect();
+            let entries: PromiseEntries = [
+                ("a", BlockValue::from(1i64)),
+                ("b", BlockValue::from(2i64)),
+                ("a", BlockValue::from(3i64)),
+            ]
+            .into_iter()
+            .collect();
             let mut map = PromiseMap::new();
             entries.merge_into(&mut map);
 
-            assert_eq!(map.get("a"), Some([BlockValue::from(1i64), BlockValue::from(3i64)].as_slice()));
+            assert_eq!(
+                map.get("a"),
+                Some([BlockValue::from(1i64), BlockValue::from(3i64)].as_slice())
+            );
             assert_eq!(map.get("b"), Some([BlockValue::from(2i64)].as_slice()));
         }
 
@@ -553,7 +624,10 @@ mod tests {
         #[test]
         fn a_page_class_result_exposes_its_class() {
             let e = Extracted::PageClass(Some(PageClass::new("investments")));
-            assert_eq!(e.as_page_class(), Some(&Some(PageClass::new("investments"))));
+            assert_eq!(
+                e.as_page_class(),
+                Some(&Some(PageClass::new("investments")))
+            );
         }
 
         #[test]
@@ -585,7 +659,11 @@ mod tests {
         #[test]
         fn a_page_class_is_not_a_doc_class() {
             assert!(Extracted::PageClass(None).as_doc_class().is_none());
-            assert!(Extracted::PageClass(Some(PageClass::new("investments"))).as_doc_class().is_none());
+            assert!(
+                Extracted::PageClass(Some(PageClass::new("investments")))
+                    .as_doc_class()
+                    .is_none()
+            );
         }
 
         #[test]
@@ -630,12 +708,12 @@ mod tests {
         use super::*;
         use crate::commons::consts::{Currency, SfdrArticle};
         use crate::commons::date::Date;
+        use crate::core::promise::Promise;
         use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
         use crate::output::classes::fund_assets::FundAssets;
         use crate::output::classes::fund_change_name::{FundMerge, FundRename};
         use crate::output::classes::fund_esg_indicator::FundEsgIndicator;
         use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
-        use crate::core::promise::Promise;
         use crate::output::classes::investment::InvestmentFields;
         use std::collections::BTreeSet;
 
@@ -666,8 +744,15 @@ mod tests {
         }
 
         fn fund_assets() -> FundAssets {
-            FundAssets::build("Alpha Fund", 100.0, 40.0, 60.0, &BlockValue::from(Currency::EUR), None)
-                .expect("fixed, valid fixture")
+            FundAssets::build(
+                "Alpha Fund",
+                100.0,
+                40.0,
+                60.0,
+                &BlockValue::from(Currency::EUR),
+                None,
+            )
+            .expect("fixed, valid fixture")
         }
 
         fn fund_sfdr_classification() -> FundSfdrClassification {
@@ -681,23 +766,37 @@ mod tests {
         }
 
         fn fund_rename() -> FundRename {
-            FundRename::build("Old Fund", "New Fund", &BlockValue::from(Date::new(2025, 1, 1).unwrap()))
-                .expect("fixed, valid fixture")
+            FundRename::build(
+                "Old Fund",
+                "New Fund",
+                &BlockValue::from(Date::new(2025, 1, 1).unwrap()),
+            )
+            .expect("fixed, valid fixture")
         }
 
         fn fund_merge() -> FundMerge {
-            FundMerge::build("Old Fund", "New Fund", &BlockValue::from(Date::new(2025, 1, 1).unwrap()))
-                .expect("fixed, valid fixture")
+            FundMerge::build(
+                "Old Fund",
+                "New Fund",
+                &BlockValue::from(Date::new(2025, 1, 1).unwrap()),
+            )
+            .expect("fixed, valid fixture")
         }
 
         fn management_company() -> ManagementCompany {
-            ManagementCompany::build(&BlockValue::from("Acme AM"), &BlockValue::Set(BTreeSet::new()))
-                .expect("fixed, valid fixture")
+            ManagementCompany::build(
+                &BlockValue::from("Acme AM"),
+                &BlockValue::Set(BTreeSet::new()),
+            )
+            .expect("fixed, valid fixture")
         }
 
         fn investments_manager() -> InvestmentsManager {
-            InvestmentsManager::build(&BlockValue::from("Acme IM"), &BlockValue::Set(BTreeSet::new()))
-                .expect("fixed, valid fixture")
+            InvestmentsManager::build(
+                &BlockValue::from("Acme IM"),
+                &BlockValue::Set(BTreeSet::new()),
+            )
+            .expect("fixed, valid fixture")
         }
 
         /// One specimen of each of the thirteen [`Extracted`] variants, in declaration order. The
@@ -745,11 +844,16 @@ mod tests {
             };
 
             vec![
-                Extracted::Equity(Equity::build(investment_fields()).expect("promises are always admissible")),
-                Extracted::Bond(
-                    Bond::build(investment_fields(), None, None).expect("promises are always admissible"),
+                Extracted::Equity(
+                    Equity::build(investment_fields()).expect("promises are always admissible"),
                 ),
-                Extracted::Fund(Fund::from_value(&promise("fund_name")).expect("a promise is a valid name")),
+                Extracted::Bond(
+                    Bond::build(investment_fields(), None, None)
+                        .expect("promises are always admissible"),
+                ),
+                Extracted::Fund(
+                    Fund::from_value(&promise("fund_name")).expect("a promise is a valid name"),
+                ),
                 Extracted::FundAssets(
                     FundAssets::build("Alpha Fund", 100.0, 40.0, 60.0, &promise("currency"), None)
                         .expect("promises are always admissible"),
@@ -775,7 +879,12 @@ mod tests {
                 Extracted::ManagementCompany(management_company()),
                 Extracted::InvestmentsManager(investments_manager()),
                 Extracted::Promises(
-                    [("fund_name", promise("other")), ("isin", BlockValue::Int(1))].into_iter().collect(),
+                    [
+                        ("fund_name", promise("other")),
+                        ("isin", BlockValue::Int(1)),
+                    ]
+                    .into_iter()
+                    .collect(),
                 ),
                 Extracted::PageClass(Some(PageClass::new("investments"))),
                 Extracted::DocClass(Some("MEDIOLANUM-IT24.A".parse().expect("a valid pattern"))),
@@ -798,7 +907,11 @@ mod tests {
             fn as_fund_sfdr_classification_returns_some_only_for_its_own_variant() {
                 for e in one_of_each() {
                     let expect_some = matches!(e, Extracted::FundSfdrClassification(_));
-                    assert_eq!(e.as_fund_sfdr_classification().is_some(), expect_some, "{e:?}");
+                    assert_eq!(
+                        e.as_fund_sfdr_classification().is_some(),
+                        expect_some,
+                        "{e:?}"
+                    );
                 }
             }
 
@@ -847,12 +960,36 @@ mod tests {
             #[test]
             fn the_five_pre_existing_accessors_reject_every_new_variant_too() {
                 for e in one_of_each() {
-                    assert_eq!(e.as_fund().is_some(), matches!(e, Extracted::Fund(_)), "{e:?}");
-                    assert_eq!(e.as_equity().is_some(), matches!(e, Extracted::Equity(_)), "{e:?}");
-                    assert_eq!(e.as_bond().is_some(), matches!(e, Extracted::Bond(_)), "{e:?}");
-                    assert_eq!(e.as_promises().is_some(), matches!(e, Extracted::Promises(_)), "{e:?}");
-                    assert_eq!(e.as_page_class().is_some(), matches!(e, Extracted::PageClass(_)), "{e:?}");
-                    assert_eq!(e.as_doc_class().is_some(), matches!(e, Extracted::DocClass(_)), "{e:?}");
+                    assert_eq!(
+                        e.as_fund().is_some(),
+                        matches!(e, Extracted::Fund(_)),
+                        "{e:?}"
+                    );
+                    assert_eq!(
+                        e.as_equity().is_some(),
+                        matches!(e, Extracted::Equity(_)),
+                        "{e:?}"
+                    );
+                    assert_eq!(
+                        e.as_bond().is_some(),
+                        matches!(e, Extracted::Bond(_)),
+                        "{e:?}"
+                    );
+                    assert_eq!(
+                        e.as_promises().is_some(),
+                        matches!(e, Extracted::Promises(_)),
+                        "{e:?}"
+                    );
+                    assert_eq!(
+                        e.as_page_class().is_some(),
+                        matches!(e, Extracted::PageClass(_)),
+                        "{e:?}"
+                    );
+                    assert_eq!(
+                        e.as_doc_class().is_some(),
+                        matches!(e, Extracted::DocClass(_)),
+                        "{e:?}"
+                    );
                 }
             }
         }
@@ -868,7 +1005,8 @@ mod tests {
 
             fn round_trip(e: &Extracted) -> Extracted {
                 let json = serde_json::to_string(e).expect("an extracted value must serialize");
-                serde_json::from_str(&json).expect("a serialized extracted value must deserialize back")
+                serde_json::from_str(&json)
+                    .expect("a serialized extracted value must deserialize back")
             }
 
             #[test]
@@ -938,13 +1076,20 @@ mod tests {
                     ("scalar", BlockValue::Int(42)),
                     (
                         "list",
-                        BlockValue::List(vec![BlockValue::Str("a".to_string()), BlockValue::Null, BlockValue::Bool(true)]),
+                        BlockValue::List(vec![
+                            BlockValue::Str("a".to_string()),
+                            BlockValue::Null,
+                            BlockValue::Bool(true),
+                        ]),
                     ),
                     (
                         "map",
                         BlockValue::Map(BTreeMap::from([(
                             "inner".to_string(),
-                            BlockValue::Set(BTreeSet::from([BlockValue::Int(1), BlockValue::Int(2)])),
+                            BlockValue::Set(BTreeSet::from([
+                                BlockValue::Int(1),
+                                BlockValue::Int(2),
+                            ])),
                         )])),
                     ),
                 ]
@@ -959,16 +1104,29 @@ mod tests {
             /// produce a different result from the same job run sequentially.
             #[test]
             fn the_order_of_promise_entries_is_preserved() {
-                let entries: PromiseEntries =
-                    [("k", BlockValue::Int(1)), ("k", BlockValue::Int(2)), ("k", BlockValue::Int(3))].into_iter().collect();
+                let entries: PromiseEntries = [
+                    ("k", BlockValue::Int(1)),
+                    ("k", BlockValue::Int(2)),
+                    ("k", BlockValue::Int(3)),
+                ]
+                .into_iter()
+                .collect();
                 let restored = round_trip(&Extracted::Promises(entries.clone()));
                 assert_eq!(restored, Extracted::Promises(entries));
             }
 
             #[test]
             fn a_doc_class_survives_absent_partial_and_complete() {
-                for value in [None, Some("MEDIOLANUM"), Some("FIDEURAM-IT23@*"), Some("X-EN23@*.*"), Some("MEDIOLANUM-IT24.A")] {
-                    let e = Extracted::DocClass(value.map(|text| text.parse().expect("a valid pattern")));
+                for value in [
+                    None,
+                    Some("MEDIOLANUM"),
+                    Some("FIDEURAM-IT23@*"),
+                    Some("X-EN23@*.*"),
+                    Some("MEDIOLANUM-IT24.A"),
+                ] {
+                    let e = Extracted::DocClass(
+                        value.map(|text| text.parse().expect("a valid pattern")),
+                    );
                     assert_eq!(round_trip(&e), e, "doc class {value:?} did not survive");
                 }
             }

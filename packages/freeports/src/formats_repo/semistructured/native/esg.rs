@@ -11,7 +11,9 @@ use serde::Deserialize;
 
 use crate::core::classes::BlockType;
 use crate::formats_utils::deserialize::esg::DeserializerEsgIndicator;
-use crate::formats_utils::text_filter::esg::{EsgError, FundOf, MARKER, NUMBER, Reader, TextFilterEsg};
+use crate::formats_utils::text_filter::esg::{
+    EsgError, FundOf, MARKER, NUMBER, Reader, TextFilterEsg,
+};
 
 /// What an ESG configuration can be refused for.
 #[derive(Debug, thiserror::Error)]
@@ -150,35 +152,52 @@ pub struct InputEsg {
 /// Builds the `esg` pipe.
 pub fn text_filter(input: &InputEsg) -> Result<TextFilterEsg, EsgConfigError> {
     let reader = match &input.read {
-        InputReader::LeadingNumber { marker, number, group_key, max_name } => {
-            Reader::leading_number(marker.as_deref(), number, group_key.clone(), *max_name)?
-        }
-        InputReader::DatedRows { indicator_key, series_key, column_key, series, column, number } => {
-            Reader::dated_rows(
-                indicator_key.clone(),
-                series_key.clone(),
-                column_key.clone(),
-                *series,
-                *column,
-                number,
-            )?
-        }
-        InputReader::LabelledPairs { separator, drop, strip, number, group_key } => {
-            Reader::labelled_pairs(separator.clone(), drop, strip, number, group_key.clone())?
-        }
+        InputReader::LeadingNumber {
+            marker,
+            number,
+            group_key,
+            max_name,
+        } => Reader::leading_number(marker.as_deref(), number, group_key.clone(), *max_name)?,
+        InputReader::DatedRows {
+            indicator_key,
+            series_key,
+            column_key,
+            series,
+            column,
+            number,
+        } => Reader::dated_rows(
+            indicator_key.clone(),
+            series_key.clone(),
+            column_key.clone(),
+            *series,
+            *column,
+            number,
+        )?,
+        InputReader::LabelledPairs {
+            separator,
+            drop,
+            strip,
+            number,
+            group_key,
+        } => Reader::labelled_pairs(separator.clone(), drop, strip, number, group_key.clone())?,
     };
     let fund = match &input.fund {
         None => FundOf::Nobody,
         Some(InputFundOf::Promise { id }) => FundOf::Promised(id.clone()),
-        Some(InputFundOf::PagePromise { field, page_key, offset, separator }) => FundOf::PagePromise {
+        Some(InputFundOf::PagePromise {
+            field,
+            page_key,
+            offset,
+            separator,
+        }) => FundOf::PagePromise {
             field: field.clone(),
             page_key: page_key.clone(),
             offset: *offset,
             separator: separator.clone(),
         },
-        Some(InputFundOf::Blocks { block_type }) => {
-            FundOf::Blocks { block_type: BlockType::new(block_type.clone()) }
-        }
+        Some(InputFundOf::Blocks { block_type }) => FundOf::Blocks {
+            block_type: BlockType::new(block_type.clone()),
+        },
     };
     Ok(TextFilterEsg::new(reader, fund))
 }
@@ -212,7 +231,9 @@ mod tests {
         #[test]
         fn the_marker_defaults_to_the_numbered_list_and_null_says_the_page_writes_none() {
             match parsed("read:\n  kind: leading_number\n").read {
-                InputReader::LeadingNumber { marker, .. } => assert_eq!(marker.as_deref(), Some(MARKER)),
+                InputReader::LeadingNumber { marker, .. } => {
+                    assert_eq!(marker.as_deref(), Some(MARKER))
+                }
                 other => panic!("{other:?}"),
             }
             match parsed("read:\n  kind: leading_number\n  marker: null\n").read {
@@ -226,7 +247,12 @@ mod tests {
         #[test]
         fn dated_rows_defaults_to_the_product_and_the_year_in_course() {
             match parsed("read:\n  kind: dated_rows\n").read {
-                InputReader::DatedRows { series, column, indicator_key, .. } => {
+                InputReader::DatedRows {
+                    series,
+                    column,
+                    indicator_key,
+                    ..
+                } => {
                     assert_eq!((series, column), (0, 0));
                     assert_eq!(indicator_key, "indicator");
                 }
@@ -241,7 +267,12 @@ mod tests {
                  \x20 strip:\n    - '^o\\s+'\n",
             );
             match &input.read {
-                InputReader::LabelledPairs { separator, drop, strip, .. } => {
+                InputReader::LabelledPairs {
+                    separator,
+                    drop,
+                    strip,
+                    ..
+                } => {
                     assert_eq!(separator, ":");
                     assert_eq!(drop.len(), 1);
                     assert_eq!(strip.len(), 1);
@@ -260,7 +291,10 @@ mod tests {
         #[test]
         fn a_pattern_that_does_not_compile_is_refused_by_name() {
             let input = parsed("read:\n  kind: labelled_pairs\n  drop:\n    - '('\n");
-            assert!(matches!(text_filter(&input), Err(EsgConfigError::Reader(_))));
+            assert!(matches!(
+                text_filter(&input),
+                Err(EsgConfigError::Reader(_))
+            ));
         }
     }
 
@@ -275,7 +309,9 @@ mod tests {
 
         #[test]
         fn one_promise_for_the_whole_document() {
-            let input = parsed("read:\n  kind: dated_rows\nfund:\n  kind: promise\n  id: esg-indicator-fund\n");
+            let input = parsed(
+                "read:\n  kind: dated_rows\nfund:\n  kind: promise\n  id: esg-indicator-fund\n",
+            );
             match input.fund.as_ref().unwrap() {
                 InputFundOf::Promise { id } => assert_eq!(id, "esg-indicator-fund"),
                 other => panic!("{other:?}"),
@@ -287,9 +323,16 @@ mod tests {
         /// sits under, a distance of one page, and the separator the deposit uses.
         #[test]
         fn a_page_promise_needs_only_its_field() {
-            let input = parsed("read:\n  kind: leading_number\nfund:\n  kind: page_promise\n  field: esg-fund\n");
+            let input = parsed(
+                "read:\n  kind: leading_number\nfund:\n  kind: page_promise\n  field: esg-fund\n",
+            );
             match input.fund.as_ref().unwrap() {
-                InputFundOf::PagePromise { field, page_key, offset, separator } => {
+                InputFundOf::PagePromise {
+                    field,
+                    page_key,
+                    offset,
+                    separator,
+                } => {
                     assert_eq!(field, "esg-fund");
                     assert_eq!(page_key, "page");
                     assert_eq!(*offset, 1);

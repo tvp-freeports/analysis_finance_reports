@@ -28,10 +28,10 @@ use crate::core::classes::{PdfBlock, TextBlock};
 use crate::core::page::{Document, DocumentId, FormatName, Page};
 use crate::core::parallelism::{self, Parallelism};
 use crate::core::pipeline::bundle::PipelinesBundle;
-use crate::core::pipeline::{Extracted, FilterData, Pipeline, PipeError, PipelineName};
-use crate::core::schedule::{PageClass, Schedule, ScheduledPage, ScheduleError};
-use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
+use crate::core::pipeline::{Extracted, FilterData, PipeError, Pipeline, PipelineName};
+use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduledPage};
 use crate::core::tracing_setup::{log_error, panic_message};
+use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 
 /// Whoever has the last word on the classification of a document's pages.
 ///
@@ -136,8 +136,10 @@ impl Algorithm {
         let scheduled_classes = schedule.page_classes();
         let mapped_classes: BTreeSet<PageClass> = mapping.keys().cloned().collect();
         if scheduled_classes != mapped_classes {
-            let difference: Vec<PageClass> =
-                scheduled_classes.symmetric_difference(&mapped_classes).cloned().collect();
+            let difference: Vec<PageClass> = scheduled_classes
+                .symmetric_difference(&mapped_classes)
+                .cloned()
+                .collect();
             return Err(AlgorithmError::ScheduleMappingMismatch { difference });
         }
 
@@ -155,7 +157,12 @@ impl Algorithm {
         let resolve = |names: &[PipelineName]| -> PipelinesBundle {
             names
                 .iter()
-                .map(|n| pipelines.get(n).expect("membership just validated above").clone())
+                .map(|n| {
+                    pipelines
+                        .get(n)
+                        .expect("membership just validated above")
+                        .clone()
+                })
                 .collect()
         };
 
@@ -186,14 +193,13 @@ impl Algorithm {
     fn bundle(&self, class: &PageClass) -> Result<&PipelinesBundle, AlgorithmError> {
         self.bundles
             .get(class)
-            .ok_or_else(|| AlgorithmError::UnmappedPageClass { class: class.clone() })
+            .ok_or_else(|| AlgorithmError::UnmappedPageClass {
+                class: class.clone(),
+            })
     }
 
     /// Classifies the pages of **one** document and applies the finalizer.
-    pub fn classify_pages(
-        &self,
-        doc: &Document,
-    ) -> Result<Vec<Option<PageClass>>, AlgorithmError> {
+    pub fn classify_pages(&self, doc: &Document) -> Result<Vec<Option<PageClass>>, AlgorithmError> {
         self.classify_pages_with(doc, Parallelism::SEQUENTIAL)
     }
 
@@ -220,7 +226,11 @@ impl Algorithm {
         // Contributions are collected per page and validated **afterwards**, in page order: that is
         // what makes what is reported identical to the sequential loop's even when several pages
         // fail together.
-        for (page, contributions) in doc.pages.iter().zip(self.classify_each_page(&doc.pages, parallelism)) {
+        for (page, contributions) in doc
+            .pages
+            .iter()
+            .zip(self.classify_each_page(&doc.pages, parallelism))
+        {
             // A page whose classification fails is left without a class: no step will name it, so
             // nothing will be extracted from it, which is the right outcome — and the other pages
             // of the document keep theirs. The `None` is not optional: the count check below reads
@@ -283,7 +293,9 @@ impl Algorithm {
         docs: &[Document],
         parallelism: Parallelism,
     ) -> Result<Vec<Vec<Option<PageClass>>>, AlgorithmError> {
-        docs.iter().map(|doc| self.classify_pages_with(doc, parallelism)).collect()
+        docs.iter()
+            .map(|doc| self.classify_pages_with(doc, parallelism))
+            .collect()
     }
 
     /// Applies the classification pipelines to **every** page, in parallel when it pays.
@@ -335,7 +347,12 @@ impl Algorithm {
         // `Activity` would lose `run/job/document/classify` on exactly the events that need it
         // most.
         let parent = tracing::Span::current();
-        pool.install(|| pages.par_iter().map(|page| parent.in_scope(|| classify_one(page))).collect())
+        pool.install(|| {
+            pages
+                .par_iter()
+                .map(|page| parent.in_scope(|| classify_one(page)))
+                .collect()
+        })
     }
 
     /// The whole pipeline over a single document — a special case of
@@ -451,7 +468,10 @@ impl Algorithm {
         // run believing everything was read.
         let skipped = skipped.into_inner();
         if skipped > 0 {
-            tracing::warn!(skipped, "some pages could not be processed and were left out of the results");
+            tracing::warn!(
+                skipped,
+                "some pages could not be processed and were left out of the results"
+            );
         }
 
         let mut outcomes: Vec<DocumentOutcome> = docs
@@ -465,7 +485,11 @@ impl Algorithm {
         // `per_page` is a `BTreeMap`: iterating it yields the pages already ordered by
         // `(document, page number)`, which is the order they are to be written in.
         for ((doc_index, page), (class, results)) in per_page {
-            outcomes[doc_index].pages.push(PageOutcome { page, class, results });
+            outcomes[doc_index].pages.push(PageOutcome {
+                page,
+                class,
+                results,
+            });
         }
         Ok(outcomes)
     }
@@ -510,55 +534,57 @@ impl Algorithm {
             // This net only exists because the panic strategy is `unwind`. `Cargo.toml` does not
             // change it in any profile; switching any profile to `abort` would remove this net in
             // silence, so it is said here rather than there.
-            page_span.in_scope(|| match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                bundle.apply(scheduled_page.page, data)
-            })) {
-                Ok(Ok(results)) => Ok(results),
-                Ok(Err(error)) if error.is_page_failure() => {
-                    // Non-fatal: log and carry on. The document is not spelled out: the enclosing
-                    // span carries it, into the `Report` column and into `Activity` alike.
-                    tracing::warn!(
-                        page = scheduled_page.page.number,
-                        error = log_error(&error),
-                        "page skipped: {error}"
-                    );
-                    skipped.fetch_add(1, Ordering::Relaxed);
-                    Ok(Vec::new())
-                }
-                Ok(Err(error)) => {
-                    // `page` is spelled out although the span already carries it: a `.log.csv` row
-                    // exists only if the *event* names a page or a coordinate, and this is the one
-                    // event a reader will look for.
-                    tracing::error!(
-                        page = scheduled_page.page.number,
-                        error = log_error(&error),
-                        "page failed: {error} - page skipped"
-                    );
-                    skipped.fetch_add(1, Ordering::Relaxed);
-                    Ok(Vec::new())
-                }
-                Err(payload) => {
-                    // The fourth branch, and the one that is not an error type: a panic. It costs
-                    // exactly what the three above cost — this page — because a failure belongs to
-                    // the smallest thing that contains it, and nothing smaller than a page contains
-                    // a panic raised anywhere inside a bundle.
-                    //
-                    // The message is all there is: no error type, no `source()` chain, nothing to
-                    // record structurally. It is usually enough, because the panics that reach here
-                    // say what they found — *left side of a rectangle can't be bigger than right
-                    // one, found left '545.52826' and right '372.94'*.
-                    //
-                    // This is a net, not a fix. A value that can be predicted — one that comes from
-                    // outside — is to be built with `build` and handled where it is built; see the
-                    // module documentation of `commons::geometry`. What lands here is what nobody
-                    // foresaw, and it is worth finding out why.
-                    tracing::error!(
-                        page = scheduled_page.page.number,
-                        "the engine panicked on this page: {} - page skipped",
-                        panic_message(payload.as_ref())
-                    );
-                    skipped.fetch_add(1, Ordering::Relaxed);
-                    Ok(Vec::new())
+            page_span.in_scope(|| {
+                match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    bundle.apply(scheduled_page.page, data)
+                })) {
+                    Ok(Ok(results)) => Ok(results),
+                    Ok(Err(error)) if error.is_page_failure() => {
+                        // Non-fatal: log and carry on. The document is not spelled out: the enclosing
+                        // span carries it, into the `Report` column and into `Activity` alike.
+                        tracing::warn!(
+                            page = scheduled_page.page.number,
+                            error = log_error(&error),
+                            "page skipped: {error}"
+                        );
+                        skipped.fetch_add(1, Ordering::Relaxed);
+                        Ok(Vec::new())
+                    }
+                    Ok(Err(error)) => {
+                        // `page` is spelled out although the span already carries it: a `.log.csv` row
+                        // exists only if the *event* names a page or a coordinate, and this is the one
+                        // event a reader will look for.
+                        tracing::error!(
+                            page = scheduled_page.page.number,
+                            error = log_error(&error),
+                            "page failed: {error} - page skipped"
+                        );
+                        skipped.fetch_add(1, Ordering::Relaxed);
+                        Ok(Vec::new())
+                    }
+                    Err(payload) => {
+                        // The fourth branch, and the one that is not an error type: a panic. It costs
+                        // exactly what the three above cost — this page — because a failure belongs to
+                        // the smallest thing that contains it, and nothing smaller than a page contains
+                        // a panic raised anywhere inside a bundle.
+                        //
+                        // The message is all there is: no error type, no `source()` chain, nothing to
+                        // record structurally. It is usually enough, because the panics that reach here
+                        // say what they found — *left side of a rectangle can't be bigger than right
+                        // one, found left '545.52826' and right '372.94'*.
+                        //
+                        // This is a net, not a fix. A value that can be predicted — one that comes from
+                        // outside — is to be built with `build` and handled where it is built; see the
+                        // module documentation of `commons::geometry`. What lands here is what nobody
+                        // foresaw, and it is worth finding out why.
+                        tracing::error!(
+                            page = scheduled_page.page.number,
+                            "the engine panicked on this page: {} - page skipped",
+                            panic_message(payload.as_ref())
+                        );
+                        skipped.fetch_add(1, Ordering::Relaxed);
+                        Ok(Vec::new())
+                    }
                 }
             })
         };
@@ -572,7 +598,12 @@ impl Algorithm {
         // As in `classify_each_page`, the caller's span has to be re-attached on each thread, or
         // `Activity` loses `run/job/document/step/class`.
         let parent = tracing::Span::current();
-        pool.install(|| pages.par_iter().map(|page| parent.in_scope(|| apply_one(page))).collect())
+        pool.install(|| {
+            pages
+                .par_iter()
+                .map(|page| parent.in_scope(|| apply_one(page)))
+                .collect()
+        })
     }
 
     /// Per-segment API: `pdf_extract` alone, for the given page class.
@@ -639,20 +670,37 @@ pub enum AlgorithmError {
     Pipe(#[from] PipeError),
     #[error(transparent)]
     Schedule(#[from] ScheduleError),
-    #[error("some page classify pipelines have no mapping to a pipeline implementation: {unknown:?}")]
+    #[error(
+        "some page classify pipelines have no mapping to a pipeline implementation: {unknown:?}"
+    )]
     UnknownPageClassifyPipelines { unknown: Vec<PipelineName> },
-    #[error("page classes in the schedule have to be mapped to pipeline names; the difference is {difference:?}")]
+    #[error(
+        "page classes in the schedule have to be mapped to pipeline names; the difference is {difference:?}"
+    )]
     ScheduleMappingMismatch { difference: Vec<PageClass> },
     #[error(
         "there are pipeline names not mapped to an implementation or mapped and never used. Unmapped: {unmapped:?} Not used: {unused:?}"
     )]
-    PipelineNamesMismatch { unmapped: Vec<PipelineName>, unused: Vec<PipelineName> },
+    PipelineNamesMismatch {
+        unmapped: Vec<PipelineName>,
+        unused: Vec<PipelineName>,
+    },
     #[error(
         "document `{document}` has {pages} pages but the finalizer returned {classifications} classifications"
     )]
-    ClassificationCountMismatch { document: String, pages: usize, classifications: usize },
-    #[error("page {page} of document `{document}`: a page classify pipeline returned {found}, not a page class")]
-    NotAPageClassification { document: String, page: u32, found: String },
+    ClassificationCountMismatch {
+        document: String,
+        pages: usize,
+        classifications: usize,
+    },
+    #[error(
+        "page {page} of document `{document}`: a page classify pipeline returned {found}, not a page class"
+    )]
+    NotAPageClassification {
+        document: String,
+        page: u32,
+        found: String,
+    },
     #[error("page class `{class}` has no pipelines bundle")]
     UnmappedPageClass { class: PageClass },
 }
@@ -697,8 +745,12 @@ mod tests {
     fn classifying_pipeline(name: &str, class: Option<&str>) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-        pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-        pipeline.deserialize.push(ConstantClassifier::pipe("classify", class));
+        pipeline
+            .text_filter
+            .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+        pipeline
+            .deserialize
+            .push(ConstantClassifier::pipe("classify", class));
         pipeline
     }
 
@@ -706,8 +758,12 @@ mod tests {
     fn promising_pipeline(name: &str, id: &str) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-        pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-        pipeline.deserialize.push(PromiseDepositor::pipe("promise", id));
+        pipeline
+            .text_filter
+            .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+        pipeline
+            .deserialize
+            .push(PromiseDepositor::pipe("promise", id));
         pipeline
     }
 
@@ -721,7 +777,10 @@ mod tests {
         Algorithm::new(
             "FMT",
             BTreeMap::from([
-                (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                (
+                    PipelineName::new("classify"),
+                    classifying_pipeline("classify", Some("a")),
+                ),
                 (PipelineName::new("work"), promising_pipeline("work", "id")),
             ]),
             &[PipelineName::new("classify")],
@@ -765,7 +824,10 @@ mod tests {
             let err = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -787,7 +849,10 @@ mod tests {
             let err = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -812,7 +877,10 @@ mod tests {
             let err = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                     (PipelineName::new("idle"), promising_pipeline("idle", "id")),
                 ]),
@@ -892,7 +960,10 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", None)),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", None),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -901,12 +972,22 @@ mod tests {
                 BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
             )
             .unwrap();
-            assert_eq!(algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap(), vec![None]);
+            assert_eq!(
+                algorithm
+                    .classify_pages(&doc("d", vec![page(1, &["x"])]))
+                    .unwrap(),
+                vec![None]
+            );
         }
 
         #[test]
         fn a_document_with_no_pages_classifies_to_nothing() {
-            assert!(simple_algorithm().classify_pages(&doc("d", vec![])).unwrap().is_empty());
+            assert!(
+                simple_algorithm()
+                    .classify_pages(&doc("d", vec![]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -914,7 +995,9 @@ mod tests {
             // Two lines per page means two contributions per page: with the identity finalizer the
             // count does not add up, and that is an error.
             let algorithm = simple_algorithm();
-            let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x", "y"])])).unwrap_err();
+            let err = algorithm
+                .classify_pages(&doc("d", vec![page(1, &["x", "y"])]))
+                .unwrap_err();
             assert_eq!(
                 err,
                 AlgorithmError::ClassificationCountMismatch {
@@ -940,7 +1023,10 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -951,7 +1037,9 @@ mod tests {
             .unwrap();
 
             assert_eq!(
-                algorithm.classify_pages(&doc("d", vec![page(1, &["x", "y"])])).unwrap(),
+                algorithm
+                    .classify_pages(&doc("d", vec![page(1, &["x", "y"])]))
+                    .unwrap(),
                 vec![Some(PageClass::new("a"))]
             );
         }
@@ -964,14 +1052,21 @@ mod tests {
                     &self,
                     _classes: Vec<Option<PageClass>>,
                 ) -> Result<Vec<Option<PageClass>>, PipeError> {
-                    Err(PipeError::author("classify", "compute_page_class", "KeyError"))
+                    Err(PipeError::author(
+                        "classify",
+                        "compute_page_class",
+                        "KeyError",
+                    ))
                 }
             }
 
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -981,8 +1076,13 @@ mod tests {
             )
             .unwrap();
 
-            let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap_err();
-            assert!(matches!(err, AlgorithmError::Pipe(PipeError::Author { .. })));
+            let err = algorithm
+                .classify_pages(&doc("d", vec![page(1, &["x"])]))
+                .unwrap_err();
+            assert!(matches!(
+                err,
+                AlgorithmError::Pipe(PipeError::Author { .. })
+            ));
         }
 
         #[test]
@@ -991,7 +1091,10 @@ mod tests {
                 "FMT",
                 BTreeMap::from([
                     // The classification pipeline deposits promises instead of classifying.
-                    (PipelineName::new("classify"), promising_pipeline("classify", "id")),
+                    (
+                        PipelineName::new("classify"),
+                        promising_pipeline("classify", "id"),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1001,8 +1104,13 @@ mod tests {
             )
             .unwrap();
 
-            let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap_err();
-            assert!(matches!(err, AlgorithmError::NotAPageClassification { page: 1, .. }));
+            let err = algorithm
+                .classify_pages(&doc("d", vec![page(1, &["x"])]))
+                .unwrap_err();
+            assert!(matches!(
+                err,
+                AlgorithmError::NotAPageClassification { page: 1, .. }
+            ));
         }
 
         #[test]
@@ -1024,7 +1132,10 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1034,7 +1145,10 @@ mod tests {
             )
             .unwrap();
 
-            let docs = vec![doc("one", vec![page(1, &["x"])]), doc("two", vec![page(1, &["y"])])];
+            let docs = vec![
+                doc("one", vec![page(1, &["x"])]),
+                doc("two", vec![page(1, &["y"])]),
+            ];
             algorithm.classify_pages_multidocument(&docs).unwrap();
             assert_eq!(*finalizer.0.lock().expect("test-only mutex"), vec![1, 1]);
         }
@@ -1058,8 +1172,9 @@ mod tests {
 
         #[test]
         fn the_outcome_carries_the_class_the_page_was_scheduled_with() {
-            let outcome =
-                simple_algorithm().apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap();
+            let outcome = simple_algorithm()
+                .apply(&doc("d", vec![page(1, &["x"])]), &companies())
+                .unwrap();
             assert_eq!(outcome.pages[0].class, PageClass::new("a"));
         }
 
@@ -1068,7 +1183,10 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", None)),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", None),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1078,14 +1196,17 @@ mod tests {
             )
             .unwrap();
 
-            let outcome =
-                algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap();
+            let outcome = algorithm
+                .apply(&doc("d", vec![page(1, &["x"])]), &companies())
+                .unwrap();
             assert!(outcome.pages.is_empty());
         }
 
         #[test]
         fn a_document_with_no_pages_yields_an_empty_outcome() {
-            let outcome = simple_algorithm().apply(&doc("d", vec![]), &companies()).unwrap();
+            let outcome = simple_algorithm()
+                .apply(&doc("d", vec![]), &companies())
+                .unwrap();
             assert!(outcome.pages.is_empty());
         }
 
@@ -1136,7 +1257,9 @@ mod tests {
 
         let mut pipeline = Pipeline::new("classify");
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-        pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+        pipeline
+            .text_filter
+            .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
         pipeline.deserialize.push(Arc::new(ByFirstLine));
         pipeline
     }
@@ -1150,13 +1273,19 @@ mod tests {
         fn two_step_algorithm(filter: Arc<RecordingFilter>) -> Algorithm {
             let mut work_a = Pipeline::new("work_a");
             work_a.pdf_extract.push(LinesToBlocks::pipe("extract"));
-            work_a.text_filter.push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
-            work_a.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work_a
+                .text_filter
+                .push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
+            work_a
+                .deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
 
             let mut work_b = Pipeline::new("work_b");
             work_b.pdf_extract.push(LinesToBlocks::pipe("extract"));
             work_b.text_filter.push(filter as Arc<dyn TextFilterPipe>);
-            work_b.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work_b
+                .deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
 
             Algorithm::new(
                 "FMT",
@@ -1193,13 +1322,21 @@ mod tests {
             let filter = RecordingFilter::new("filter");
             let mut work_c = Pipeline::new("work_c");
             work_c.pdf_extract.push(LinesToBlocks::pipe("extract"));
-            work_c.text_filter.push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
-            work_c.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work_c
+                .text_filter
+                .push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
+            work_c
+                .deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
 
             let mut work_ab = Pipeline::new("work_ab");
             work_ab.pdf_extract.push(LinesToBlocks::pipe("extract"));
-            work_ab.text_filter.push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
-            work_ab.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work_ab
+                .text_filter
+                .push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
+            work_ab
+                .deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
 
             let algorithm = Algorithm::new(
                 "FMT",
@@ -1255,13 +1392,21 @@ mod tests {
 
         #[test]
         fn no_documents_yields_no_outcomes() {
-            assert!(simple_algorithm().apply_multidocument(&[], &companies()).unwrap().is_empty());
+            assert!(
+                simple_algorithm()
+                    .apply_multidocument(&[], &companies())
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn two_documents_with_the_same_id_stay_separate() {
             let algorithm = simple_algorithm();
-            let docs = vec![doc("same", vec![page(1, &["x"])]), doc("same", vec![page(1, &["y"])])];
+            let docs = vec![
+                doc("same", vec![page(1, &["x"])]),
+                doc("same", vec![page(1, &["y"])]),
+            ];
             let outcomes = algorithm.apply_multidocument(&docs, &companies()).unwrap();
             assert_eq!(outcomes.len(), 2);
             assert_eq!(outcomes[0].pages.len(), 1);
@@ -1275,13 +1420,18 @@ mod tests {
             let filter = RecordingFilter::new("filter");
             let mut work = Pipeline::new("work");
             work.pdf_extract.push(LinesToBlocks::pipe("extract"));
-            work.text_filter.push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
-            work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work.text_filter
+                .push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
+            work.deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
 
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), work),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1291,7 +1441,10 @@ mod tests {
             )
             .unwrap();
 
-            let docs = vec![doc("one", vec![page(1, &["x"])]), doc("two", vec![page(1, &["y"])])];
+            let docs = vec![
+                doc("one", vec![page(1, &["x"])]),
+                doc("two", vec![page(1, &["y"])]),
+            ];
             algorithm.apply_multidocument(&docs, &companies()).unwrap();
             assert_eq!(filter.seen(), vec![(1, 0), (1, 0)]);
         }
@@ -1308,13 +1461,18 @@ mod tests {
             } else {
                 FailingExtract::fatal("boom")
             });
-            work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work.text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            work.deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
 
             Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), work),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1341,7 +1499,9 @@ mod tests {
             // cost is the same: a page. Only a configuration problem, which belongs to no page,
             // stops the run.
             let algorithm = algorithm_whose_work_pipeline_fails(false);
-            let outcome = algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap();
+            let outcome = algorithm
+                .apply(&doc("d", vec![page(1, &["x"])]), &companies())
+                .unwrap();
             assert_eq!(outcome.pages.len(), 1);
             assert!(outcome.pages[0].results.is_empty());
         }
@@ -1360,12 +1520,17 @@ mod tests {
         fn algorithm_failing_on_pages(pages: &'static [u32]) -> Algorithm {
             let mut work = Pipeline::new("work");
             work.pdf_extract.push(FailingOnPages::fatal("boom", pages));
-            work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work.text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            work.deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
             Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), work),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1378,9 +1543,15 @@ mod tests {
 
         fn classifier_failing_on_pages(pages: &'static [u32]) -> Algorithm {
             let mut classify = Pipeline::new("classify");
-            classify.pdf_extract.push(FailingOnPages::fatal("boom", pages));
-            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            classify.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+            classify
+                .pdf_extract
+                .push(FailingOnPages::fatal("boom", pages));
+            classify
+                .text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            classify
+                .deserialize
+                .push(ConstantClassifier::pipe("classify", Some("a")));
             Algorithm::new(
                 "FMT",
                 BTreeMap::from([
@@ -1401,7 +1572,11 @@ mod tests {
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
             let outcome = algorithm.apply(&document, &companies()).unwrap();
 
-            let produced: Vec<_> = outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+            let produced: Vec<_> = outcome
+                .pages
+                .iter()
+                .map(|p| (p.page, p.results.len()))
+                .collect();
             assert_eq!(produced, vec![(1, 1), (2, 0), (3, 1)]);
         }
 
@@ -1409,7 +1584,11 @@ mod tests {
         fn the_multidocument_entry_point_returns_ok_with_pages_missing() {
             let algorithm = algorithm_failing_on_pages(&[1]);
             let documents = [doc("d", vec![page(1, &["x"])])];
-            assert!(algorithm.apply_multidocument(&documents, &companies()).is_ok());
+            assert!(
+                algorithm
+                    .apply_multidocument(&documents, &companies())
+                    .is_ok()
+            );
         }
 
         #[test]
@@ -1426,7 +1605,10 @@ mod tests {
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
             let classes = algorithm.classify_pages(&document).unwrap();
 
-            assert_eq!(classes, vec![Some(PageClass::new("a")), None, Some(PageClass::new("a"))]);
+            assert_eq!(
+                classes,
+                vec![Some(PageClass::new("a")), None, Some(PageClass::new("a"))]
+            );
         }
 
         #[test]
@@ -1435,7 +1617,10 @@ mod tests {
             // on this vector, and a missing entry would turn a skipped page into a fatal mismatch.
             let algorithm = classifier_failing_on_pages(&[1, 3]);
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
-            assert_eq!(algorithm.classify_pages(&document).unwrap().len(), document.pages.len());
+            assert_eq!(
+                algorithm.classify_pages(&document).unwrap().len(),
+                document.pages.len()
+            );
         }
 
         #[test]
@@ -1444,7 +1629,10 @@ mod tests {
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
             let outcome = algorithm.apply(&document, &companies()).unwrap();
 
-            assert_eq!(outcome.pages.iter().map(|p| p.page).collect::<Vec<_>>(), vec![1]);
+            assert_eq!(
+                outcome.pages.iter().map(|p| p.page).collect::<Vec<_>>(),
+                vec![1]
+            );
         }
 
         #[test]
@@ -1453,7 +1641,10 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("b"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("b")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1463,7 +1654,9 @@ mod tests {
             )
             .expect("fixture is consistent");
 
-            let err = algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap_err();
+            let err = algorithm
+                .apply(&doc("d", vec![page(1, &["x"])]), &companies())
+                .unwrap_err();
             assert!(matches!(err, AlgorithmError::Schedule(_)), "{err:?}");
         }
 
@@ -1473,8 +1666,12 @@ mod tests {
             // not a page class is a format that cannot work on any page.
             let mut classify = Pipeline::new("classify");
             classify.pdf_extract.push(LinesToBlocks::pipe("lines"));
-            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            classify.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            classify
+                .text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            classify
+                .deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
@@ -1488,8 +1685,13 @@ mod tests {
             )
             .expect("fixture is consistent");
 
-            let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap_err();
-            assert!(matches!(err, AlgorithmError::NotAPageClassification { .. }), "{err:?}");
+            let err = algorithm
+                .classify_pages(&doc("d", vec![page(1, &["x"])]))
+                .unwrap_err();
+            assert!(
+                matches!(err, AlgorithmError::NotAPageClassification { .. }),
+                "{err:?}"
+            );
         }
     }
 
@@ -1512,12 +1714,17 @@ mod tests {
         fn algorithm_panicking_on_pages(pages: &'static [u32]) -> Algorithm {
             let mut work = Pipeline::new("work");
             work.pdf_extract.push(PanickingOnPages::pipe("boom", pages));
-            work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            work.text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            work.deserialize
+                .push(PromiseDepositor::pipe("promise", "id"));
             Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), work),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1531,9 +1738,15 @@ mod tests {
         /// A classification pipeline that panics on the named pages.
         fn classifier_panicking_on_pages(pages: &'static [u32]) -> Algorithm {
             let mut classify = Pipeline::new("classify");
-            classify.pdf_extract.push(PanickingOnPages::pipe("boom", pages));
-            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            classify.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+            classify
+                .pdf_extract
+                .push(PanickingOnPages::pipe("boom", pages));
+            classify
+                .text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            classify
+                .deserialize
+                .push(ConstantClassifier::pipe("classify", Some("a")));
             Algorithm::new(
                 "FMT",
                 BTreeMap::from([
@@ -1552,9 +1765,15 @@ mod tests {
         fn a_page_that_panics_costs_that_page_and_no_other() {
             let algorithm = algorithm_panicking_on_pages(&[2]);
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
-            let outcome = algorithm.apply(&document, &companies()).expect("a panic must not reach the job");
+            let outcome = algorithm
+                .apply(&document, &companies())
+                .expect("a panic must not reach the job");
 
-            let produced: Vec<_> = outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+            let produced: Vec<_> = outcome
+                .pages
+                .iter()
+                .map(|p| (p.page, p.results.len()))
+                .collect();
             assert_eq!(produced, vec![(1, 1), (2, 0), (3, 1)]);
         }
 
@@ -1567,7 +1786,14 @@ mod tests {
             let outcomes = algorithm
                 .apply_multidocument(&documents, &companies())
                 .expect("a panic must not reach the job");
-            assert_eq!(outcomes[0].pages.iter().map(|p| (p.page, p.results.len())).collect::<Vec<_>>(), vec![(1, 0), (2, 1)]);
+            assert_eq!(
+                outcomes[0]
+                    .pages
+                    .iter()
+                    .map(|p| (p.page, p.results.len()))
+                    .collect::<Vec<_>>(),
+                vec![(1, 0), (2, 1)]
+            );
         }
 
         /// A panic on *every* page is still a document, not a dead run: the outcome exists and is
@@ -1576,7 +1802,9 @@ mod tests {
         fn a_document_whose_every_page_panics_still_produces_an_outcome() {
             let algorithm = algorithm_panicking_on_pages(&[1, 2]);
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
-            let outcome = algorithm.apply(&document, &companies()).expect("a panic must not reach the job");
+            let outcome = algorithm
+                .apply(&document, &companies())
+                .expect("a panic must not reach the job");
             assert!(outcome.pages.iter().all(|p| p.results.is_empty()));
         }
 
@@ -1585,8 +1813,13 @@ mod tests {
         #[test]
         fn the_other_documents_of_the_same_job_are_untouched() {
             let algorithm = algorithm_panicking_on_pages(&[1]);
-            let documents = [doc("bad", vec![page(1, &["x"])]), doc("good", vec![page(2, &["y"])])];
-            let outcomes = algorithm.apply_multidocument(&documents, &companies()).expect("contained");
+            let documents = [
+                doc("bad", vec![page(1, &["x"])]),
+                doc("good", vec![page(2, &["y"])]),
+            ];
+            let outcomes = algorithm
+                .apply_multidocument(&documents, &companies())
+                .expect("contained");
 
             assert_eq!(outcomes[0].pages[0].results.len(), 0);
             assert_eq!(outcomes[1].pages[0].results.len(), 1);
@@ -1598,9 +1831,14 @@ mod tests {
         fn a_classification_that_panics_leaves_that_page_without_a_class() {
             let algorithm = classifier_panicking_on_pages(&[2]);
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
-            let classes = algorithm.classify_pages(&document).expect("a panic must not reach the job");
+            let classes = algorithm
+                .classify_pages(&document)
+                .expect("a panic must not reach the job");
 
-            assert_eq!(classes, vec![Some(PageClass::new("a")), None, Some(PageClass::new("a"))]);
+            assert_eq!(
+                classes,
+                vec![Some(PageClass::new("a")), None, Some(PageClass::new("a"))]
+            );
         }
 
         /// Why the panic branch returns one contribution rather than none: the count check compares
@@ -1610,7 +1848,13 @@ mod tests {
         fn the_contribution_count_still_matches_the_page_count() {
             let algorithm = classifier_panicking_on_pages(&[1, 3]);
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
-            assert_eq!(algorithm.classify_pages(&document).expect("contained").len(), document.pages.len());
+            assert_eq!(
+                algorithm
+                    .classify_pages(&document)
+                    .expect("contained")
+                    .len(),
+                document.pages.len()
+            );
         }
 
         #[test]
@@ -1619,7 +1863,10 @@ mod tests {
             let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
             let outcome = algorithm.apply(&document, &companies()).expect("contained");
 
-            assert_eq!(outcome.pages.iter().map(|p| p.page).collect::<Vec<_>>(), vec![1]);
+            assert_eq!(
+                outcome.pages.iter().map(|p| p.page).collect::<Vec<_>>(),
+                vec![1]
+            );
         }
 
         /// And the net holds on the parallel path too, which is a different code path per page:
@@ -1629,13 +1876,23 @@ mod tests {
             let algorithm = algorithm_panicking_on_pages(&[2, 4]);
             let document = doc(
                 "d",
-                vec![page(1, &["a"]), page(2, &["b"]), page(3, &["c"]), page(4, &["d"]), page(5, &["e"])],
+                vec![
+                    page(1, &["a"]),
+                    page(2, &["b"]),
+                    page(3, &["c"]),
+                    page(4, &["d"]),
+                    page(5, &["e"]),
+                ],
             );
             let outcome = algorithm
                 .apply_with(&document, &companies(), Parallelism::pages(4))
                 .expect("a panic must not reach the job");
 
-            let produced: Vec<_> = outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+            let produced: Vec<_> = outcome
+                .pages
+                .iter()
+                .map(|p| (p.page, p.results.len()))
+                .collect();
             assert_eq!(produced, vec![(1, 1), (2, 0), (3, 1), (4, 0), (5, 1)]);
         }
     }
@@ -1650,7 +1907,10 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
                 &[PipelineName::new("classify")],
@@ -1660,8 +1920,9 @@ mod tests {
             )
             .unwrap();
 
-            let outcome =
-                algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap();
+            let outcome = algorithm
+                .apply(&doc("d", vec![page(1, &["x"])]), &companies())
+                .unwrap();
             assert_eq!(outcome.pages.len(), 1);
             assert_eq!(outcome.pages[0].results.len(), 2);
         }
@@ -1674,10 +1935,10 @@ mod tests {
         #[test]
         fn apply_pdf_extract_runs_only_the_first_segment_of_the_class_bundle() {
             let algorithm = simple_algorithm();
-            let blocks =
-                algorithm.apply_pdf_extract(&page(1, &["x", "y"]), &PageClass::new("a")).unwrap();
-            let contents: Vec<&str> =
-                blocks.iter().map(|b| b.content.as_str().unwrap()).collect();
+            let blocks = algorithm
+                .apply_pdf_extract(&page(1, &["x", "y"]), &PageClass::new("a"))
+                .unwrap();
+            let contents: Vec<&str> = blocks.iter().map(|b| b.content.as_str().unwrap()).collect();
             assert_eq!(contents, vec!["x", "y"]);
         }
 
@@ -1699,7 +1960,9 @@ mod tests {
                 std::collections::BTreeMap::new(),
                 "content",
             )];
-            let out = algorithm.apply_deserializer(&blocks, &PageClass::new("a")).unwrap();
+            let out = algorithm
+                .apply_deserializer(&blocks, &PageClass::new("a"))
+                .unwrap();
             assert_eq!(out.len(), 1);
             assert!(out[0].as_promises().is_some());
         }
@@ -1713,9 +1976,18 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
-                    (PipelineName::new("one"), promising_pipeline("one", "id-one")),
-                    (PipelineName::new("two"), promising_pipeline("two", "id-two")),
+                    (
+                        PipelineName::new("classify"),
+                        classifying_pipeline("classify", Some("a")),
+                    ),
+                    (
+                        PipelineName::new("one"),
+                        promising_pipeline("one", "id-one"),
+                    ),
+                    (
+                        PipelineName::new("two"),
+                        promising_pipeline("two", "id-two"),
+                    ),
                 ]),
                 &[PipelineName::new("classify")],
                 PageClassFinalizer::Identity,
@@ -1730,31 +2002,52 @@ mod tests {
             let page = page(1, &["x"]);
             let class = PageClass::new("a");
 
-            let chained = algorithm.apply_deserialize(&page, &class, &FilterData::EMPTY).unwrap();
-            assert_eq!(chained.len(), 2, "una entita' per pipeline, non il prodotto incrociato");
+            let chained = algorithm
+                .apply_deserialize(&page, &class, &FilterData::EMPTY)
+                .unwrap();
+            assert_eq!(
+                chained.len(),
+                2,
+                "una entita' per pipeline, non il prodotto incrociato"
+            );
 
             // The hand-made composition is precisely what must not be done: it is exercised here to
             // pin the difference down, not because it is an acceptable alternative.
-            let blocks =
-                algorithm.apply_text_filter(&page, &class, &FilterData::EMPTY).unwrap();
+            let blocks = algorithm
+                .apply_text_filter(&page, &class, &FilterData::EMPTY)
+                .unwrap();
             let crossed = algorithm.apply_deserializer(&blocks, &class).unwrap();
-            assert_eq!(crossed.len(), 4, "la composizione a mano incrocia le pipeline");
+            assert_eq!(
+                crossed.len(),
+                4,
+                "la composizione a mano incrocia le pipeline"
+            );
         }
 
         #[test]
         fn an_unmapped_page_class_is_an_error_in_all_three() {
             let algorithm = simple_algorithm();
             let ghost = PageClass::new("ghost");
-            let expected = AlgorithmError::UnmappedPageClass { class: ghost.clone() };
+            let expected = AlgorithmError::UnmappedPageClass {
+                class: ghost.clone(),
+            };
 
-            assert_eq!(algorithm.apply_pdf_extract(&page(1, &["x"]), &ghost).unwrap_err(), expected);
+            assert_eq!(
+                algorithm
+                    .apply_pdf_extract(&page(1, &["x"]), &ghost)
+                    .unwrap_err(),
+                expected
+            );
             assert_eq!(
                 algorithm
                     .apply_text_filter(&page(1, &["x"]), &ghost, &FilterData::EMPTY)
                     .unwrap_err(),
                 expected
             );
-            assert_eq!(algorithm.apply_deserializer(&[], &ghost).unwrap_err(), expected);
+            assert_eq!(
+                algorithm.apply_deserializer(&[], &ghost).unwrap_err(),
+                expected
+            );
         }
     }
 
@@ -1775,9 +2068,16 @@ mod tests {
                         PageOutcome {
                             page: 1,
                             class: PageClass::new("investments"),
-                            results: vec![Extracted::Fund(Fund::new("Alpha Fund")), Extracted::PageClass(None)],
+                            results: vec![
+                                Extracted::Fund(Fund::new("Alpha Fund")),
+                                Extracted::PageClass(None),
+                            ],
                         },
-                        PageOutcome { page: 7, class: PageClass::new("assets"), results: vec![] },
+                        PageOutcome {
+                            page: 7,
+                            class: PageClass::new("assets"),
+                            results: vec![],
+                        },
                     ],
                 },
                 DocumentOutcome {
@@ -1838,8 +2138,13 @@ mod tests {
 
         #[test]
         fn an_unmapped_page_class_names_the_class() {
-            let err = AlgorithmError::UnmappedPageClass { class: PageClass::new("ghost") };
-            assert_eq!(err.to_string(), "page class `ghost` has no pipelines bundle");
+            let err = AlgorithmError::UnmappedPageClass {
+                class: PageClass::new("ghost"),
+            };
+            assert_eq!(
+                err.to_string(),
+                "page class `ghost` has no pipelines bundle"
+            );
         }
 
         #[test]
@@ -1888,7 +2193,9 @@ mod tests {
         /// per *block*, and a block comes from a line — two lines per page would give two classes
         /// per page and the identity finalizer would refuse them.
         fn wide_document(count: u32) -> Document {
-            let pages = (1..=count).map(|n| page(n, &[&format!("page {n}")])).collect();
+            let pages = (1..=count)
+                .map(|n| page(n, &[&format!("page {n}")]))
+                .collect();
             doc("wide", pages)
         }
 
@@ -1904,7 +2211,9 @@ mod tests {
                 let algorithm = simple_algorithm();
                 let document = wide_document(64);
                 let sequential = algorithm.apply(&document, &companies()).unwrap();
-                let concurrent = algorithm.apply_with(&document, &companies(), parallel()).unwrap();
+                let concurrent = algorithm
+                    .apply_with(&document, &companies(), parallel())
+                    .unwrap();
                 assert_eq!(sequential, concurrent);
             }
 
@@ -1915,9 +2224,18 @@ mod tests {
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
-                        (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
-                        (PipelineName::new("first"), promising_pipeline("first", "one")),
-                        (PipelineName::new("second"), promising_pipeline("second", "two")),
+                        (
+                            PipelineName::new("classify"),
+                            classifying_pipeline("classify", Some("a")),
+                        ),
+                        (
+                            PipelineName::new("first"),
+                            promising_pipeline("first", "one"),
+                        ),
+                        (
+                            PipelineName::new("second"),
+                            promising_pipeline("second", "two"),
+                        ),
                     ]),
                     &[PipelineName::new("classify")],
                     PageClassFinalizer::Identity,
@@ -1931,17 +2249,24 @@ mod tests {
                 let document = wide_document(32);
                 assert_eq!(
                     algorithm.apply(&document, &companies()).unwrap(),
-                    algorithm.apply_with(&document, &companies(), parallel()).unwrap()
+                    algorithm
+                        .apply_with(&document, &companies(), parallel())
+                        .unwrap()
                 );
             }
 
             #[test]
             fn several_documents_stay_separate_and_ordered_under_parallelism() {
                 let algorithm = simple_algorithm();
-                let docs = vec![wide_document(8), doc("other", vec![page(1, &["x"]), page(2, &["y"])])];
+                let docs = vec![
+                    wide_document(8),
+                    doc("other", vec![page(1, &["x"]), page(2, &["y"])]),
+                ];
                 assert_eq!(
                     algorithm.apply_multidocument(&docs, &companies()).unwrap(),
-                    algorithm.apply_multidocument_with(&docs, &companies(), parallel()).unwrap()
+                    algorithm
+                        .apply_multidocument_with(&docs, &companies(), parallel())
+                        .unwrap()
                 );
             }
 
@@ -1951,7 +2276,9 @@ mod tests {
                 let document = wide_document(48);
                 assert_eq!(
                     algorithm.classify_pages(&document).unwrap(),
-                    algorithm.classify_pages_with(&document, parallel()).unwrap()
+                    algorithm
+                        .classify_pages_with(&document, parallel())
+                        .unwrap()
                 );
             }
 
@@ -1961,7 +2288,9 @@ mod tests {
                 let empty = doc("empty", vec![]);
                 assert_eq!(
                     algorithm.apply(&empty, &companies()).unwrap(),
-                    algorithm.apply_with(&empty, &companies(), parallel()).unwrap()
+                    algorithm
+                        .apply_with(&empty, &companies(), parallel())
+                        .unwrap()
                 );
             }
         }
@@ -1975,13 +2304,19 @@ mod tests {
             #[test]
             fn the_pages_that_survive_are_the_same_either_way() {
                 let mut work = Pipeline::new("work");
-                work.pdf_extract.push(FailingOnPages::fatal("boom", &[7, 3, 9]));
-                work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-                work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+                work.pdf_extract
+                    .push(FailingOnPages::fatal("boom", &[7, 3, 9]));
+                work.text_filter
+                    .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+                work.deserialize
+                    .push(PromiseDepositor::pipe("promise", "id"));
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
-                        (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                        (
+                            PipelineName::new("classify"),
+                            classifying_pipeline("classify", Some("a")),
+                        ),
                         (PipelineName::new("work"), work),
                     ]),
                     &[PipelineName::new("classify")],
@@ -1993,11 +2328,17 @@ mod tests {
                 let document = wide_document(12);
 
                 let sequential = algorithm.apply(&document, &companies()).unwrap();
-                let concurrent = algorithm.apply_with(&document, &companies(), parallel()).unwrap();
+                let concurrent = algorithm
+                    .apply_with(&document, &companies(), parallel())
+                    .unwrap();
                 assert_eq!(sequential, concurrent);
 
-                let empty: Vec<_> =
-                    concurrent.pages.iter().filter(|p| p.results.is_empty()).map(|p| p.page).collect();
+                let empty: Vec<_> = concurrent
+                    .pages
+                    .iter()
+                    .filter(|p| p.results.is_empty())
+                    .map(|p| p.page)
+                    .collect();
                 assert_eq!(empty, vec![3, 7, 9]);
             }
 
@@ -2007,12 +2348,17 @@ mod tests {
             fn an_absorbed_page_failure_leaves_the_same_empty_outcome() {
                 let mut work = Pipeline::new("work");
                 work.pdf_extract.push(FailingExtract::page_parse("soft"));
-                work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-                work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+                work.text_filter
+                    .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+                work.deserialize
+                    .push(PromiseDepositor::pipe("promise", "id"));
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
-                        (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                        (
+                            PipelineName::new("classify"),
+                            classifying_pipeline("classify", Some("a")),
+                        ),
                         (PipelineName::new("work"), work),
                     ]),
                     &[PipelineName::new("classify")],
@@ -2023,8 +2369,13 @@ mod tests {
                 .expect("fixture is consistent");
                 let document = wide_document(16);
 
-                let concurrent = algorithm.apply_with(&document, &companies(), parallel()).unwrap();
-                assert_eq!(algorithm.apply(&document, &companies()).unwrap(), concurrent);
+                let concurrent = algorithm
+                    .apply_with(&document, &companies(), parallel())
+                    .unwrap();
+                assert_eq!(
+                    algorithm.apply(&document, &companies()).unwrap(),
+                    concurrent
+                );
                 assert!(concurrent.pages.iter().all(|p| p.results.is_empty()));
             }
         }
@@ -2038,13 +2389,18 @@ mod tests {
             fn a_gil_bound_bundle_produces_the_same_outcome_on_one_thread() {
                 let mut work = Pipeline::new("work");
                 work.pdf_extract.push(GilBoundExtract::pipe("author"));
-                work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-                work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+                work.text_filter
+                    .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+                work.deserialize
+                    .push(PromiseDepositor::pipe("promise", "id"));
                 assert!(!work.scales_with_threads());
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
-                        (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                        (
+                            PipelineName::new("classify"),
+                            classifying_pipeline("classify", Some("a")),
+                        ),
                         (PipelineName::new("work"), work),
                     ]),
                     &[PipelineName::new("classify")],
@@ -2056,7 +2412,9 @@ mod tests {
                 let document = wide_document(16);
                 assert_eq!(
                     algorithm.apply(&document, &companies()).unwrap(),
-                    algorithm.apply_with(&document, &companies(), parallel()).unwrap()
+                    algorithm
+                        .apply_with(&document, &companies(), parallel())
+                        .unwrap()
                 );
             }
 
@@ -2066,12 +2424,17 @@ mod tests {
                 let witness = ThreadWitness::new("witness", 1);
                 let mut work = Pipeline::new("work");
                 work.pdf_extract.push(LinesToBlocks::pipe("extract"));
-                work.text_filter.push(Arc::clone(&witness) as Arc<dyn TextFilterPipe>);
-                work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+                work.text_filter
+                    .push(Arc::clone(&witness) as Arc<dyn TextFilterPipe>);
+                work.deserialize
+                    .push(PromiseDepositor::pipe("promise", "id"));
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
-                        (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                        (
+                            PipelineName::new("classify"),
+                            classifying_pipeline("classify", Some("a")),
+                        ),
                         (PipelineName::new("work"), work),
                     ]),
                     &[PipelineName::new("classify")],
@@ -2106,12 +2469,17 @@ mod tests {
                 let witness = ThreadWitness::new("witness", 2);
                 let mut work = Pipeline::new("work");
                 work.pdf_extract.push(LinesToBlocks::pipe("extract"));
-                work.text_filter.push(Arc::clone(&witness) as Arc<dyn TextFilterPipe>);
-                work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+                work.text_filter
+                    .push(Arc::clone(&witness) as Arc<dyn TextFilterPipe>);
+                work.deserialize
+                    .push(PromiseDepositor::pipe("promise", "id"));
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
-                        (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                        (
+                            PipelineName::new("classify"),
+                            classifying_pipeline("classify", Some("a")),
+                        ),
                         (PipelineName::new("work"), work),
                     ]),
                     &[PipelineName::new("classify")],
@@ -2121,7 +2489,9 @@ mod tests {
                 )
                 .expect("fixture is consistent");
 
-                algorithm.apply_with(&wide_document(2), &companies(), Parallelism::pages(2)).unwrap();
+                algorithm
+                    .apply_with(&wide_document(2), &companies(), Parallelism::pages(2))
+                    .unwrap();
                 assert!(
                     witness.distinct_threads() >= 2,
                     "the pages of one step must be handed to more than one thread"

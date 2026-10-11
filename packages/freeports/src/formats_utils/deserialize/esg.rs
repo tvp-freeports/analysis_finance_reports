@@ -38,13 +38,14 @@ impl DeserializePipe for DeserializerEsgIndicator {
                 })
         };
         let fund = block.metadata.get("fund").ok_or_else(|| missing("fund"))?;
-        let indicator = FundEsgIndicator::build(fund, text("name")?, text("value")?).map_err(|e| {
-            PipeError::Cast {
-                pipe: DeserializePipe::name(self).to_string(),
-                field: "fund".to_string(),
-                message: e.to_string(),
-            }
-        })?;
+        let indicator =
+            FundEsgIndicator::build(fund, text("name")?, text("value")?).map_err(|e| {
+                PipeError::Cast {
+                    pipe: DeserializePipe::name(self).to_string(),
+                    field: "fund".to_string(),
+                    message: e.to_string(),
+                }
+            })?;
         Ok(vec![Extracted::FundEsgIndicator(indicator)])
     }
 }

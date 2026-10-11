@@ -283,19 +283,9 @@ msgstr ""
 
 #: ../../source/reference/cli/freeports.md:54
 msgid ""
-"Omit it and the engine tries to infer it from the URL of each document, using the "
-"repository's `url_mapping.csv`; the first matching prefix wins. Inference works only "
-"for documents that *have* a URL. Two documents inferring **different** formats is an "
-"error rather than a choice made silently. Giving `-f` explicitly while inference also"
-" succeeds and disagrees is a warning, not an error: you were explicit, so you win, "
-"but you are told."
+"Omit it and the engine tries to infer it from the URL of each document, using the repository's `url_mapping.csv`: the longest matching prefix wins, then the row with the more specific name, then the row that comes first. Inference works only for documents that *have* a URL. Two documents inferring **different** formats is an error rather than a choice made silently. Giving `-f` explicitly while inference also succeeds and disagrees is a warning, not an error: you were explicit, so you win, but you are told."
 msgstr ""
-"Omettilo e il motore prova a dedurlo dall'URL di ciascun documento, usando "
-"l'`url_mapping.csv` del repository; vince il primo prefisso che corrisponde. La "
-"deduzione funziona solo per i documenti che un URL ce l'*hanno*. Due documenti che "
-"deducono formati **diversi** sono un errore anziché una scelta fatta in silenzio. "
-"Dare `-f` esplicitamente mentre anche la deduzione riesce ed è in disaccordo è un "
-"avviso, non un errore: sei stato esplicito, quindi vinci, ma te lo si dice."
+"Omettilo e il motore prova a dedurlo dall'URL di ciascun documento, usando l'`url_mapping.csv` del repository: vince il prefisso più lungo che corrisponde, poi la riga con il nome più specifico, poi la riga che viene prima. La deduzione funziona solo per i documenti che un URL ce l'*hanno*. Due documenti che deducono formati **diversi** sono un errore anziché una scelta fatta in silenzio. Dare `-f` esplicitamente mentre anche la deduzione riesce ed è in disaccordo è un avviso, non un errore: sei stato esplicito, quindi vinci, ma te lo si dice."
 
 #: ../../source/reference/cli/freeports.md:60
 msgid "Where things live"

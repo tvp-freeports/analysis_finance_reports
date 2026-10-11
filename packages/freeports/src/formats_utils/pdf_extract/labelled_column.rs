@@ -135,14 +135,19 @@ impl PdfExtractLabelledColumnStandard {
         ordered.sort_by(|a, b| {
             let (ax0, ay0, _, ay1) = a.bbox().as_tuple();
             let (bx0, by0, _, by1) = b.bbox().as_tuple();
-            (ay0 + ay1, ax0).partial_cmp(&(by0 + by1, bx0)).unwrap_or(std::cmp::Ordering::Equal)
+            (ay0 + ay1, ax0)
+                .partial_cmp(&(by0 + by1, bx0))
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let mut bands: Vec<(f32, f32, Vec<&PdfLine>)> = Vec::new();
         for line in ordered {
             let (_, y0, _, y1) = line.bbox().as_tuple();
             let middle = (y0 + y1) / 2.0;
-            match bands.iter_mut().find(|(centre, tolerance, _)| (middle - *centre).abs() <= *tolerance) {
+            match bands
+                .iter_mut()
+                .find(|(centre, tolerance, _)| (middle - *centre).abs() <= *tolerance)
+            {
                 Some((_, _, members)) => members.push(line),
                 None => bands.push((middle, (y1 - y0).max(1.0) / 2.0, vec![line])),
             }
@@ -151,7 +156,11 @@ impl PdfExtractLabelledColumnStandard {
             .into_iter()
             .map(|(_, _, mut members)| {
                 members.sort_by(|a, b| {
-                    a.bbox().as_tuple().0.partial_cmp(&b.bbox().as_tuple().0).unwrap_or(std::cmp::Ordering::Equal)
+                    a.bbox()
+                        .as_tuple()
+                        .0
+                        .partial_cmp(&b.bbox().as_tuple().0)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
                 members
             })
@@ -180,7 +189,10 @@ impl PdfExtractLabelledColumnStandard {
         // Below: the first anchor beginning **after** the label's line, among the neighbouring
         // column and the headings.
         let mut bottom = UNBOUNDED;
-        for line in neighbours.iter().chain(Self::select(&self.args.heading, lines).iter()) {
+        for line in neighbours
+            .iter()
+            .chain(Self::select(&self.args.heading, lines).iter())
+        {
             let y0 = line.bbox().as_tuple().1;
             if y0 >= ay1 {
                 bottom = bottom.min(y0);
@@ -192,7 +204,10 @@ impl PdfExtractLabelledColumnStandard {
             .iter()
             .filter(|line| {
                 let (x0, y0, x1, y1) = line.bbox().as_tuple();
-                x0 >= ax0 - slack && x1 <= right + slack && y0 >= ay0 - slack && y1 <= bottom + slack
+                x0 >= ax0 - slack
+                    && x1 <= right + slack
+                    && y0 >= ay0 - slack
+                    && y1 <= bottom + slack
             })
             .collect();
 
@@ -212,7 +227,11 @@ impl PdfExtractLabelledColumnStandard {
             }
             pieces.push(chunk);
         }
-        let name = pieces.join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+        let name = pieces
+            .join(" ")
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
         if name.is_empty() {
             Vec::new()
         } else {
@@ -254,7 +273,11 @@ mod tests {
         text_sel("^no such line on any page$")
     }
 
-    fn pipe(label: &str, neighbour: PdfLineSelection, heading: PdfLineSelection) -> PdfExtractLabelledColumnStandard {
+    fn pipe(
+        label: &str,
+        neighbour: PdfLineSelection,
+        heading: PdfLineSelection,
+    ) -> PdfExtractLabelledColumnStandard {
         PdfExtractLabelledColumnStandard::new(LabelledColumnArgs::new(
             text_sel(label),
             neighbour,
@@ -265,7 +288,10 @@ mod tests {
     }
 
     fn content(blocks: &[PdfBlock]) -> Vec<String> {
-        blocks.iter().map(|b| b.content.as_str().unwrap_or_default().to_string()).collect()
+        blocks
+            .iter()
+            .map(|b| b.content.as_str().unwrap_or_default().to_string())
+            .collect()
     }
 
     mod the_anchor {
@@ -274,14 +300,21 @@ mod tests {
         #[test]
         fn a_page_without_the_label_yields_nothing() {
             let p = page(vec![line("Something else", (10.0, 10.0, 80.0, 20.0))]);
-            assert!(pipe("^Product name", absent(), absent()).call(&p).is_empty());
+            assert!(
+                pipe("^Product name", absent(), absent())
+                    .call(&p)
+                    .is_empty()
+            );
         }
 
         #[test]
         fn the_label_alone_yields_the_label() {
             // The label is still attached on purpose: stripping it is the text_filter's business.
             let p = page(vec![line("Product name:", (10.0, 10.0, 80.0, 20.0))]);
-            assert_eq!(content(&pipe("^Product name", absent(), absent()).call(&p)), ["Product name:"]);
+            assert_eq!(
+                content(&pipe("^Product name", absent(), absent()).call(&p)),
+                ["Product name:"]
+            );
         }
 
         #[test]
@@ -325,7 +358,10 @@ mod tests {
                 line("G", (10.0, 24.0, 18.0, 34.0)),
                 line("REAT FUND", (18.0, 24.0, 90.0, 34.0)),
             ]);
-            assert_eq!(content(&pipe("^Product name", absent(), absent()).call(&p))[0], "Product name: GREAT FUND");
+            assert_eq!(
+                content(&pipe("^Product name", absent(), absent()).call(&p))[0],
+                "Product name: GREAT FUND"
+            );
         }
 
         #[test]
@@ -335,7 +371,10 @@ mod tests {
                 line("REAT FUND", (18.0, 24.0, 90.0, 34.0)),
                 line("G", (10.0, 24.0, 18.0, 34.0)),
             ]);
-            assert_eq!(content(&pipe("^Product name", absent(), absent()).call(&p))[0], "Product name: GREAT FUND");
+            assert_eq!(
+                content(&pipe("^Product name", absent(), absent()).call(&p))[0],
+                "Product name: GREAT FUND"
+            );
         }
 
         #[test]
@@ -379,7 +418,14 @@ mod tests {
                 line("THE FUND", (10.0, 24.0, 90.0, 34.0)),
                 line("549300ABCDEF", (200.0, 24.0, 290.0, 34.0)),
             ]);
-            let got = content(&pipe("^Product name", text_sel("^Legal entity identifier"), absent()).call(&p));
+            let got = content(
+                &pipe(
+                    "^Product name",
+                    text_sel("^Legal entity identifier"),
+                    absent(),
+                )
+                .call(&p),
+            );
             assert_eq!(got[0], "Product name: THE FUND");
         }
 
@@ -392,7 +438,14 @@ mod tests {
                 line("Legal entity identifier", (10.0, 40.0, 130.0, 50.0)),
                 line("549300ABCDEF", (10.0, 56.0, 100.0, 66.0)),
             ]);
-            let got = content(&pipe("^Product name", text_sel("^Legal entity identifier"), absent()).call(&p));
+            let got = content(
+                &pipe(
+                    "^Product name",
+                    text_sel("^Legal entity identifier"),
+                    absent(),
+                )
+                .call(&p),
+            );
             assert_eq!(got[0], "Product name: THE FUND");
         }
 
@@ -402,10 +455,20 @@ mod tests {
             let p = page(vec![
                 line("Product name:", (10.0, 10.0, 80.0, 20.0)),
                 line("THE FUND", (10.0, 24.0, 90.0, 34.0)),
-                line("Sustainable investment objective", (10.0, 40.0, 200.0, 50.0)),
+                line(
+                    "Sustainable investment objective",
+                    (10.0, 40.0, 200.0, 50.0),
+                ),
                 line("beyond the band", (10.0, 56.0, 100.0, 66.0)),
             ]);
-            let got = content(&pipe("^Product name", absent(), text_sel("^Sustainable investment objective")).call(&p));
+            let got = content(
+                &pipe(
+                    "^Product name",
+                    absent(),
+                    text_sel("^Sustainable investment objective"),
+                )
+                .call(&p),
+            );
             assert_eq!(got[0], "Product name: THE FUND");
         }
 
@@ -415,7 +478,10 @@ mod tests {
                 line("Product name:", (10.0, 10.0, 80.0, 20.0)),
                 line("THE FUND", (10.0, 24.0, 90.0, 34.0)),
                 line("Legal entity identifier", (10.0, 40.0, 130.0, 50.0)),
-                line("Sustainable investment objective", (10.0, 70.0, 200.0, 80.0)),
+                line(
+                    "Sustainable investment objective",
+                    (10.0, 70.0, 200.0, 80.0),
+                ),
             ]);
             let got = content(
                 &pipe(
@@ -435,11 +501,24 @@ mod tests {
             // name is bounded on the right by the neighbour, and by nothing else.
             let p = page(vec![
                 line("Product name:", (10.0, 10.0, 80.0, 20.0)),
-                line("Sustainable investment objective", (100.0, 10.0, 290.0, 20.0)),
+                line(
+                    "Sustainable investment objective",
+                    (100.0, 10.0, 290.0, 20.0),
+                ),
                 line("A VERY LONG FUND NAME", (10.0, 24.0, 250.0, 34.0)),
             ]);
-            let got = content(&pipe("^Product name", absent(), text_sel("^Sustainable investment")).call(&p));
-            assert_eq!(got[0], "Product name:Sustainable investment objective A VERY LONG FUND NAME");
+            let got = content(
+                &pipe(
+                    "^Product name",
+                    absent(),
+                    text_sel("^Sustainable investment"),
+                )
+                .call(&p),
+            );
+            assert_eq!(
+                got[0],
+                "Product name:Sustainable investment objective A VERY LONG FUND NAME"
+            );
         }
 
         #[test]
@@ -447,9 +526,19 @@ mod tests {
             let p = page(vec![
                 line("Product name:", (10.0, 10.0, 80.0, 20.0)),
                 line("A VERY LONG FUND NAME", (10.0, 24.0, 250.0, 34.0)),
-                line("Sustainable investment objective", (10.0, 48.0, 200.0, 58.0)),
+                line(
+                    "Sustainable investment objective",
+                    (10.0, 48.0, 200.0, 58.0),
+                ),
             ]);
-            let got = content(&pipe("^Product name", absent(), text_sel("^Sustainable investment")).call(&p));
+            let got = content(
+                &pipe(
+                    "^Product name",
+                    absent(),
+                    text_sel("^Sustainable investment"),
+                )
+                .call(&p),
+            );
             assert_eq!(got[0], "Product name: A VERY LONG FUND NAME");
         }
     }
@@ -477,8 +566,14 @@ mod tests {
 
         #[test]
         fn an_empty_prepend_adds_nothing() {
-            let p = page(vec![line("Product name: THE FUND", (10.0, 10.0, 180.0, 20.0))]);
-            assert_eq!(content(&pipe("^Product name", absent(), absent()).call(&p))[0], "Product name: THE FUND");
+            let p = page(vec![line(
+                "Product name: THE FUND",
+                (10.0, 10.0, 180.0, 20.0),
+            )]);
+            assert_eq!(
+                content(&pipe("^Product name", absent(), absent()).call(&p))[0],
+                "Product name: THE FUND"
+            );
         }
     }
 }

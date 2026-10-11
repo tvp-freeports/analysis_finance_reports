@@ -23,13 +23,19 @@ pub fn declared<T: DeserializeOwned>() -> &'static [&'static str] {
 }
 
 /// The first header of `headers` that is not among `known`, if any.
-pub fn first_unknown<'h>(headers: impl IntoIterator<Item = &'h str>, known: &[&str]) -> Option<&'h str> {
+pub fn first_unknown<'h>(
+    headers: impl IntoIterator<Item = &'h str>,
+    known: &[&str],
+) -> Option<&'h str> {
     headers.into_iter().find(|header| !known.contains(header))
 }
 
 /// The message a reader puts in its own error type: which column, and which ones it could have been.
 pub fn unknown_column_message(column: &str, known: &[&str]) -> String {
-    format!("unknown column '{column}': the columns this table takes are {}", known.join(", "))
+    format!(
+        "unknown column '{column}': the columns this table takes are {}",
+        known.join(", ")
+    )
 }
 
 #[derive(Debug)]
@@ -95,18 +101,27 @@ mod tests {
 
     #[test]
     fn an_unknown_header_is_named() {
-        assert_eq!(first_unknown(["ID", "Note marks"], declared::<Row>()), Some("Note marks"));
+        assert_eq!(
+            first_unknown(["ID", "Note marks"], declared::<Row>()),
+            Some("Note marks")
+        );
     }
 
     #[test]
     fn known_headers_in_any_order_and_subset_pass() {
-        assert_eq!(first_unknown(["Remove from fund", "ID"], declared::<Row>()), None);
+        assert_eq!(
+            first_unknown(["Remove from fund", "ID"], declared::<Row>()),
+            None
+        );
         assert_eq!(first_unknown(["ID"], declared::<Row>()), None);
     }
 
     #[test]
     fn the_message_lists_the_known_columns() {
         let message = unknown_column_message("Note marks", declared::<Row>());
-        assert!(message.contains("Note marks") && message.contains("ID, Remove from fund"), "{message}");
+        assert!(
+            message.contains("Note marks") && message.contains("ID, Remove from fund"),
+            "{message}"
+        );
     }
 }

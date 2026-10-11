@@ -14,7 +14,9 @@ use ordered_float::OrderedFloat;
 use std::cmp::max;
 
 use crate::commons::geometry::{PositiveLimits, PositiveLimitsBuildError};
-use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
+use crate::commons::sets::indipendent_atoms::{
+    AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet,
+};
 use crate::commons::sets::{Container, Overlappable, SetRelation};
 
 impl Container for PositiveLimits {
@@ -104,19 +106,31 @@ impl AtomOperations for PositiveLimits {
         use SubtractOverlappingPositiveLimitsRes::*;
         let (a0, a1) = self.as_tuple();
         let (b0, b1) = other.as_tuple();
-        if b1 >= a1 { One(PositiveLimits::new(a0, b0)) } else { One(PositiveLimits::new(b1, a1)) }
+        if b1 >= a1 {
+            One(PositiveLimits::new(a0, b0))
+        } else {
+            One(PositiveLimits::new(b1, a1))
+        }
     }
     fn intersect_overlapping(&self, other: &Self) -> IntersectOverlappingPositiveLimitsRes {
         use IntersectOverlappingPositiveLimitsRes::*;
         let (a0, a1) = self.as_tuple();
         let (b0, b1) = other.as_tuple();
-        if b1 >= a1 { One(PositiveLimits::new(b0, a1)) } else { One(PositiveLimits::new(a0, b1)) }
+        if b1 >= a1 {
+            One(PositiveLimits::new(b0, a1))
+        } else {
+            One(PositiveLimits::new(a0, b1))
+        }
     }
     fn union_overlapping(&self, other: &Self) -> CompoundAtomOperationRes<Self> {
         use CompoundAtomOperationRes::*;
         let (a0, a1) = self.as_tuple();
         let (b0, b1) = other.as_tuple();
-        if a0 < b0 { One(PositiveLimits::new(a0, b1)) } else { One(PositiveLimits::new(b0, a1)) }
+        if a0 < b0 {
+            One(PositiveLimits::new(a0, b1))
+        } else {
+            One(PositiveLimits::new(b0, a1))
+        }
     }
 }
 
@@ -151,8 +165,8 @@ impl FontSizeInterval {
 mod tests {
     use super::*;
     use crate::commons::geometry::PositiveLimits;
-    use crate::commons::sets::{Container, Overlappable, SetRelation};
     use crate::commons::sets::indipendent_atoms::{AtomOperations, CompoundAtomOperationRes};
+    use crate::commons::sets::{Container, Overlappable, SetRelation};
     use std::collections::HashSet;
 
     mod font_size_interval_construction {
@@ -170,14 +184,20 @@ mod tests {
         fn from_precision_centers_a_symmetric_window_around_c() {
             let mut expected = HashSet::new();
             expected.insert(PositiveLimits::new(55.0, 65.0));
-            assert_eq!(FontSizeInterval::from_precision(60.0, 5.0).atoms(), &expected);
+            assert_eq!(
+                FontSizeInterval::from_precision(60.0, 5.0).atoms(),
+                &expected
+            );
         }
 
         #[test]
         fn from_precision_clamps_the_lower_bound_at_zero() {
             let mut expected = HashSet::new();
             expected.insert(PositiveLimits::new(0.0, 6.0));
-            assert_eq!(FontSizeInterval::from_precision(1.0, 5.0).atoms(), &expected);
+            assert_eq!(
+                FontSizeInterval::from_precision(1.0, 5.0).atoms(),
+                &expected
+            );
         }
     }
 
@@ -191,7 +211,9 @@ mod tests {
         #[test]
         fn build_accepts_what_new_accepts_and_yields_the_same_interval() {
             assert_eq!(
-                FontSizeInterval::build(6.0, 70.0).expect("a proper interval must build").atoms(),
+                FontSizeInterval::build(6.0, 70.0)
+                    .expect("a proper interval must build")
+                    .atoms(),
                 FontSizeInterval::new(6.0, 70.0).atoms()
             );
         }
@@ -199,7 +221,9 @@ mod tests {
         #[test]
         fn an_inverted_interval_is_refused() {
             match FontSizeInterval::build(70.0, 6.0) {
-                Err(PositiveLimitsBuildError::InvalidLimit(LimitsBuildError::NegativeInterval(a, b))) => {
+                Err(PositiveLimitsBuildError::InvalidLimit(
+                    LimitsBuildError::NegativeInterval(a, b),
+                )) => {
                     assert_eq!((a, b), (70.0, 6.0));
                 }
                 other => panic!("expected an inverted interval, found {other:?}"),
@@ -211,7 +235,9 @@ mod tests {
         #[test]
         fn a_degenerate_interval_is_refused() {
             match FontSizeInterval::build(4.0, 4.0) {
-                Err(PositiveLimitsBuildError::InvalidLimit(LimitsBuildError::NegativeInterval(a, b))) => {
+                Err(PositiveLimitsBuildError::InvalidLimit(
+                    LimitsBuildError::NegativeInterval(a, b),
+                )) => {
                     assert_eq!((a, b), (4.0, 4.0));
                 }
                 other => panic!("expected a degenerate interval, found {other:?}"),
@@ -257,8 +283,8 @@ mod tests {
     mod set_relation {
         use super::*;
         use SetRelation::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(PositiveLimits::new(2.0, 5.5), Equal, PositiveLimits::new(2.0, 5.5); "identical bounds are equal")]
         #[test_case(PositiveLimits::new(1.9, 5.8), Superset, PositiveLimits::new(2.0, 5.5); "strictly wider interval is a superset")]
@@ -278,12 +304,16 @@ mod tests {
     mod atom_operations {
         use super::*;
         use CompoundAtomOperationRes::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(PositiveLimits::new(2.0, 5.5), PositiveLimits::new(5.0, 50.5), One(PositiveLimits::new(2.0, 5.0)); "keeps the part to the right of the overlap")]
         #[test_case(PositiveLimits::new(5.0, 53.5), PositiveLimits::new(2.0, 5.5), One(PositiveLimits::new(5.5, 53.5)); "keeps the part to the left of the overlap")]
-        fn subtract_overlapping_keeps_the_non_overlapping_side(a: PositiveLimits, b: PositiveLimits, expected: CompoundAtomOperationRes<PositiveLimits>) {
+        fn subtract_overlapping_keeps_the_non_overlapping_side(
+            a: PositiveLimits,
+            b: PositiveLimits,
+            expected: CompoundAtomOperationRes<PositiveLimits>,
+        ) {
             match (a.subtract_overlapping(&b).into(), expected) {
                 (One(r), One(e)) => assert_eq!(r.as_tuple(), e.as_tuple()),
                 _ => panic!("expected a single-atom result"),
@@ -292,7 +322,11 @@ mod tests {
 
         #[test_case(PositiveLimits::new(2.0, 5.5), PositiveLimits::new(5.0, 50.5), One(PositiveLimits::new(5.0, 5.5)); "right overlap")]
         #[test_case(PositiveLimits::new(5.1, 53.5), PositiveLimits::new(2.0, 5.6), One(PositiveLimits::new(5.1, 5.6)); "left overlap")]
-        fn intersect_overlapping_keeps_the_shared_part(a: PositiveLimits, b: PositiveLimits, expected: CompoundAtomOperationRes<PositiveLimits>) {
+        fn intersect_overlapping_keeps_the_shared_part(
+            a: PositiveLimits,
+            b: PositiveLimits,
+            expected: CompoundAtomOperationRes<PositiveLimits>,
+        ) {
             match (a.intersect_overlapping(&b).into(), expected) {
                 (One(r), One(e)) => assert_eq!(r.as_tuple(), e.as_tuple()),
                 _ => panic!("expected a single-atom result"),
@@ -301,7 +335,11 @@ mod tests {
 
         #[test_case(PositiveLimits::new(2.0, 5.5), PositiveLimits::new(5.0, 50.5), One(PositiveLimits::new(2.0, 50.5)); "right overlap")]
         #[test_case(PositiveLimits::new(5.1, 53.5), PositiveLimits::new(2.2, 5.6), One(PositiveLimits::new(2.2, 53.5)); "left overlap")]
-        fn union_overlapping_spans_both(a: PositiveLimits, b: PositiveLimits, expected: CompoundAtomOperationRes<PositiveLimits>) {
+        fn union_overlapping_spans_both(
+            a: PositiveLimits,
+            b: PositiveLimits,
+            expected: CompoundAtomOperationRes<PositiveLimits>,
+        ) {
             match (a.union_overlapping(&b), expected) {
                 (One(r), One(e)) => assert_eq!(r.as_tuple(), e.as_tuple()),
                 _ => panic!("expected a single-atom result"),
@@ -311,7 +349,11 @@ mod tests {
         #[test_case(PositiveLimits::new(30.6, 40.2), PositiveLimits::new(33.6, 36.1), Two(PositiveLimits::new(30.6, 33.6), PositiveLimits::new(36.1, 40.2)); "subset strictly inside splits into two")]
         #[test_case(PositiveLimits::new(30.6, 40.2), PositiveLimits::new(30.6, 36.1), One(PositiveLimits::new(36.1, 40.2)); "subset touching the left bound keeps one piece")]
         #[test_case(PositiveLimits::new(30.6, 40.2), PositiveLimits::new(33.6, 40.2), One(PositiveLimits::new(30.6, 33.6)); "subset touching the right bound keeps one piece")]
-        fn subtract_subset_splits_around_the_hole(a: PositiveLimits, b: PositiveLimits, expected: CompoundAtomOperationRes<PositiveLimits>) {
+        fn subtract_subset_splits_around_the_hole(
+            a: PositiveLimits,
+            b: PositiveLimits,
+            expected: CompoundAtomOperationRes<PositiveLimits>,
+        ) {
             match (a.subtract_subset(&b).into(), expected) {
                 (One(r), One(e)) => assert_eq!(r.as_tuple(), e.as_tuple()),
                 (Two(ra, rb), Two(ea, eb)) => {

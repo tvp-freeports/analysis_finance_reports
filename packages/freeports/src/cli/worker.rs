@@ -135,7 +135,10 @@ pub fn write_request(path: &Path, request: &WorkerRequest) -> Result<(), WorkerE
         path: path.to_path_buf(),
         source: std::io::Error::other(e),
     })?;
-    std::fs::write(path, json).map_err(|e| WorkerError::WriteRequest { path: path.to_path_buf(), source: e })
+    std::fs::write(path, json).map_err(|e| WorkerError::WriteRequest {
+        path: path.to_path_buf(),
+        source: e,
+    })
 }
 
 /// Reads a request back. The two ways of failing are kept apart — file missing against file
@@ -143,8 +146,14 @@ pub fn write_request(path: &Path, request: &WorkerRequest) -> Result<(), WorkerE
 /// temporary directory cleaned too early, the second a parent and child built from different
 /// versions of the binary.
 pub fn read_request(path: &Path) -> Result<WorkerRequest, WorkerError> {
-    let bytes = std::fs::read(path).map_err(|e| WorkerError::ReadRequest { path: path.to_path_buf(), source: e })?;
-    serde_json::from_slice(&bytes).map_err(|e| WorkerError::ParseRequest { path: path.to_path_buf(), source: e })
+    let bytes = std::fs::read(path).map_err(|e| WorkerError::ReadRequest {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
+    serde_json::from_slice(&bytes).map_err(|e| WorkerError::ParseRequest {
+        path: path.to_path_buf(),
+        source: e,
+    })
 }
 
 /// Serializza `report` in `path`.
@@ -153,14 +162,23 @@ pub fn write_report(path: &Path, report: &WorkerReport) -> Result<(), WorkerErro
         path: path.to_path_buf(),
         source: std::io::Error::other(e),
     })?;
-    std::fs::write(path, json).map_err(|e| WorkerError::WriteReport { path: path.to_path_buf(), source: e })
+    std::fs::write(path, json).map_err(|e| WorkerError::WriteReport {
+        path: path.to_path_buf(),
+        source: e,
+    })
 }
 
 /// Reads a report back. A missing file here means the child never got as far as writing it — died
 /// of a signal, or exited early: the protocol failure the parent tells apart from a failed job.
 pub fn read_report(path: &Path) -> Result<WorkerReport, WorkerError> {
-    let bytes = std::fs::read(path).map_err(|e| WorkerError::ReadReport { path: path.to_path_buf(), source: e })?;
-    serde_json::from_slice(&bytes).map_err(|e| WorkerError::ParseReport { path: path.to_path_buf(), source: e })
+    let bytes = std::fs::read(path).map_err(|e| WorkerError::ReadReport {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
+    serde_json::from_slice(&bytes).map_err(|e| WorkerError::ParseReport {
+        path: path.to_path_buf(),
+        source: e,
+    })
 }
 
 /// How a job can produce no results.
@@ -212,7 +230,10 @@ pub struct WorkArea {
 impl WorkArea {
     pub fn create() -> Result<Self, WorkerError> {
         let path = std::env::temp_dir().join(format!("freeports-jobs-{}", std::process::id()));
-        std::fs::create_dir_all(&path).map_err(|source| WorkerError::WorkArea { path: path.clone(), source })?;
+        std::fs::create_dir_all(&path).map_err(|source| WorkerError::WorkArea {
+            path: path.clone(),
+            source,
+        })?;
         Ok(Self { path })
     }
 
@@ -243,7 +264,10 @@ pub fn prepare_request(
 ) -> Result<WorkerRequest, WorkerError> {
     let job_dir = work_dir.join(format!("job-{index}"));
     let log_dir = job_dir.join("logs");
-    std::fs::create_dir_all(&log_dir).map_err(|source| WorkerError::WriteRequest { path: log_dir.clone(), source })?;
+    std::fs::create_dir_all(&log_dir).map_err(|source| WorkerError::WriteRequest {
+        path: log_dir.clone(),
+        source,
+    })?;
     Ok(WorkerRequest {
         config: config.clone(),
         report_path: job_dir.join("report.json"),
@@ -265,7 +289,11 @@ fn request_path_for(request: &WorkerRequest) -> PathBuf {
 /// than all at once at the end. They interleave between jobs, but each line stays whole and already
 /// carries its own span path. Standard output is not a channel of the protocol: nothing the child
 /// writes there is read.
-fn run_one(executable: &Path, index: usize, request: &WorkerRequest) -> Result<WorkerReport, WorkerError> {
+fn run_one(
+    executable: &Path,
+    index: usize,
+    request: &WorkerRequest,
+) -> Result<WorkerReport, WorkerError> {
     let request_path = request_path_for(request);
     write_request(&request_path, request)?;
 
@@ -276,7 +304,10 @@ fn run_one(executable: &Path, index: usize, request: &WorkerRequest) -> Result<W
         .map_err(|source| WorkerError::Spawn { index, source })?;
 
     if !status.success() {
-        return Err(WorkerError::Died { index, status: status.to_string() });
+        return Err(WorkerError::Died {
+            index,
+            status: status.to_string(),
+        });
     }
     read_report(&request.report_path)
 }
@@ -300,7 +331,8 @@ pub fn run_in_processes(
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     let next = AtomicUsize::new(0);
-    let slots: Vec<Mutex<Option<Result<WorkerReport, WorkerError>>>> = requests.iter().map(|_| Mutex::new(None)).collect();
+    let slots: Vec<Mutex<Option<Result<WorkerReport, WorkerError>>>> =
+        requests.iter().map(|_| Mutex::new(None)).collect();
     let workers = parallelism.clamp(1, requests.len().max(1));
 
     std::thread::scope(|scope| {
@@ -308,7 +340,9 @@ pub fn run_in_processes(
             scope.spawn(|| {
                 loop {
                     let index = next.fetch_add(1, Ordering::Relaxed);
-                    let Some(request) = requests.get(index) else { break };
+                    let Some(request) = requests.get(index) else {
+                        break;
+                    };
                     let report = run_one(executable, index, request);
                     *slots[index].lock().unwrap_or_else(|p| p.into_inner()) = Some(report);
                 }
@@ -322,7 +356,9 @@ pub fn run_in_processes(
         .map(|(index, slot)| {
             slot.into_inner()
                 .unwrap_or_else(|p| p.into_inner())
-                .unwrap_or_else(|| panic!("job {index} was never assigned to a worker: the pool left a hole"))
+                .unwrap_or_else(|| {
+                    panic!("job {index} was never assigned to a worker: the pool left a hole")
+                })
         })
         .collect()
 }
@@ -342,7 +378,9 @@ pub fn run_in_processes(
 /// indicators on a fourth one's fund. A promise means "of this job", so the job has to survive the
 /// trip. A job that failed contributes **no group**, not an empty one: it produced nothing, and an
 /// empty group would claim it produced nothing *successfully*.
-pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<Vec<DocumentOutcome>>, Vec<JobFailure>) {
+pub fn collect(
+    reports: Vec<Result<WorkerReport, WorkerError>>,
+) -> (Vec<Vec<DocumentOutcome>>, Vec<JobFailure>) {
     let mut jobs = Vec::new();
     let mut failures = Vec::new();
     for (index, report) in reports.into_iter().enumerate() {
@@ -404,7 +442,9 @@ pub fn execute(request_path: &Path) -> Result<(), WorkerError> {
         Ok(Ok(documents)) => WorkerReport::Succeeded { documents },
         // Already recorded with its full chain where it happened: here the error is only packed for
         // the journey back, not recorded again.
-        Ok(Err(e)) => WorkerReport::Failed { error: ErrorRecord::from_error(&e) },
+        Ok(Err(e)) => WorkerReport::Failed {
+            error: ErrorRecord::from_error(&e),
+        },
         Err(payload) => {
             // Recorded here, unlike the branch above, because nobody else has: `catch_unwind`
             // returns a payload, not an error, and no `?` carried this past a log site.
@@ -430,9 +470,9 @@ pub fn execute(request_path: &Path) -> Result<(), WorkerError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cli::parallelism_config::{ParallelismConfig, Workers};
     use super::*;
     use crate::cli::conf_parse::DocumentSpec;
+    use crate::cli::parallelism_config::{ParallelismConfig, Workers};
     use crate::core::algorithm::PageOutcome;
     use crate::core::page::{DocumentId, FormatName};
     use crate::core::pipeline::Extracted;
@@ -454,7 +494,10 @@ mod tests {
             out_path: PathBuf::from("/tmp/out"),
             out_profile: OutStructureMode::Regular,
             out_flags: OutFlags::default(),
-            parallelism: ParallelismConfig { jobs: Workers::Fixed(4), pages: Workers::Auto },
+            parallelism: ParallelismConfig {
+                jobs: Workers::Fixed(4),
+                pages: Workers::Auto,
+            },
             batch_file: Some(PathBuf::from("/tmp/jobs.csv")),
             save_pdf: true,
             formats_repo_path: Some(PathBuf::from("/repo")),
@@ -502,8 +545,12 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = dir.path().join("request.json");
             let original = request();
-            write_request(&path, &original).expect("writing a request to a fresh temp dir must work");
-            assert_eq!(read_request(&path).expect("the request just written must read back"), original);
+            write_request(&path, &original)
+                .expect("writing a request to a fresh temp dir must work");
+            assert_eq!(
+                read_request(&path).expect("the request just written must read back"),
+                original
+            );
         }
 
         /// The child runs exactly the job the parent resolved: were a single field lost, it would
@@ -531,7 +578,9 @@ mod tests {
 
         #[test]
         fn a_successful_report_reads_back_identical() {
-            let report = WorkerReport::Succeeded { documents: documents() };
+            let report = WorkerReport::Succeeded {
+                documents: documents(),
+            };
             assert_eq!(round_trip(&report), report);
         }
 
@@ -581,11 +630,16 @@ mod tests {
                     }],
                 };
                 let back = round_trip(&report);
-                let WorkerReport::Succeeded { documents } = &back else { panic!("expected a success") };
+                let WorkerReport::Succeeded { documents } = &back else {
+                    panic!("expected a success")
+                };
                 let Extracted::Bond(bond) = &documents[0].pages[0].results[0] else {
                     panic!("expected a bond")
                 };
-                let value = bond.interest_rate.expect("the rate must survive").into_inner();
+                let value = bond
+                    .interest_rate
+                    .expect("the rate must survive")
+                    .into_inner();
                 assert_eq!(
                     value.to_bits(),
                     rate.to_bits(),
@@ -608,9 +662,11 @@ mod tests {
 
             let promised_fund = Fund::from_value(&BlockValue::Promise(Promise::new("fund_name")))
                 .expect("a promise is an admissible name");
-            let promised_article =
-                FundSfdrClassification::build("Alpha Fund", &BlockValue::Promise(Promise::new("article")))
-                    .expect("a promise is an admissible article");
+            let promised_article = FundSfdrClassification::build(
+                "Alpha Fund",
+                &BlockValue::Promise(Promise::new("article")),
+            )
+            .expect("a promise is an admissible article");
             let report = WorkerReport::Succeeded {
                 documents: vec![DocumentOutcome {
                     id: DocumentId::new("a"),
@@ -629,20 +685,32 @@ mod tests {
             let back = round_trip(&report);
             assert_eq!(back, report);
 
-            let WorkerReport::Succeeded { documents } = &back else { panic!("expected a success") };
+            let WorkerReport::Succeeded { documents } = &back else {
+                panic!("expected a success")
+            };
             let results = &documents[0].pages[0].results;
-            let Extracted::Fund(fund) = &results[0] else { panic!("expected a fund") };
-            assert!(fund.pending_name().is_some(), "the fund came back as {fund:?}");
+            let Extracted::Fund(fund) = &results[0] else {
+                panic!("expected a fund")
+            };
+            assert!(
+                fund.pending_name().is_some(),
+                "the fund came back as {fund:?}"
+            );
             assert_eq!(fund.pending().len(), promised_fund.pending().len());
             let Extracted::FundSfdrClassification(classification) = &results[1] else {
                 panic!("expected a classification")
             };
-            assert_eq!(classification.pending().len(), promised_article.pending().len());
+            assert_eq!(
+                classification.pending().len(),
+                promised_article.pending().len()
+            );
         }
 
         #[test]
         fn a_failed_report_reads_back_identical() {
-            let report = WorkerReport::Failed { error: ErrorRecord::from_error(&an_error_with_a_source()) };
+            let report = WorkerReport::Failed {
+                error: ErrorRecord::from_error(&an_error_with_a_source()),
+            };
             assert_eq!(round_trip(&report), report);
         }
 
@@ -652,18 +720,26 @@ mod tests {
         #[test]
         fn the_display_form_of_the_error_is_preserved_verbatim() {
             let error = an_error_with_a_source();
-            let report = WorkerReport::Failed { error: ErrorRecord::from_error(&error) };
+            let report = WorkerReport::Failed {
+                error: ErrorRecord::from_error(&error),
+            };
             match round_trip(&report) {
-                WorkerReport::Failed { error: record } => assert_eq!(record.display, error.to_string()),
+                WorkerReport::Failed { error: record } => {
+                    assert_eq!(record.display, error.to_string())
+                }
                 other => panic!("expected a failed report, got {other:?}"),
             }
         }
 
         #[test]
         fn the_source_chain_of_the_error_is_preserved() {
-            let report = WorkerReport::Failed { error: ErrorRecord::from_error(&an_error_with_a_source()) };
+            let report = WorkerReport::Failed {
+                error: ErrorRecord::from_error(&an_error_with_a_source()),
+            };
             match round_trip(&report) {
-                WorkerReport::Failed { error: record } => assert_eq!(record.source, ["no such file"]),
+                WorkerReport::Failed { error: record } => {
+                    assert_eq!(record.source, ["no such file"])
+                }
                 other => panic!("expected a failed report, got {other:?}"),
             }
         }
@@ -703,7 +779,10 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = dir.path().join("wrong-shape.json");
             std::fs::write(&path, br#"{"config": 42}"#).unwrap();
-            assert!(matches!(read_request(&path), Err(WorkerError::ParseRequest { .. })));
+            assert!(matches!(
+                read_request(&path),
+                Err(WorkerError::ParseRequest { .. })
+            ));
         }
 
         #[test]
@@ -721,7 +800,10 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = dir.path().join("unknown.json");
             std::fs::write(&path, br#"{"outcome": "exploded"}"#).unwrap();
-            assert!(matches!(read_report(&path), Err(WorkerError::ParseReport { .. })));
+            assert!(matches!(
+                read_report(&path),
+                Err(WorkerError::ParseReport { .. })
+            ));
         }
 
         #[test]
@@ -744,18 +826,29 @@ mod tests {
 
         fn succeeded(name: &str) -> Result<WorkerReport, WorkerError> {
             Ok(WorkerReport::Succeeded {
-                documents: vec![DocumentOutcome { id: DocumentId::new(name), format: FormatName::new("FMT"), pages: vec![] }],
+                documents: vec![DocumentOutcome {
+                    id: DocumentId::new(name),
+                    format: FormatName::new("FMT"),
+                    pages: vec![],
+                }],
             })
         }
 
         fn failed(message: &str) -> Result<WorkerReport, WorkerError> {
             Ok(WorkerReport::Failed {
-                error: ErrorRecord { debug: format!("{message:?}"), display: message.to_string(), source: vec![] },
+                error: ErrorRecord {
+                    debug: format!("{message:?}"),
+                    display: message.to_string(),
+                    source: vec![],
+                },
             })
         }
 
         fn broken(index: usize) -> Result<WorkerReport, WorkerError> {
-            Err(WorkerError::Died { index, status: "exit status: 9".to_string() })
+            Err(WorkerError::Died {
+                index,
+                status: "exit status: 9".to_string(),
+            })
         }
 
         /// The two lists `collect` returns, named so the assertions below read as sentences.
@@ -763,9 +856,17 @@ mod tests {
         /// The documents are flattened **here, in the test**, so the assertions below keep saying
         /// what they said about order and containment. That the groups survive is what
         /// `job_grouping` is for.
-        fn ids_and_failures(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<String>, Vec<JobFailure>) {
+        fn ids_and_failures(
+            reports: Vec<Result<WorkerReport, WorkerError>>,
+        ) -> (Vec<String>, Vec<JobFailure>) {
             let (jobs, failures) = collect(reports);
-            (jobs.iter().flatten().map(|d| d.id.as_str().to_string()).collect(), failures)
+            (
+                jobs.iter()
+                    .flatten()
+                    .map(|d| d.id.as_str().to_string())
+                    .collect(),
+                failures,
+            )
         }
 
         /// One group per successful job, because a promise means "of this job" and the boundary has
@@ -784,8 +885,13 @@ mod tests {
 
             #[test]
             fn a_failed_job_contributes_no_group_at_all() {
-                let (jobs, failures) = collect(vec![succeeded("a"), failed("boom"), succeeded("c")]);
-                assert_eq!(jobs.len(), 2, "a job that produced nothing must not leave an empty group");
+                let (jobs, failures) =
+                    collect(vec![succeeded("a"), failed("boom"), succeeded("c")]);
+                assert_eq!(
+                    jobs.len(),
+                    2,
+                    "a job that produced nothing must not leave an empty group"
+                );
                 assert_eq!(jobs[1][0].id.as_str(), "c");
                 assert_eq!(failures.len(), 1);
             }
@@ -800,7 +906,8 @@ mod tests {
 
         #[test]
         fn all_successful_jobs_concatenate_in_job_order() {
-            let (ids, failures) = ids_and_failures(vec![succeeded("a"), succeeded("b"), succeeded("c")]);
+            let (ids, failures) =
+                ids_and_failures(vec![succeeded("a"), succeeded("b"), succeeded("c")]);
             assert_eq!(ids, ["a", "b", "c"]);
             assert!(failures.is_empty());
         }
@@ -825,7 +932,8 @@ mod tests {
         /// the two after it were never looked at.
         #[test]
         fn a_failing_job_costs_its_own_results_and_no_others() {
-            let (ids, failures) = ids_and_failures(vec![succeeded("a"), failed("second broke"), succeeded("c")]);
+            let (ids, failures) =
+                ids_and_failures(vec![succeeded("a"), failed("second broke"), succeeded("c")]);
             assert_eq!(ids, ["a", "c"]);
             assert_eq!(failures.len(), 1);
             assert_eq!(failures[0].index(), 1);
@@ -843,7 +951,10 @@ mod tests {
                 failed("fifth broke"),
             ]);
             assert_eq!(ids, ["b", "d"]);
-            assert_eq!(failures.iter().map(JobFailure::index).collect::<Vec<_>>(), vec![0, 2, 4]);
+            assert_eq!(
+                failures.iter().map(JobFailure::index).collect::<Vec<_>>(),
+                vec![0, 2, 4]
+            );
         }
 
         /// Mixed kinds keep their kinds: a domain failure and a protocol failure are different
@@ -851,9 +962,18 @@ mod tests {
         /// simply went wrong.
         #[test]
         fn domain_and_protocol_failures_are_kept_apart() {
-            let (_, failures) = ids_and_failures(vec![succeeded("a"), failed("second broke"), broken(2)]);
-            assert!(matches!(failures[0], JobFailure::Job { index: 1, .. }), "got {:?}", failures[0]);
-            assert!(matches!(failures[1], JobFailure::Protocol { index: 2, .. }), "got {:?}", failures[1]);
+            let (_, failures) =
+                ids_and_failures(vec![succeeded("a"), failed("second broke"), broken(2)]);
+            assert!(
+                matches!(failures[0], JobFailure::Job { index: 1, .. }),
+                "got {:?}",
+                failures[0]
+            );
+            assert!(
+                matches!(failures[1], JobFailure::Protocol { index: 2, .. }),
+                "got {:?}",
+                failures[1]
+            );
         }
 
         /// A batch in which everything failed still comes back as two lists rather than as one
@@ -880,7 +1000,11 @@ mod tests {
         #[test]
         fn a_protocol_failure_names_the_job_it_belongs_to() {
             let (_, failures) = ids_and_failures(vec![broken(0)]);
-            assert!(failures[0].to_string().contains("job 0"), "message does not name the job: {}", failures[0]);
+            assert!(
+                failures[0].to_string().contains("job 0"),
+                "message does not name the job: {}",
+                failures[0]
+            );
         }
     }
 
@@ -894,8 +1018,13 @@ mod tests {
         #[test]
         fn the_private_log_directory_is_created_on_disk() {
             let dir = tempfile::tempdir().unwrap();
-            let request = prepare_request(dir.path(), 0, &config(), 1).expect("preparing a request must work");
-            assert!(request.log_dir.is_dir(), "the log directory was not created: {}", request.log_dir.display());
+            let request = prepare_request(dir.path(), 0, &config(), 1)
+                .expect("preparing a request must work");
+            assert!(
+                request.log_dir.is_dir(),
+                "the log directory was not created: {}",
+                request.log_dir.display()
+            );
         }
 
         /// The children's logs all have the same fixed names: without a directory per job they
@@ -922,7 +1051,10 @@ mod tests {
         #[test]
         fn the_configuration_travels_unchanged_into_the_request() {
             let dir = tempfile::tempdir().unwrap();
-            assert_eq!(prepare_request(dir.path(), 3, &config(), 1).unwrap().config, config());
+            assert_eq!(
+                prepare_request(dir.path(), 3, &config(), 1).unwrap().config,
+                config()
+            );
         }
     }
 
@@ -934,13 +1066,32 @@ mod tests {
             let path = PathBuf::from("/tmp/x/report.json");
             let io = || std::io::Error::new(std::io::ErrorKind::NotFound, "boom");
             let messages = [
-                WorkerError::WriteRequest { path: path.clone(), source: io() }.to_string(),
-                WorkerError::ReadRequest { path: path.clone(), source: io() }.to_string(),
-                WorkerError::WriteReport { path: path.clone(), source: io() }.to_string(),
-                WorkerError::ReadReport { path: path.clone(), source: io() }.to_string(),
+                WorkerError::WriteRequest {
+                    path: path.clone(),
+                    source: io(),
+                }
+                .to_string(),
+                WorkerError::ReadRequest {
+                    path: path.clone(),
+                    source: io(),
+                }
+                .to_string(),
+                WorkerError::WriteReport {
+                    path: path.clone(),
+                    source: io(),
+                }
+                .to_string(),
+                WorkerError::ReadReport {
+                    path: path.clone(),
+                    source: io(),
+                }
+                .to_string(),
             ];
             for message in messages {
-                assert!(message.contains("/tmp/x/report.json"), "message does not name the file: {message}");
+                assert!(
+                    message.contains("/tmp/x/report.json"),
+                    "message does not name the file: {message}"
+                );
             }
         }
     }

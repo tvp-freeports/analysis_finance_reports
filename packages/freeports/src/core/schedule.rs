@@ -23,7 +23,9 @@ use super::page::{Document, Page};
 /// A newtype over `String` rather than a closed enum, for the same reason as
 /// [`BlockType`](crate::core::classes::BlockType): page classes are defined by formats
 /// repositories, so no enum in the library could list them.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(transparent)]
 pub struct PageClass(String);
 
@@ -221,13 +223,24 @@ pub struct ScheduledPage<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ScheduleError {
-    #[error("expected one classification list per document: {documents} documents, {classifications} lists")]
-    ClassificationCountMismatch { documents: usize, classifications: usize },
+    #[error(
+        "expected one classification list per document: {documents} documents, {classifications} lists"
+    )]
+    ClassificationCountMismatch {
+        documents: usize,
+        classifications: usize,
+    },
     #[error(
         "document `{document}` has {pages} pages but {classifications} classifications: every page has to be classified"
     )]
-    PageCountMismatch { document: String, pages: usize, classifications: usize },
-    #[error("all pages have to enter the schedule at some point: `{class}` (document `{document}`) is not part of it")]
+    PageCountMismatch {
+        document: String,
+        pages: usize,
+        classifications: usize,
+    },
+    #[error(
+        "all pages have to enter the schedule at some point: `{class}` (document `{document}`) is not part of it"
+    )]
     UnknownPageClass { document: String, class: PageClass },
 }
 
@@ -358,7 +371,11 @@ mod tests {
         fn shape(scheduled: &[Vec<ScheduledPage<'_>>]) -> Vec<Vec<(String, u32)>> {
             scheduled
                 .iter()
-                .map(|step| step.iter().map(|s| (s.doc.id.to_string(), s.page.number)).collect())
+                .map(|step| {
+                    step.iter()
+                        .map(|s| (s.doc.id.to_string(), s.page.number))
+                        .collect()
+                })
                 .collect()
         }
 
@@ -367,7 +384,10 @@ mod tests {
             let docs = vec![doc("d", 2)];
             let classes = vec![vec![Some(PageClass::new("a")), Some(PageClass::new("b"))]];
             let scheduled = two_step_schedule().assign(&docs, &classes).unwrap();
-            assert_eq!(shape(&scheduled), vec![vec![("d".into(), 1)], vec![("d".into(), 2)]]);
+            assert_eq!(
+                shape(&scheduled),
+                vec![vec![("d".into(), 1)], vec![("d".into(), 2)]]
+            );
         }
 
         #[test]
@@ -395,8 +415,13 @@ mod tests {
         #[test]
         fn documents_are_visited_in_order_within_one_page_class() {
             let docs = vec![doc("first", 1), doc("second", 1)];
-            let classes = vec![vec![Some(PageClass::new("a"))], vec![Some(PageClass::new("a"))]];
-            let scheduled = Schedule::new(vec![step(&["a"])]).assign(&docs, &classes).unwrap();
+            let classes = vec![
+                vec![Some(PageClass::new("a"))],
+                vec![Some(PageClass::new("a"))],
+            ];
+            let scheduled = Schedule::new(vec![step(&["a"])])
+                .assign(&docs, &classes)
+                .unwrap();
             assert_eq!(
                 shape(&scheduled),
                 vec![vec![("first".into(), 1), ("second".into(), 1)]]
@@ -407,10 +432,16 @@ mod tests {
         fn page_classes_are_visited_in_step_order_not_alphabetically() {
             // A step of `[zulu, alpha]`: the `zulu` pages must come before the `alpha` ones.
             let docs = vec![doc("d", 2)];
-            let classes = vec![vec![Some(PageClass::new("alpha")), Some(PageClass::new("zulu"))]];
+            let classes = vec![vec![
+                Some(PageClass::new("alpha")),
+                Some(PageClass::new("zulu")),
+            ]];
             let schedule = Schedule::new(vec![step(&["zulu", "alpha"])]);
             let scheduled = schedule.assign(&docs, &classes).unwrap();
-            assert_eq!(shape(&scheduled), vec![vec![("d".into(), 2), ("d".into(), 1)]]);
+            assert_eq!(
+                shape(&scheduled),
+                vec![vec![("d".into(), 2), ("d".into(), 1)]]
+            );
         }
 
         #[test]
@@ -419,7 +450,10 @@ mod tests {
             let classes = vec![vec![Some(PageClass::new("a"))]];
             let schedule = Schedule::new(vec![step(&["a"]), step(&["a"])]);
             let scheduled = schedule.assign(&docs, &classes).unwrap();
-            assert_eq!(shape(&scheduled), vec![vec![("d".into(), 1)], vec![("d".into(), 1)]]);
+            assert_eq!(
+                shape(&scheduled),
+                vec![vec![("d".into(), 1)], vec![("d".into(), 1)]]
+            );
         }
 
         #[test]
@@ -443,9 +477,13 @@ mod tests {
         fn the_scheduled_page_carries_the_position_of_its_document() {
             // Two documents with the *same* id: only position tells them apart.
             let docs = vec![doc("same", 1), doc("same", 1)];
-            let classes =
-                vec![vec![Some(PageClass::new("a"))], vec![Some(PageClass::new("a"))]];
-            let scheduled = Schedule::new(vec![step(&["a"])]).assign(&docs, &classes).unwrap();
+            let classes = vec![
+                vec![Some(PageClass::new("a"))],
+                vec![Some(PageClass::new("a"))],
+            ];
+            let scheduled = Schedule::new(vec![step(&["a"])])
+                .assign(&docs, &classes)
+                .unwrap();
             let indexes: Vec<usize> = scheduled[0].iter().map(|s| s.doc_index).collect();
             assert_eq!(indexes, vec![0, 1]);
         }
@@ -457,7 +495,10 @@ mod tests {
             let err = two_step_schedule().assign(&docs, &classes).unwrap_err();
             assert_eq!(
                 err,
-                ScheduleError::ClassificationCountMismatch { documents: 2, classifications: 1 }
+                ScheduleError::ClassificationCountMismatch {
+                    documents: 2,
+                    classifications: 1
+                }
             );
         }
 
@@ -514,8 +555,10 @@ mod tests {
 
         #[test]
         fn a_classification_count_mismatch_reports_both_counts() {
-            let err =
-                ScheduleError::ClassificationCountMismatch { documents: 2, classifications: 1 };
+            let err = ScheduleError::ClassificationCountMismatch {
+                documents: 2,
+                classifications: 1,
+            };
             assert_eq!(
                 err.to_string(),
                 "expected one classification list per document: 2 documents, 1 lists"

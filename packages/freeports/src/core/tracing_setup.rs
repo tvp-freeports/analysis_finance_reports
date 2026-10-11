@@ -177,13 +177,21 @@ impl Verbosity {
 #[derive(Debug, thiserror::Error)]
 pub enum TracingSetupError {
     #[error("cannot open log file at {}: {source}", path.display())]
-    OpenLogFile { path: PathBuf, source: std::io::Error },
+    OpenLogFile {
+        path: PathBuf,
+        source: std::io::Error,
+    },
     #[error("cannot open csv log file at {}: {source}", path.display())]
-    OpenCsvFile { path: PathBuf, source: std::io::Error },
+    OpenCsvFile {
+        path: PathBuf,
+        source: std::io::Error,
+    },
     #[error("failed to write a row to the .log.csv file: {source}")]
     CsvWrite { source: csv::Error },
     #[error("cannot install the global tracing subscriber: {source}")]
-    AlreadyInitialized { source: tracing::subscriber::SetGlobalDefaultError },
+    AlreadyInitialized {
+        source: tracing::subscriber::SetGlobalDefaultError,
+    },
     #[error("the .log.csv destination was never set")]
     CsvDestinationUnset,
 }
@@ -386,7 +394,11 @@ impl SpanPathFormat {
     /// `(prefix, suffix)` for one colored segment — both empty when ANSI is off, so every call
     /// site stays a single `write!` instead of an `if` around each one.
     fn paint(&self, color: &'static str) -> (&'static str, &'static str) {
-        if self.ansi { (color, ANSI_RESET) } else { ("", "") }
+        if self.ansi {
+            (color, ANSI_RESET)
+        } else {
+            ("", "")
+        }
     }
 }
 
@@ -416,8 +428,11 @@ impl EventFieldVisitor<'_> {
         if self.result.is_err() || field.name() == "message" || field.name() == "error" {
             return;
         }
-        let rendered =
-            if value.contains(' ') || value.contains('"') { quote_value(value) } else { value.to_string() };
+        let rendered = if value.contains(' ') || value.contains('"') {
+            quote_value(value)
+        } else {
+            value.to_string()
+        };
         self.result = write!(self.writer, " {}={}", field.name(), rendered);
     }
 }
@@ -502,7 +517,10 @@ where
 
         let (on, off) = self.paint(ANSI_FIELDS);
         write!(writer, "{on}")?;
-        let mut fields = EventFieldVisitor { writer: writer.by_ref(), result: Ok(()) };
+        let mut fields = EventFieldVisitor {
+            writer: writer.by_ref(),
+            result: Ok(()),
+        };
         event.record(&mut fields);
         fields.result?;
         write!(writer, "{off}")?;
@@ -659,12 +677,17 @@ impl SharedFileWriter {
             JsonSink::Pending(buffer) => std::mem::take(buffer),
             JsonSink::Open(_) | JsonSink::Off => return Ok(()),
         };
-        let file = File::create(path)
-            .map_err(|source| TracingSetupError::OpenLogFile { path: path.to_path_buf(), source })?;
+        let file = File::create(path).map_err(|source| TracingSetupError::OpenLogFile {
+            path: path.to_path_buf(),
+            source,
+        })?;
         let mut writer = BufWriter::new(file);
         writer
             .write_all(&buffered)
-            .map_err(|source| TracingSetupError::OpenLogFile { path: path.to_path_buf(), source })?;
+            .map_err(|source| TracingSetupError::OpenLogFile {
+                path: path.to_path_buf(),
+                source,
+            })?;
         *guard = JsonSink::Open(writer);
         Ok(())
     }
@@ -680,7 +703,10 @@ impl SharedFileWriter {
 
     /// True once there is a file on disk to pour anything into.
     fn is_open(&self) -> bool {
-        matches!(*self.0.lock().unwrap_or_else(PoisonError::into_inner), JsonSink::Open(_))
+        matches!(
+            *self.0.lock().unwrap_or_else(PoisonError::into_inner),
+            JsonSink::Open(_)
+        )
     }
 
     fn flush(&self) -> std::io::Result<()> {
@@ -706,7 +732,11 @@ impl SharedFileWriter {
 /// is only a failure where a file is actually wanted.
 pub fn file_layer<S>(
     verbosity: Verbosity,
-) -> (impl Layer<S> + std::fmt::Debug, SharedFileWriter, ReloadableLevel)
+) -> (
+    impl Layer<S> + std::fmt::Debug,
+    SharedFileWriter,
+    ReloadableLevel,
+)
 where
     S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug + 'static,
 {
@@ -715,7 +745,6 @@ where
     let layer = JsonLogLayer::new(writer.clone()).with_filter(filter);
     (layer, writer, ReloadableLevel(Arc::new(handle)))
 }
-
 
 /// The `First coord` / `Second coord` pair naming a cell of a page's table, built from the grid's
 /// own **zero-based** indices.
@@ -729,8 +758,7 @@ pub fn table_coords(row: i64, col: i64) -> (String, String) {
     (format!("row {}", row + 1), format!("col {}", col + 1))
 }
 
-pub const CSV_HEADER: &str =
-    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Level,Message\n";
+pub const CSV_HEADER: &str = "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Level,Message\n";
 
 /// Tracing field names that select a `.log.csv` row when at least one of them is present, either
 /// directly on the event or inherited from an enclosing span. See the module documentation.
@@ -995,13 +1023,19 @@ impl CsvLogLayerInner {
             // exist. Losing them silently is not an option either, hence the error.
             return Err(TracingSetupError::CsvDestinationUnset);
         };
-        let mut writer = csv::WriterBuilder::new().has_headers(false).from_writer(file);
+        let mut writer = csv::WriterBuilder::new()
+            .has_headers(false)
+            .from_writer(file);
         for row in &pending {
             writer
                 .write_record(&row.cells)
                 .map_err(|source| TracingSetupError::CsvWrite { source })?;
         }
-        writer.flush().map_err(|source| TracingSetupError::CsvWrite { source: source.into() })
+        writer
+            .flush()
+            .map_err(|source| TracingSetupError::CsvWrite {
+                source: source.into(),
+            })
     }
 }
 
@@ -1045,19 +1079,31 @@ impl CsvLogLayer {
     /// Replaces any previous destination; rows accumulated so far are untouched and will land in
     /// the new file.
     pub fn set_destination(&self, path: &Path) -> Result<(), TracingSetupError> {
-        let mut file = File::create(path)
-            .map_err(|source| TracingSetupError::OpenCsvFile { path: path.to_path_buf(), source })?;
+        let mut file = File::create(path).map_err(|source| TracingSetupError::OpenCsvFile {
+            path: path.to_path_buf(),
+            source,
+        })?;
         file.write_all(CSV_HEADER.as_bytes())
             .and_then(|()| file.flush())
-            .map_err(|source| TracingSetupError::CsvWrite { source: source.into() })?;
-        *self.inner.file.lock().unwrap_or_else(PoisonError::into_inner) = Some(file);
+            .map_err(|source| TracingSetupError::CsvWrite {
+                source: source.into(),
+            })?;
+        *self
+            .inner
+            .file
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Some(file);
         Ok(())
     }
 
     /// True once a destination has been set — `LogHandle::close` uses it to decide whether it
     /// must fall back to the directory `init` was given.
     fn has_destination(&self) -> bool {
-        self.inner.file.lock().unwrap_or_else(PoisonError::into_inner).is_some()
+        self.inner
+            .file
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .is_some()
     }
 
     /// The only supported way to make accumulated data rows visible on disk — see
@@ -1078,13 +1124,19 @@ impl CsvLogLayer {
         if rows.is_empty() {
             return Ok(());
         }
-        let mut file_guard = self.inner.file.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut file_guard = self
+            .inner
+            .file
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         let Some(file) = file_guard.as_mut() else {
             return Err(TracingSetupError::CsvDestinationUnset);
         };
         file.write_all(rows)
             .and_then(|()| file.flush())
-            .map_err(|source| TracingSetupError::CsvWrite { source: source.into() })
+            .map_err(|source| TracingSetupError::CsvWrite {
+                source: source.into(),
+            })
     }
 
     /// Throws away every accumulated row **without creating any file**.
@@ -1095,7 +1147,11 @@ impl CsvLogLayer {
     /// `.log.csv` behind after every failed run. The rows are not really lost: every one of them
     /// is an event that also reached stderr.
     pub fn discard(&self) {
-        self.inner.rows.lock().unwrap_or_else(PoisonError::into_inner).clear();
+        self.inner
+            .rows
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
     }
 }
 
@@ -1193,8 +1249,15 @@ where
             merged.get("message").to_string(),
         ];
 
-        let mut rows = self.inner.rows.lock().unwrap_or_else(PoisonError::into_inner);
-        rows.push(PendingRow { order_key: RowOrderKey { page, sequence }, cells });
+        let mut rows = self
+            .inner
+            .rows
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        rows.push(PendingRow {
+            order_key: RowOrderKey { page, sequence },
+            cells,
+        });
     }
 }
 
@@ -1287,16 +1350,24 @@ impl LogHandle {
         // never opened. Reading megabytes in order to drop them is the only other option.
         let logs = WorkerLogs {
             csv_rows: strip_csv_header(&read(CSV_FILE_NAME)),
-            jsonl: if self.file.is_open() { read(LOG_FILE_NAME) } else { Vec::new() },
+            jsonl: if self.file.is_open() {
+                read(LOG_FILE_NAME)
+            } else {
+                Vec::new()
+            },
         };
-        self.absorbed.lock().unwrap_or_else(PoisonError::into_inner).push(logs);
+        self.absorbed
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(logs);
         Ok(())
     }
 
     /// Pours every absorbed worker log into this run's files, in job order. Each destination is
     /// attempted regardless of the others, same rule as `close()` itself.
     fn pour_absorbed(&self) -> Result<(), TracingSetupError> {
-        let absorbed = std::mem::take(&mut *self.absorbed.lock().unwrap_or_else(PoisonError::into_inner));
+        let absorbed =
+            std::mem::take(&mut *self.absorbed.lock().unwrap_or_else(PoisonError::into_inner));
         let mut first_error = None;
         for logs in &absorbed {
             let mut record = |result: Result<(), TracingSetupError>| {
@@ -1308,7 +1379,10 @@ impl LogHandle {
                 record(self.csv.append_rows(&logs.csv_rows));
             }
             record(self.file.append_raw(&logs.jsonl).map_err(|source| {
-                TracingSetupError::OpenLogFile { path: self.json_path.clone(), source }
+                TracingSetupError::OpenLogFile {
+                    path: self.json_path.clone(),
+                    source,
+                }
             }));
         }
         first_error.map_or(Ok(()), Err)
@@ -1325,8 +1399,10 @@ impl LogHandle {
     /// run's output, it exists only at `trace`, and it stays in the directory the command was
     /// launched from.
     pub fn set_csv_dir(&self, dir: &Path) -> Result<(), TracingSetupError> {
-        std::fs::create_dir_all(dir)
-            .map_err(|source| TracingSetupError::OpenCsvFile { path: dir.to_path_buf(), source })?;
+        std::fs::create_dir_all(dir).map_err(|source| TracingSetupError::OpenCsvFile {
+            path: dir.to_path_buf(),
+            source,
+        })?;
         self.csv.set_destination(&dir.join(CSV_FILE_NAME))
     }
 
@@ -1476,7 +1552,11 @@ pub fn imposed_message(field: &str, value: &str, reason: &str) -> String {
 /// `target` an event carries — `format` for what an algorithm wrote, this module's path for what
 /// the engine did.
 pub fn warn_imposed(field: &str, value: &str, reason: &str) {
-    tracing::warn!(coord_ref_2 = field, "{}", imposed_message(field, value, reason));
+    tracing::warn!(
+        coord_ref_2 = field,
+        "{}",
+        imposed_message(field, value, reason)
+    );
 }
 
 /// The message carried by a caught panic, out of the opaque payload `catch_unwind` hands back.
@@ -1571,7 +1651,11 @@ impl ErrorRecord {
             }
             current = cause.source();
         }
-        Self { debug: format!("{error:?}"), display: error.to_string(), source }
+        Self {
+            debug: format!("{error:?}"),
+            display: error.to_string(),
+            source,
+        }
     }
 }
 
@@ -1639,7 +1723,11 @@ struct RecordVisitor {
 
 impl RecordVisitor {
     fn new() -> Self {
-        Self { message: String::new(), error: None, fields: BTreeMap::new() }
+        Self {
+            message: String::new(),
+            error: None,
+            fields: BTreeMap::new(),
+        }
     }
 
     fn put(&mut self, name: &str, value: String) {
@@ -1805,7 +1893,10 @@ pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSe
     let subscriber = tracing_subscriber::registry()
         .with(stderr_layer)
         .with(file_layer)
-        .with(csv.clone().with_filter(EventLevelFilter::new(csv_level_filter(verbosity))));
+        .with(
+            csv.clone()
+                .with_filter(EventLevelFilter::new(csv_level_filter(verbosity))),
+        );
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|source| TracingSetupError::AlreadyInitialized { source })?;
     Ok(LogHandle {
@@ -1836,8 +1927,8 @@ pub mod capture {
 
     use tracing::field::{Field, Visit};
     use tracing::{Level, Subscriber};
-    use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
     use tracing_subscriber::Registry;
+    use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 
     /// One captured event.
     #[derive(Debug, Clone, Default)]
@@ -1888,7 +1979,10 @@ pub mod capture {
                 ..Record::default()
             };
             event.record(&mut record);
-            self.records.lock().expect("the capture mutex is not poisoned").push(record);
+            self.records
+                .lock()
+                .expect("the capture mutex is not poisoned")
+                .push(record);
         }
     }
 
@@ -1897,22 +1991,33 @@ pub mod capture {
         let layer = CapturingLayer::default();
         let subscriber = Registry::default().with(layer.clone());
         tracing::subscriber::with_default(subscriber, f);
-        layer.records.lock().expect("the capture mutex is not poisoned").clone()
+        layer
+            .records
+            .lock()
+            .expect("the capture mutex is not poisoned")
+            .clone()
     }
 
     /// The single event emitted while `f` runs, or a panic naming how many there were.
     pub fn one_event(f: impl FnOnce()) -> Record {
         let mut records = events(f);
-        assert_eq!(records.len(), 1, "exactly one event was expected, found {}", records.len());
+        assert_eq!(
+            records.len(),
+            1,
+            "exactly one event was expected, found {}",
+            records.len()
+        );
         records.pop().expect("one record")
     }
 
     /// The events emitted while `f` runs whose message starts with `prefix`.
     pub fn events_starting_with(prefix: &str, f: impl FnOnce()) -> Vec<Record> {
-        events(f).into_iter().filter(|r| r.message.starts_with(prefix)).collect()
+        events(f)
+            .into_iter()
+            .filter(|r| r.message.starts_with(prefix))
+            .collect()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1963,14 +2068,17 @@ mod tests {
 
             #[test]
             fn zero_and_zero_is_exactly_warn() {
-                assert_eq!(Verbosity::from_verbose_and_quiet_counts(0, 0), Verbosity::Warn);
+                assert_eq!(
+                    Verbosity::from_verbose_and_quiet_counts(0, 0),
+                    Verbosity::Warn
+                );
             }
         }
 
         mod quiet_only {
             use super::*;
-            use test_case::test_case;
             use pretty_assertions::assert_eq;
+            use test_case::test_case;
 
             #[test_case(1, Verbosity::ErrorOnly; "-q once: error only")]
             #[test_case(2, Verbosity::Silent; "-qq: silent")]
@@ -1983,8 +2091,8 @@ mod tests {
 
         mod verbose_only {
             use super::*;
-            use test_case::test_case;
             use pretty_assertions::assert_eq;
+            use test_case::test_case;
 
             #[test_case(1, Verbosity::Info; "-v once: info")]
             #[test_case(2, Verbosity::Debug; "-vv: debug")]
@@ -1992,7 +2100,10 @@ mod tests {
             #[test_case(4, Verbosity::Trace; "one flag above the highest defined tier: still trace, clamped")]
             #[test_case(u8::MAX, Verbosity::Trace; "u8 upper bound: still trace, clamped")]
             fn increasing_verbosity(verbose: u8, expected: Verbosity) {
-                assert_eq!(Verbosity::from_verbose_and_quiet_counts(verbose, 0), expected);
+                assert_eq!(
+                    Verbosity::from_verbose_and_quiet_counts(verbose, 0),
+                    expected
+                );
             }
         }
 
@@ -2003,19 +2114,28 @@ mod tests {
             #[test]
             fn net_positive_offset_moves_up_from_warn() {
                 // verbose=2, quiet=1 -> net offset +1 from Warn (index 2) -> Info (index 3).
-                assert_eq!(Verbosity::from_verbose_and_quiet_counts(2, 1), Verbosity::Info);
+                assert_eq!(
+                    Verbosity::from_verbose_and_quiet_counts(2, 1),
+                    Verbosity::Info
+                );
             }
 
             #[test]
             fn net_negative_offset_clamps_at_silent_instead_of_going_out_of_bounds() {
                 // verbose=1, quiet=3 -> net offset -2 from Warn (index 2) -> index 0 -> Silent,
                 // not a negative index.
-                assert_eq!(Verbosity::from_verbose_and_quiet_counts(1, 3), Verbosity::Silent);
+                assert_eq!(
+                    Verbosity::from_verbose_and_quiet_counts(1, 3),
+                    Verbosity::Silent
+                );
             }
 
             #[test]
             fn equal_verbose_and_quiet_counts_cancel_out_to_the_default() {
-                assert_eq!(Verbosity::from_verbose_and_quiet_counts(5, 5), Verbosity::Warn);
+                assert_eq!(
+                    Verbosity::from_verbose_and_quiet_counts(5, 5),
+                    Verbosity::Warn
+                );
             }
 
             #[test]
@@ -2023,7 +2143,10 @@ mod tests {
                 let result = std::panic::catch_unwind(|| {
                     Verbosity::from_verbose_and_quiet_counts(u8::MAX, u8::MAX)
                 });
-                assert!(result.is_ok(), "must never panic regardless of extreme input");
+                assert!(
+                    result.is_ok(),
+                    "must never panic regardless of extreme input"
+                );
                 assert_eq!(result.unwrap(), Verbosity::Warn);
             }
         }
@@ -2038,32 +2161,39 @@ mod tests {
             #[test_case(3, 1; "both present, net positive")]
             #[test_case(1, 3; "both present, net negative")]
             fn combining_v_and_q_is_never_an_error(verbose: u8, quiet: u8) {
-                let result =
-                    std::panic::catch_unwind(|| Verbosity::from_verbose_and_quiet_counts(verbose, quiet));
-                assert!(result.is_ok(), "combining -v and -q must never panic or error");
+                let result = std::panic::catch_unwind(|| {
+                    Verbosity::from_verbose_and_quiet_counts(verbose, quiet)
+                });
+                assert!(
+                    result.is_ok(),
+                    "combining -v and -q must never panic or error"
+                );
             }
         }
 
         /// No behaviour is lost on `-v` alone: the same table, with `quiet` fixed at 0.
         mod equivalence_with_old_from_flag_count_formula {
             use super::*;
-            use test_case::test_case;
             use pretty_assertions::assert_eq;
+            use test_case::test_case;
 
             #[test_case(0, Verbosity::Warn)]
             #[test_case(1, Verbosity::Info)]
             #[test_case(2, Verbosity::Debug)]
             #[test_case(3, Verbosity::Trace)]
             #[test_case(10, Verbosity::Trace; "saturates same as the old formula")]
-            fn matches_the_old_four_tier_mapping_when_quiet_is_zero(count: u8, expected: Verbosity) {
+            fn matches_the_old_four_tier_mapping_when_quiet_is_zero(
+                count: u8,
+                expected: Verbosity,
+            ) {
                 assert_eq!(Verbosity::from_verbose_and_quiet_counts(count, 0), expected);
             }
         }
 
         mod level_filter_mapping {
             use super::*;
-            use test_case::test_case;
             use pretty_assertions::assert_eq;
+            use test_case::test_case;
 
             #[test_case(Verbosity::Silent, LevelFilter::OFF)]
             #[test_case(Verbosity::ErrorOnly, LevelFilter::ERROR)]
@@ -2071,7 +2201,10 @@ mod tests {
             #[test_case(Verbosity::Info, LevelFilter::INFO)]
             #[test_case(Verbosity::Debug, LevelFilter::DEBUG)]
             #[test_case(Verbosity::Trace, LevelFilter::TRACE)]
-            fn maps_every_variant_to_the_expected_level_filter(verbosity: Verbosity, expected: LevelFilter) {
+            fn maps_every_variant_to_the_expected_level_filter(
+                verbosity: Verbosity,
+                expected: LevelFilter,
+            ) {
                 assert_eq!(verbosity.level_filter(), expected);
             }
         }
@@ -2193,7 +2326,8 @@ mod tests {
         fn captured_output(verbosity: Verbosity) -> String {
             let _guard = SERIAL.lock().unwrap();
             let buffer = SharedBuffer::default();
-            let (layer, _level) = fmt_layer_with_writer(buffer.clone(), verbosity.level_filter(), false);
+            let (layer, _level) =
+                fmt_layer_with_writer(buffer.clone(), verbosity.level_filter(), false);
             let subscriber = tracing_subscriber::registry().with(layer);
             tracing::subscriber::with_default(subscriber, emit_one_event_per_level_at);
             String::from_utf8(buffer.0.lock().unwrap().clone()).expect("captured output is utf8")
@@ -2202,37 +2336,85 @@ mod tests {
         #[test]
         fn warn_shows_warn_and_error_but_not_info() {
             let output = captured_output(Verbosity::Warn);
-            assert!(output.contains("error-marker"), "missing error-marker in:\n{output}");
-            assert!(output.contains("warn-marker"), "missing warn-marker in:\n{output}");
-            assert!(!output.contains("info-marker"), "unexpected info-marker in:\n{output}");
-            assert!(!output.contains("debug-marker"), "unexpected debug-marker in:\n{output}");
-            assert!(!output.contains("trace-marker"), "unexpected trace-marker in:\n{output}");
+            assert!(
+                output.contains("error-marker"),
+                "missing error-marker in:\n{output}"
+            );
+            assert!(
+                output.contains("warn-marker"),
+                "missing warn-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("info-marker"),
+                "unexpected info-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("debug-marker"),
+                "unexpected debug-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("trace-marker"),
+                "unexpected trace-marker in:\n{output}"
+            );
         }
 
         #[test]
         fn error_only_shows_only_error() {
             let output = captured_output(Verbosity::ErrorOnly);
-            assert!(output.contains("error-marker"), "missing error-marker in:\n{output}");
-            assert!(!output.contains("warn-marker"), "unexpected warn-marker in:\n{output}");
-            assert!(!output.contains("info-marker"), "unexpected info-marker in:\n{output}");
-            assert!(!output.contains("debug-marker"), "unexpected debug-marker in:\n{output}");
-            assert!(!output.contains("trace-marker"), "unexpected trace-marker in:\n{output}");
+            assert!(
+                output.contains("error-marker"),
+                "missing error-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("warn-marker"),
+                "unexpected warn-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("info-marker"),
+                "unexpected info-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("debug-marker"),
+                "unexpected debug-marker in:\n{output}"
+            );
+            assert!(
+                !output.contains("trace-marker"),
+                "unexpected trace-marker in:\n{output}"
+            );
         }
 
         #[test]
         fn silent_shows_nothing_at_all_not_even_error() {
             let output = captured_output(Verbosity::Silent);
-            assert!(output.is_empty(), "expected no output at Silent, got:\n{output}");
+            assert!(
+                output.is_empty(),
+                "expected no output at Silent, got:\n{output}"
+            );
         }
 
         #[test]
         fn trace_shows_every_level() {
             let output = captured_output(Verbosity::Trace);
-            assert!(output.contains("error-marker"), "missing error-marker in:\n{output}");
-            assert!(output.contains("warn-marker"), "missing warn-marker in:\n{output}");
-            assert!(output.contains("info-marker"), "missing info-marker in:\n{output}");
-            assert!(output.contains("debug-marker"), "missing debug-marker in:\n{output}");
-            assert!(output.contains("trace-marker"), "missing trace-marker in:\n{output}");
+            assert!(
+                output.contains("error-marker"),
+                "missing error-marker in:\n{output}"
+            );
+            assert!(
+                output.contains("warn-marker"),
+                "missing warn-marker in:\n{output}"
+            );
+            assert!(
+                output.contains("info-marker"),
+                "missing info-marker in:\n{output}"
+            );
+            assert!(
+                output.contains("debug-marker"),
+                "missing debug-marker in:\n{output}"
+            );
+            assert!(
+                output.contains("trace-marker"),
+                "missing trace-marker in:\n{output}"
+            );
         }
     }
 
@@ -2264,7 +2446,10 @@ mod tests {
                     let _guard = span.enter();
                     tracing::warn!("marker");
                 });
-                assert!(output.contains("job[AMUNDI-EN24]"), "expected a bare value in:\n{output}");
+                assert!(
+                    output.contains("job[AMUNDI-EN24]"),
+                    "expected a bare value in:\n{output}"
+                );
             }
 
             /// The case that motivated the rule: the company's text is followed by two more
@@ -2328,8 +2513,14 @@ mod tests {
                     let _guard = span.enter();
                     tracing::warn!("marker");
                 });
-                assert!(output.contains("deserialize:"), "expected a bare span name in:\n{output}");
-                assert!(!output.contains("deserialize["), "unexpected brackets in:\n{output}");
+                assert!(
+                    output.contains("deserialize:"),
+                    "expected a bare span name in:\n{output}"
+                );
+                assert!(
+                    !output.contains("deserialize["),
+                    "unexpected brackets in:\n{output}"
+                );
             }
         }
 
@@ -2339,15 +2530,27 @@ mod tests {
 
             /// Extracts the ` key=value` tail that follows the message.
             fn tail(output: &str) -> String {
-                output.split_once("marker").expect("the message is on the line").1.trim_end().to_string()
+                output
+                    .split_once("marker")
+                    .expect("the message is on the line")
+                    .1
+                    .trim_end()
+                    .to_string()
             }
 
             #[test]
             fn a_value_containing_spaces_is_quoted() {
                 let output = rendered(|| {
-                    tracing::warn!(coord_ref_1 = "Leonardo Spa Az Nom", coord_ref_2 = "Leonardo", "marker");
+                    tracing::warn!(
+                        coord_ref_1 = "Leonardo Spa Az Nom",
+                        coord_ref_2 = "Leonardo",
+                        "marker"
+                    );
                 });
-                assert_eq!(tail(&output), " coord_ref_1=\"Leonardo Spa Az Nom\" coord_ref_2=Leonardo");
+                assert_eq!(
+                    tail(&output),
+                    " coord_ref_1=\"Leonardo Spa Az Nom\" coord_ref_2=Leonardo"
+                );
             }
 
             /// A value with no space ends at the space before the next key, so quoting it would be
@@ -2379,7 +2582,10 @@ mod tests {
 
             /// A helper standing in for `init` + `settle_verbosity` without installing a global
             /// subscriber: what `file_layer` builds, settled at `verbosity`.
-            fn settled_sink(path: &Path, verbosity: Verbosity) -> (SharedFileWriter, Result<(), TracingSetupError>) {
+            fn settled_sink(
+                path: &Path,
+                verbosity: Verbosity,
+            ) -> (SharedFileWriter, Result<(), TracingSetupError>) {
                 let (_, writer, _) = file_layer::<tracing_subscriber::Registry>(verbosity);
                 let result = if verbosity == Verbosity::Trace {
                     writer.open(path)
@@ -2398,7 +2604,10 @@ mod tests {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(LOG_FILE_NAME);
                 let (_, _, _) = file_layer::<tracing_subscriber::Registry>(verbosity);
-                assert!(!path.exists(), "{verbosity:?} must not create a file before it is settled");
+                assert!(
+                    !path.exists(),
+                    "{verbosity:?} must not create a file before it is settled"
+                );
             }
 
             #[test]
@@ -2424,8 +2633,15 @@ mod tests {
                 let path = dir.path().join(LOG_FILE_NAME);
                 let (writer, result) = settled_sink(&path, verbosity);
                 result.expect("settling below Trace opens nothing and cannot fail");
-                assert!(!writer.is_open(), "{verbosity:?} must leave the sink closed");
-                assert!(!path.exists(), "{verbosity:?} must not create {}", path.display());
+                assert!(
+                    !writer.is_open(),
+                    "{verbosity:?} must leave the sink closed"
+                );
+                assert!(
+                    !path.exists(),
+                    "{verbosity:?} must not create {}",
+                    path.display()
+                );
             }
 
             /// A directory that cannot be written to is only a failure where a file is actually
@@ -2445,7 +2661,10 @@ mod tests {
                 let path = dir.path().join("missing_subdir").join(LOG_FILE_NAME);
                 let (_, result) = settled_sink(&path, Verbosity::Trace);
                 match result.expect_err("parent directory does not exist, this must fail") {
-                    TracingSetupError::OpenLogFile { path: reported, source: _ } => {
+                    TracingSetupError::OpenLogFile {
+                        path: reported,
+                        source: _,
+                    } => {
                         assert_eq!(reported, path);
                     }
                     other => panic!("expected OpenLogFile, found {other:?}"),
@@ -2461,7 +2680,9 @@ mod tests {
                 let (_, writer, _) = file_layer::<tracing_subscriber::Registry>(Verbosity::Trace);
                 writer.write_line("first").expect("buffered write");
                 writer.write_line("second").expect("buffered write");
-                writer.open(&path).expect("settling at Trace must open the file");
+                writer
+                    .open(&path)
+                    .expect("settling at Trace must open the file");
                 writer.write_line("third").expect("write after opening");
                 writer.flush().expect("flush");
                 assert_eq!(
@@ -2498,7 +2719,9 @@ mod tests {
                 let path = dir.path().join(LOG_FILE_NAME);
                 let (layer, writer, _level) = file_layer(verbosity);
                 if verbosity == Verbosity::Trace {
-                    writer.open(&path).expect("settling at Trace must open the file");
+                    writer
+                        .open(&path)
+                        .expect("settling at Trace must open the file");
                 } else {
                     writer.discard();
                 }
@@ -2510,7 +2733,9 @@ mod tests {
                     tracing::debug!("debug-marker");
                     tracing::trace!("trace-marker");
                 });
-                writer.flush().expect("flush the buffered freeports.log.jsonl writer");
+                writer
+                    .flush()
+                    .expect("flush the buffered freeports.log.jsonl writer");
                 std::fs::read_to_string(&path).unwrap_or_default()
             }
 
@@ -2567,7 +2792,9 @@ mod tests {
             let dir = tempfile::tempdir().expect("tempdir");
             let path = dir.path().join(LOG_FILE_NAME);
             let (layer, writer, _level) = file_layer(Verbosity::Trace);
-            writer.open(&path).expect("settling at Trace must open the file");
+            writer
+                .open(&path)
+                .expect("settling at Trace must open the file");
             let subscriber = tracing_subscriber::registry().with(layer);
             tracing::subscriber::with_default(subscriber, body);
             writer.flush().expect("flush the buffered writer");
@@ -2716,7 +2943,9 @@ mod tests {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(LOG_FILE_NAME);
                 let (layer, writer, _level) = file_layer(Verbosity::Trace);
-                writer.open(&path).expect("settling at Trace must open the file");
+                writer
+                    .open(&path)
+                    .expect("settling at Trace must open the file");
                 let subscriber = tracing_subscriber::registry().with(layer);
                 // Enough events to overflow the `BufWriter` (8 KiB): past that threshold the
                 // content is on disk without anyone having closed anything — exactly what one wants
@@ -2727,7 +2956,10 @@ mod tests {
                     }
                 });
                 let content = std::fs::read_to_string(&path).expect("read the jsonl log");
-                let first = content.lines().next().expect("at least one complete line on disk");
+                let first = content
+                    .lines()
+                    .next()
+                    .expect("at least one complete line on disk");
                 let parsed: serde_json::Value =
                     serde_json::from_str(first).expect("the first line is already valid JSON");
                 assert_eq!(parsed["message"], "still running");
@@ -2770,7 +3002,10 @@ mod tests {
                 let path = dir.path().join("missing_subdir").join(".log.csv");
                 let err = CsvLogLayer::create(&path).expect_err("parent directory is missing");
                 match err {
-                    TracingSetupError::OpenCsvFile { path: reported, source: _ } => {
+                    TracingSetupError::OpenCsvFile {
+                        path: reported,
+                        source: _,
+                    } => {
                         assert_eq!(reported, path);
                     }
                     other => panic!("expected OpenCsvFile, found {other:?}"),
@@ -2795,7 +3030,10 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                assert_eq!(content, CSV_HEADER, "an untagged event must not add a data row");
+                assert_eq!(
+                    content, CSV_HEADER,
+                    "an untagged event must not add a data row"
+                );
             }
 
             #[test]
@@ -2944,10 +3182,15 @@ mod tests {
                 let header_and_row: Vec<&str> = content.lines().collect();
                 assert_eq!(header_and_row.len(), 2, "expected exactly one data row");
                 let cells: Vec<&str> = header_and_row[1].split(',').collect();
-                assert_eq!(cells[3], "Acme Corp", "\"First coord ref\" comes from `coord_ref_1`");
-                assert_eq!(cells[4], "NAV", "\"Second coord ref\" comes from `coord_ref_2`");
+                assert_eq!(
+                    cells[3], "Acme Corp",
+                    "\"First coord ref\" comes from `coord_ref_1`"
+                );
+                assert_eq!(
+                    cells[4], "NAV",
+                    "\"Second coord ref\" comes from `coord_ref_2`"
+                );
             }
-
 
             #[test]
             fn event_field_overrides_a_same_named_span_field() {
@@ -2993,14 +3236,27 @@ mod tests {
                 tracing::subscriber::with_default(subscriber, || {
                     let span = tracing::info_span!("field", coord_ref_2 = "SPAN_VALUE");
                     span.in_scope(|| {
-                        tracing::warn!(coord_ref_2 = "EVENT_VALUE", "event field wins over the span's");
+                        tracing::warn!(
+                            coord_ref_2 = "EVENT_VALUE",
+                            "event field wins over the span's"
+                        );
                     });
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "", "field[SPAN_VALUE]", "", "EVENT_VALUE", "", "", "WARN", "event field wins over the span's"])
+                    row([
+                        "",
+                        "",
+                        "field[SPAN_VALUE]",
+                        "",
+                        "EVENT_VALUE",
+                        "",
+                        "",
+                        "WARN",
+                        "event field wins over the span's"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
@@ -3094,9 +3350,7 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected = format!(
-                    "{CSV_HEADER},1,,,,,,INFO,\"value, with a comma inside\"\n"
-                );
+                let expected = format!("{CSV_HEADER},1,,,,,,INFO,\"value, with a comma inside\"\n");
                 assert_eq!(content, expected);
             }
 
@@ -3112,9 +3366,7 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected = format!(
-                    "{CSV_HEADER},1,,,,,,INFO,\"say \"\"hi\"\" to the user\"\n"
-                );
+                let expected = format!("{CSV_HEADER},1,,,,,,INFO,\"say \"\"hi\"\" to the user\"\n");
                 assert_eq!(content, expected);
             }
 
@@ -3175,7 +3427,10 @@ mod tests {
                 let content = written(|| tracing::warn!(page = 3u64, "dropped a field"));
                 assert_eq!(
                     content,
-                    format!("{CSV_HEADER}{}", row(["", "3", "", "", "", "", "", "WARN", "dropped a field"]))
+                    format!(
+                        "{CSV_HEADER}{}",
+                        row(["", "3", "", "", "", "", "", "WARN", "dropped a field"])
+                    )
                 );
             }
 
@@ -3185,7 +3440,10 @@ mod tests {
                 let content = written(|| tracing::error!(page = 3u64, "lost the holding"));
                 assert_eq!(
                     content,
-                    format!("{CSV_HEADER}{}", row(["", "3", "", "", "", "", "", "ERROR", "lost the holding"]))
+                    format!(
+                        "{CSV_HEADER}{}",
+                        row(["", "3", "", "", "", "", "", "ERROR", "lost the holding"])
+                    )
                 );
             }
 
@@ -3243,7 +3501,9 @@ mod tests {
                 let subscriber = tracing_subscriber::registry().with(layer.clone());
                 tracing::subscriber::with_default(subscriber, || {
                     let span = tracing::info_span!("document", report = "EURIZON 2023");
-                    span.in_scope(|| tracing::warn!("something happened, but nowhere in particular"));
+                    span.in_scope(|| {
+                        tracing::warn!("something happened, but nowhere in particular")
+                    });
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
@@ -3267,7 +3527,17 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["EURIZON 2023", "16", "document[EURIZON 2023]", "", "", "", "", "WARN", "a row of its own"])
+                    row([
+                        "EURIZON 2023",
+                        "16",
+                        "document[EURIZON 2023]",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "WARN",
+                        "a row of its own"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
@@ -3288,8 +3558,12 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let cells: Vec<&str> =
-                    content.lines().nth(1).expect("one data row").split(',').collect();
+                let cells: Vec<&str> = content
+                    .lines()
+                    .nth(1)
+                    .expect("one data row")
+                    .split(',')
+                    .collect();
                 assert_eq!(cells[0], "INNER");
             }
         }
@@ -3363,13 +3637,25 @@ mod tests {
                 });
 
                 let path = dir.path().join(CSV_FILE_NAME);
-                layer.set_destination(&path).expect("set_destination must succeed");
+                layer
+                    .set_destination(&path)
+                    .expect("set_destination must succeed");
                 layer.close().expect("close must succeed");
 
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "3", "", "", "", "", "", "WARN", "logged before anyone knew where to put it"])
+                    row([
+                        "",
+                        "3",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "WARN",
+                        "logged before anyone knew where to put it"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
@@ -3381,7 +3667,9 @@ mod tests {
                 let path = dir.path().join(CSV_FILE_NAME);
                 let layer = CsvLogLayer::deferred();
                 assert!(!path.exists());
-                layer.set_destination(&path).expect("set_destination must succeed");
+                layer
+                    .set_destination(&path)
+                    .expect("set_destination must succeed");
                 assert_eq!(
                     std::fs::read_to_string(&path).expect("read .log.csv"),
                     CSV_HEADER
@@ -3411,7 +3699,9 @@ mod tests {
             #[test]
             fn closing_an_empty_layer_without_a_destination_is_a_no_op() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                CsvLogLayer::deferred().close().expect("nothing accumulated, nothing to write");
+                CsvLogLayer::deferred()
+                    .close()
+                    .expect("nothing accumulated, nothing to write");
             }
         }
 
@@ -3433,8 +3723,11 @@ mod tests {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(".log.csv");
                 let layer = CsvLogLayer::create(&path).expect("csv layer construction");
-                let subscriber = tracing_subscriber::registry()
-                    .with(layer.clone().with_filter(EventLevelFilter::new(LevelFilter::WARN)));
+                let subscriber = tracing_subscriber::registry().with(
+                    layer
+                        .clone()
+                        .with_filter(EventLevelFilter::new(LevelFilter::WARN)),
+                );
                 tracing::subscriber::with_default(subscriber, || {
                     let span = tracing::info_span!("page", page = 42u64);
                     span.in_scope(|| {
@@ -3468,8 +3761,11 @@ mod tests {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(".log.csv");
                 let layer = CsvLogLayer::create(&path).expect("csv layer construction");
-                let subscriber = tracing_subscriber::registry()
-                    .with(layer.clone().with_filter(EventLevelFilter::new(LevelFilter::WARN)));
+                let subscriber = tracing_subscriber::registry().with(
+                    layer
+                        .clone()
+                        .with_filter(EventLevelFilter::new(LevelFilter::WARN)),
+                );
                 tracing::subscriber::with_default(subscriber, || {
                     let span = tracing::info_span!("page", page = 42u64);
                     span.in_scope(|| {
@@ -3551,8 +3847,10 @@ mod tests {
                 // comma here would need quoting in the real CSV output (see
                 // `csv_escaping::message_containing_a_comma_is_quoted`) -- irrelevant to what this
                 // test targets (an empty `Activity`), so it is avoided rather than escaped by hand.
-                let expected =
-                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "INFO", "top-level no span"]));
+                let expected = format!(
+                    "{CSV_HEADER}{}",
+                    row(["", "1", "", "", "", "", "", "INFO", "top-level no span"])
+                );
                 assert_eq!(content, expected);
             }
 
@@ -3573,7 +3871,17 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "7", "page_processing[7]", "", "", "", "", "INFO", "no fields of its own"])
+                    row([
+                        "",
+                        "7",
+                        "page_processing[7]",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "INFO",
+                        "no fields of its own"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
@@ -3601,7 +3909,17 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "3", "run/job/document", "", "", "", "", "WARN", "three levels deep"])
+                    row([
+                        "",
+                        "3",
+                        "run/job/document",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "WARN",
+                        "three levels deep"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
@@ -3646,7 +3964,9 @@ mod tests {
                     outer.in_scope(|| {
                         let inner = tracing::info_span!("tagged_inner", page = 5u64);
                         inner.in_scope(|| {
-                            tracing::info!("no fields of its own -- page comes from the inner span");
+                            tracing::info!(
+                                "no fields of its own -- page comes from the inner span"
+                            );
                         });
                     });
                 });
@@ -3720,7 +4040,10 @@ mod tests {
                     row(["", "5", "", "", "", "", "", "INFO", "at page five"]),
                     row(["", "8", "", "", "", "", "", "INFO", "at page eight"])
                 );
-                assert_eq!(content, expected, "rows must come out sorted by page, not by arrival order");
+                assert_eq!(
+                    content, expected,
+                    "rows must come out sorted by page, not by arrival order"
+                );
             }
 
             #[test]
@@ -3783,7 +4106,9 @@ mod tests {
                 });
                 layer.close().expect("first close must succeed");
                 let after_first = std::fs::read_to_string(&path).expect("read .log.csv");
-                layer.close().expect("second close must also succeed, and be a no-op");
+                layer
+                    .close()
+                    .expect("second close must also succeed, and be a no-op");
                 let after_second = std::fs::read_to_string(&path).expect("read .log.csv");
                 assert_eq!(
                     after_first, after_second,
@@ -3805,13 +4130,26 @@ mod tests {
                     // `Arc<CsvLogLayerInner>`) is dropped.
                     let subscriber = tracing_subscriber::registry().with(layer);
                     tracing::subscriber::with_default(subscriber, || {
-                        tracing::info!(page = 9u64, "flushed only via Drop -- close() never called");
+                        tracing::info!(
+                            page = 9u64,
+                            "flushed only via Drop -- close() never called"
+                        );
                     });
                 }
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "9", "", "", "", "", "", "INFO", "flushed only via Drop -- close() never called"])
+                    row([
+                        "",
+                        "9",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "INFO",
+                        "flushed only via Drop -- close() never called"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
@@ -3842,9 +4180,14 @@ mod tests {
                 drop(kept_clone);
 
                 let after = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected =
-                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "INFO", "not yet flushed"]));
-                assert_eq!(after, expected, "dropping the last remaining clone must flush");
+                let expected = format!(
+                    "{CSV_HEADER}{}",
+                    row(["", "1", "", "", "", "", "", "INFO", "not yet flushed"])
+                );
+                assert_eq!(
+                    after, expected,
+                    "dropping the last remaining clone must flush"
+                );
             }
 
             /// A stress test: many events in a fixed non-increasing page order — fixed rather than
@@ -3863,7 +4206,12 @@ mod tests {
                 // that is very far from sorted.
                 let pages: Vec<u64> = (0..COUNT).map(|i| (i * 37) % COUNT).collect();
                 assert_eq!(
-                    { let mut sorted = pages.clone(); sorted.sort_unstable(); sorted.dedup(); sorted.len() },
+                    {
+                        let mut sorted = pages.clone();
+                        sorted.sort_unstable();
+                        sorted.dedup();
+                        sorted.len()
+                    },
                     COUNT as usize,
                     "the fixture must be a permutation of 0..COUNT, sanity-checking the test itself"
                 );
@@ -3880,10 +4228,19 @@ mod tests {
                     .lines()
                     .skip(1) // header
                     // Column 1: `Report` comes first, and is empty here.
-                    .map(|line| line.split(',').nth(1).expect("page cell").parse().expect("numeric page"))
+                    .map(|line| {
+                        line.split(',')
+                            .nth(1)
+                            .expect("page cell")
+                            .parse()
+                            .expect("numeric page")
+                    })
                     .collect();
                 let expected_pages: Vec<u64> = (0..COUNT).collect();
-                assert_eq!(observed_pages, expected_pages, "all rows must be sorted by page after close()");
+                assert_eq!(
+                    observed_pages, expected_pages,
+                    "all rows must be sorted by page after close()"
+                );
             }
 
             /// Proof, without involving Python, that `close()` reports a real I/O error instead of
@@ -3919,8 +4276,11 @@ mod tests {
                     .open(&path)
                     .expect("reopen the csv file read-only");
                 {
-                    let mut file_guard =
-                        layer.inner.file.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                    let mut file_guard = layer
+                        .inner
+                        .file
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
                     // Replacing the whole `File` drops the old, write-capable one normally (its
                     // own, never-shared fd is closed exactly once) and swaps in a read-only
                     // handle that cannot satisfy the write `close()` is about to attempt.
@@ -3951,7 +4311,11 @@ mod tests {
                 format!("{CSV_HEADER}7,run/job,,,,,{message}\n"),
             )
             .unwrap();
-            std::fs::write(log_dir.join(LOG_FILE_NAME), format!("{{\"message\":\"{message}\"}}\n")).unwrap();
+            std::fs::write(
+                log_dir.join(LOG_FILE_NAME),
+                format!("{{\"message\":\"{message}\"}}\n"),
+            )
+            .unwrap();
             log_dir
         }
 
@@ -3959,8 +4323,12 @@ mod tests {
         /// run that has a `freeports.log.jsonl` of its own to pour them into.
         fn handle_writing_into(dir: &std::path::Path) -> LogHandle {
             let handle = log_handle_for_tests(dir).expect("test log handle");
-            handle.settle_verbosity(Verbosity::Trace).expect("settling at Trace must succeed");
-            handle.set_csv_dir(dir).expect("the csv destination must be settable");
+            handle
+                .settle_verbosity(Verbosity::Trace)
+                .expect("settling at Trace must succeed");
+            handle
+                .set_csv_dir(dir)
+                .expect("the csv destination must be settable");
             handle
         }
 
@@ -3971,13 +4339,23 @@ mod tests {
             std::fs::create_dir_all(&out).unwrap();
             let handle = handle_writing_into(&out);
 
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first job spoke")).unwrap();
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "second job spoke")).unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first job spoke"))
+                .unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "second job spoke"))
+                .unwrap();
             handle.close().unwrap();
 
             let csv = std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap();
-            assert!(csv.contains("first job spoke"), "the first worker's row is missing:\n{csv}");
-            assert!(csv.contains("second job spoke"), "the second worker's row is missing:\n{csv}");
+            assert!(
+                csv.contains("first job spoke"),
+                "the first worker's row is missing:\n{csv}"
+            );
+            assert!(
+                csv.contains("second job spoke"),
+                "the second worker's row is missing:\n{csv}"
+            );
         }
 
         /// A second header block in the middle of the file would make it unreadable to any CSV
@@ -3990,12 +4368,20 @@ mod tests {
             std::fs::create_dir_all(&out).unwrap();
             let handle = handle_writing_into(&out);
 
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "a")).unwrap();
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "b")).unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "a"))
+                .unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "b"))
+                .unwrap();
             handle.close().unwrap();
 
             let csv = std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap();
-            assert_eq!(csv.matches(CSV_HEADER.trim_end()).count(), 1, "expected exactly one header in:\n{csv}");
+            assert_eq!(
+                csv.matches(CSV_HEADER.trim_end()).count(),
+                1,
+                "expected exactly one header in:\n{csv}"
+            );
         }
 
         /// The order is that of the jobs, not that in which the children finished: it is what makes
@@ -4007,12 +4393,19 @@ mod tests {
             std::fs::create_dir_all(&out).unwrap();
             let handle = handle_writing_into(&out);
 
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "aaa")).unwrap();
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "bbb")).unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "aaa"))
+                .unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "bbb"))
+                .unwrap();
             handle.close().unwrap();
 
             let csv = std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap();
-            assert!(csv.find("aaa") < csv.find("bbb"), "worker rows are out of job order:\n{csv}");
+            assert!(
+                csv.find("aaa") < csv.find("bbb"),
+                "worker rows are out of job order:\n{csv}"
+            );
         }
 
         #[test]
@@ -4022,13 +4415,18 @@ mod tests {
             std::fs::create_dir_all(&out).unwrap();
             let handle = handle_writing_into(&out);
 
-            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first")).unwrap();
+            handle
+                .absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first"))
+                .unwrap();
             handle.close().unwrap();
 
             // `log_handle_for_tests` points `freeports.log.jsonl` at the directory it is given,
             // which here is `out`, not the root of the temporary directory.
             let jsonl = std::fs::read_to_string(out.join(LOG_FILE_NAME)).unwrap();
-            assert!(jsonl.contains("\"first\""), "the worker's json line is missing:\n{jsonl}");
+            assert!(
+                jsonl.contains("\"first\""),
+                "the worker's json line is missing:\n{jsonl}"
+            );
         }
 
         /// A child that died before writing any file must not make closing fail: the missing report
@@ -4040,7 +4438,9 @@ mod tests {
             std::fs::create_dir_all(&out).unwrap();
             let handle = handle_writing_into(&out);
 
-            handle.absorb_worker_logs(&dir.path().join("job-that-never-ran")).expect("an absent log directory is tolerated");
+            handle
+                .absorb_worker_logs(&dir.path().join("job-that-never-ran"))
+                .expect("an absent log directory is tolerated");
             handle.close().expect("closing must still succeed");
         }
 
@@ -4053,7 +4453,10 @@ mod tests {
             let handle = handle_writing_into(&out);
             handle.close().unwrap();
 
-            assert_eq!(std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap(), CSV_HEADER);
+            assert_eq!(
+                std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap(),
+                CSV_HEADER
+            );
         }
     }
 
@@ -4079,7 +4482,9 @@ mod tests {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
             let dir = tempfile::tempdir().expect("tempdir");
             let handle = handle_with_pending_rows(dir.path());
-            handle.close().expect("close must succeed even with nowhere to put the csv");
+            handle
+                .close()
+                .expect("close must succeed even with nowhere to put the csv");
             assert!(
                 !dir.path().join(CSV_FILE_NAME).exists(),
                 "a run that never settled a destination must not leave a .log.csv behind"
@@ -4094,7 +4499,9 @@ mod tests {
             let dir = tempfile::tempdir().expect("tempdir");
             let handle = handle_with_pending_rows(dir.path());
             let out_dir = dir.path().join("out");
-            handle.set_csv_dir(&out_dir).expect("settling the destination must succeed");
+            handle
+                .set_csv_dir(&out_dir)
+                .expect("settling the destination must succeed");
             handle.close().expect("close must succeed");
             let content =
                 std::fs::read_to_string(out_dir.join(CSV_FILE_NAME)).expect("read .log.csv");
@@ -4119,22 +4526,38 @@ mod tests {
             #[test]
             fn open_log_file_message_includes_path_and_source() {
                 let source = std::io::Error::new(std::io::ErrorKind::NotFound, "boom");
-                let err = TracingSetupError::OpenLogFile { path: PathBuf::from("/tmp/x/freeports.log"), source };
-                assert_eq!(err.to_string(), "cannot open log file at /tmp/x/freeports.log: boom");
+                let err = TracingSetupError::OpenLogFile {
+                    path: PathBuf::from("/tmp/x/freeports.log"),
+                    source,
+                };
+                assert_eq!(
+                    err.to_string(),
+                    "cannot open log file at /tmp/x/freeports.log: boom"
+                );
             }
 
             #[test]
             fn open_csv_file_message_includes_path_and_source() {
                 let source = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied");
-                let err = TracingSetupError::OpenCsvFile { path: PathBuf::from("/tmp/x/.log.csv"), source };
-                assert_eq!(err.to_string(), "cannot open csv log file at /tmp/x/.log.csv: denied");
+                let err = TracingSetupError::OpenCsvFile {
+                    path: PathBuf::from("/tmp/x/.log.csv"),
+                    source,
+                };
+                assert_eq!(
+                    err.to_string(),
+                    "cannot open csv log file at /tmp/x/.log.csv: denied"
+                );
             }
 
             #[test]
             fn csv_write_message_includes_source() {
-                let source: csv::Error = std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe closed").into();
+                let source: csv::Error =
+                    std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe closed").into();
                 let err = TracingSetupError::CsvWrite { source };
-                assert_eq!(err.to_string(), "failed to write a row to the .log.csv file: pipe closed");
+                assert_eq!(
+                    err.to_string(),
+                    "failed to write a row to the .log.csv file: pipe closed"
+                );
             }
 
             // `AlreadyInitialized`'s Display and source-chain behavior are covered by
@@ -4154,7 +4577,10 @@ mod tests {
             #[test]
             fn open_log_file_exposes_its_io_error_as_source() {
                 let source = std::io::Error::new(std::io::ErrorKind::NotFound, "boom");
-                let err = TracingSetupError::OpenLogFile { path: PathBuf::from("x"), source };
+                let err = TracingSetupError::OpenLogFile {
+                    path: PathBuf::from("x"),
+                    source,
+                };
                 let chained = std::error::Error::source(&err).expect("must expose a source");
                 assert_eq!(chained.to_string(), "boom");
             }
@@ -4162,14 +4588,18 @@ mod tests {
             #[test]
             fn open_csv_file_exposes_its_io_error_as_source() {
                 let source = std::io::Error::new(std::io::ErrorKind::NotFound, "boom");
-                let err = TracingSetupError::OpenCsvFile { path: PathBuf::from("x"), source };
+                let err = TracingSetupError::OpenCsvFile {
+                    path: PathBuf::from("x"),
+                    source,
+                };
                 let chained = std::error::Error::source(&err).expect("must expose a source");
                 assert_eq!(chained.to_string(), "boom");
             }
 
             #[test]
             fn csv_write_exposes_its_csv_error_as_source() {
-                let source: csv::Error = std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe closed").into();
+                let source: csv::Error =
+                    std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe closed").into();
                 let err = TracingSetupError::CsvWrite { source };
                 let chained = std::error::Error::source(&err).expect("must expose a source");
                 assert_eq!(chained.to_string(), "pipe closed");
@@ -4193,7 +4623,8 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn first_call_succeeds_and_settling_creates_the_log_files_second_call_reports_already_initialized() {
+        fn first_call_succeeds_and_settling_creates_the_log_files_second_call_reports_already_initialized()
+         {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
             // This is the *only* test in this module allowed to call `init` at all: a process only
             // ever accepts one `tracing::subscriber::set_global_default` call, ever (not
@@ -4223,14 +4654,18 @@ mod tests {
             );
 
             // At `-vvv`, the one verbosity that has a `freeports.log.jsonl` at all.
-            handle.settle_verbosity(Verbosity::Trace).expect("settling at Trace must succeed");
+            handle
+                .settle_verbosity(Verbosity::Trace)
+                .expect("settling at Trace must succeed");
             assert!(
                 dir.path().join(LOG_FILE_NAME).exists(),
                 "settling at Trace must create the structured log"
             );
 
             let out_dir = dir.path().join("out");
-            handle.set_csv_dir(&out_dir).expect("settling the csv destination must succeed");
+            handle
+                .set_csv_dir(&out_dir)
+                .expect("settling the csv destination must succeed");
             assert!(
                 out_dir.join(CSV_FILE_NAME).exists(),
                 "set_csv_dir must create the directory and write the header straight away"
@@ -4250,8 +4685,12 @@ mod tests {
                 err.to_string(),
                 "cannot install the global tracing subscriber: a global default trace dispatcher has already been set"
             );
-            let source = std::error::Error::source(&err).expect("AlreadyInitialized must expose a source");
-            assert_eq!(source.to_string(), "a global default trace dispatcher has already been set");
+            let source =
+                std::error::Error::source(&err).expect("AlreadyInitialized must expose a source");
+            assert_eq!(
+                source.to_string(),
+                "a global default trace dispatcher has already been set"
+            );
         }
     }
 
@@ -4274,7 +4713,10 @@ mod tests {
                 .settle_verbosity(Verbosity::Trace)
                 .expect_err("the parent directory does not exist, this must fail")
             {
-                TracingSetupError::OpenLogFile { path: reported, source: _ } => {
+                TracingSetupError::OpenLogFile {
+                    path: reported,
+                    source: _,
+                } => {
                     assert_eq!(reported, missing.join(LOG_FILE_NAME));
                 }
                 other => panic!("expected OpenLogFile, found {other:?}"),
@@ -4317,7 +4759,9 @@ mod tests {
         fn a_resolved_verbosity_below_trace_overrides_the_command_line() {
             let dir = tempfile::tempdir().expect("tempdir");
             let handle = log_handle_for_tests(dir.path()).expect("test log handle");
-            handle.settle_verbosity(Verbosity::Warn).expect("settling at Warn must succeed");
+            handle
+                .settle_verbosity(Verbosity::Warn)
+                .expect("settling at Warn must succeed");
             handle.set_csv_dir(dir.path()).expect("csv destination");
             handle.close().expect("closing must succeed");
             assert!(

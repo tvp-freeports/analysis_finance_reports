@@ -5,15 +5,15 @@
 //! `standard_funcs` assembles those into the ready-made pipes a format names in its configuration.
 
 pub mod commons;
-pub mod labelled_column;
 pub mod grouped_lines;
+pub mod labelled_column;
 pub mod labelled_value;
 pub mod page_number;
-pub mod section;
-pub mod sfdr_sign;
 pub mod pdf_line;
 pub mod position;
 pub mod relative;
+pub mod section;
 pub mod select;
+pub mod sfdr_sign;
 pub mod standard_funcs;
 pub mod tabularizer;

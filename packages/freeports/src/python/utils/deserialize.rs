@@ -6,8 +6,8 @@ use pyo3::types::PyTuple;
 use crate::commons::date::Date;
 use crate::formats_utils::deserialize::cast;
 
-use crate::python::consts::PyCurrency;
 use crate::core::tracing_setup::log_error;
+use crate::python::consts::PyCurrency;
 
 /// A cast error as a Python `ValueError`.
 ///
@@ -21,7 +21,9 @@ fn cast_error(error: cast::CastError) -> PyErr {
 
 /// A native date as a Python date.
 fn date_to_py<'py>(py: Python<'py>, date: Date) -> PyResult<Bound<'py, PyAny>> {
-    py.import("datetime")?.getattr("date")?.call_method1("fromisoformat", (date.to_string(),))
+    py.import("datetime")?
+        .getattr("date")?
+        .call_method1("fromisoformat", (date.to_string(),))
 }
 
 /// A floating-point number from text. A leading minus is a sign and is always honoured; wrap the
@@ -57,7 +59,9 @@ pub fn py_to_str(data: &str) -> String {
 #[pyfunction]
 #[pyo3(name = "to_currency", signature = (data))]
 pub fn py_to_currency(data: &str) -> PyResult<PyCurrency> {
-    cast::to_currency(data).map(PyCurrency::from).map_err(cast_error)
+    cast::to_currency(data)
+        .map(PyCurrency::from)
+        .map_err(cast_error)
 }
 
 /// A date, from text to a numeric form.
@@ -124,12 +128,18 @@ macro_rules! block_type_decorator {
             #[pyo3(signature = (*blk_types))]
             fn new(blk_types: &Bound<'_, PyTuple>) -> PyResult<$factory> {
                 Ok($factory {
-                    types: blk_types.iter().map(|t| t.extract::<String>()).collect::<PyResult<_>>()?,
+                    types: blk_types
+                        .iter()
+                        .map(|t| t.extract::<String>())
+                        .collect::<PyResult<_>>()?,
                 })
             }
 
             fn __call__(&self, wrapped: Py<PyAny>) -> $wrapper {
-                $wrapper { types: self.types.clone(), wrapped }
+                $wrapper {
+                    types: self.types.clone(),
+                    wrapped,
+                }
             }
         }
 
@@ -154,7 +164,9 @@ macro_rules! block_type_decorator {
                 let Some(block) = args.iter().last() else {
                     // A wiring mistake in the format's own code, not a per-value cast failure:
                     // the decorated deserializer was called with no arguments at all.
-                    tracing::error!("block-type decorator called with no arguments, no text block to read");
+                    tracing::error!(
+                        "block-type decorator called with no arguments, no text block to read"
+                    );
                     return Err(pyo3::exceptions::PyTypeError::new_err(
                         "a block-type decorator needs the text block as its last argument",
                     ));

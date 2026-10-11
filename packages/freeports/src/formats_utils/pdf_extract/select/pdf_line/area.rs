@@ -14,7 +14,9 @@
 //! selections.
 
 use crate::commons::geometry::{Rectangle, RectangleBuildError};
-use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
+use crate::commons::sets::indipendent_atoms::{
+    AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet,
+};
 use crate::commons::sets::{Container, Overlappable, SetRelation};
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 
@@ -110,16 +112,36 @@ impl Rectangle {
             }
         }
     }
-    fn subtract_as_overlap_type(&self, other: &Self, ovrlt: RectOverlapping) -> SubtractOverlappingRectanglesRes {
+    fn subtract_as_overlap_type(
+        &self,
+        other: &Self,
+        ovrlt: RectOverlapping,
+    ) -> SubtractOverlappingRectanglesRes {
         use RectOverlapping::*;
         use SubtractOverlappingRectanglesRes::*;
         let (x0, y0, x1, y1) = self.as_tuple();
         let (a0, b0, a1, b1) = other.as_tuple();
         match ovrlt {
-            SmallerLeft => Three(Self::new(x0, y0, x1, b0), Self::new(a1, b0, x1, y1), Self::new(x0, b1, a1, y1)),
-            SmallerRight => Three(Self::new(x0, b1, x1, y1), Self::new(x0, y0, a0, b1), Self::new(a0, y0, x1, b0)),
-            SmallerTop => Three(Self::new(a1, y0, x1, y1), Self::new(x0, b1, a1, y1), Self::new(x0, y0, a0, b1)),
-            SmallerBottom => Three(Self::new(x0, y0, a0, y1), Self::new(a0, y0, x1, b0), Self::new(a1, b0, x1, y1)),
+            SmallerLeft => Three(
+                Self::new(x0, y0, x1, b0),
+                Self::new(a1, b0, x1, y1),
+                Self::new(x0, b1, a1, y1),
+            ),
+            SmallerRight => Three(
+                Self::new(x0, b1, x1, y1),
+                Self::new(x0, y0, a0, b1),
+                Self::new(a0, y0, x1, b0),
+            ),
+            SmallerTop => Three(
+                Self::new(a1, y0, x1, y1),
+                Self::new(x0, b1, a1, y1),
+                Self::new(x0, y0, a0, b1),
+            ),
+            SmallerBottom => Three(
+                Self::new(x0, y0, a0, y1),
+                Self::new(a0, y0, x1, b0),
+                Self::new(a1, b0, x1, y1),
+            ),
             BiggerLeft => One(Self::new(a1, y0, x1, y1)),
             BiggerRight => One(Self::new(x0, y0, a0, y1)),
             BiggerTop => One(Self::new(x0, b1, x1, y1)),
@@ -179,7 +201,9 @@ impl AtomOperations for Rectangle {
         let h = (x0, a0, a1, x1);
         let v = (y0, b0, b1, y1);
         match (x0 == a0, y0 == b0, x1 == a1, y1 == b1) {
-            (true, true, true, true) => unreachable!("if all side are equal rectangle is not subset"),
+            (true, true, true, true) => {
+                unreachable!("if all side are equal rectangle is not subset")
+            }
             (false, true, true, true) => self.subtract_as_overlap_type(other, BiggerRight).into(),
             (true, false, true, true) => self.subtract_as_overlap_type(other, BiggerBottom).into(),
             (true, true, false, true) => self.subtract_as_overlap_type(other, BiggerLeft).into(),
@@ -192,11 +216,18 @@ impl AtomOperations for Rectangle {
             (false, true, false, true) => self.subtract_as_overlap_type(other, Vertical).into(),
             (true, false, false, false) => self.subtract_as_overlap_type(other, SmallerLeft).into(),
             (false, true, false, false) => self.subtract_as_overlap_type(other, SmallerTop).into(),
-            (false, false, true, false) => self.subtract_as_overlap_type(other, SmallerRight).into(),
-            (false, false, false, true) => self.subtract_as_overlap_type(other, SmallerBottom).into(),
-            (false, false, false, false) => {
-                Four(Self::new(h.0, v.0, h.2, v.1), Self::new(h.0, v.1, h.1, v.3), Self::new(h.1, v.2, h.3, v.3), Self::new(h.2, v.0, h.3, v.2))
+            (false, false, true, false) => {
+                self.subtract_as_overlap_type(other, SmallerRight).into()
             }
+            (false, false, false, true) => {
+                self.subtract_as_overlap_type(other, SmallerBottom).into()
+            }
+            (false, false, false, false) => Four(
+                Self::new(h.0, v.0, h.2, v.1),
+                Self::new(h.0, v.1, h.1, v.3),
+                Self::new(h.1, v.2, h.3, v.3),
+                Self::new(h.2, v.0, h.3, v.2),
+            ),
         }
     }
 
@@ -263,8 +294,8 @@ impl PdfLine {
 mod tests {
     use super::*;
     use crate::commons::geometry::Rectangle;
-    use crate::commons::sets::{Container, Overlappable, SetRelation};
     use crate::commons::sets::indipendent_atoms::CompoundAtomOperationRes;
+    use crate::commons::sets::{Container, Overlappable, SetRelation};
     use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
     use std::collections::HashSet;
 
@@ -292,7 +323,9 @@ mod tests {
         fn build_accepts_what_new_accepts_and_yields_the_same_area() {
             let (x0, y0, x1, y1) = (3.4, 4.5, 4.5, 56.0);
             assert_eq!(
-                Area::build(x0, y0, x1, y1).expect("a proper rectangle must build").atoms(),
+                Area::build(x0, y0, x1, y1)
+                    .expect("a proper rectangle must build")
+                    .atoms(),
                 Area::new(x0, y0, x1, y1).atoms()
             );
         }
@@ -496,7 +529,10 @@ mod tests {
         use CompoundAtomOperationRes::*;
         use test_case::test_case;
 
-        fn assert_matches(result: CompoundAtomOperationRes<Rectangle>, expected: CompoundAtomOperationRes<Rectangle>) {
+        fn assert_matches(
+            result: CompoundAtomOperationRes<Rectangle>,
+            expected: CompoundAtomOperationRes<Rectangle>,
+        ) {
             match (result, expected) {
                 (Four(ra, rb, rc, rd), Four(ea, eb, ec, ed)) => {
                     assert_eq!(ra.as_tuple(), ea.as_tuple());
@@ -569,7 +605,11 @@ mod tests {
             One(Rectangle::new(33.0, 20.0, 50.0, 80.0)); "sharing both left corners keeps one piece")]
         #[test_case(Rectangle::new(1.0, 20.0, 50.0, 80.0), Rectangle::new(11.0, 20.0, 50.0, 80.0),
             One(Rectangle::new(1.0, 20.0, 11.0, 80.0)); "sharing both right corners keeps one piece")]
-        fn subtract_subset_splits_the_remaining_border(a: Rectangle, b: Rectangle, expected: CompoundAtomOperationRes<Rectangle>) {
+        fn subtract_subset_splits_the_remaining_border(
+            a: Rectangle,
+            b: Rectangle,
+            expected: CompoundAtomOperationRes<Rectangle>,
+        ) {
             assert_matches(a.subtract_subset(&b).into(), expected);
         }
 
@@ -595,7 +635,11 @@ mod tests {
             Two(Rectangle::new(1.0, 20.0, 11.0, 80.0), Rectangle::new(30.0, 20.0, 50.0, 80.0)); "overlapping crosses vertically")]
         #[test_case(Rectangle::new(1.0, 20.0, 50.0, 80.0), Rectangle::new(0.05, 25.0, 500.0, 77.0),
             Two(Rectangle::new(1.0, 20.0, 50.0, 25.0), Rectangle::new(1.0, 77.0, 50.0, 80.0)); "overlapping crosses horizontally")]
-        fn subtract_overlapping_keeps_the_non_overlapping_side(a: Rectangle, b: Rectangle, expected: CompoundAtomOperationRes<Rectangle>) {
+        fn subtract_overlapping_keeps_the_non_overlapping_side(
+            a: Rectangle,
+            b: Rectangle,
+            expected: CompoundAtomOperationRes<Rectangle>,
+        ) {
             assert_matches(a.subtract_overlapping(&b).into(), expected);
         }
 
@@ -607,7 +651,11 @@ mod tests {
             One(Rectangle::new(11.0, 20.0, 30.0, 80.0)); "overlap crosses vertically")]
         #[test_case(Rectangle::new(1.0, 20.0, 50.0, 80.0), Rectangle::new(0.05, 25.0, 500.0, 77.0),
             One(Rectangle::new(1.0, 25.0, 50.0, 77.0)); "overlap crosses horizontally")]
-        fn intersect_overlapping_keeps_the_shared_rectangle(a: Rectangle, b: Rectangle, expected: CompoundAtomOperationRes<Rectangle>) {
+        fn intersect_overlapping_keeps_the_shared_rectangle(
+            a: Rectangle,
+            b: Rectangle,
+            expected: CompoundAtomOperationRes<Rectangle>,
+        ) {
             assert_matches(a.intersect_overlapping(&b).into(), expected);
         }
     }

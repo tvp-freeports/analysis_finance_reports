@@ -9,7 +9,10 @@ pub mod page_dict;
 pub mod selection;
 
 pub use lazy::{LazyDocument, resolve_page_number};
-pub use page_dict::{PageDict, PageDictBlock, PageDictLine, PageDictSpan, pdfimages_from_pagedict, pdflines_from_pagedict};
+pub use page_dict::{
+    PageDict, PageDictBlock, PageDictLine, PageDictSpan, pdfimages_from_pagedict,
+    pdflines_from_pagedict,
+};
 pub use selection::{
     FontCriterion, InputAreaSpec, InputBound, InputPdfLineSet, InputWindowSpec, LineSelectionError,
     pdfline_selection_from_dict, pdfline_selection_from_str,
@@ -36,7 +39,10 @@ pub enum DocumentError {
 }
 
 fn open_error(path: &Path, message: impl std::fmt::Display) -> DocumentError {
-    DocumentError::Open { path: path.display().to_string(), message: message.to_string() }
+    DocumentError::Open {
+        path: path.display().to_string(),
+        message: message.to_string(),
+    }
 }
 
 /// Opens `path`, iterates its pages, extracts each one's text dict and converts it immediately into
@@ -66,10 +72,14 @@ fn read_pages(
     auto_rotate: bool,
 ) -> Result<Vec<Page>, DocumentError> {
     let path_str = path.to_string_lossy().to_string();
-    let doc = fitz.call_method1("open", (path_str,)).map_err(|e| open_error(path, e))?;
+    let doc = fitz
+        .call_method1("open", (path_str,))
+        .map_err(|e| open_error(path, e))?;
     let page_count = doc.len().map_err(|e| open_error(path, e))?;
 
-    let pages = (0..page_count).map(|index| convert_page(&doc, index, auto_rotate)).collect::<Result<Vec<_>, _>>()?;
+    let pages = (0..page_count)
+        .map(|index| convert_page(&doc, index, auto_rotate))
+        .collect::<Result<Vec<_>, _>>()?;
 
     tracing::info!(path = %path.display(), page_count = pages.len(), "document loaded");
     Ok(pages)
@@ -79,9 +89,14 @@ fn read_pages(
 ///
 /// The one conversion of a page, shared by [`load_document_pages`] and
 /// [`LazyDocument::page`]: a page read either way has to be the same page.
-fn convert_page(doc: &Bound<'_, PyAny>, index: usize, auto_rotate: bool) -> Result<Page, DocumentError> {
+fn convert_page(
+    doc: &Bound<'_, PyAny>,
+    index: usize,
+    auto_rotate: bool,
+) -> Result<Page, DocumentError> {
     // [`Page::number`] is 1-based, while PyMuPDF indexes pages from zero.
-    let page_number = u32::try_from(index + 1).expect("a pdf with more than u32::MAX pages does not occur in practice");
+    let page_number = u32::try_from(index + 1)
+        .expect("a pdf with more than u32::MAX pages does not occur in practice");
     // Groups the sub-steps below — load, extract, parse, build — under one span per page, so their
     // events share a `page` coordinate under the same field name the engine's own page span uses
     // later.
@@ -90,13 +105,22 @@ fn convert_page(doc: &Bound<'_, PyAny>, index: usize, auto_rotate: bool) -> Resu
 
     let parse_fail = |e: &dyn std::fmt::Display| DocumentError::Page {
         number: page_number,
-        source: PageError::ParseFail { message: e.to_string() },
+        source: PageError::ParseFail {
+            message: e.to_string(),
+        },
     };
-    let py_page = doc.call_method1("load_page", (index,)).map_err(|e| parse_fail(&e))?;
-    let text_dict = py_page.call_method1("get_text", ("dict",)).map_err(|e| parse_fail(&e))?;
+    let py_page = doc
+        .call_method1("load_page", (index,))
+        .map_err(|e| parse_fail(&e))?;
+    let text_dict = py_page
+        .call_method1("get_text", ("dict",))
+        .map_err(|e| parse_fail(&e))?;
     let dict = text_dict.cast::<PyDict>().map_err(|e| parse_fail(&e))?;
 
-    let page_dict = PageDict::from_py(dict).map_err(|source| DocumentError::Page { number: page_number, source })?;
+    let page_dict = PageDict::from_py(dict).map_err(|source| DocumentError::Page {
+        number: page_number,
+        source,
+    })?;
     let lines = pdflines_from_pagedict(&page_dict, auto_rotate);
     let images = pdfimages_from_pagedict(&page_dict);
     let raw = dict.clone().into_any().unbind();
@@ -111,9 +135,14 @@ fn convert_page(doc: &Bound<'_, PyAny>, index: usize, auto_rotate: bool) -> Resu
         drawing_count = drawings.len(),
         "page loaded"
     );
-    Ok(Page::new(page_number, (page_dict.width, page_dict.height), lines, images)
-        .with_drawings(drawings)
-        .with_raw(raw))
+    Ok(Page::new(
+        page_number,
+        (page_dict.width, page_dict.height),
+        lines,
+        images,
+    )
+    .with_drawings(drawings)
+    .with_raw(raw))
 }
 
 /// Reads the page's vector paths through `page.get_drawings()`, reduced to [`PageDrawing`].
@@ -149,7 +178,10 @@ pub fn pdfdrawings_from_py(drawings: &Bound<'_, PyAny>) -> Vec<PageDrawing> {
         tracing::debug!("the page's vector paths are not something iterable");
         return Vec::new();
     };
-    drawings.flatten().filter_map(|drawing| page_drawing(&drawing)).collect()
+    drawings
+        .flatten()
+        .filter_map(|drawing| page_drawing(&drawing))
+        .collect()
 }
 
 /// One PyMuPDF drawing dict as a [`PageDrawing`], or nothing when its box is unusable.
@@ -164,7 +196,11 @@ fn page_drawing(drawing: &Bound<'_, PyAny>) -> Option<PageDrawing> {
         .get_item("fill")
         .ok()
         .and_then(|fill| fill.extract::<(f32, f32, f32)>().ok());
-    let items = drawing.get_item("items").ok().and_then(|items| items.len().ok()).unwrap_or(0);
+    let items = drawing
+        .get_item("items")
+        .ok()
+        .and_then(|items| items.len().ok())
+        .unwrap_or(0);
     Some(PageDrawing { bbox, fill, items })
 }
 
@@ -188,10 +224,16 @@ fn page_drawing(drawing: &Bound<'_, PyAny>) -> Option<PageDrawing> {
 /// no position. Text may be lost or mispositioned." — a reader complaining about a document is
 /// exactly the kind of thing that explains, later, why a page was extracted oddly.
 fn drain_pdf_reader_warnings(fitz: &Bound<'_, PyModule>) {
-    let Ok(tools) = fitz.getattr("TOOLS") else { return };
+    let Ok(tools) = fitz.getattr("TOOLS") else {
+        return;
+    };
     // `reset` defaults to true: reading them is what empties the buffer.
-    let Ok(collected) = tools.call_method0("mupdf_warnings") else { return };
-    let Ok(text) = collected.extract::<String>() else { return };
+    let Ok(collected) = tools.call_method0("mupdf_warnings") else {
+        return;
+    };
+    let Ok(text) = collected.extract::<String>() else {
+        return;
+    };
     for warning in text.lines().filter(|line| !line.trim().is_empty()) {
         tracing::warn!("the pdf reader complains: {warning}");
     }
@@ -199,7 +241,12 @@ fn drain_pdf_reader_warnings(fitz: &Bound<'_, PyModule>) {
 
 /// Like [`load_document_pages`], but wrapped in a [`Document`]. The id and format are supplied by
 /// the caller; detecting the format is `formats_repo`'s job.
-pub fn load_document(path: &Path, id: impl Into<DocumentId>, format: impl Into<FormatName>, auto_rotate: bool) -> Result<Document, DocumentError> {
+pub fn load_document(
+    path: &Path,
+    id: impl Into<DocumentId>,
+    format: impl Into<FormatName>,
+    auto_rotate: bool,
+) -> Result<Document, DocumentError> {
     let pages = load_document_pages(path, auto_rotate)?;
     Ok(Document::new(id, format, pages))
 }
@@ -223,27 +270,41 @@ mod tests {
         /// 3. checks the error for a path that does not exist.
         #[test]
         fn loads_lines_and_images_from_a_real_pymupdf_document() {
-            let tmp = tempfile::Builder::new().suffix(".pdf").tempfile().expect("could not create a temp file for the test pdf");
+            let tmp = tempfile::Builder::new()
+                .suffix(".pdf")
+                .tempfile()
+                .expect("could not create a temp file for the test pdf");
             let pdf_path = tmp.path().to_path_buf();
 
             Python::attach(|py| {
                 let fitz = PyModule::import(py, "fitz")
                     .expect("PyMuPDF (fitz) must be importable: activate venv/freeports-dev before running this test, see AGENTS.md");
-                let doc = fitz.call_method0("open").expect("fitz.open() with no arguments creates a new, empty document");
-                let page = doc.call_method1("new_page", (-1i64, 200.0f64, 300.0f64)).expect("Document.new_page(pno, width, height)");
-                page.call_method1("insert_text", ((20.0f64, 50.0f64), "Hello World")).expect("Page.insert_text(point, text)");
-                doc.call_method1("save", (pdf_path.to_str().expect("temp path must be valid utf-8"),)).expect("Document.save(path)");
+                let doc = fitz
+                    .call_method0("open")
+                    .expect("fitz.open() with no arguments creates a new, empty document");
+                let page = doc
+                    .call_method1("new_page", (-1i64, 200.0f64, 300.0f64))
+                    .expect("Document.new_page(pno, width, height)");
+                page.call_method1("insert_text", ((20.0f64, 50.0f64), "Hello World"))
+                    .expect("Page.insert_text(point, text)");
+                doc.call_method1(
+                    "save",
+                    (pdf_path.to_str().expect("temp path must be valid utf-8"),),
+                )
+                .expect("Document.save(path)");
                 doc.call_method0("close").expect("Document.close()");
             });
 
-            let document =
-                load_document(&pdf_path, "doc-id", "FMT-TEST", true).expect("loading a real, freshly-built single-page pdf must succeed");
+            let document = load_document(&pdf_path, "doc-id", "FMT-TEST", true)
+                .expect("loading a real, freshly-built single-page pdf must succeed");
 
             assert_eq!(document.id, DocumentId::new("doc-id"));
             assert_eq!(document.format, FormatName::new("FMT-TEST"));
             assert_eq!(document.pages.len(), 1);
 
-            let page = document.page(1).expect("a freshly-built single-page pdf has page number 1 (1-based)");
+            let page = document
+                .page(1)
+                .expect("a freshly-built single-page pdf has page number 1 (1-based)");
             assert_eq!(page.size, (200.0, 300.0));
             assert!(
                 page.lines.iter().any(|l| l.text().contains("Hello World")),
@@ -253,7 +314,12 @@ mod tests {
 
             Python::attach(|py| {
                 let raw = page.raw().expect("input::document must attach the original PyMuPDF dict via Page::with_raw (M5 D-M5-2)");
-                let width: f64 = raw.bind(py).get_item("width").expect("the attached dict must be the pymupdf page dict").extract().unwrap();
+                let width: f64 = raw
+                    .bind(py)
+                    .get_item("width")
+                    .expect("the attached dict must be the pymupdf page dict")
+                    .extract()
+                    .unwrap();
                 assert_eq!(width, 200.0);
             });
 
@@ -268,8 +334,9 @@ mod tests {
                 page_dict.set_item("width", 100.0).unwrap();
                 page_dict.set_item("height", 100.0).unwrap();
                 page_dict.set_item("blocks", &blocks).unwrap();
-                let parsed =
-                    PageDict::from_py(&page_dict).expect("a type==0 block with no 'lines' key is not an error, just an empty Text block");
+                let parsed = PageDict::from_py(&page_dict).expect(
+                    "a type==0 block with no 'lines' key is not an error, just an empty Text block",
+                );
                 assert_eq!(parsed.blocks, vec![PageDictBlock::Text { lines: vec![] }]);
 
                 let block_without_type_key = PyDict::new(py);
@@ -279,12 +346,24 @@ mod tests {
                 page_dict.set_item("width", 100.0).unwrap();
                 page_dict.set_item("height", 100.0).unwrap();
                 page_dict.set_item("blocks", &blocks).unwrap();
-                let err = PageDict::from_py(&page_dict).expect_err("a block with no 'type' key at all is not a pymupdf page dict");
-                assert!(matches!(err, PageError::ParseFail { .. }), "expected PageError::ParseFail, got {err:?}");
+                let err = PageDict::from_py(&page_dict)
+                    .expect_err("a block with no 'type' key at all is not a pymupdf page dict");
+                assert!(
+                    matches!(err, PageError::ParseFail { .. }),
+                    "expected PageError::ParseFail, got {err:?}"
+                );
             });
 
-            let missing = load_document(Path::new("/nonexistent/path/does-not-exist.pdf"), "doc-id", "FMT-TEST", true);
-            assert!(matches!(missing, Err(DocumentError::Open { .. })), "expected DocumentError::Open, got {missing:?}");
+            let missing = load_document(
+                Path::new("/nonexistent/path/does-not-exist.pdf"),
+                "doc-id",
+                "FMT-TEST",
+                true,
+            );
+            assert!(
+                matches!(missing, Err(DocumentError::Open { .. })),
+                "expected DocumentError::Open, got {missing:?}"
+            );
         }
     }
 }

@@ -1,8 +1,10 @@
 # Formats
 
-A **format** is the recipe for one report layout: `EURIZON-EN23`, `AMUNDI-IT24`. It carries the
-publication year because a layout is a snapshot — next year's report from the same issuer is a
-different format, not a revision of this one.
+A **format** is the recipe for one report layout: `EURIZON-EN23`, `AMUNDI-IT24`. Its name carries
+the issuer, the language and the **earliest** year of the reports it reads. Layouts drift over the
+years, so a later report from the same issuer often needs a format of its own; when it does not, the
+existing format reads it and keeps its name — names follow recipes, not documents
+({doc}`../../reference/formats/names`).
 
 Formats do not live in the engine. They live in a **formats repository**, and this area is about
 what you put in one and how you work on it. Why they live outside is {doc}`../../reference/design/formats-as-plugins`.

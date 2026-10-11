@@ -104,8 +104,14 @@ impl LabelledValueWindow {
     /// and the sixth, EURIZON-EN23, whose columns are not row-aligned, asks for it explicitly.
     pub fn default_for(placement: LabelledValueWhere) -> Self {
         match placement {
-            LabelledValueWhere::Below => Self { reach: Some(2.0), across: 0.5 },
-            LabelledValueWhere::Right | LabelledValueWhere::OnLine => Self { reach: None, across: 0.0 },
+            LabelledValueWhere::Below => Self {
+                reach: Some(2.0),
+                across: 0.5,
+            },
+            LabelledValueWhere::Right | LabelledValueWhere::OnLine => Self {
+                reach: None,
+                across: 0.0,
+            },
         }
     }
 }
@@ -174,7 +180,16 @@ pub struct PdfExtractLabelledValueStandard {
 
 impl PdfExtractLabelledValueStandard {
     pub fn new(args: LabelledValueArgs) -> Self {
-        let LabelledValueArgs { label, block_type, name, r#where, window, value, stop, take } = args;
+        let LabelledValueArgs {
+            label,
+            block_type,
+            name,
+            r#where,
+            window,
+            value,
+            stop,
+            take,
+        } = args;
         Self {
             label,
             block_type,
@@ -203,20 +218,30 @@ impl PdfExtractLabelledValueStandard {
             LabelledValueTake::First => match candidates.first() {
                 Some(line) => {
                     tracing::debug!(found = %line.text(), "{} read next to its label", self.name);
-                    Ok(vec![PdfBlock::bare(self.block_type.clone(), line.text().clone())])
+                    Ok(vec![PdfBlock::bare(
+                        self.block_type.clone(),
+                        line.text().clone(),
+                    )])
                 }
                 // The same non-fatal page failure the engine has always raised for a single
                 // expected value: a page classified for this datum that does not carry it is a page
                 // classified wrongly, and staying silent about it would be worse than skipping it.
-                None => Err(PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail {
-                    source: Box::new(CommonsError::ExpectedTextNotFound { name: self.name.clone() }),
-                })),
+                None => Err(PdfExtractStandardFuncsError::Commons(
+                    CommonsError::PageParseFail {
+                        source: Box::new(CommonsError::ExpectedTextNotFound {
+                            name: self.name.clone(),
+                        }),
+                    },
+                )),
             },
             // An empty list is an answer, not a failure: it is the format that declares no delegate
             // manager at all, which R6 expects and which the residual rule then handles.
             LabelledValueTake::All => {
                 if candidates.is_empty() {
-                    tracing::debug!("{} found no value next to its label, which for a list is an answer", self.name);
+                    tracing::debug!(
+                        "{} found no value next to its label, which for a list is an answer",
+                        self.name
+                    );
                 }
                 Ok(candidates
                     .iter()
@@ -229,23 +254,31 @@ impl PdfExtractLabelledValueStandard {
     /// The lines that qualify as the value, in page order.
     fn candidates<'a>(&self, lines: &'a [PdfLine]) -> Vec<&'a PdfLine> {
         let label_set = self.label.clone().contextualize(lines);
-        let labels: Vec<&PdfLine> = lines.iter().filter(|line| label_set.contains(line)).collect();
+        let labels: Vec<&PdfLine> = lines
+            .iter()
+            .filter(|line| label_set.contains(line))
+            .collect();
         let Some(&anchor) = labels.first() else {
             tracing::trace!("{}: the label matched no line on this page", self.name);
             return Vec::new();
         };
 
-        let value_set = self.value.clone().map(|selection| selection.contextualize(lines));
+        let value_set = self
+            .value
+            .clone()
+            .map(|selection| selection.contextualize(lines));
         let bottom = self.bottom(anchor, lines);
 
         let placed: Vec<&PdfLine> = match self.placement {
             LabelledValueWhere::OnLine => labels,
-            LabelledValueWhere::Below => {
-                lines.iter().filter(|line| !std::ptr::eq(*line, anchor) && self.is_below(anchor, line)).collect()
-            }
-            LabelledValueWhere::Right => {
-                lines.iter().filter(|line| !std::ptr::eq(*line, anchor) && self.is_right_of(anchor, line)).collect()
-            }
+            LabelledValueWhere::Below => lines
+                .iter()
+                .filter(|line| !std::ptr::eq(*line, anchor) && self.is_below(anchor, line))
+                .collect(),
+            LabelledValueWhere::Right => lines
+                .iter()
+                .filter(|line| !std::ptr::eq(*line, anchor) && self.is_right_of(anchor, line))
+                .collect(),
         };
 
         placed
@@ -270,7 +303,10 @@ impl PdfExtractLabelledValueStandard {
         let (x0, y0, _, _) = line.bbox().as_tuple();
         let height = ay1 - ay0;
         let far_enough_down = y0 > ay0;
-        let within_reach = self.window.reach.is_none_or(|reach| y0 <= ay1 + reach * height);
+        let within_reach = self
+            .window
+            .reach
+            .is_none_or(|reach| y0 <= ay1 + reach * height);
         let aligned = (x0 - ax0).abs() <= self.window.across * height;
         far_enough_down && within_reach && aligned
     }
@@ -289,7 +325,10 @@ impl PdfExtractLabelledValueStandard {
         // line eleven points high.
         let slack = 0.1 * height;
         let to_the_right = x0 >= ax1 - slack;
-        let within_reach = self.window.reach.is_none_or(|reach| x0 <= ax1 + reach * height);
+        let within_reach = self
+            .window
+            .reach
+            .is_none_or(|reach| x0 <= ax1 + reach * height);
         let band_top = ay0 - slack;
         let band_bottom = ay1 + self.window.across * height;
         let in_band = y1 > band_top && y0 < band_bottom;
@@ -303,10 +342,10 @@ impl PdfExtractPipe for PdfExtractLabelledValueStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -337,7 +376,16 @@ mod tests {
     }
 
     fn texts(blocks: &[PdfBlock]) -> Vec<String> {
-        blocks.iter().map(|block| block.content.as_str().expect("a labelled value is text").to_string()).collect()
+        blocks
+            .iter()
+            .map(|block| {
+                block
+                    .content
+                    .as_str()
+                    .expect("a labelled value is text")
+                    .to_string()
+            })
+            .collect()
     }
 
     fn built(args: LabelledValueArgs) -> PdfExtractLabelledValueStandard {
@@ -352,7 +400,12 @@ mod tests {
         /// `text_filter`'s job, by R23.
         fn prose_page() -> Page {
             page(vec![
-                line("trebuchetms-bold", 10.0, "SOCIETÀ DI GESTIONE", (70.8, 165.6, 171.0, 176.0)),
+                line(
+                    "trebuchetms-bold",
+                    10.0,
+                    "SOCIETÀ DI GESTIONE",
+                    (70.8, 165.6, 171.0, 176.0),
+                ),
                 line(
                     "trebuchetms",
                     9.3,
@@ -364,15 +417,23 @@ mod tests {
 
         #[test]
         fn is_the_default_placement() {
-            assert_eq!(built(args(text_sel("^La società"))).placement(), LabelledValueWhere::OnLine);
+            assert_eq!(
+                built(args(text_sel("^La società"))).placement(),
+                LabelledValueWhere::OnLine
+            );
         }
 
         #[test]
         fn emits_the_label_s_own_line_whole() {
-            let blocks = built(args(text_sel("^La società di gestione"))).call(&prose_page()).unwrap();
+            let blocks = built(args(text_sel("^La società di gestione")))
+                .call(&prose_page())
+                .unwrap();
             assert_eq!(
                 texts(&blocks),
-                vec!["La società di gestione EURIZON CAPITAL SGR S.p.A., di seguito \"la SGR\"".to_string()]
+                vec![
+                    "La società di gestione EURIZON CAPITAL SGR S.p.A., di seguito \"la SGR\""
+                        .to_string()
+                ]
             );
         }
 
@@ -380,22 +441,36 @@ mod tests {
         #[test]
         fn takes_a_running_head_that_carries_both() {
             let running_head = page(vec![
-                line("lato", 7.92, "Società di Gestione del Risparmio ANIMA SGR S.p.A.", (56.6, 28.9, 243.7, 38.0)),
+                line(
+                    "lato",
+                    7.92,
+                    "Società di Gestione del Risparmio ANIMA SGR S.p.A.",
+                    (56.6, 28.9, 243.7, 38.0),
+                ),
                 line("lato", 7.92, "SISTEMA ANIMA", (476.9, 28.9, 540.6, 38.0)),
             ]);
-            let blocks = built(args(text_sel("di Gestione del Risparmio"))).call(&running_head).unwrap();
-            assert_eq!(texts(&blocks), vec!["Società di Gestione del Risparmio ANIMA SGR S.p.A.".to_string()]);
+            let blocks = built(args(text_sel("di Gestione del Risparmio")))
+                .call(&running_head)
+                .unwrap();
+            assert_eq!(
+                texts(&blocks),
+                vec!["Società di Gestione del Risparmio ANIMA SGR S.p.A.".to_string()]
+            );
         }
 
         #[test]
         fn emits_the_block_type_it_was_given() {
-            let blocks = built(args(text_sel("^La società di gestione"))).call(&prose_page()).unwrap();
+            let blocks = built(args(text_sel("^La società di gestione")))
+                .call(&prose_page())
+                .unwrap();
             assert_eq!(blocks[0].type_block, BlockType::MANAGEMENT_COMPANY);
         }
 
         #[test]
         fn fails_the_page_when_the_label_matches_nothing() {
-            let err = built(args(text_sel("^Nothing of the sort"))).call(&prose_page()).unwrap_err();
+            let err = built(args(text_sel("^Nothing of the sort")))
+                .call(&prose_page())
+                .unwrap_err();
             assert!(matches!(
                 err,
                 PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
@@ -407,9 +482,19 @@ mod tests {
         #[test]
         fn with_take_all_emits_one_block_per_matching_line() {
             let repeated = page(vec![
-                line("lato", 7.92, "Società di Gestione del Risparmio ANIMA SGR S.p.A.", (56.6, 28.9, 243.7, 38.0)),
+                line(
+                    "lato",
+                    7.92,
+                    "Società di Gestione del Risparmio ANIMA SGR S.p.A.",
+                    (56.6, 28.9, 243.7, 38.0),
+                ),
                 line("lato", 7.92, "SISTEMA ANIMA", (476.9, 28.9, 540.6, 38.0)),
-                line("lato", 7.92, "ANIMA LIQUIDITA' EURO", (56.6, 135.4, 187.5, 145.0)),
+                line(
+                    "lato",
+                    7.92,
+                    "ANIMA LIQUIDITA' EURO",
+                    (56.6, 135.4, 187.5, 145.0),
+                ),
             ]);
             let mut a = args(text_sel("ANIMA"));
             a.take = LabelledValueTake::All;
@@ -425,10 +510,30 @@ mod tests {
         /// abscissa, and a neighbouring column 260 points to the right that must not be taken.
         fn anima_en23() -> Page {
             page(vec![
-                line("Helvetica-Bold", 8.0, "Manager, Promoter and Distributor", (43.0, 149.4, 192.7, 159.4)),
-                line("Helvetica", 8.0, "Davide Sosio", (302.5, 149.2, 355.4, 159.2)),
-                line("Helvetica", 8.0, "ANIMA SGR S.p.A.", (43.0, 160.3, 119.4, 170.3)),
-                line("Helvetica", 8.0, "Corso Garibaldi, 99", (43.0, 171.2, 121.4, 181.2)),
+                line(
+                    "Helvetica-Bold",
+                    8.0,
+                    "Manager, Promoter and Distributor",
+                    (43.0, 149.4, 192.7, 159.4),
+                ),
+                line(
+                    "Helvetica",
+                    8.0,
+                    "Davide Sosio",
+                    (302.5, 149.2, 355.4, 159.2),
+                ),
+                line(
+                    "Helvetica",
+                    8.0,
+                    "ANIMA SGR S.p.A.",
+                    (43.0, 160.3, 119.4, 170.3),
+                ),
+                line(
+                    "Helvetica",
+                    8.0,
+                    "Corso Garibaldi, 99",
+                    (43.0, 171.2, 121.4, 181.2),
+                ),
             ])
         }
 
@@ -440,7 +545,9 @@ mod tests {
 
         #[test]
         fn takes_the_first_line_under_the_label() {
-            let blocks = built(below_args("^Manager, Promoter")).call(&anima_en23()).unwrap();
+            let blocks = built(below_args("^Manager, Promoter"))
+                .call(&anima_en23())
+                .unwrap();
             assert_eq!(texts(&blocks), vec!["ANIMA SGR S.p.A.".to_string()]);
         }
 
@@ -465,12 +572,32 @@ mod tests {
         #[test]
         fn takes_a_value_wider_than_its_label_across_an_interleaved_column() {
             let carne = page(vec![
-                line("arial-boldmt", 8.04, "Management Company", (57.6, 372.3, 145.4, 381.3)),
-                line("arialmt", 8.04, "Shares of this Fund may not be offered", (291.6, 381.6, 537.9, 390.6)),
-                line("arialmt", 8.04, "Carne Global Fund Managers (Luxembourg) S.A.", (57.6, 390.8, 234.6, 399.8)),
+                line(
+                    "arial-boldmt",
+                    8.04,
+                    "Management Company",
+                    (57.6, 372.3, 145.4, 381.3),
+                ),
+                line(
+                    "arialmt",
+                    8.04,
+                    "Shares of this Fund may not be offered",
+                    (291.6, 381.6, 537.9, 390.6),
+                ),
+                line(
+                    "arialmt",
+                    8.04,
+                    "Carne Global Fund Managers (Luxembourg) S.A.",
+                    (57.6, 390.8, 234.6, 399.8),
+                ),
             ]);
-            let blocks = built(below_args("^Management Company")).call(&carne).unwrap();
-            assert_eq!(texts(&blocks), vec!["Carne Global Fund Managers (Luxembourg) S.A.".to_string()]);
+            let blocks = built(below_args("^Management Company"))
+                .call(&carne)
+                .unwrap();
+            assert_eq!(
+                texts(&blocks),
+                vec!["Carne Global Fund Managers (Luxembourg) S.A.".to_string()]
+            );
         }
 
         /// AMUNDI-EN24 p1: under the value comes the **next label**, not an address. It is the
@@ -479,11 +606,28 @@ mod tests {
         #[test]
         fn stops_before_the_next_label() {
             let amundi = page(vec![
-                line("arialmt", 12.0, "Management Company", (50.0, 100.0, 160.0, 112.0)),
-                line("arialmt", 12.0, "Amundi Luxembourg S.A.", (50.0, 114.0, 180.0, 126.0)),
-                line("arialmt", 12.0, "Administrative Agent", (50.0, 128.0, 165.0, 140.0)),
+                line(
+                    "arialmt",
+                    12.0,
+                    "Management Company",
+                    (50.0, 100.0, 160.0, 112.0),
+                ),
+                line(
+                    "arialmt",
+                    12.0,
+                    "Amundi Luxembourg S.A.",
+                    (50.0, 114.0, 180.0, 126.0),
+                ),
+                line(
+                    "arialmt",
+                    12.0,
+                    "Administrative Agent",
+                    (50.0, 128.0, 165.0, 140.0),
+                ),
             ]);
-            let blocks = built(below_args("^Management Company")).call(&amundi).unwrap();
+            let blocks = built(below_args("^Management Company"))
+                .call(&amundi)
+                .unwrap();
             assert_eq!(texts(&blocks), vec!["Amundi Luxembourg S.A.".to_string()]);
         }
 
@@ -492,19 +636,51 @@ mod tests {
         #[test]
         fn keeps_the_abscissa_against_a_column_on_the_same_ordinates() {
             let mediolanum = page(vec![
-                line("arial-bold", 6.5, "Gestor de Inversiones y Gestora de Tesorería", (27.5, 564.8, 220.2, 573.8)),
-                line("arial", 6.5, "14, Porte de France", (302.9, 562.9, 383.1, 571.9)),
-                line("arial", 6.5, "L-4360 Esch-sur-Alzette", (302.9, 573.8, 407.0, 582.8)),
-                line("arial", 6.5, "Mediolanum International Funds Limited", (27.5, 576.1, 198.3, 585.1)),
+                line(
+                    "arial-bold",
+                    6.5,
+                    "Gestor de Inversiones y Gestora de Tesorería",
+                    (27.5, 564.8, 220.2, 573.8),
+                ),
+                line(
+                    "arial",
+                    6.5,
+                    "14, Porte de France",
+                    (302.9, 562.9, 383.1, 571.9),
+                ),
+                line(
+                    "arial",
+                    6.5,
+                    "L-4360 Esch-sur-Alzette",
+                    (302.9, 573.8, 407.0, 582.8),
+                ),
+                line(
+                    "arial",
+                    6.5,
+                    "Mediolanum International Funds Limited",
+                    (27.5, 576.1, 198.3, 585.1),
+                ),
             ]);
-            let blocks = built(below_args("^Gestor de Inversiones")).call(&mediolanum).unwrap();
-            assert_eq!(texts(&blocks), vec!["Mediolanum International Funds Limited".to_string()]);
+            let blocks = built(below_args("^Gestor de Inversiones"))
+                .call(&mediolanum)
+                .unwrap();
+            assert_eq!(
+                texts(&blocks),
+                vec!["Mediolanum International Funds Limited".to_string()]
+            );
         }
 
         #[test]
         fn nothing_under_the_label_fails_the_page() {
-            let lonely = page(vec![line("arialmt", 10.0, "Management Company", (50.0, 100.0, 160.0, 110.0))]);
-            let err = built(below_args("^Management Company")).call(&lonely).unwrap_err();
+            let lonely = page(vec![line(
+                "arialmt",
+                10.0,
+                "Management Company",
+                (50.0, 100.0, 160.0, 110.0),
+            )]);
+            let err = built(below_args("^Management Company"))
+                .call(&lonely)
+                .unwrap_err();
             assert!(matches!(
                 err,
                 PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
@@ -514,10 +690,22 @@ mod tests {
         #[test]
         fn a_line_above_the_label_is_never_a_candidate() {
             let upside_down = page(vec![
-                line("arialmt", 10.0, "Above the label", (50.0, 80.0, 160.0, 90.0)),
-                line("arialmt", 10.0, "Management Company", (50.0, 100.0, 160.0, 110.0)),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Above the label",
+                    (50.0, 80.0, 160.0, 90.0),
+                ),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Management Company",
+                    (50.0, 100.0, 160.0, 110.0),
+                ),
             ]);
-            let err = built(below_args("^Management Company")).call(&upside_down).unwrap_err();
+            let err = built(below_args("^Management Company"))
+                .call(&upside_down)
+                .unwrap_err();
             assert!(matches!(
                 err,
                 PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
@@ -533,17 +721,42 @@ mod tests {
         /// `fineco_en23_ir/managment_company.py`, as three parameters.
         fn fineco_ir() -> Page {
             page(vec![
-                line("timesnewromanbold", 10.02, "Directors of the ICAV", (52.4, 157.7, 147.4, 169.2)),
-                line("timesnewroman", 10.02, "Jim Firn (Irish resident)*", (279.1, 157.7, 379.6, 169.2)),
-                line("timesnewromanbold", 10.02, "Manager", (52.4, 226.8, 91.4, 238.3)),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Directors of the ICAV",
+                    (52.4, 157.7, 147.4, 169.2),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "Jim Firn (Irish resident)*",
+                    (279.1, 157.7, 379.6, 169.2),
+                ),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Manager",
+                    (52.4, 226.8, 91.4, 238.3),
+                ),
                 line(
                     "timesnewroman",
                     10.02,
                     "Fineco Asset Management Designated Activity Company",
                     (279.1, 226.8, 510.3, 238.3),
                 ),
-                line("timesnewroman", 10.02, "6th Floor, Block A", (279.1, 238.3, 355.0, 249.8)),
-                line("timesnewromanbold", 10.02, "Investment Manager & Investment Advisor", (52.4, 295.9, 239.7, 307.4)),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "6th Floor, Block A",
+                    (279.1, 238.3, 355.0, 249.8),
+                ),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Investment Manager & Investment Advisor",
+                    (52.4, 295.9, 239.7, 307.4),
+                ),
             ])
         }
 
@@ -584,11 +797,26 @@ mod tests {
         #[test]
         fn tolerates_a_value_starting_slightly_above_its_label() {
             let mediolanum = page(vec![
-                line("tt3102o00", 9.96, "SOCIETÀ DI GESTIONE E ", (28.8, 84.0, 141.5, 94.5)),
-                line("tt3102o00", 9.96, "Mediolanum International Funds Limited ", (206.2, 83.1, 369.7, 93.6)),
+                line(
+                    "tt3102o00",
+                    9.96,
+                    "SOCIETÀ DI GESTIONE E ",
+                    (28.8, 84.0, 141.5, 94.5),
+                ),
+                line(
+                    "tt3102o00",
+                    9.96,
+                    "Mediolanum International Funds Limited ",
+                    (206.2, 83.1, 369.7, 93.6),
+                ),
             ]);
-            let blocks = built(right_args("^SOCIETÀ DI GESTIONE")).call(&mediolanum).unwrap();
-            assert_eq!(texts(&blocks), vec!["Mediolanum International Funds Limited ".to_string()]);
+            let blocks = built(right_args("^SOCIETÀ DI GESTIONE"))
+                .call(&mediolanum)
+                .unwrap();
+            assert_eq!(
+                texts(&blocks),
+                vec!["Mediolanum International Funds Limited ".to_string()]
+            );
         }
 
         /// MEDIOLANUM-EN24 p3: the label wraps onto a second line, and the value is level with the
@@ -596,13 +824,38 @@ mod tests {
         #[test]
         fn takes_a_value_level_with_the_first_line_of_a_wrapped_label() {
             let mediolanum = page(vec![
-                line("timesnewromanps-boldmt", 9.48, "MANAGER AND GLOBAL ", (28.9, 85.9, 147.4, 96.4)),
-                line("timesnewromanps-boldmt", 9.48, "Mediolanum International Funds Limited ", (205.9, 85.9, 378.6, 96.4)),
-                line("timesnewromanps-boldmt", 9.48, "DISTRIBUTOR ", (28.9, 96.8, 97.8, 107.3)),
-                line("timesnewromanpsmt", 9.48, "4th Floor, The Exchange, Dublin 1.", (205.9, 96.9, 504.8, 107.4)),
+                line(
+                    "timesnewromanps-boldmt",
+                    9.48,
+                    "MANAGER AND GLOBAL ",
+                    (28.9, 85.9, 147.4, 96.4),
+                ),
+                line(
+                    "timesnewromanps-boldmt",
+                    9.48,
+                    "Mediolanum International Funds Limited ",
+                    (205.9, 85.9, 378.6, 96.4),
+                ),
+                line(
+                    "timesnewromanps-boldmt",
+                    9.48,
+                    "DISTRIBUTOR ",
+                    (28.9, 96.8, 97.8, 107.3),
+                ),
+                line(
+                    "timesnewromanpsmt",
+                    9.48,
+                    "4th Floor, The Exchange, Dublin 1.",
+                    (205.9, 96.9, 504.8, 107.4),
+                ),
             ]);
-            let blocks = built(right_args("^MANAGER AND GLOBAL")).call(&mediolanum).unwrap();
-            assert_eq!(texts(&blocks), vec!["Mediolanum International Funds Limited ".to_string()]);
+            let blocks = built(right_args("^MANAGER AND GLOBAL"))
+                .call(&mediolanum)
+                .unwrap();
+            assert_eq!(
+                texts(&blocks),
+                vec!["Mediolanum International Funds Limited ".to_string()]
+            );
         }
 
         /// MEDIOLANUM-ES24.B p1: the whole page is a label→value table, and the value is told from
@@ -610,13 +863,36 @@ mod tests {
         #[test]
         fn reads_a_label_value_table_row() {
             let mediolanum = page(vec![
-                line("helvetica-bold", 7.85, "Gestora:", (80.6, 134.6, 112.8, 143.6)),
-                line("helvetica", 7.85, "MEDIOLANUM GESTION, S.G.I.I.C., S.A.", (140.7, 134.6, 287.2, 143.6)),
-                line("helvetica-bold", 7.85, "Grupo Gestora:", (80.6, 147.0, 138.5, 156.0)),
-                line("helvetica", 7.85, "MEDIOLANUM", (140.7, 147.0, 193.9, 156.0)),
+                line(
+                    "helvetica-bold",
+                    7.85,
+                    "Gestora:",
+                    (80.6, 134.6, 112.8, 143.6),
+                ),
+                line(
+                    "helvetica",
+                    7.85,
+                    "MEDIOLANUM GESTION, S.G.I.I.C., S.A.",
+                    (140.7, 134.6, 287.2, 143.6),
+                ),
+                line(
+                    "helvetica-bold",
+                    7.85,
+                    "Grupo Gestora:",
+                    (80.6, 147.0, 138.5, 156.0),
+                ),
+                line(
+                    "helvetica",
+                    7.85,
+                    "MEDIOLANUM",
+                    (140.7, 147.0, 193.9, 156.0),
+                ),
             ]);
             let blocks = built(right_args("^Gestora:")).call(&mediolanum).unwrap();
-            assert_eq!(texts(&blocks), vec!["MEDIOLANUM GESTION, S.G.I.I.C., S.A.".to_string()]);
+            assert_eq!(
+                texts(&blocks),
+                vec!["MEDIOLANUM GESTION, S.G.I.I.C., S.A.".to_string()]
+            );
         }
 
         /// UBS-EN23 p139: the value's box starts **two tenths of a point before** its label's
@@ -625,7 +901,12 @@ mod tests {
         #[test]
         fn tolerates_boxes_that_touch_by_a_fraction_of_a_point() {
             let ubs = page(vec![
-                line("frutiger45lightbold", 10.0, "Product name:", (200.1, 175.3, 265.5, 186.8)),
+                line(
+                    "frutiger45lightbold",
+                    10.0,
+                    "Product name:",
+                    (200.1, 175.3, 265.5, 186.8),
+                ),
                 line(
                     "frutiger45light",
                     10.0,
@@ -636,7 +917,9 @@ mod tests {
             let blocks = built(right_args("^Product name:")).call(&ubs).unwrap();
             assert_eq!(
                 texts(&blocks),
-                vec![" BPER International SICAV – Equity North America (the “subfund”)".to_string()]
+                vec![
+                    " BPER International SICAV – Equity North America (the “subfund”)".to_string()
+                ]
             );
         }
 
@@ -645,10 +928,22 @@ mod tests {
         #[test]
         fn does_not_tolerate_an_overlap_wider_than_a_tenth_of_a_line() {
             let overlapping = page(vec![
-                line("frutiger45lightbold", 10.0, "Product name:", (200.1, 175.3, 265.5, 186.8)),
-                line("frutiger45light", 10.0, "too far left", (263.5, 175.6, 535.6, 187.1)),
+                line(
+                    "frutiger45lightbold",
+                    10.0,
+                    "Product name:",
+                    (200.1, 175.3, 265.5, 186.8),
+                ),
+                line(
+                    "frutiger45light",
+                    10.0,
+                    "too far left",
+                    (263.5, 175.6, 535.6, 187.1),
+                ),
             ]);
-            let err = built(right_args("^Product name:")).call(&overlapping).unwrap_err();
+            let err = built(right_args("^Product name:"))
+                .call(&overlapping)
+                .unwrap_err();
             assert!(matches!(
                 err,
                 PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
@@ -659,9 +954,16 @@ mod tests {
         fn a_line_to_the_left_is_never_a_candidate() {
             let leftwards = page(vec![
                 line("arialmt", 10.0, "To the left", (10.0, 100.0, 40.0, 110.0)),
-                line("arialmt", 10.0, "Management Company", (50.0, 100.0, 160.0, 110.0)),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Management Company",
+                    (50.0, 100.0, 160.0, 110.0),
+                ),
             ]);
-            let err = built(right_args("^Management Company")).call(&leftwards).unwrap_err();
+            let err = built(right_args("^Management Company"))
+                .call(&leftwards)
+                .unwrap_err();
             assert!(matches!(
                 err,
                 PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })
@@ -675,8 +977,18 @@ mod tests {
         fn two_lines_down() -> Page {
             page(vec![
                 line("arialmt", 10.0, "Label", (50.0, 100.0, 100.0, 110.0)),
-                line("arialmt", 10.0, "One line down", (50.0, 115.0, 140.0, 125.0)),
-                line("arialmt", 10.0, "Four lines down", (50.0, 155.0, 150.0, 165.0)),
+                line(
+                    "arialmt",
+                    10.0,
+                    "One line down",
+                    (50.0, 115.0, 140.0, 125.0),
+                ),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Four lines down",
+                    (50.0, 155.0, 150.0, 165.0),
+                ),
             ])
         }
 
@@ -692,43 +1004,61 @@ mod tests {
         fn the_default_reach_below_is_two_lines() {
             assert_eq!(
                 LabelledValueWindow::default_for(LabelledValueWhere::Below),
-                LabelledValueWindow { reach: Some(2.0), across: 0.5 }
+                LabelledValueWindow {
+                    reach: Some(2.0),
+                    across: 0.5
+                }
             );
         }
 
         #[test]
         fn the_default_reach_to_the_right_is_unlimited() {
-            assert_eq!(LabelledValueWindow::default_for(LabelledValueWhere::Right).reach, None);
+            assert_eq!(
+                LabelledValueWindow::default_for(LabelledValueWhere::Right).reach,
+                None
+            );
         }
 
         /// The lines of a column are contiguous: a band grown by even half a line would reach the
         /// address under the value. Growing it is EURIZON-EN23's business, and nobody else's.
         #[test]
         fn the_default_band_to_the_right_is_the_label_s_own_box() {
-            assert_eq!(LabelledValueWindow::default_for(LabelledValueWhere::Right).across, 0.0);
+            assert_eq!(
+                LabelledValueWindow::default_for(LabelledValueWhere::Right).across,
+                0.0
+            );
         }
 
         #[test]
         fn a_reach_of_two_lines_stops_before_the_fourth() {
-            let blocks = below_with(LabelledValueWindow { reach: Some(2.0), across: 0.5 })
-                .call(&two_lines_down())
-                .unwrap();
+            let blocks = below_with(LabelledValueWindow {
+                reach: Some(2.0),
+                across: 0.5,
+            })
+            .call(&two_lines_down())
+            .unwrap();
             assert_eq!(texts(&blocks), vec!["One line down".to_string()]);
         }
 
         #[test]
         fn a_longer_reach_takes_both() {
-            let blocks = below_with(LabelledValueWindow { reach: Some(6.0), across: 0.5 })
-                .call(&two_lines_down())
-                .unwrap();
+            let blocks = below_with(LabelledValueWindow {
+                reach: Some(6.0),
+                across: 0.5,
+            })
+            .call(&two_lines_down())
+            .unwrap();
             assert_eq!(texts(&blocks).len(), 2);
         }
 
         #[test]
         fn no_reach_takes_everything_under_the_label() {
-            let blocks = below_with(LabelledValueWindow { reach: None, across: 0.5 })
-                .call(&two_lines_down())
-                .unwrap();
+            let blocks = below_with(LabelledValueWindow {
+                reach: None,
+                across: 0.5,
+            })
+            .call(&two_lines_down())
+            .unwrap();
             assert_eq!(texts(&blocks).len(), 2);
         }
 
@@ -738,7 +1068,12 @@ mod tests {
                 line("arialmt", 10.0, "Label", (50.0, 100.0, 100.0, 110.0)),
                 line("arialmt", 10.0, "Touching", (50.0, 110.0, 140.0, 120.0)),
             ]);
-            let blocks = below_with(LabelledValueWindow { reach: Some(0.0), across: 0.5 }).call(&touching).unwrap();
+            let blocks = below_with(LabelledValueWindow {
+                reach: Some(0.0),
+                across: 0.5,
+            })
+            .call(&touching)
+            .unwrap();
             assert_eq!(texts(&blocks), vec!["Touching".to_string()]);
         }
 
@@ -746,7 +1081,10 @@ mod tests {
         fn a_negative_reach_selects_nothing_rather_than_inverting() {
             let mut a = args(text_sel("^Label$"));
             a.r#where = LabelledValueWhere::Below;
-            a.window = Some(LabelledValueWindow { reach: Some(-5.0), across: 0.5 });
+            a.window = Some(LabelledValueWindow {
+                reach: Some(-5.0),
+                across: 0.5,
+            });
             a.take = LabelledValueTake::All;
             assert!(built(a).call(&two_lines_down()).unwrap().is_empty());
         }
@@ -755,16 +1093,31 @@ mod tests {
         fn a_wider_drift_lets_an_indented_value_through() {
             let indented = page(vec![
                 line("arialmt", 10.0, "Label", (50.0, 100.0, 100.0, 110.0)),
-                line("arialmt", 10.0, "Indented by twelve points", (62.0, 115.0, 200.0, 125.0)),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Indented by twelve points",
+                    (62.0, 115.0, 200.0, 125.0),
+                ),
             ]);
             assert!(
-                below_with(LabelledValueWindow { reach: Some(2.0), across: 0.5 })
-                    .call(&indented)
-                    .unwrap()
-                    .is_empty()
+                below_with(LabelledValueWindow {
+                    reach: Some(2.0),
+                    across: 0.5
+                })
+                .call(&indented)
+                .unwrap()
+                .is_empty()
             );
             assert_eq!(
-                texts(&below_with(LabelledValueWindow { reach: Some(2.0), across: 2.0 }).call(&indented).unwrap()),
+                texts(
+                    &below_with(LabelledValueWindow {
+                        reach: Some(2.0),
+                        across: 2.0
+                    })
+                    .call(&indented)
+                    .unwrap()
+                ),
                 vec!["Indented by twelve points".to_string()]
             );
         }
@@ -775,15 +1128,36 @@ mod tests {
         #[test]
         fn a_downward_band_reaches_a_column_that_is_not_row_aligned() {
             let eurizon = page(vec![
-                line("frutiger-lightitalic", 11.97, "PROMOTER", (45.4, 143.6, 104.6, 157.4)),
-                line("frutiger-black", 8.98, "Eurizon Capital S.A.", (227.5, 167.4, 318.9, 176.4)),
-                line("frutiger-light", 8.98, "28, Boulevard de Kockelscheuer", (227.5, 177.8, 349.6, 186.8)),
+                line(
+                    "frutiger-lightitalic",
+                    11.97,
+                    "PROMOTER",
+                    (45.4, 143.6, 104.6, 157.4),
+                ),
+                line(
+                    "frutiger-black",
+                    8.98,
+                    "Eurizon Capital S.A.",
+                    (227.5, 167.4, 318.9, 176.4),
+                ),
+                line(
+                    "frutiger-light",
+                    8.98,
+                    "28, Boulevard de Kockelscheuer",
+                    (227.5, 177.8, 349.6, 186.8),
+                ),
             ]);
             let mut a = args(text_sel("^PROMOTER"));
             a.r#where = LabelledValueWhere::Right;
-            a.window = Some(LabelledValueWindow { reach: None, across: 2.0 });
+            a.window = Some(LabelledValueWindow {
+                reach: None,
+                across: 2.0,
+            });
             a.value = Some(font_sel("frutiger-black"));
-            assert_eq!(texts(&built(a).call(&eurizon).unwrap()), vec!["Eurizon Capital S.A.".to_string()]);
+            assert_eq!(
+                texts(&built(a).call(&eurizon).unwrap()),
+                vec!["Eurizon Capital S.A.".to_string()]
+            );
         }
     }
 
@@ -792,16 +1166,34 @@ mod tests {
 
         fn name_and_address() -> Page {
             page(vec![
-                line("frutiger-lightitalic", 11.97, "PROMOTER", (45.4, 143.6, 104.6, 157.4)),
-                line("frutiger-black", 8.98, "Eurizon Capital S.A.", (45.4, 167.4, 136.8, 176.4)),
-                line("frutiger-light", 8.98, "28, Boulevard de Kockelscheuer", (45.4, 177.8, 167.5, 186.8)),
+                line(
+                    "frutiger-lightitalic",
+                    11.97,
+                    "PROMOTER",
+                    (45.4, 143.6, 104.6, 157.4),
+                ),
+                line(
+                    "frutiger-black",
+                    8.98,
+                    "Eurizon Capital S.A.",
+                    (45.4, 167.4, 136.8, 176.4),
+                ),
+                line(
+                    "frutiger-light",
+                    8.98,
+                    "28, Boulevard de Kockelscheuer",
+                    (45.4, 177.8, 167.5, 186.8),
+                ),
             ])
         }
 
         fn below_all(value: Option<PdfLineSelection>) -> PdfExtractLabelledValueStandard {
             let mut a = args(text_sel("^PROMOTER"));
             a.r#where = LabelledValueWhere::Below;
-            a.window = Some(LabelledValueWindow { reach: Some(3.0), across: 0.5 });
+            a.window = Some(LabelledValueWindow {
+                reach: Some(3.0),
+                across: 0.5,
+            });
             a.value = value;
             a.take = LabelledValueTake::All;
             built(a)
@@ -809,20 +1201,32 @@ mod tests {
 
         #[test]
         fn without_it_the_window_alone_decides() {
-            assert_eq!(texts(&below_all(None).call(&name_and_address()).unwrap()).len(), 2);
+            assert_eq!(
+                texts(&below_all(None).call(&name_and_address()).unwrap()).len(),
+                2
+            );
         }
 
         #[test]
         fn the_weight_of_the_font_tells_the_name_from_the_address() {
             assert_eq!(
-                texts(&below_all(Some(font_sel("frutiger-black"))).call(&name_and_address()).unwrap()),
+                texts(
+                    &below_all(Some(font_sel("frutiger-black")))
+                        .call(&name_and_address())
+                        .unwrap()
+                ),
                 vec!["Eurizon Capital S.A.".to_string()]
             );
         }
 
         #[test]
         fn a_selection_that_matches_nothing_leaves_no_candidate() {
-            assert!(below_all(Some(font_sel("nothing-like-it"))).call(&name_and_address()).unwrap().is_empty());
+            assert!(
+                below_all(Some(font_sel("nothing-like-it")))
+                    .call(&name_and_address())
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         /// The two formats of §4.3: the value carries the label's own font, and a required `value`
@@ -830,8 +1234,18 @@ mod tests {
         #[test]
         fn is_not_needed_where_the_value_shares_the_label_s_font() {
             let same_font = page(vec![
-                line("tt3102o00", 9.96, "SOCIETÀ DI GESTIONE E ", (28.8, 84.0, 141.5, 94.5)),
-                line("tt3102o00", 9.96, "Mediolanum International Funds Limited ", (206.2, 83.1, 369.7, 93.6)),
+                line(
+                    "tt3102o00",
+                    9.96,
+                    "SOCIETÀ DI GESTIONE E ",
+                    (28.8, 84.0, 141.5, 94.5),
+                ),
+                line(
+                    "tt3102o00",
+                    9.96,
+                    "Mediolanum International Funds Limited ",
+                    (206.2, 83.1, 369.7, 93.6),
+                ),
             ]);
             let mut a = args(text_sel("^SOCIETÀ DI GESTIONE"));
             a.r#where = LabelledValueWhere::Right;
@@ -849,11 +1263,36 @@ mod tests {
         /// family and one more name under it.
         fn two_sections() -> Page {
             page(vec![
-                line("arial-bold", 10.0, "INVESTMENT MANAGERS", (50.0, 100.0, 200.0, 110.0)),
-                line("arial", 10.0, "First Manager Ltd", (50.0, 112.0, 160.0, 122.0)),
-                line("arial", 10.0, "Second Manager Ltd", (50.0, 124.0, 170.0, 134.0)),
-                line("arial", 10.0, "Third Manager Ltd", (50.0, 136.0, 165.0, 146.0)),
-                line("arial-bold", 10.0, "DEPOSITARY", (50.0, 150.0, 140.0, 160.0)),
+                line(
+                    "arial-bold",
+                    10.0,
+                    "INVESTMENT MANAGERS",
+                    (50.0, 100.0, 200.0, 110.0),
+                ),
+                line(
+                    "arial",
+                    10.0,
+                    "First Manager Ltd",
+                    (50.0, 112.0, 160.0, 122.0),
+                ),
+                line(
+                    "arial",
+                    10.0,
+                    "Second Manager Ltd",
+                    (50.0, 124.0, 170.0, 134.0),
+                ),
+                line(
+                    "arial",
+                    10.0,
+                    "Third Manager Ltd",
+                    (50.0, 136.0, 165.0, 146.0),
+                ),
+                line(
+                    "arial-bold",
+                    10.0,
+                    "DEPOSITARY",
+                    (50.0, 150.0, 140.0, 160.0),
+                ),
                 line("arial", 10.0, "A Bank S.A.", (50.0, 162.0, 130.0, 172.0)),
             ])
         }
@@ -861,7 +1300,10 @@ mod tests {
         fn list_args(stop: Option<SectionEnd>) -> LabelledValueArgs {
             let mut a = args(text_sel("^INVESTMENT MANAGERS"));
             a.r#where = LabelledValueWhere::Below;
-            a.window = Some(LabelledValueWindow { reach: None, across: 0.5 });
+            a.window = Some(LabelledValueWindow {
+                reach: None,
+                across: 0.5,
+            });
             a.take = LabelledValueTake::All;
             a.stop = stop;
             a
@@ -871,7 +1313,10 @@ mod tests {
         fn take_first_reads_one_value_of_a_list() {
             let mut a = list_args(None);
             a.take = LabelledValueTake::First;
-            assert_eq!(texts(&built(a).call(&two_sections()).unwrap()), vec!["First Manager Ltd".to_string()]);
+            assert_eq!(
+                texts(&built(a).call(&two_sections()).unwrap()),
+                vec!["First Manager Ltd".to_string()]
+            );
         }
 
         #[test]
@@ -897,9 +1342,11 @@ mod tests {
 
         #[test]
         fn a_stop_given_as_a_selection_closes_it_too() {
-            let blocks = built(list_args(Some(SectionEnd::Selection(text_sel("^DEPOSITARY")))))
-                .call(&two_sections())
-                .unwrap();
+            let blocks = built(list_args(Some(SectionEnd::Selection(text_sel(
+                "^DEPOSITARY",
+            )))))
+            .call(&two_sections())
+            .unwrap();
             assert_eq!(texts(&blocks).len(), 3);
         }
 
@@ -915,17 +1362,26 @@ mod tests {
         /// failing the page instead would throw away everything else the page carries.
         #[test]
         fn take_all_finding_nothing_is_an_empty_list_not_a_failure() {
-            let empty = page(vec![line("arial-bold", 10.0, "INVESTMENT MANAGERS", (50.0, 100.0, 200.0, 110.0))]);
+            let empty = page(vec![line(
+                "arial-bold",
+                10.0,
+                "INVESTMENT MANAGERS",
+                (50.0, 100.0, 200.0, 110.0),
+            )]);
             assert!(built(list_args(None)).call(&empty).unwrap().is_empty());
         }
 
         #[test]
         fn take_all_finding_no_label_is_an_empty_list_too() {
-            let elsewhere = page(vec![line("arial", 10.0, "Nothing here", (50.0, 100.0, 200.0, 110.0))]);
+            let elsewhere = page(vec![line(
+                "arial",
+                10.0,
+                "Nothing here",
+                (50.0, 100.0, 200.0, 110.0),
+            )]);
             assert!(built(list_args(None)).call(&elsewhere).unwrap().is_empty());
         }
     }
-
 
     /// Il costruttore della società di gestione: che sia `A1` e non una seconda implementazione,
     /// e che i dieci formati che lo chiamano oggi non vedano nessuna differenza.
@@ -937,8 +1393,18 @@ mod tests {
 
         fn sample() -> Page {
             page(vec![
-                line("arialmt", 10.0, "Società di gestione: Acme SGR S.p.A.", (0.0, 0.0, 200.0, 10.0)),
-                line("arialmt", 10.0, "Depositario: A Bank", (0.0, 12.0, 200.0, 22.0)),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Società di gestione: Acme SGR S.p.A.",
+                    (0.0, 0.0, 200.0, 10.0),
+                ),
+                line(
+                    "arialmt",
+                    10.0,
+                    "Depositario: A Bank",
+                    (0.0, 12.0, 200.0, 22.0),
+                ),
             ])
         }
 
@@ -976,7 +1442,9 @@ mod tests {
             )
             .call(&sample())
             .unwrap();
-            let after = pdf_extract_managment_company_standard(selection).call(&sample()).unwrap();
+            let after = pdf_extract_managment_company_standard(selection)
+                .call(&sample())
+                .unwrap();
             assert_eq!(after, before);
         }
 
@@ -990,7 +1458,9 @@ mod tests {
             )
             .extract(&sample())
             .unwrap_err();
-            let after = pdf_extract_managment_company_standard(selection).extract(&sample()).unwrap_err();
+            let after = pdf_extract_managment_company_standard(selection)
+                .extract(&sample())
+                .unwrap_err();
             assert_eq!(after.is_page_failure(), before.is_page_failure());
             assert!(after.is_page_failure());
         }
@@ -1004,7 +1474,8 @@ mod tests {
                 pdf_extract_currency_standard, pdf_extract_fund_standard,
             };
             let fund: ExtractTextPdfBlockOrFailPage = pdf_extract_fund_standard(text_sel("^X$"));
-            let currency: ExtractTextPdfBlockOrFailPage = pdf_extract_currency_standard(text_sel("^X$"));
+            let currency: ExtractTextPdfBlockOrFailPage =
+                pdf_extract_currency_standard(text_sel("^X$"));
             assert_eq!(PdfExtractPipe::name(&fund), "fund");
             assert_eq!(PdfExtractPipe::name(&currency), "currency");
         }
@@ -1019,12 +1490,17 @@ mod tests {
 
         #[test]
         fn the_pipe_name_is_the_field_it_extracts() {
-            assert_eq!(PdfExtractPipe::name(&built(args(text_sel("^Alpha$")))), "managment company");
+            assert_eq!(
+                PdfExtractPipe::name(&built(args(text_sel("^Alpha$")))),
+                "managment company"
+            );
         }
 
         #[test]
         fn a_page_failure_stays_non_fatal_once_translated_for_the_engine() {
-            let err = built(args(text_sel("^Nope$"))).extract(&sample()).unwrap_err();
+            let err = built(args(text_sel("^Nope$")))
+                .extract(&sample())
+                .unwrap_err();
             assert!(err.is_page_failure());
         }
 
@@ -1032,20 +1508,34 @@ mod tests {
         fn the_resolved_window_is_the_default_of_the_placement_it_was_given() {
             let mut a = args(text_sel("^Alpha$"));
             a.r#where = LabelledValueWhere::Below;
-            assert_eq!(built(a).window(), LabelledValueWindow::default_for(LabelledValueWhere::Below));
+            assert_eq!(
+                built(a).window(),
+                LabelledValueWindow::default_for(LabelledValueWhere::Below)
+            );
         }
 
         #[test]
         fn an_explicit_window_wins_over_the_default() {
             let mut a = args(text_sel("^Alpha$"));
             a.r#where = LabelledValueWhere::Below;
-            a.window = Some(LabelledValueWindow { reach: Some(9.0), across: 9.0 });
-            assert_eq!(built(a).window(), LabelledValueWindow { reach: Some(9.0), across: 9.0 });
+            a.window = Some(LabelledValueWindow {
+                reach: Some(9.0),
+                across: 9.0,
+            });
+            assert_eq!(
+                built(a).window(),
+                LabelledValueWindow {
+                    reach: Some(9.0),
+                    across: 9.0
+                }
+            );
         }
 
         #[test]
         fn an_empty_page_fails_rather_than_emitting_an_empty_block() {
-            let err = built(args(text_sel("^Alpha$"))).call(&page(Vec::new())).unwrap_err();
+            let err = built(args(text_sel("^Alpha$")))
+                .call(&page(Vec::new()))
+                .unwrap_err();
             assert!(matches!(
                 err,
                 PdfExtractStandardFuncsError::Commons(CommonsError::PageParseFail { .. })

@@ -103,7 +103,11 @@ pub struct FormatPatternError {
 
 impl FormatPatternError {
     fn new(input: &str, segment: Segment, reason: &str) -> Self {
-        FormatPatternError { input: input.to_string(), segment, reason: reason.to_string() }
+        FormatPatternError {
+            input: input.to_string(),
+            segment,
+            reason: reason.to_string(),
+        }
     }
 }
 
@@ -177,6 +181,13 @@ impl FormatPattern {
         })
     }
 
+    /// `self ⊓ other` if it exists **and** some format of the repository refines it (§1.5,
+    /// "compatible in the repository"); otherwise `None`. `expand(P ⊓ Q) = expand(P) ∩ expand(Q)`.
+    pub fn meet_in_repo(&self, other: &FormatPattern, formats: &[String]) -> Option<FormatPattern> {
+        self.meet(other)
+            .filter(|meet| !meet.expand(formats).is_empty())
+    }
+
     /// The number of slots neither `Unknown` nor `Required` (the entity included).
     pub fn specificity(&self) -> usize {
         1 + self.slots().iter().filter(|slot| slot.is_decided()).count()
@@ -188,7 +199,11 @@ impl FormatPattern {
     pub fn expand(&self, formats: &[String]) -> Vec<String> {
         formats
             .iter()
-            .filter(|format| format.parse::<FormatPattern>().is_ok_and(|name| name.refines(self)))
+            .filter(|format| {
+                format
+                    .parse::<FormatPattern>()
+                    .is_ok_and(|name| name.refines(self))
+            })
             .cloned()
             .collect()
     }
@@ -263,12 +278,32 @@ impl FromStr for FormatTemplate {
             Some(rest) => rest,
             // §1.4: `*` alone would instantiate into the entity it is given, never refining it.
             None if s == "*" => {
-                return Err(FormatPatternError::new(s, Segment::Language, "a template writes at least the language"));
+                return Err(FormatPatternError::new(
+                    s,
+                    Segment::Language,
+                    "a template writes at least the language",
+                ));
             }
-            None => return Err(FormatPatternError::new(s, Segment::Entity, "a template's entity is exactly '*'")),
+            None => {
+                return Err(FormatPatternError::new(
+                    s,
+                    Segment::Entity,
+                    "a template's entity is exactly '*'",
+                ));
+            }
         };
-        let Suffix { language, year, location, variant } = parse_suffix(s, rest)?;
-        Ok(FormatTemplate { language, year, location, variant })
+        let Suffix {
+            language,
+            year,
+            location,
+            variant,
+        } = parse_suffix(s, rest)?;
+        Ok(FormatTemplate {
+            language,
+            year,
+            location,
+            variant,
+        })
     }
 }
 
@@ -324,7 +359,9 @@ fn split_entity(s: &str) -> (&str, Option<&str>) {
     let Some(first_hyphen) = s.find('-') else {
         return (s, None);
     };
-    let cut = s[first_hyphen..].find(['@', '.']).map_or(s.len(), |offset| first_hyphen + offset);
+    let cut = s[first_hyphen..]
+        .find(['@', '.'])
+        .map_or(s.len(), |offset| first_hyphen + offset);
     let hyphen = s[..cut].rfind('-').unwrap_or(first_hyphen);
     (&s[..hyphen], Some(&s[hyphen + 1..]))
 }
@@ -353,10 +390,12 @@ fn parse_complete_with_any_entity(s: &str) -> Option<FormatPattern> {
     if s.contains('*') {
         return None;
     }
-    s.rmatch_indices('-').filter(|&(hyphen, _)| hyphen > 0).find_map(|(hyphen, _)| {
-        let suffix = parse_suffix(s, &s[hyphen + 1..]).ok()?;
-        matches!(suffix.year, Slot::Fixed(_)).then(|| suffix.with_entity(&s[..hyphen]))
-    })
+    s.rmatch_indices('-')
+        .filter(|&(hyphen, _)| hyphen > 0)
+        .find_map(|(hyphen, _)| {
+            let suffix = parse_suffix(s, &s[hyphen + 1..]).ok()?;
+            matches!(suffix.year, Slot::Fixed(_)).then(|| suffix.with_entity(&s[..hyphen]))
+        })
 }
 
 /// `LL`, or `LLYY` followed by an optional location and an optional variant.
@@ -374,7 +413,10 @@ fn parse_suffix(input: &str, suffix: &str) -> Result<Suffix, FormatPatternError>
     let year = &head[2..];
     if year.is_empty() {
         if !tail.is_empty() {
-            return Err(error(Segment::Year, "a location or a variant needs the year before it"));
+            return Err(error(
+                Segment::Year,
+                "a location or a variant needs the year before it",
+            ));
         }
         return Ok(Suffix {
             language: language.to_string(),
@@ -389,9 +431,14 @@ fn parse_suffix(input: &str, suffix: &str) -> Result<Suffix, FormatPatternError>
     let (location, tail) = match tail.strip_prefix('@') {
         Some(rest) => {
             let (location, tail) = rest.split_at(rest.find('.').unwrap_or(rest.len()));
-            let is_location = (2..=3).contains(&location.len()) && location.bytes().all(|b| b.is_ascii_uppercase());
-            let location = open_slot(location, is_location)
-                .ok_or_else(|| error(Segment::Location, "expected '*' or two or three capital letters"))?;
+            let is_location = (2..=3).contains(&location.len())
+                && location.bytes().all(|b| b.is_ascii_uppercase());
+            let location = open_slot(location, is_location).ok_or_else(|| {
+                error(
+                    Segment::Location,
+                    "expected '*' or two or three capital letters",
+                )
+            })?;
             (location, tail)
         }
         None => (Slot::Absent, tail),
@@ -399,12 +446,21 @@ fn parse_suffix(input: &str, suffix: &str) -> Result<Suffix, FormatPatternError>
     let variant = match tail.strip_prefix('.') {
         Some(variant) => {
             let is_variant = !variant.is_empty() && !variant.contains(['.', '/', '*']);
-            open_slot(variant, is_variant)
-                .ok_or_else(|| error(Segment::Variant, "expected '*' or a non-empty text without '.', '/' or '*'"))?
+            open_slot(variant, is_variant).ok_or_else(|| {
+                error(
+                    Segment::Variant,
+                    "expected '*' or a non-empty text without '.', '/' or '*'",
+                )
+            })?
         }
         None => Slot::Absent,
     };
-    Ok(Suffix { language: language.to_string(), year: Slot::Fixed(year.to_string()), location, variant })
+    Ok(Suffix {
+        language: language.to_string(),
+        year: Slot::Fixed(year.to_string()),
+        location,
+        variant,
+    })
 }
 
 /// An optional slot that was written: `*` is `Required`, a well-formed value is `Fixed`.
@@ -483,11 +539,13 @@ mod tests {
     ];
 
     fn p(s: &str) -> FormatPattern {
-        s.parse().unwrap_or_else(|e| panic!("{s} should parse: {e}"))
+        s.parse()
+            .unwrap_or_else(|e| panic!("{s} should parse: {e}"))
     }
 
     fn t(s: &str) -> FormatTemplate {
-        s.parse().unwrap_or_else(|e| panic!("{s} should parse as a template: {e}"))
+        s.parse()
+            .unwrap_or_else(|e| panic!("{s} should parse as a template: {e}"))
     }
 
     fn err(s: &str) -> FormatPatternError {
@@ -524,7 +582,13 @@ mod tests {
         )
     }
 
-    fn expected(entity: &str, language: Slot, year: Slot, location: Slot, variant: Slot) -> (String, Slot, Slot, Slot, Slot) {
+    fn expected(
+        entity: &str,
+        language: Slot,
+        year: Slot,
+        location: Slot,
+        variant: Slot,
+    ) -> (String, Slot, Slot, Slot, Slot) {
         (entity.to_string(), language, year, location, variant)
     }
 
@@ -537,7 +601,13 @@ mod tests {
         fn the_entity_alone_leaves_every_other_slot_unknown() {
             assert_eq!(
                 slots(&p("MEDIOLANUM")),
-                expected("MEDIOLANUM", Slot::Unknown, Slot::Unknown, Slot::Unknown, Slot::Unknown)
+                expected(
+                    "MEDIOLANUM",
+                    Slot::Unknown,
+                    Slot::Unknown,
+                    Slot::Unknown,
+                    Slot::Unknown
+                )
             );
         }
 
@@ -545,7 +615,13 @@ mod tests {
         fn truncating_after_the_language_leaves_year_location_and_variant_unknown() {
             assert_eq!(
                 slots(&p("MEDIOLANUM-IT")),
-                expected("MEDIOLANUM", fixed("IT"), Slot::Unknown, Slot::Unknown, Slot::Unknown)
+                expected(
+                    "MEDIOLANUM",
+                    fixed("IT"),
+                    Slot::Unknown,
+                    Slot::Unknown,
+                    Slot::Unknown
+                )
             );
         }
 
@@ -553,7 +629,13 @@ mod tests {
         fn a_name_reaching_the_year_leaves_location_and_variant_absent_not_unknown() {
             assert_eq!(
                 slots(&p("MEDIOLANUM-IT24")),
-                expected("MEDIOLANUM", fixed("IT"), fixed("24"), Slot::Absent, Slot::Absent)
+                expected(
+                    "MEDIOLANUM",
+                    fixed("IT"),
+                    fixed("24"),
+                    Slot::Absent,
+                    Slot::Absent
+                )
             );
         }
 
@@ -561,7 +643,13 @@ mod tests {
         fn a_location_without_variant_leaves_the_variant_absent() {
             assert_eq!(
                 slots(&p("FINECO-EN23@LUX")),
-                expected("FINECO", fixed("EN"), fixed("23"), fixed("LUX"), Slot::Absent)
+                expected(
+                    "FINECO",
+                    fixed("EN"),
+                    fixed("23"),
+                    fixed("LUX"),
+                    Slot::Absent
+                )
             );
         }
 
@@ -569,7 +657,13 @@ mod tests {
         fn a_variant_without_location_leaves_the_location_absent() {
             assert_eq!(
                 slots(&p("MEDIOLANUM-IT24.A")),
-                expected("MEDIOLANUM", fixed("IT"), fixed("24"), Slot::Absent, fixed("A"))
+                expected(
+                    "MEDIOLANUM",
+                    fixed("IT"),
+                    fixed("24"),
+                    Slot::Absent,
+                    fixed("A")
+                )
             );
         }
 
@@ -611,7 +705,13 @@ mod tests {
         fn at_star_requires_the_location_and_leaves_the_variant_absent() {
             assert_eq!(
                 slots(&p("FIDEURAM-IT23@*")),
-                expected("FIDEURAM", fixed("IT"), fixed("23"), Slot::Required, Slot::Absent)
+                expected(
+                    "FIDEURAM",
+                    fixed("IT"),
+                    fixed("23"),
+                    Slot::Required,
+                    Slot::Absent
+                )
             );
         }
 
@@ -619,7 +719,13 @@ mod tests {
         fn dot_star_requires_the_variant_and_leaves_the_location_absent() {
             assert_eq!(
                 slots(&p("MEDIOLANUM-IT24.*")),
-                expected("MEDIOLANUM", fixed("IT"), fixed("24"), Slot::Absent, Slot::Required)
+                expected(
+                    "MEDIOLANUM",
+                    fixed("IT"),
+                    fixed("24"),
+                    Slot::Absent,
+                    Slot::Required
+                )
             );
         }
 
@@ -627,7 +733,13 @@ mod tests {
         fn at_star_dot_star_requires_both() {
             assert_eq!(
                 slots(&p("FIDEURAM-IT23@*.*")),
-                expected("FIDEURAM", fixed("IT"), fixed("23"), Slot::Required, Slot::Required)
+                expected(
+                    "FIDEURAM",
+                    fixed("IT"),
+                    fixed("23"),
+                    Slot::Required,
+                    Slot::Required
+                )
             );
         }
 
@@ -690,7 +802,13 @@ mod tests {
             assert!(pattern.is_complete());
             assert_eq!(
                 slots(&pattern),
-                expected("FOO-BAR", fixed("IT"), fixed("24"), Slot::Absent, Slot::Absent)
+                expected(
+                    "FOO-BAR",
+                    fixed("IT"),
+                    fixed("24"),
+                    Slot::Absent,
+                    Slot::Absent
+                )
             );
             assert_eq!(pattern.to_string(), "FOO-BAR-IT24");
         }
@@ -711,14 +829,24 @@ mod tests {
         fn a_complete_name_with_a_hyphenated_entity_and_both_suffixes_is_readable() {
             assert_eq!(
                 slots(&p("FOO-BAR-IT24@LUX.A")),
-                expected("FOO-BAR", fixed("IT"), fixed("24"), fixed("LUX"), fixed("A"))
+                expected(
+                    "FOO-BAR",
+                    fixed("IT"),
+                    fixed("24"),
+                    fixed("LUX"),
+                    fixed("A")
+                )
             );
         }
 
         #[test]
         fn a_complete_name_with_space_dot_or_at_in_the_entity_is_readable() {
             // FORMAT_NAME_PATTERN opens with `.+`: everything it accepts without `*` is complete.
-            for (name, entity) in [("FOO BAR-IT24", "FOO BAR"), ("FOO.BAR-IT24", "FOO.BAR"), ("FOO@BAR-IT24", "FOO@BAR")] {
+            for (name, entity) in [
+                ("FOO BAR-IT24", "FOO BAR"),
+                ("FOO.BAR-IT24", "FOO.BAR"),
+                ("FOO@BAR-IT24", "FOO@BAR"),
+            ] {
                 let pattern = p(name);
                 assert!(pattern.is_complete(), "{name}");
                 assert_eq!(pattern.entity(), entity);
@@ -744,7 +872,10 @@ mod tests {
                 "FOO BAR-IT24",
             ];
             for name in names {
-                assert!(id_matches(name, IdFormat::ExpandableNoIndex), "precondition: {name}");
+                assert!(
+                    id_matches(name, IdFormat::ExpandableNoIndex),
+                    "precondition: {name}"
+                );
                 let pattern = p(name);
                 assert!(pattern.is_complete(), "{name}");
                 assert_eq!(pattern.to_string(), name);
@@ -879,7 +1010,10 @@ mod tests {
                 assert_eq!(e.segment, Segment::Entity, "{input}: {e}");
             }
             let message = err("*-EN23").to_string().to_lowercase();
-            assert!(message.contains("template"), "the error should point to the template: {message}");
+            assert!(
+                message.contains("template"),
+                "the error should point to the template: {message}"
+            );
         }
 
         #[test]
@@ -911,7 +1045,10 @@ mod tests {
                 "X@LUX",
                 "X.A",
             ] {
-                assert!(input.parse::<FormatPattern>().is_err(), "{input:?} should be rejected");
+                assert!(
+                    input.parse::<FormatPattern>().is_err(),
+                    "{input:?} should be rejected"
+                );
             }
         }
     }
@@ -957,8 +1094,14 @@ mod tests {
         #[test]
         fn segments_render_as_their_lowercase_names() {
             assert_eq!(
-                [Segment::Entity, Segment::Language, Segment::Year, Segment::Location, Segment::Variant]
-                    .map(|s| s.to_string()),
+                [
+                    Segment::Entity,
+                    Segment::Language,
+                    Segment::Year,
+                    Segment::Location,
+                    Segment::Variant
+                ]
+                .map(|s| s.to_string()),
                 ["entity", "language", "year", "location", "variant"].map(String::from)
             );
         }
@@ -1110,7 +1253,16 @@ mod tests {
 
         #[test]
         fn an_unknown_slot_is_refined_by_anything() {
-            for q in ["X", "X-IT", "X-EN", "X-IT24", "X-IT24@*", "X-IT24.*", "X-IT24@LUX.A", "X-IT24@*.*"] {
+            for q in [
+                "X",
+                "X-IT",
+                "X-EN",
+                "X-IT24",
+                "X-IT24@*",
+                "X-IT24.*",
+                "X-IT24@LUX.A",
+                "X-IT24@*.*",
+            ] {
                 assert!(r(q, "X"), "{q} ⊑ X");
             }
             for q in ["X-IT", "X-IT24", "X-IT23@*", "X-IT24.A", "X-IT24@LUX.*"] {
@@ -1244,7 +1396,10 @@ mod tests {
 
         #[test]
         fn required_meets_required_as_required() {
-            assert_eq!(m("X-IT24@*.*", "X-IT24@*.*"), Some("X-IT24@*.*".to_string()));
+            assert_eq!(
+                m("X-IT24@*.*", "X-IT24@*.*"),
+                Some("X-IT24@*.*".to_string())
+            );
         }
 
         #[test]
@@ -1282,18 +1437,27 @@ mod tests {
 
         #[test]
         fn equal_fixed_values_meet_as_themselves() {
-            assert_eq!(m("X-IT23@LUX.B", "X-IT23@LUX.B"), Some("X-IT23@LUX.B".to_string()));
+            assert_eq!(
+                m("X-IT23@LUX.B", "X-IT23@LUX.B"),
+                Some("X-IT23@LUX.B".to_string())
+            );
         }
 
         #[test]
         fn two_incomparable_patterns_meet_in_their_common_refinement() {
             // R10.
-            assert_eq!(m("X-IT23@LUX.*", "X-IT23@*.B"), Some("X-IT23@LUX.B".to_string()));
+            assert_eq!(
+                m("X-IT23@LUX.*", "X-IT23@*.B"),
+                Some("X-IT23@LUX.B".to_string())
+            );
         }
 
         #[test]
         fn a_truncation_and_a_wildcard_meet_slot_by_slot() {
-            assert_eq!(m("MEDIOLANUM-IT", "MEDIOLANUM-IT24@*.*"), Some("MEDIOLANUM-IT24@*.*".to_string()));
+            assert_eq!(
+                m("MEDIOLANUM-IT", "MEDIOLANUM-IT24@*.*"),
+                Some("MEDIOLANUM-IT24@*.*".to_string())
+            );
             assert_eq!(m("MEDIOLANUM-IT", "MEDIOLANUM-EN24"), None);
         }
     }
@@ -1351,7 +1515,9 @@ mod tests {
                 for b in &all {
                     for c in &all {
                         if c.refines(a) && c.refines(b) {
-                            let m = a.meet(b).unwrap_or_else(|| panic!("{c} refines {a} and {b}, the meet must exist"));
+                            let m = a.meet(b).unwrap_or_else(|| {
+                                panic!("{c} refines {a} and {b}, the meet must exist")
+                            });
                             assert!(c.refines(&m), "{c} should refine {a} ⊓ {b} = {m}");
                         }
                     }
@@ -1386,7 +1552,11 @@ mod tests {
                 for b in &all {
                     let ea = a.expand(&formats);
                     let eb = b.expand(&formats);
-                    let intersection: Vec<String> = formats.iter().filter(|f| ea.contains(f) && eb.contains(f)).cloned().collect();
+                    let intersection: Vec<String> = formats
+                        .iter()
+                        .filter(|f| ea.contains(f) && eb.contains(f))
+                        .cloned()
+                        .collect();
                     let em = a.meet(b).map(|m| m.expand(&formats)).unwrap_or_default();
                     assert_eq!(em, intersection, "{a} ⊓ {b}");
                 }
@@ -1424,7 +1594,10 @@ mod tests {
                 e("MEDIOLANUM-IT24.*"),
                 strings(&["MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"])
             );
-            assert_eq!(e("MEDIOLANUM-ES24.*"), strings(&["MEDIOLANUM-ES24.A", "MEDIOLANUM-ES24.B"]));
+            assert_eq!(
+                e("MEDIOLANUM-ES24.*"),
+                strings(&["MEDIOLANUM-ES24.A", "MEDIOLANUM-ES24.B"])
+            );
         }
 
         #[test]
@@ -1433,13 +1606,19 @@ mod tests {
                 e("MEDIOLANUM-IT"),
                 strings(&["MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"])
             );
-            assert_eq!(e("MEDIOLANUM-EN"), strings(&["MEDIOLANUM-EN23", "MEDIOLANUM-EN24"]));
+            assert_eq!(
+                e("MEDIOLANUM-EN"),
+                strings(&["MEDIOLANUM-EN23", "MEDIOLANUM-EN24"])
+            );
             assert_eq!(e("EURIZON-EN"), strings(&["EURIZON-EN23", "EURIZON-EN21"]));
         }
 
         #[test]
         fn a_required_location_expands_to_every_location() {
-            assert_eq!(e("FINECO-EN23@*"), strings(&["FINECO-EN23@LUX", "FINECO-EN23@IR"]));
+            assert_eq!(
+                e("FINECO-EN23@*"),
+                strings(&["FINECO-EN23@LUX", "FINECO-EN23@IR"])
+            );
         }
 
         #[test]
@@ -1489,7 +1668,10 @@ mod tests {
         fn a_format_with_a_hyphenated_entity_is_matched_on_its_whole_entity() {
             let formats = strings(&["FOO-BAR-IT24", "FOO-IT24"]);
             assert_eq!(p("FOO").expand(&formats), strings(&["FOO-IT24"]));
-            assert_eq!(p("FOO-BAR-IT24").expand(&formats), strings(&["FOO-BAR-IT24"]));
+            assert_eq!(
+                p("FOO-BAR-IT24").expand(&formats),
+                strings(&["FOO-BAR-IT24"])
+            );
         }
 
         #[test]
@@ -1553,6 +1735,164 @@ mod tests {
         }
     }
 
+    /// §1.5 and §7, "compatible in the repository": the relation the combination of sources uses
+    /// (phase 10). Not the abstract meet: `X-IT23@LUX.*` and `X-IT23@*.B` have one,
+    /// `X-IT23@LUX.B`, and in a repository without it the two disagree (R10).
+    mod meet_in_repo {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// The fixture of `agent-memory/DESIGN-phase10-classify.md` §7: the five formats of the
+        /// `formats_repo::doc_classify` tests, plus two `X-IT23` formats for R10.
+        const REPO: [&str; 7] = [
+            "AMUNDI-EN24",
+            "EURIZON-EN23",
+            "MEDIOLANUM-EN23",
+            "MEDIOLANUM-IT24.A",
+            "MEDIOLANUM-IT24.B",
+            "X-IT23@LUX.A",
+            "X-IT23@ES.B",
+        ];
+
+        fn repo() -> Vec<String> {
+            strings(&REPO)
+        }
+
+        fn m(a: &str, b: &str) -> Option<FormatPattern> {
+            p(a).meet_in_repo(&p(b), &repo())
+        }
+
+        #[test]
+        fn of_two_comparable_patterns_it_is_the_more_specific() {
+            assert_eq!(
+                m("MEDIOLANUM", "MEDIOLANUM-IT24.A"),
+                Some(p("MEDIOLANUM-IT24.A"))
+            );
+        }
+
+        #[test]
+        fn a_complete_name_met_with_itself_is_itself() {
+            assert_eq!(m("AMUNDI-EN24", "AMUNDI-EN24"), Some(p("AMUNDI-EN24")));
+        }
+
+        /// The meet of two partials can stay a partial: it is kept as such, never resolved to its
+        /// candidates (plan §2: no automatic attempt).
+        #[test]
+        fn a_partial_meet_with_formats_in_the_repository_stays_partial() {
+            assert_eq!(
+                m("MEDIOLANUM-IT", "MEDIOLANUM-IT24.*"),
+                Some(p("MEDIOLANUM-IT24.*"))
+            );
+        }
+
+        /// A partial meet with a single candidate is not promoted to that candidate.
+        #[test]
+        fn a_partial_meet_with_a_single_candidate_stays_partial() {
+            assert_eq!(m("MEDIOLANUM", "MEDIOLANUM-EN"), Some(p("MEDIOLANUM-EN")));
+        }
+
+        #[test]
+        fn of_two_incomparable_patterns_whose_meet_the_repository_has_it_is_the_meet() {
+            assert_eq!(m("X-IT23@LUX.*", "X-IT23@*.A"), Some(p("X-IT23@LUX.A")));
+        }
+
+        /// R10: compatible in the abstract, not in this repository.
+        #[test]
+        fn an_abstract_meet_the_repository_does_not_have_is_none() {
+            assert!(p("X-IT23@LUX.*").meet(&p("X-IT23@*.B")).is_some());
+            assert_eq!(m("X-IT23@LUX.*", "X-IT23@*.B"), None);
+        }
+
+        #[test]
+        fn two_different_entities_have_no_meet() {
+            assert_eq!(m("AMUNDI-EN24", "EURIZON-EN23"), None);
+            assert_eq!(m("AMUNDI", "EURIZON"), None);
+        }
+
+        #[test]
+        fn two_different_complete_names_of_one_entity_have_no_meet() {
+            assert_eq!(m("MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"), None);
+        }
+
+        /// `Absent ⊓ Required` is empty already in the abstract.
+        #[test]
+        fn an_absent_slot_against_a_required_one_has_no_meet() {
+            assert_eq!(m("MEDIOLANUM-EN23", "MEDIOLANUM-EN23.*"), None);
+        }
+
+        /// Even two equal patterns: compatibility in the repository is about the repository.
+        #[test]
+        fn a_pattern_no_format_of_the_repository_refines_has_no_meet_even_with_itself() {
+            assert_eq!(m("FINECO-EN23", "FINECO-EN23"), None);
+            assert_eq!(m("FINECO", "FINECO-EN"), None);
+        }
+
+        #[test]
+        fn an_empty_repository_has_no_meet_at_all() {
+            assert_eq!(p("AMUNDI").meet_in_repo(&p("AMUNDI-EN24"), &[]), None);
+        }
+
+        #[test]
+        fn it_is_symmetric() {
+            let patterns = [
+                "MEDIOLANUM",
+                "MEDIOLANUM-IT",
+                "MEDIOLANUM-EN",
+                "MEDIOLANUM-IT24.*",
+                "MEDIOLANUM-IT24.A",
+                "MEDIOLANUM-IT24.B",
+                "MEDIOLANUM-EN23",
+                "AMUNDI-EN24",
+                "X-IT23@LUX.*",
+                "X-IT23@*.A",
+                "X-IT23@*.B",
+                "X-IT23@*.*",
+                "FINECO-EN23",
+            ];
+            for a in patterns {
+                for b in patterns {
+                    assert_eq!(m(a, b), m(b, a), "{a} against {b}");
+                }
+            }
+        }
+
+        /// `expand(P ⊓ Q) = expand(P) ∩ expand(Q)`, and the meet exists in the repository exactly
+        /// when that intersection is not empty.
+        #[test]
+        fn it_exists_exactly_when_the_expansions_intersect_and_expands_to_their_intersection() {
+            let patterns = [
+                "MEDIOLANUM",
+                "MEDIOLANUM-IT",
+                "MEDIOLANUM-IT24.*",
+                "MEDIOLANUM-IT24.A",
+                "MEDIOLANUM-EN23",
+                "X-IT23@LUX.*",
+                "X-IT23@*.A",
+                "X-IT23@*.B",
+                "AMUNDI-EN24",
+            ];
+            let formats = repo();
+            for a in patterns {
+                for b in patterns {
+                    let expand_a = p(a).expand(&formats);
+                    let expand_b = p(b).expand(&formats);
+                    let intersection: Vec<String> = expand_a
+                        .iter()
+                        .filter(|f| expand_b.contains(f))
+                        .cloned()
+                        .collect();
+                    match m(a, b) {
+                        Some(meet) => {
+                            assert_eq!(meet, p(a).meet(&p(b)).unwrap(), "{a} ⊓ {b}");
+                            assert_eq!(meet.expand(&formats), intersection, "{a} ⊓ {b}");
+                        }
+                        None => assert!(intersection.is_empty(), "{a} ⊓ {b}: {intersection:?}"),
+                    }
+                }
+            }
+        }
+    }
+
     /// §1.4: `*` as entity is a template, instantiated with an entity.
     mod templates {
         use super::*;
@@ -1571,8 +1911,14 @@ mod tests {
         #[test]
         fn a_template_keeps_its_wildcards() {
             assert_eq!(t("*-EN23@*").instantiate("FINECO"), p("FINECO-EN23@*"));
-            assert_eq!(t("*-IT24.*").instantiate("MEDIOLANUM"), p("MEDIOLANUM-IT24.*"));
-            assert_eq!(t("*-IT23@*.*").instantiate("FIDEURAM"), p("FIDEURAM-IT23@*.*"));
+            assert_eq!(
+                t("*-IT24.*").instantiate("MEDIOLANUM"),
+                p("MEDIOLANUM-IT24.*")
+            );
+            assert_eq!(
+                t("*-IT23@*.*").instantiate("FIDEURAM"),
+                p("FIDEURAM-IT23@*.*")
+            );
         }
 
         #[test]
@@ -1589,7 +1935,14 @@ mod tests {
 
         #[test]
         fn a_template_renders_back_unchanged() {
-            for s in ["*-EN23", "*-EN", "*-EN23@*", "*-IT24.*", "*-IT23@*.*", "*-IT23@LUX.B"] {
+            for s in [
+                "*-EN23",
+                "*-EN",
+                "*-EN23@*",
+                "*-IT24.*",
+                "*-IT23@*.*",
+                "*-IT23@LUX.B",
+            ] {
                 assert_eq!(t(s).to_string(), s);
                 assert_eq!(t(&t(s).to_string()), t(s));
             }
@@ -1642,8 +1995,18 @@ mod tests {
 
         #[test]
         fn a_pattern_serializes_as_its_canonical_string() {
-            for name in ["MEDIOLANUM", "MEDIOLANUM-IT", "MEDIOLANUM-IT24.*", "FIDEURAM-IT23@*", "X-EN23@*.*", "AMUNDI-EN24"] {
-                assert_eq!(serde_json::to_string(&p(name)).unwrap(), format!("\"{name}\""));
+            for name in [
+                "MEDIOLANUM",
+                "MEDIOLANUM-IT",
+                "MEDIOLANUM-IT24.*",
+                "FIDEURAM-IT23@*",
+                "X-EN23@*.*",
+                "AMUNDI-EN24",
+            ] {
+                assert_eq!(
+                    serde_json::to_string(&p(name)).unwrap(),
+                    format!("\"{name}\"")
+                );
             }
         }
 
@@ -1659,14 +2022,20 @@ mod tests {
         #[test]
         fn a_string_that_is_not_a_pattern_does_not_deserialize() {
             for json in ["\"-IT24\"", "\"*-EN23\"", "\"\""] {
-                assert!(serde_json::from_str::<FormatPattern>(json).is_err(), "{json}");
+                assert!(
+                    serde_json::from_str::<FormatPattern>(json).is_err(),
+                    "{json}"
+                );
             }
         }
 
         #[test]
         fn a_non_string_does_not_deserialize() {
             for json in ["3", "null", "{}", "[\"MEDIOLANUM\"]"] {
-                assert!(serde_json::from_str::<FormatPattern>(json).is_err(), "{json}");
+                assert!(
+                    serde_json::from_str::<FormatPattern>(json).is_err(),
+                    "{json}"
+                );
             }
         }
 
@@ -1674,8 +2043,13 @@ mod tests {
         #[test]
         fn the_deserialization_error_carries_the_parse_failure() {
             let reason = "-IT24".parse::<FormatPattern>().unwrap_err().to_string();
-            let error = serde_json::from_str::<FormatPattern>("\"-IT24\"").unwrap_err().to_string();
-            assert!(error.contains(&reason), "{error:?} should contain {reason:?}");
+            let error = serde_json::from_str::<FormatPattern>("\"-IT24\"")
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains(&reason),
+                "{error:?} should contain {reason:?}"
+            );
         }
     }
 }

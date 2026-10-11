@@ -130,7 +130,10 @@ mod tests {
 
         #[test]
         fn accepts_both_str_and_string() {
-            assert_eq!(MatchFund::new("A").normalized(), MatchFund::new(String::from("A")).normalized());
+            assert_eq!(
+                MatchFund::new("A").normalized(),
+                MatchFund::new(String::from("A")).normalized()
+            );
         }
 
         #[test]
@@ -188,7 +191,15 @@ mod tests {
 
         #[test]
         fn matches_and_equality_always_agree() {
-            let names = ["Café Fund", "CAFE FUND", "Altro", "", "  ", "Rock & Roll", "Rock and Roll"];
+            let names = [
+                "Café Fund",
+                "CAFE FUND",
+                "Altro",
+                "",
+                "  ",
+                "Rock & Roll",
+                "Rock and Roll",
+            ];
             for a in names {
                 let fund = MatchFund::new(a);
                 for b in names {
@@ -209,7 +220,11 @@ mod tests {
 
         #[test]
         fn sorts_by_normalized_form_not_by_original_name() {
-            let mut funds = [MatchFund::new("beta"), MatchFund::new("Alpha"), MatchFund::new("Ómega")];
+            let mut funds = [
+                MatchFund::new("beta"),
+                MatchFund::new("Alpha"),
+                MatchFund::new("Ómega"),
+            ];
             funds.sort();
             let normalized: Vec<&str> = funds.iter().map(MatchFund::normalized).collect();
             assert_eq!(normalized, vec!["alpha", "beta", "omega"]);
@@ -239,13 +254,17 @@ mod tests {
 
         #[test]
         fn serializes_the_original_name() {
-            assert_eq!(serde_json::to_string(&MatchFund::new("Café Fund")).unwrap(), "\"Café Fund\"");
+            assert_eq!(
+                serde_json::to_string(&MatchFund::new("Café Fund")).unwrap(),
+                "\"Café Fund\""
+            );
         }
 
         #[test]
         fn rereads_name_and_normalized_form() {
             let original = MatchFund::new("Café  Fund");
-            let reread: MatchFund = serde_json::from_str(&serde_json::to_string(&original).unwrap()).unwrap();
+            let reread: MatchFund =
+                serde_json::from_str(&serde_json::to_string(&original).unwrap()).unwrap();
             assert_eq!(reread.name(), original.name());
             assert_eq!(reread.normalized(), original.normalized());
         }

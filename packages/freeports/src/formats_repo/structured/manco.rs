@@ -92,15 +92,26 @@ pub fn get_pipelines(
     let configs = get_manco_configs(formats_repo_dir)?;
     let mut pipelines: HashMap<PipelineName, Pipeline> = HashMap::new();
 
-    for (id, row) in configs.into_iter().filter(|(id, _)| id.format == format_name) {
+    for (id, row) in configs
+        .into_iter()
+        .filter(|(id, _)| id.format == format_name)
+    {
         let name = PipelineName::new(&id.pipeline);
-        let pipeline = pipelines.entry(name.clone()).or_insert_with(|| Pipeline::new(name));
+        let pipeline = pipelines
+            .entry(name.clone())
+            .or_insert_with(|| Pipeline::new(name));
 
-        pipeline.pdf_extract.push(Arc::new(extraction(&id.to_string(), &row)?));
+        pipeline
+            .pdf_extract
+            .push(Arc::new(extraction(&id.to_string(), &row)?));
         pipeline.text_filter.push(filtering(&id.to_string(), &row)?);
-        pipeline.deserialize.push(Arc::new(DeserializerManagmentCompanyStandard));
+        pipeline
+            .deserialize
+            .push(Arc::new(DeserializerManagmentCompanyStandard));
         if row.also_investments_manager.unwrap_or(false) {
-            pipeline.deserialize.push(Arc::new(DeserializerInvestmentsManagerFromManco));
+            pipeline
+                .deserialize
+                .push(Arc::new(DeserializerInvestmentsManagerFromManco));
         }
     }
 
@@ -109,10 +120,16 @@ pub fn get_pipelines(
 }
 
 /// The `labelled_value` pipe the row describes.
-fn extraction(id: &str, row: &MancoArgsRow) -> Result<PdfExtractLabelledValueStandard, StructuredError> {
+fn extraction(
+    id: &str,
+    row: &MancoArgsRow,
+) -> Result<PdfExtractLabelledValueStandard, StructuredError> {
     let selection = |column: &'static str, cell: &str| {
-        pdfline_selection_from_str(cell)
-            .map_err(|source| StructuredError::LineSelection { id: id.to_string(), column, source })
+        pdfline_selection_from_str(cell).map_err(|source| StructuredError::LineSelection {
+            id: id.to_string(),
+            column,
+            source,
+        })
     };
 
     let placement = match row.placement.as_deref().map(str::trim) {
@@ -141,7 +158,8 @@ fn extraction(id: &str, row: &MancoArgsRow) -> Result<PdfExtractLabelledValueSta
         }
     };
 
-    let mut args = LabelledValueArgs::new(selection("Label set", &row.label_set)?, BLOCK, PIPE_NAME);
+    let mut args =
+        LabelledValueArgs::new(selection("Label set", &row.label_set)?, BLOCK, PIPE_NAME);
     args.r#where = placement;
     args.take = take;
     // A window only where the row asked for one, so that the side it did not name keeps the
@@ -149,7 +167,10 @@ fn extraction(id: &str, row: &MancoArgsRow) -> Result<PdfExtractLabelledValueSta
     // follows. `Across` is not a column: none of the eleven measured pipelines sets it.
     if let Some(reach) = row.reach {
         let default = LabelledValueWindow::default_for(placement);
-        args.window = Some(LabelledValueWindow { reach: Some(reach), across: default.across });
+        args.window = Some(LabelledValueWindow {
+            reach: Some(reach),
+            across: default.across,
+        });
     }
     if let Some(cell) = &row.stop_set {
         args.stop = Some(SectionEnd::Selection(selection("Stop set", cell)?));
@@ -179,6 +200,9 @@ fn filtering(
         row.before.as_deref().unwrap_or(""),
         among,
     )
-    .map_err(|source| StructuredError::Manco { id: id.to_string(), source })?;
+    .map_err(|source| StructuredError::Manco {
+        id: id.to_string(),
+        source,
+    })?;
     Ok(Arc::new(pipe))
 }

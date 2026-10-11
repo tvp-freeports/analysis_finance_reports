@@ -31,7 +31,9 @@ use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 /// [`BlockType`](crate::core::classes::BlockType): it gives the behaviour somewhere to live, and it
 /// stops a document id and a [`FormatName`] from being swapped in a signature. It is also the key
 /// results are grouped by when a run covers several documents.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(transparent)]
 pub struct DocumentId(String);
 
@@ -64,7 +66,9 @@ impl From<String> for DocumentId {
 }
 
 /// The name of a format in a formats repository, for example `EURIZON-EN23`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(transparent)]
 pub struct FormatName(String);
 
@@ -156,7 +160,14 @@ impl Page {
     /// Builds a native page with no PyMuPDF dict attached — the form used by everything that is not
     /// the Python boundary, tests included.
     pub fn new(number: u32, size: (f32, f32), lines: Vec<PdfLine>, images: Vec<PageImage>) -> Self {
-        Page { number, size, lines, images, drawings: Vec::new(), raw: None }
+        Page {
+            number,
+            size,
+            lines,
+            images,
+            drawings: Vec::new(),
+            raw: None,
+        }
     }
 
     /// Attaches the original PyMuPDF dict. Called only from `input::document`.
@@ -191,7 +202,11 @@ pub struct Document {
 
 impl Document {
     pub fn new(id: impl Into<DocumentId>, format: impl Into<FormatName>, pages: Vec<Page>) -> Self {
-        Document { id: id.into(), format: format.into(), pages }
+        Document {
+            id: id.into(),
+            format: format.into(),
+            pages,
+        }
     }
 
     /// The page with the given **1-based** number, looked up by [`Page::number`] rather than by
@@ -257,8 +272,9 @@ mod tests {
             ids.sort();
             assert_eq!(ids, vec![DocumentId::new("a"), DocumentId::new("b")]);
 
-            let set: std::collections::HashSet<_> =
-                [DocumentId::new("a"), DocumentId::new("a")].into_iter().collect();
+            let set: std::collections::HashSet<_> = [DocumentId::new("a"), DocumentId::new("a")]
+                .into_iter()
+                .collect();
             assert_eq!(set.len(), 1);
         }
 
@@ -280,7 +296,12 @@ mod tests {
 
         #[test]
         fn a_page_keeps_the_lines_in_the_order_given() {
-            let page = Page::new(1, (595.0, 842.0), vec![line("first"), line("second")], vec![]);
+            let page = Page::new(
+                1,
+                (595.0, 842.0),
+                vec![line("first"), line("second")],
+                vec![],
+            );
             let texts: Vec<&str> = page.lines.iter().map(|l| l.text().as_str()).collect();
             assert_eq!(texts, vec!["first", "second"]);
         }
@@ -322,7 +343,10 @@ mod tests {
             Document::new(
                 "report",
                 "FMT-EN23",
-                vec![Page::new(1, (1.0, 1.0), vec![], vec![]), Page::new(3, (1.0, 1.0), vec![], vec![])],
+                vec![
+                    Page::new(1, (1.0, 1.0), vec![], vec![]),
+                    Page::new(3, (1.0, 1.0), vec![], vec![]),
+                ],
             )
         }
 
@@ -360,21 +384,29 @@ mod tests {
 
         #[test]
         fn a_parse_failure_displays_its_bare_message() {
-            let err = PageError::ParseFail { message: "no table found".to_string() };
+            let err = PageError::ParseFail {
+                message: "no table found".to_string(),
+            };
             assert_eq!(err.to_string(), "no table found");
         }
 
         #[test]
         fn a_line_parse_failure_displays_its_bare_message() {
-            let err = PageError::LineParseFail { message: "bad span".to_string() };
+            let err = PageError::LineParseFail {
+                message: "bad span".to_string(),
+            };
             assert_eq!(err.to_string(), "bad span");
         }
 
         #[test]
         fn the_two_variants_are_distinguishable() {
             assert_ne!(
-                PageError::ParseFail { message: "x".to_string() },
-                PageError::LineParseFail { message: "x".to_string() }
+                PageError::ParseFail {
+                    message: "x".to_string()
+                },
+                PageError::LineParseFail {
+                    message: "x".to_string()
+                }
             );
         }
     }

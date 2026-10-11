@@ -90,7 +90,13 @@ impl Declared {
     /// rather than the string (see [`super::reading::renamed`]).
     pub fn from_block(block: PdfBlock) -> Self {
         let name = block_text(&block);
-        Declared { name, funds: None, partial: false, block: Some(block), retired: false }
+        Declared {
+            name,
+            funds: None,
+            partial: false,
+            block: Some(block),
+            retired: false,
+        }
     }
 
     /// The same declaration with the funds the page attributes to it.
@@ -218,7 +224,12 @@ pub fn assigned_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
 
 /// The text written in a block, without the spaces a PDF line drags along.
 pub(super) fn block_text(block: &PdfBlock) -> String {
-    block.content.as_str().unwrap_or_default().trim().to_string()
+    block
+        .content
+        .as_str()
+        .unwrap_or_default()
+        .trim()
+        .to_string()
 }
 
 /// Assigns the funds to the managers, and returns the [`Assignment`] that comes out.
@@ -248,10 +259,14 @@ pub fn assign(
     already_assigned: &BTreeSet<MatchFund>,
     settle: bool,
 ) -> Assignment {
-    let declarations: Vec<Declared> =
-        flatten(declared).into_iter().map(|d| respell(d, funds)).collect();
-    let kept: Vec<Declared> =
-        declarations.into_iter().filter(|d| is_of_interest(d, funds)).collect();
+    let declarations: Vec<Declared> = flatten(declared)
+        .into_iter()
+        .map(|d| respell(d, funds))
+        .collect();
+    let kept: Vec<Declared> = declarations
+        .into_iter()
+        .filter(|d| is_of_interest(d, funds))
+        .collect();
 
     // Managers who left during the year write no rows, but the sub-funds they name are sub-funds of
     // the document all the same: `named` counts them, `claimed` does not.
@@ -384,8 +399,9 @@ fn flatten(declared: Vec<Declared>) -> Vec<Declared> {
 /// it: that is all there is.
 fn respell(mut declaration: Declared, funds: &BTreeSet<MatchFund>) -> Declared {
     if let Some(own) = declaration.funds.take() {
-        declaration.funds =
-            Some(collect_funds(own.into_iter().map(|f| funds.get(&f).cloned().unwrap_or(f))));
+        declaration.funds = Some(collect_funds(
+            own.into_iter().map(|f| funds.get(&f).cloned().unwrap_or(f)),
+        ));
     }
     declaration
 }
@@ -397,7 +413,9 @@ fn respell(mut declaration: Declared, funds: &BTreeSet<MatchFund>) -> Declared {
 /// table): it falls, and says so to whoever is writing the format, because a row missing from the
 /// output is nearly always the `text_filter` (`R12`) and this is the point where it disappears.
 fn is_of_interest(declaration: &Declared, funds: &BTreeSet<MatchFund>) -> bool {
-    let Some(own) = &declaration.funds else { return true };
+    let Some(own) = &declaration.funds else {
+        return true;
+    };
     if own.iter().any(|f| funds.contains(f)) {
         return true;
     }
@@ -422,7 +440,11 @@ mod tests {
 
     /// The names of an assignment's managers, in the order they come out.
     fn names(assignment: &Assignment) -> Vec<&str> {
-        assignment.managers.iter().map(|m| m.name.as_str()).collect()
+        assignment
+            .managers
+            .iter()
+            .map(|m| m.name.as_str())
+            .collect()
     }
 
     /// The funds credited to `name`, sorted, as written.
@@ -495,7 +517,9 @@ mod tests {
         #[test]
         fn a_manager_of_part_of_a_fund_does_not_take_the_fund_from_the_default() {
             let declared = vec![
-                Declared::new("Partial AM").with_funds(["Beta Fund"]).with_partial(true),
+                Declared::new("Partial AM")
+                    .with_funds(["Beta Fund"])
+                    .with_partial(true),
                 Declared::new("Residual AM"),
             ];
             let got = assign(declared, &three(), None, &BTreeSet::new(), true);
@@ -544,7 +568,9 @@ mod tests {
         #[test]
         fn a_retired_manager_writes_no_row() {
             let declared = vec![
-                Declared::new("Gone AM").with_funds(["Alpha Fund"]).with_retired(true),
+                Declared::new("Gone AM")
+                    .with_funds(["Alpha Fund"])
+                    .with_retired(true),
                 Declared::new("Current AM"),
             ];
             let got = assign(declared, &three(), None, &BTreeSet::new(), true);
@@ -554,7 +580,9 @@ mod tests {
         #[test]
         fn the_funds_it_named_go_back_into_the_residual() {
             let declared = vec![
-                Declared::new("Gone AM").with_funds(["Alpha Fund"]).with_retired(true),
+                Declared::new("Gone AM")
+                    .with_funds(["Alpha Fund"])
+                    .with_retired(true),
                 Declared::new("Current AM"),
             ];
             let got = assign(declared, &three(), None, &BTreeSet::new(), true);
@@ -578,7 +606,9 @@ mod tests {
         #[test]
         fn a_name_declared_once_without_the_qualification_is_in_charge() {
             let declared = vec![
-                Declared::new("One AM").with_funds(["Alpha Fund"]).with_retired(true),
+                Declared::new("One AM")
+                    .with_funds(["Alpha Fund"])
+                    .with_retired(true),
                 Declared::new("One AM").with_funds(["Beta Fund"]),
             ];
             let got = assign(declared, &three(), None, &BTreeSet::new(), true);
@@ -601,7 +631,10 @@ mod tests {
         fn a_fund_the_job_had_not_seen_comes_out_to_be_declared() {
             let declared = vec![Declared::new("One AM").with_funds(["Alpha Fund", "Delta Fund"])];
             let got = assign(declared, &three(), None, &BTreeSet::new(), true);
-            assert_eq!(got.new_funds.iter().map(|f| f.name()).collect::<Vec<_>>(), ["Delta Fund"]);
+            assert_eq!(
+                got.new_funds.iter().map(|f| f.name()).collect::<Vec<_>>(),
+                ["Delta Fund"]
+            );
             assert_eq!(got.funds.len(), 4);
         }
 
@@ -614,8 +647,7 @@ mod tests {
 
         #[test]
         fn a_manager_of_one_known_fund_among_unknown_ones_stays() {
-            let declared =
-                vec![Declared::new("One AM").with_funds(["Omega Fund", "Beta Fund"])];
+            let declared = vec![Declared::new("One AM").with_funds(["Omega Fund", "Beta Fund"])];
             let got = assign(declared, &three(), None, &BTreeSet::new(), true);
             assert_eq!(names(&got), ["One AM"]);
         }
@@ -643,10 +675,11 @@ mod tests {
         #[test]
         fn nothing_left_over_means_no_manager_row_for_it() {
             let manco = Manco::Name("Acme SGR".to_string());
-            let declared = vec![
-                Declared::new("Delegate AM")
-                    .with_funds(["Alpha Fund", "Beta Fund", "Gamma Fund"]),
-            ];
+            let declared = vec![Declared::new("Delegate AM").with_funds([
+                "Alpha Fund",
+                "Beta Fund",
+                "Gamma Fund",
+            ])];
             let got = assign(declared, &three(), Some(&manco), &BTreeSet::new(), true);
             assert_eq!(names(&got), ["Delegate AM"]);
             assert!(!got.to_manco);

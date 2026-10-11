@@ -281,19 +281,9 @@ msgstr ""
 
 #: ../../source/reference/cli/freeports.md:54
 msgid ""
-"Omit it and the engine tries to infer it from the URL of each document, using the "
-"repository's `url_mapping.csv`; the first matching prefix wins. Inference works only "
-"for documents that *have* a URL. Two documents inferring **different** formats is an "
-"error rather than a choice made silently. Giving `-f` explicitly while inference also"
-" succeeds and disagrees is a warning, not an error: you were explicit, so you win, "
-"but you are told."
+"Omit it and the engine tries to infer it from the URL of each document, using the repository's `url_mapping.csv`: the longest matching prefix wins, then the row with the more specific name, then the row that comes first. Inference works only for documents that *have* a URL. Two documents inferring **different** formats is an error rather than a choice made silently. Giving `-f` explicitly while inference also succeeds and disagrees is a warning, not an error: you were explicit, so you win, but you are told."
 msgstr ""
-"Omita-o e o motor tenta deduzi-lo pela URL de cada documento, usando o "
-"`url_mapping.csv` do repositório; vence o primeiro prefixo que casa. A dedução só "
-"funciona para os documentos que *têm* URL. Dois documentos deduzindo formatos "
-"**diferentes** é erro, e não uma escolha feita em silêncio. Dar `-f` explicitamente "
-"enquanto a dedução também dá certo e discorda é um aviso, não um erro: você foi "
-"explícito, então você vence — mas fica sabendo."
+"Omita-o e o motor tenta deduzi-lo pela URL de cada documento, usando o `url_mapping.csv` do repositório: vence o prefixo mais longo que casa, depois a linha com o nome mais específico, depois a linha que vem primeiro. A dedução só funciona para os documentos que *têm* URL. Dois documentos deduzindo formatos **diferentes** é erro, e não uma escolha feita em silêncio. Dar `-f` explicitamente enquanto a dedução também dá certo e discorda é um aviso, não um erro: você foi explícito, então você vence — mas fica sabendo."
 
 #: ../../source/reference/cli/freeports.md:60
 msgid "Where things live"

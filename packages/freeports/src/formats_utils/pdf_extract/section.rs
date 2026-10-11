@@ -93,7 +93,11 @@ impl SectionEnd {
 /// "Strictly below" is on the **top edge**: a line whose box merely overlaps the anchor's is beside
 /// it, not under it. The minimum rather than the first met, because a page's lines are not
 /// guaranteed to arrive sorted.
-pub fn section_bottom<'a, F>(anchor: &PdfLine, lines: &'a [PdfLine], belongs: F) -> Option<&'a PdfLine>
+pub fn section_bottom<'a, F>(
+    anchor: &PdfLine,
+    lines: &'a [PdfLine],
+    belongs: F,
+) -> Option<&'a PdfLine>
 where
     F: Fn(&PdfLine) -> bool,
 {
@@ -102,7 +106,11 @@ where
         .iter()
         .filter(|line| line.bbox().as_tuple().1 > anchor_top && belongs(line))
         .min_by(|a, b| {
-            a.bbox().as_tuple().1.partial_cmp(&b.bbox().as_tuple().1).expect("page ordinates are finite")
+            a.bbox()
+                .as_tuple()
+                .1
+                .partial_cmp(&b.bbox().as_tuple().1)
+                .expect("page ordinates are finite")
         })
 }
 
@@ -220,8 +228,26 @@ pub struct PdfExtractSectionStandard {
 
 impl PdfExtractSectionStandard {
     pub fn new(args: SectionArgs) -> Self {
-        let SectionArgs { heading, block_type, name, family, bottom, body, include_heading, emit } = args;
-        Self { heading, block_type, name, family, bottom, body, include_heading, emit }
+        let SectionArgs {
+            heading,
+            block_type,
+            name,
+            family,
+            bottom,
+            body,
+            include_heading,
+            emit,
+        } = args;
+        Self {
+            heading,
+            block_type,
+            name,
+            family,
+            bottom,
+            body,
+            include_heading,
+            emit,
+        }
     }
 
     /// The heading that opens the section: the **topmost** line the selection takes.
@@ -230,9 +256,16 @@ impl PdfExtractSectionStandard {
     /// guaranteed order and the section that opens highest is the one a reader would call first.
     fn heading_of<'a>(&self, lines: &'a [PdfLine]) -> Option<&'a PdfLine> {
         let set = self.heading.clone().contextualize(lines);
-        lines.iter().filter(|line| set.contains(*line)).min_by(|a, b| {
-            a.bbox().as_tuple().1.partial_cmp(&b.bbox().as_tuple().1).expect("page ordinates are finite")
-        })
+        lines
+            .iter()
+            .filter(|line| set.contains(*line))
+            .min_by(|a, b| {
+                a.bbox()
+                    .as_tuple()
+                    .1
+                    .partial_cmp(&b.bbox().as_tuple().1)
+                    .expect("page ordinates are finite")
+            })
     }
 
     /// The lines of the section, heading included or not, in page order.
@@ -243,7 +276,10 @@ impl PdfExtractSectionStandard {
             .map_or(f32::INFINITY, |end| end.bottom_below(heading, lines))
             .min(self.family.bottom_below(heading, lines));
         let top = heading.bbox().as_tuple().1;
-        let body = self.body.clone().map(|selection| selection.contextualize(lines));
+        let body = self
+            .body
+            .clone()
+            .map(|selection| selection.contextualize(lines));
 
         lines
             .iter()
@@ -285,20 +321,29 @@ impl PdfExtractSectionStandard {
                 sorted.sort_by(|a, b| {
                     let (ax, ay) = (a.bbox().as_tuple().0, a.bbox().as_tuple().1);
                     let (bx, by) = (b.bbox().as_tuple().0, b.bbox().as_tuple().1);
-                    (ay, ax).partial_cmp(&(by, bx)).expect("page coordinates are finite")
+                    (ay, ax)
+                        .partial_cmp(&(by, bx))
+                        .expect("page coordinates are finite")
                 });
                 let owned: Vec<PdfLine> = sorted.iter().map(|line| (*line).clone()).collect();
                 let groups = get_groups(&owned, *gap, true).map_err(|_| {
                     // The only error `get_groups` has is the empty input, which the early return
                     // above has already excluded.
-                    PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: self.name.clone() }
+                    PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound {
+                        name: self.name.clone(),
+                    }
                 })?;
                 Ok(sorted
                     .iter()
                     .zip(groups)
                     .map(|(line, group)| {
-                        let metadata = BTreeMap::from([("group".to_string(), BlockValue::from(group))]);
-                        PdfBlock::new(self.block_type.clone(), metadata, BlockValue::from(line.text().as_str()))
+                        let metadata =
+                            BTreeMap::from([("group".to_string(), BlockValue::from(group))]);
+                        PdfBlock::new(
+                            self.block_type.clone(),
+                            metadata,
+                            BlockValue::from(line.text().as_str()),
+                        )
                     })
                     .collect())
             }
@@ -314,7 +359,11 @@ impl PdfExtractSectionStandard {
                             ("table-row".to_string(), BlockValue::from(row as i64)),
                             ("table-col".to_string(), BlockValue::from(col as i64)),
                         ]);
-                        PdfBlock::new(self.block_type.clone(), metadata, BlockValue::from(line.text().as_str()))
+                        PdfBlock::new(
+                            self.block_type.clone(),
+                            metadata,
+                            BlockValue::from(line.text().as_str()),
+                        )
                     })
                     .collect())
             }
@@ -328,7 +377,8 @@ impl PdfExtractPipe for PdfExtractSectionStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
 
@@ -359,28 +409,94 @@ mod tests {
     }
 
     fn texts(blocks: &[PdfBlock]) -> Vec<String> {
-        blocks.iter().map(|block| block.content.as_str().expect("a section line is text").to_string()).collect()
+        blocks
+            .iter()
+            .map(|block| {
+                block
+                    .content
+                    .as_str()
+                    .expect("a section line is text")
+                    .to_string()
+            })
+            .collect()
     }
 
     fn run(args: SectionArgs, page: &Page) -> Vec<PdfBlock> {
-        PdfExtractSectionStandard::new(args).call(page).expect("the pipe reads the page")
+        PdfExtractSectionStandard::new(args)
+            .call(page)
+            .expect("the pipe reads the page")
     }
 
     /// FINECO-EN23@IR p3, measured: ten bold headings down the left margin at `x≈52`, each one's
     /// value beside it at `x=279.1`, **on the same ordinate**.
     fn fineco_ir_p3() -> Page {
         page(vec![
-            line("timesnewromanbold", 10.02, "Directors and Other Information", (52.5, 78.6, 194.4, 88.6)),
-            line("timesnewromanbold", 10.02, "Registered Office of the ICAV", (52.4, 111.6, 181.7, 121.6)),
-            line("timesnewroman", 10.02, "32 Molesworth Street", (279.1, 111.6, 366.1, 121.6)),
-            line("timesnewromanbold", 10.02, "Manager", (52.4, 226.8, 91.4, 236.8)),
-            line("timesnewroman", 10.02, "Fineco Asset Management Designated Activity Company", (279.1, 226.8, 510.3, 236.8)),
-            line("timesnewroman", 10.02, "6th Floor, Block A", (279.1, 238.3, 355.0, 248.3)),
-            line("timesnewroman", 10.02, "Georges Quay Plaza", (279.1, 249.8, 361.0, 259.8)),
-            line("timesnewroman", 10.02, "Dublin 2", (279.1, 261.3, 314.5, 271.3)),
-            line("timesnewroman", 10.02, "Ireland", (279.1, 272.9, 307.5, 282.9)),
-            line("timesnewromanbold", 10.02, "Investment Manager & Investment Advisor", (52.4, 295.9, 239.7, 305.9)),
-            line("timesnewroman", 10.02, "See Note 1 for the list of Sub-Funds' Investment Managers", (279.1, 295.9, 533.4, 305.9)),
+            line(
+                "timesnewromanbold",
+                10.02,
+                "Directors and Other Information",
+                (52.5, 78.6, 194.4, 88.6),
+            ),
+            line(
+                "timesnewromanbold",
+                10.02,
+                "Registered Office of the ICAV",
+                (52.4, 111.6, 181.7, 121.6),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "32 Molesworth Street",
+                (279.1, 111.6, 366.1, 121.6),
+            ),
+            line(
+                "timesnewromanbold",
+                10.02,
+                "Manager",
+                (52.4, 226.8, 91.4, 236.8),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "Fineco Asset Management Designated Activity Company",
+                (279.1, 226.8, 510.3, 236.8),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "6th Floor, Block A",
+                (279.1, 238.3, 355.0, 248.3),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "Georges Quay Plaza",
+                (279.1, 249.8, 361.0, 259.8),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "Dublin 2",
+                (279.1, 261.3, 314.5, 271.3),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "Ireland",
+                (279.1, 272.9, 307.5, 282.9),
+            ),
+            line(
+                "timesnewromanbold",
+                10.02,
+                "Investment Manager & Investment Advisor",
+                (52.4, 295.9, 239.7, 305.9),
+            ),
+            line(
+                "timesnewroman",
+                10.02,
+                "See Note 1 for the list of Sub-Funds' Investment Managers",
+                (279.1, 295.9, 533.4, 305.9),
+            ),
         ])
     }
 
@@ -389,15 +505,60 @@ mod tests {
     /// font name at another size.
     fn eurizon_en23_p9() -> Page {
         page(vec![
-            line("frutiger-black", 11.97, "ORGANISATION OF THE FUND", (42.9, 40.3, 220.8, 52.3)),
-            line("frutiger-lightitalic", 11.97, "INVESTMENT MANAGERS", (45.4, 88.2, 177.1, 100.2)),
-            line("frutiger-black", 8.98, "Eurizon Capital S.A.", (228.5, 111.0, 319.9, 120.0)),
-            line("frutiger-light", 8.98, "28, Boulevard de Kockelscheuer", (228.5, 122.5, 350.6, 131.5)),
-            line("frutiger-lightitalic", 8.98, "(the Sub-Funds Equity China A and Asian Equity Opportunities …)", (228.5, 154.4, 549.3, 163.4)),
-            line("frutiger-black", 8.98, "Eurizon Capital SGR S.p.A.", (228.5, 186.3, 349.8, 195.3)),
-            line("frutiger-lightitalic", 8.98, "(this function has been delegated … for the Sub-Funds …)", (228.5, 229.7, 549.4, 238.7)),
-            line("frutiger-lightitalic", 11.97, "INDEPENDENT AUDITOR OF THE INVESTMENT FUND", (45.4, 339.6, 521.5, 351.6)),
-            line("frutiger-black", 8.98, "Ernst & Young S.A.", (223.5, 363.4, 310.5, 372.4)),
+            line(
+                "frutiger-black",
+                11.97,
+                "ORGANISATION OF THE FUND",
+                (42.9, 40.3, 220.8, 52.3),
+            ),
+            line(
+                "frutiger-lightitalic",
+                11.97,
+                "INVESTMENT MANAGERS",
+                (45.4, 88.2, 177.1, 100.2),
+            ),
+            line(
+                "frutiger-black",
+                8.98,
+                "Eurizon Capital S.A.",
+                (228.5, 111.0, 319.9, 120.0),
+            ),
+            line(
+                "frutiger-light",
+                8.98,
+                "28, Boulevard de Kockelscheuer",
+                (228.5, 122.5, 350.6, 131.5),
+            ),
+            line(
+                "frutiger-lightitalic",
+                8.98,
+                "(the Sub-Funds Equity China A and Asian Equity Opportunities …)",
+                (228.5, 154.4, 549.3, 163.4),
+            ),
+            line(
+                "frutiger-black",
+                8.98,
+                "Eurizon Capital SGR S.p.A.",
+                (228.5, 186.3, 349.8, 195.3),
+            ),
+            line(
+                "frutiger-lightitalic",
+                8.98,
+                "(this function has been delegated … for the Sub-Funds …)",
+                (228.5, 229.7, 549.4, 238.7),
+            ),
+            line(
+                "frutiger-lightitalic",
+                11.97,
+                "INDEPENDENT AUDITOR OF THE INVESTMENT FUND",
+                (45.4, 339.6, 521.5, 351.6),
+            ),
+            line(
+                "frutiger-black",
+                8.98,
+                "Ernst & Young S.A.",
+                (223.5, 363.4, 310.5, 372.4),
+            ),
         ])
     }
 
@@ -405,14 +566,49 @@ mod tests {
     /// single-space line between two of them.
     fn amundi_en24_p510() -> Page {
         page(vec![
-            line("arialmt", 7.0, "The following Sub-Funds have been launched during the period:", (42.5, 198.4, 243.3, 205.4)),
-            line("arialmt", 7.0, "Amundi Funds Climate Transition Global Equity on 13 September 2023", (42.5, 207.4, 264.3, 214.4)),
+            line(
+                "arialmt",
+                7.0,
+                "The following Sub-Funds have been launched during the period:",
+                (42.5, 198.4, 243.3, 205.4),
+            ),
+            line(
+                "arialmt",
+                7.0,
+                "Amundi Funds Climate Transition Global Equity on 13 September 2023",
+                (42.5, 207.4, 264.3, 214.4),
+            ),
             line("arialmt", 7.0, " ", (42.5, 270.4, 44.5, 277.4)),
-            line("arialmt", 7.0, "The following Sub-Funds have been renamed on 15 March 2024:", (42.5, 279.4, 246.4, 286.4)),
-            line("arialmt", 7.0, "Amundi Funds European Equity Green Impact into Amundi Funds European Equity Green Technology", (42.5, 288.4, 359.9, 295.4)),
-            line("arialmt", 7.0, "Amundi Funds Pioneer Global Equity into Amundi Funds Global Equity", (42.5, 297.4, 362.0, 304.4)),
-            line("arialmt", 7.0, "The following Sub-Funds have been liquidated during the year:", (42.5, 486.4, 246.4, 493.4)),
-            line("arialmt", 7.0, "Amundi Funds Something on 12 April 2024", (42.5, 495.4, 246.4, 502.4)),
+            line(
+                "arialmt",
+                7.0,
+                "The following Sub-Funds have been renamed on 15 March 2024:",
+                (42.5, 279.4, 246.4, 286.4),
+            ),
+            line(
+                "arialmt",
+                7.0,
+                "Amundi Funds European Equity Green Impact into Amundi Funds European Equity Green Technology",
+                (42.5, 288.4, 359.9, 295.4),
+            ),
+            line(
+                "arialmt",
+                7.0,
+                "Amundi Funds Pioneer Global Equity into Amundi Funds Global Equity",
+                (42.5, 297.4, 362.0, 304.4),
+            ),
+            line(
+                "arialmt",
+                7.0,
+                "The following Sub-Funds have been liquidated during the year:",
+                (42.5, 486.4, 246.4, 493.4),
+            ),
+            line(
+                "arialmt",
+                7.0,
+                "Amundi Funds Something on 12 April 2024",
+                (42.5, 495.4, 246.4, 502.4),
+            ),
         ])
     }
 
@@ -423,8 +619,18 @@ mod tests {
             vec![
                 line("arial-bold", 10.0, "Heading", (50.0, 100.0, 120.0, 110.0)),
                 line("arial", 10.0, "Body", (50.0, 112.0, 120.0, 122.0)),
-                line("arial-bold", 10.0, "Next heading", (50.0, 130.0, 150.0, 140.0)),
-                line("arial-bold", 10.0, "Later heading", (50.0, 160.0, 150.0, 170.0)),
+                line(
+                    "arial-bold",
+                    10.0,
+                    "Next heading",
+                    (50.0, 130.0, 150.0, 140.0),
+                ),
+                line(
+                    "arial-bold",
+                    10.0,
+                    "Later heading",
+                    (50.0, 160.0, 150.0, 170.0),
+                ),
             ]
         }
 
@@ -484,13 +690,40 @@ mod tests {
         #[test]
         fn the_bound_is_below_the_anchor_not_first_on_the_page() {
             let page = vec![
-                line("timesnewromanbold", 10.02, "Directors and Other Information", (52.5, 78.6, 194.4, 88.6)),
-                line("timesnewromanbold", 10.02, "Registered Office of the ICAV", (52.4, 111.6, 181.7, 121.6)),
-                line("timesnewromanbold", 10.02, "Manager", (52.4, 226.8, 91.4, 236.8)),
-                line("timesnewromanbold", 10.02, "Investment Manager & Investment Advisor", (52.4, 295.9, 239.7, 305.9)),
-                line("timesnewromanbold", 10.02, "Distributor and Promoter", (52.4, 330.5, 163.3, 340.5)),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Directors and Other Information",
+                    (52.5, 78.6, 194.4, 88.6),
+                ),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Registered Office of the ICAV",
+                    (52.4, 111.6, 181.7, 121.6),
+                ),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Manager",
+                    (52.4, 226.8, 91.4, 236.8),
+                ),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Investment Manager & Investment Advisor",
+                    (52.4, 295.9, 239.7, 305.9),
+                ),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Distributor and Promoter",
+                    (52.4, 330.5, 163.3, 340.5),
+                ),
             ];
-            let found = section_bottom(&page[2], &page, |l| l.font().inner() == "timesnewromanbold").unwrap();
+            let found =
+                section_bottom(&page[2], &page, |l| l.font().inner() == "timesnewromanbold")
+                    .unwrap();
             assert_eq!(found.text(), "Investment Manager & Investment Advisor");
         }
     }
@@ -503,10 +736,30 @@ mod tests {
         #[test]
         fn the_family_is_the_pair_and_not_the_font_alone() {
             let page = vec![
-                line("frutiger-lightitalic", 11.97, "INVESTMENT MANAGERS", (45.4, 88.2, 177.1, 100.2)),
-                line("frutiger-black", 8.98, "Eurizon Capital S.A.", (228.5, 111.0, 319.9, 120.0)),
-                line("frutiger-lightitalic", 8.98, "(the Sub-Funds … are managed by …)", (228.5, 154.4, 549.3, 163.4)),
-                line("frutiger-lightitalic", 11.97, "INDEPENDENT AUDITOR", (45.4, 339.6, 521.5, 351.6)),
+                line(
+                    "frutiger-lightitalic",
+                    11.97,
+                    "INVESTMENT MANAGERS",
+                    (45.4, 88.2, 177.1, 100.2),
+                ),
+                line(
+                    "frutiger-black",
+                    8.98,
+                    "Eurizon Capital S.A.",
+                    (228.5, 111.0, 319.9, 120.0),
+                ),
+                line(
+                    "frutiger-lightitalic",
+                    8.98,
+                    "(the Sub-Funds … are managed by …)",
+                    (228.5, 154.4, 549.3, 163.4),
+                ),
+                line(
+                    "frutiger-lightitalic",
+                    11.97,
+                    "INDEPENDENT AUDITOR",
+                    (45.4, 339.6, 521.5, 351.6),
+                ),
             ];
             let bottom = SectionEnd::SameFamilyAsAnchor.bottom_below(&page[0], &page);
             assert_eq!(bottom, 339.6);
@@ -517,24 +770,60 @@ mod tests {
         #[test]
         fn a_selection_closes_a_section_its_own_typography_cannot() {
             let page = vec![
-                line("arialmt", 7.0, "The following Sub-Funds have been launched during the period:", (42.5, 198.4, 243.3, 205.4)),
-                line("arialmt", 7.0, "Amundi Funds Climate Transition Global Equity on 13 September 2023", (42.5, 207.4, 264.3, 214.4)),
-                line("arialmt", 7.0, "The following Sub-Funds have been renamed on 15 March 2024:", (42.5, 279.4, 246.4, 286.4)),
-                line("arialmt", 7.0, "Amundi Funds European Equity Green Impact into …", (42.5, 288.4, 359.9, 295.4)),
+                line(
+                    "arialmt",
+                    7.0,
+                    "The following Sub-Funds have been launched during the period:",
+                    (42.5, 198.4, 243.3, 205.4),
+                ),
+                line(
+                    "arialmt",
+                    7.0,
+                    "Amundi Funds Climate Transition Global Equity on 13 September 2023",
+                    (42.5, 207.4, 264.3, 214.4),
+                ),
+                line(
+                    "arialmt",
+                    7.0,
+                    "The following Sub-Funds have been renamed on 15 March 2024:",
+                    (42.5, 279.4, 246.4, 286.4),
+                ),
+                line(
+                    "arialmt",
+                    7.0,
+                    "Amundi Funds European Equity Green Impact into …",
+                    (42.5, 288.4, 359.9, 295.4),
+                ),
             ];
             let family = SectionEnd::Selection(text_sel("^The following Sub-Funds have been"));
 
             assert_eq!(family.bottom_below(&page[0], &page), 279.4);
-            assert_eq!(SectionEnd::SameFamilyAsAnchor.bottom_below(&page[0], &page), 207.4);
+            assert_eq!(
+                SectionEnd::SameFamilyAsAnchor.bottom_below(&page[0], &page),
+                207.4
+            );
         }
 
         #[test]
         fn nothing_below_leaves_the_section_open_to_the_foot_of_the_page() {
             let page = vec![
-                line("frutiger-lightitalic", 11.97, "INVESTMENT MANAGERS", (45.4, 88.2, 177.1, 100.2)),
-                line("frutiger-black", 8.98, "Eurizon Capital S.A.", (228.5, 111.0, 319.9, 120.0)),
+                line(
+                    "frutiger-lightitalic",
+                    11.97,
+                    "INVESTMENT MANAGERS",
+                    (45.4, 88.2, 177.1, 100.2),
+                ),
+                line(
+                    "frutiger-black",
+                    8.98,
+                    "Eurizon Capital S.A.",
+                    (228.5, 111.0, 319.9, 120.0),
+                ),
             ];
-            assert_eq!(SectionEnd::SameFamilyAsAnchor.bottom_below(&page[0], &page), f32::INFINITY);
+            assert_eq!(
+                SectionEnd::SameFamilyAsAnchor.bottom_below(&page[0], &page),
+                f32::INFINITY
+            );
         }
     }
     mod the_heading {
@@ -552,13 +841,36 @@ mod tests {
         #[test]
         fn the_footer_logo_does_not_open_the_section() {
             let asteria = page(vec![
-                line("centurygothic-bold", 9.98, "Investment Manager and Global Distributor:", (302.0, 101.7, 512.5, 111.7)),
-                line("centurygothic", 8.98, "ASTERIA Investment Managers S.A.", (302.0, 115.7, 451.1, 124.7)),
-                line("centurygothic-bold", 9.98, "Representative and Paying Agent", (302.0, 180.3, 531.9, 190.3)),
-                line("helvetica", 4.88, "Investment Managers", (41.4, 807.6, 91.5, 812.5)),
+                line(
+                    "centurygothic-bold",
+                    9.98,
+                    "Investment Manager and Global Distributor:",
+                    (302.0, 101.7, 512.5, 111.7),
+                ),
+                line(
+                    "centurygothic",
+                    8.98,
+                    "ASTERIA Investment Managers S.A.",
+                    (302.0, 115.7, 451.1, 124.7),
+                ),
+                line(
+                    "centurygothic-bold",
+                    9.98,
+                    "Representative and Paying Agent",
+                    (302.0, 180.3, 531.9, 190.3),
+                ),
+                line(
+                    "helvetica",
+                    4.88,
+                    "Investment Managers",
+                    (41.4, 807.6, 91.5, 812.5),
+                ),
             ]);
             let blocks = run(args(text_sel("^Investment Manager")), &asteria);
-            assert_eq!(texts(&blocks), vec!["ASTERIA Investment Managers S.A.".to_string()]);
+            assert_eq!(
+                texts(&blocks),
+                vec!["ASTERIA Investment Managers S.A.".to_string()]
+            );
         }
     }
 
@@ -571,7 +883,10 @@ mod tests {
         #[test]
         fn a_line_level_with_the_heading_is_part_of_the_section() {
             let blocks = run(args(text_sel("^Manager$")), &fineco_ir_p3());
-            assert_eq!(texts(&blocks)[0], "Fineco Asset Management Designated Activity Company");
+            assert_eq!(
+                texts(&blocks)[0],
+                "Fineco Asset Management Designated Activity Company"
+            );
         }
 
         /// The whole of the `Manager` section and nothing of the next one, which is the block
@@ -606,7 +921,10 @@ mod tests {
             let blocks = run(a, &eurizon_en23_p9());
             assert_eq!(
                 texts(&blocks),
-                vec!["Eurizon Capital S.A.".to_string(), "Eurizon Capital SGR S.p.A.".to_string()]
+                vec![
+                    "Eurizon Capital S.A.".to_string(),
+                    "Eurizon Capital SGR S.p.A.".to_string()
+                ]
             );
         }
 
@@ -615,9 +933,24 @@ mod tests {
         #[test]
         fn nothing_below_leaves_it_open_to_the_foot_of_the_page() {
             let open = page(vec![
-                line("frutiger-lightitalic", 11.97, "INVESTMENT MANAGERS", (45.4, 88.2, 177.1, 100.2)),
-                line("frutiger-black", 8.98, "Eurizon Capital S.A.", (228.5, 111.0, 319.9, 120.0)),
-                line("frutiger-black", 8.98, "Eurizon SLJ Capital LTD", (228.5, 566.5, 335.1, 575.5)),
+                line(
+                    "frutiger-lightitalic",
+                    11.97,
+                    "INVESTMENT MANAGERS",
+                    (45.4, 88.2, 177.1, 100.2),
+                ),
+                line(
+                    "frutiger-black",
+                    8.98,
+                    "Eurizon Capital S.A.",
+                    (228.5, 111.0, 319.9, 120.0),
+                ),
+                line(
+                    "frutiger-black",
+                    8.98,
+                    "Eurizon SLJ Capital LTD",
+                    (228.5, 566.5, 335.1, 575.5),
+                ),
             ]);
             let blocks = run(args(text_sel("^INVESTMENT MANAGERS$")), &open);
             assert_eq!(blocks.len(), 2);
@@ -645,7 +978,10 @@ mod tests {
 
         #[test]
         fn the_typographic_default_would_stop_at_the_first_row_here() {
-            let blocks = run(args(text_sel("^The following Sub-Funds have been renamed")), &amundi_en24_p510());
+            let blocks = run(
+                args(text_sel("^The following Sub-Funds have been renamed")),
+                &amundi_en24_p510(),
+            );
             assert!(blocks.is_empty(), "found {:?}", texts(&blocks));
         }
     }
@@ -695,9 +1031,17 @@ mod tests {
 
             let mut a = args(text_sel("^The following Sub-Funds have been launched"));
             a.family = SectionEnd::Selection(text_sel("^The following Sub-Funds have been"));
-            a.body = Some(OptionallyRelative::Absolute(PdfLineSet::select_text("Amundi")));
+            a.body = Some(OptionallyRelative::Absolute(PdfLineSet::select_text(
+                "Amundi",
+            )));
             let clean = run(a, &amundi_en24_p510());
-            assert_eq!(texts(&clean), vec!["Amundi Funds Climate Transition Global Equity on 13 September 2023".to_string()]);
+            assert_eq!(
+                texts(&clean),
+                vec![
+                    "Amundi Funds Climate Transition Global Equity on 13 September 2023"
+                        .to_string()
+                ]
+            );
         }
 
         /// EURIZON-EN23 p9 needs the managers and their specifications as **different** kinds of
@@ -734,7 +1078,10 @@ mod tests {
             a.include_heading = true;
             let blocks = run(a, &amundi_en24_p510());
             assert_eq!(blocks.len(), 3);
-            assert_eq!(texts(&blocks)[0], "The following Sub-Funds have been renamed on 15 March 2024:");
+            assert_eq!(
+                texts(&blocks)[0],
+                "The following Sub-Funds have been renamed on 15 March 2024:"
+            );
         }
 
         /// AMUNDI-EN24 p360: the bold `Assets` does not announce the total, it **carries** it, in
@@ -744,9 +1091,24 @@ mod tests {
         fn a_heading_that_carries_its_numbers_comes_with_them() {
             let amundi_p360 = page(vec![
                 line("verdana-bold", 6.0, "Assets", (42.5, 192.1, 64.6, 198.1)),
-                line("verdana-bold", 6.0, "2,384,886", (337.4, 192.1, 371.6, 198.1)),
-                line("verdana-bold", 6.0, "4,941,061,439", (444.8, 192.1, 493.9, 198.1)),
-                line("verdana", 6.0, "Securities portfolio at market value", (42.5, 202.7, 148.9, 208.7)),
+                line(
+                    "verdana-bold",
+                    6.0,
+                    "2,384,886",
+                    (337.4, 192.1, 371.6, 198.1),
+                ),
+                line(
+                    "verdana-bold",
+                    6.0,
+                    "4,941,061,439",
+                    (444.8, 192.1, 493.9, 198.1),
+                ),
+                line(
+                    "verdana",
+                    6.0,
+                    "Securities portfolio at market value",
+                    (42.5, 202.7, 148.9, 208.7),
+                ),
             ]);
             let mut a = args(text_sel("^Assets$"));
             a.include_heading = true;
@@ -754,7 +1116,11 @@ mod tests {
             let blocks = run(a, &amundi_p360);
             assert_eq!(
                 texts(&blocks),
-                vec!["Assets".to_string(), "2,384,886".to_string(), "4,941,061,439".to_string()]
+                vec![
+                    "Assets".to_string(),
+                    "2,384,886".to_string(),
+                    "4,941,061,439".to_string()
+                ]
             );
         }
     }
@@ -766,13 +1132,48 @@ mod tests {
         #[test]
         fn rows_carry_the_two_keys_the_text_filter_reads() {
             let table = page(vec![
-                line("timesnewromanbold", 10.02, "Date of Commencement", (52.4, 100.0, 180.0, 110.0)),
-                line("timesnewroman", 10.02, "Alpha Fund", (52.4, 120.0, 120.0, 130.0)),
-                line("timesnewroman", 10.02, "01/01/2023", (200.0, 120.0, 260.0, 130.0)),
-                line("timesnewroman", 10.02, "Acme IM", (320.0, 120.0, 380.0, 130.0)),
-                line("timesnewroman", 10.02, "Beta Fund", (52.4, 140.0, 120.0, 150.0)),
-                line("timesnewroman", 10.02, "02/02/2023", (200.0, 140.0, 260.0, 150.0)),
-                line("timesnewroman", 10.02, "Beta IM", (320.0, 140.0, 380.0, 150.0)),
+                line(
+                    "timesnewromanbold",
+                    10.02,
+                    "Date of Commencement",
+                    (52.4, 100.0, 180.0, 110.0),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "Alpha Fund",
+                    (52.4, 120.0, 120.0, 130.0),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "01/01/2023",
+                    (200.0, 120.0, 260.0, 130.0),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "Acme IM",
+                    (320.0, 120.0, 380.0, 130.0),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "Beta Fund",
+                    (52.4, 140.0, 120.0, 150.0),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "02/02/2023",
+                    (200.0, 140.0, 260.0, 150.0),
+                ),
+                line(
+                    "timesnewroman",
+                    10.02,
+                    "Beta IM",
+                    (320.0, 140.0, 380.0, 150.0),
+                ),
             ]);
             let mut a = args(text_sel("^Date of Commencement$"));
             a.emit = SectionEmit::Rows(Box::default());
@@ -802,20 +1203,85 @@ mod tests {
     /// two lines of one entry, 18.4 between the last line of one and the name of the next.
     fn carne_en23_p4() -> Page {
         page(vec![
-            line("arial-boldmt", 8.04, "Administrator, Domiciliary and Transfer Agent ", (57.6, 501.0, 233.3, 509.0)),
-            line("arialmt", 8.04, "The Bank of New York Mellon SA/NV ", (57.6, 519.5, 192.0, 527.5)),
-            line("arialmt", 8.04, "Luxembourg Branch ", (57.6, 528.8, 131.8, 536.8)),
-            line("arial-boldmt", 8.04, "Investment Managers ", (57.6, 574.6, 139.6, 582.6)),
-            line("arialmt", 8.04, "ARCA Fondi SGR S.p.A. ", (57.6, 593.2, 147.9, 601.2)),
-            line("arialmt", 8.04, "Via Disciplini 3 ", (57.6, 602.3, 111.9, 610.3)),
-            line("arialmt", 8.04, "I-20123 Milan ", (57.6, 611.6, 108.3, 619.6)),
+            line(
+                "arial-boldmt",
+                8.04,
+                "Administrator, Domiciliary and Transfer Agent ",
+                (57.6, 501.0, 233.3, 509.0),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "The Bank of New York Mellon SA/NV ",
+                (57.6, 519.5, 192.0, 527.5),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "Luxembourg Branch ",
+                (57.6, 528.8, 131.8, 536.8),
+            ),
+            line(
+                "arial-boldmt",
+                8.04,
+                "Investment Managers ",
+                (57.6, 574.6, 139.6, 582.6),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "ARCA Fondi SGR S.p.A. ",
+                (57.6, 593.2, 147.9, 601.2),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "Via Disciplini 3 ",
+                (57.6, 602.3, 111.9, 610.3),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "I-20123 Milan ",
+                (57.6, 611.6, 108.3, 619.6),
+            ),
             line("arialmt", 8.04, "Italy ", (57.6, 620.8, 74.5, 628.8)),
-            line("arialmt", 8.04, "Goldman Sachs Asset Management International Ltd. ", (57.6, 639.2, 249.8, 647.2)),
-            line("arial-italicmt", 8.04, "(in charge for the USD nominated securities in the ", (57.6, 648.7, 234.7, 656.7)),
-            line("arialmt", 8.04, "subfund Sidera Funds SICAV – Global High Yield) ", (57.6, 657.5, 237.8, 665.5)),
-            line("arialmt", 8.04, "Plumtree Court, 25 Shoe Lane ", (57.6, 666.8, 168.0, 674.8)),
-            line("arialmt", 8.04, "London EC4A 4AU ", (57.6, 676.0, 129.7, 684.0)),
-            line("arialmt", 8.04, "United Kingdom ", (57.6, 685.1, 116.7, 693.1)),
+            line(
+                "arialmt",
+                8.04,
+                "Goldman Sachs Asset Management International Ltd. ",
+                (57.6, 639.2, 249.8, 647.2),
+            ),
+            line(
+                "arial-italicmt",
+                8.04,
+                "(in charge for the USD nominated securities in the ",
+                (57.6, 648.7, 234.7, 656.7),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "subfund Sidera Funds SICAV – Global High Yield) ",
+                (57.6, 657.5, 237.8, 665.5),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "Plumtree Court, 25 Shoe Lane ",
+                (57.6, 666.8, 168.0, 674.8),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "London EC4A 4AU ",
+                (57.6, 676.0, 129.7, 684.0),
+            ),
+            line(
+                "arialmt",
+                8.04,
+                "United Kingdom ",
+                (57.6, 685.1, 116.7, 693.1),
+            ),
         ])
     }
 
@@ -823,7 +1289,10 @@ mod tests {
         use super::*;
 
         fn groups(blocks: &[PdfBlock]) -> Vec<i64> {
-            blocks.iter().map(|b| b.metadata["group"].as_int().expect("an integer group")).collect()
+            blocks
+                .iter()
+                .map(|b| b.metadata["group"].as_int().expect("an integer group"))
+                .collect()
         }
 
         fn carne_args() -> SectionArgs {
@@ -843,7 +1312,10 @@ mod tests {
             let blocks = run(carne_args(), &carne_en23_p4());
             assert_eq!(
                 texts(&blocks)[..2].to_vec(),
-                vec!["ARCA Fondi SGR S.p.A. ".to_string(), "Via Disciplini 3 ".to_string()]
+                vec![
+                    "ARCA Fondi SGR S.p.A. ".to_string(),
+                    "Via Disciplini 3 ".to_string()
+                ]
             );
         }
 
@@ -866,7 +1338,11 @@ mod tests {
         #[test]
         fn only_the_lines_of_this_section_are_numbered() {
             let blocks = run(carne_args(), &carne_en23_p4());
-            assert!(!texts(&blocks).iter().any(|t| t.contains("Bank of New York Mellon")));
+            assert!(
+                !texts(&blocks)
+                    .iter()
+                    .any(|t| t.contains("Bank of New York Mellon"))
+            );
         }
 
         /// A gap wider than any in the section leaves one entry; a gap narrower than the line
@@ -879,14 +1355,21 @@ mod tests {
 
             let mut narrow = carne_args();
             narrow.emit = SectionEmit::Entries { gap: 1.0 };
-            assert_eq!(groups(&run(narrow, &carne_en23_p4())), (0..10).collect::<Vec<i64>>());
+            assert_eq!(
+                groups(&run(narrow, &carne_en23_p4())),
+                (0..10).collect::<Vec<i64>>()
+            );
         }
 
         #[test]
         fn a_heading_with_nothing_under_it_gives_no_block() {
-            let bare = page(vec![line("arial-boldmt", 8.04, "Investment Managers ", (57.6, 574.6, 139.6, 582.6))]);
+            let bare = page(vec![line(
+                "arial-boldmt",
+                8.04,
+                "Investment Managers ",
+                (57.6, 574.6, 139.6, 582.6),
+            )]);
             assert!(run(carne_args(), &bare).is_empty());
         }
     }
-
 }

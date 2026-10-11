@@ -152,7 +152,11 @@ impl PdfBlock {
         metadata: BTreeMap<String, BlockValue>,
         content: impl Into<BlockValue>,
     ) -> Self {
-        PdfBlock { type_block: type_block.into(), metadata, content: content.into() }
+        PdfBlock {
+            type_block: type_block.into(),
+            metadata,
+            content: content.into(),
+        }
     }
 
     /// A block with no metadata — the common case in simple extraction pipes.
@@ -162,7 +166,11 @@ impl PdfBlock {
 
     /// Reads a typed metadata field, telling "absent" apart from "wrong type".
     pub fn metadata_or_fail(&self, field: &str) -> Result<&BlockValue, BlockValueError> {
-        self.metadata.get(field).ok_or_else(|| BlockValueError::MissingField { field: field.to_string() })
+        self.metadata
+            .get(field)
+            .ok_or_else(|| BlockValueError::MissingField {
+                field: field.to_string(),
+            })
     }
 
     pub fn to_json(&self) -> Result<String, BlockError> {
@@ -222,7 +230,11 @@ impl TextBlock {
 
     /// Reads a typed metadata field, telling "absent" apart from "wrong type".
     pub fn metadata_or_fail(&self, field: &str) -> Result<&BlockValue, BlockValueError> {
-        self.metadata.get(field).ok_or_else(|| BlockValueError::MissingField { field: field.to_string() })
+        self.metadata
+            .get(field)
+            .ok_or_else(|| BlockValueError::MissingField {
+                field: field.to_string(),
+            })
     }
 
     pub fn to_json(&self) -> Result<String, BlockError> {
@@ -240,7 +252,10 @@ mod tests {
     use crate::core::promise::Promise;
 
     fn metadata(pairs: &[(&str, BlockValue)]) -> BTreeMap<String, BlockValue> {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.clone())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.clone()))
+            .collect()
     }
 
     mod block_type {
@@ -251,7 +266,10 @@ mod tests {
         fn the_standard_constants_carry_their_own_name() {
             assert_eq!(BlockType::FUND.as_str(), "FUND");
             assert_eq!(BlockType::TABLE_BODY.as_str(), "TABLE_BODY");
-            assert_eq!(BlockType::INVESTMENTS_MANAGER.as_str(), "INVESTMENTS_MANAGER");
+            assert_eq!(
+                BlockType::INVESTMENTS_MANAGER.as_str(),
+                "INVESTMENTS_MANAGER"
+            );
         }
 
         /// The block of the document classification is a standard type of its own, distinct from
@@ -350,7 +368,9 @@ mod tests {
             let blk = PdfBlock::bare(BlockType::TABLE_BODY, "riga");
             assert_eq!(
                 blk.metadata_or_fail("row").unwrap_err(),
-                BlockValueError::MissingField { field: "row".into() }
+                BlockValueError::MissingField {
+                    field: "row".into()
+                }
             );
         }
     }
@@ -380,14 +400,16 @@ mod tests {
 
         #[test]
         fn from_content_has_no_pdf_block() {
-            let txt = TextBlock::from_content(BlockType::MANAGEMENT_COMPANY, BTreeMap::new(), "Acme SGR");
+            let txt =
+                TextBlock::from_content(BlockType::MANAGEMENT_COMPANY, BTreeMap::new(), "Acme SGR");
             assert!(txt.pdf_block.is_none());
             assert_eq!(txt.content.as_str(), Some("Acme SGR"));
         }
 
         #[test]
         fn from_content_accepts_a_promise() {
-            let txt = TextBlock::from_content(BlockType::FUND, BTreeMap::new(), Promise::new("fund[]"));
+            let txt =
+                TextBlock::from_content(BlockType::FUND, BTreeMap::new(), Promise::new("fund[]"));
             assert!(txt.content.is_promise());
             assert!(txt.content.as_promise().unwrap().multiple());
         }
@@ -407,18 +429,39 @@ mod tests {
 
         #[test]
         fn identical_blocks_are_equal_and_hash_the_same() {
-            let a = PdfBlock::new(BlockType::FUND_NAME, metadata(&[("p", BlockValue::Int(1))]), "x");
-            let b = PdfBlock::new(BlockType::FUND_NAME, metadata(&[("p", BlockValue::Int(1))]), "x");
+            let a = PdfBlock::new(
+                BlockType::FUND_NAME,
+                metadata(&[("p", BlockValue::Int(1))]),
+                "x",
+            );
+            let b = PdfBlock::new(
+                BlockType::FUND_NAME,
+                metadata(&[("p", BlockValue::Int(1))]),
+                "x",
+            );
             assert_eq!(a, b);
             assert_eq!(hash_of(&a), hash_of(&b));
         }
 
         #[test]
         fn type_metadata_and_content_all_three_matter() {
-            let base = PdfBlock::new(BlockType::FUND_NAME, metadata(&[("p", BlockValue::Int(1))]), "x");
-            assert_ne!(base, PdfBlock::new(BlockType::TABLE_BODY, base.metadata.clone(), "x"));
-            assert_ne!(base, PdfBlock::new(BlockType::FUND_NAME, BTreeMap::new(), "x"));
-            assert_ne!(base, PdfBlock::new(BlockType::FUND_NAME, base.metadata.clone(), "y"));
+            let base = PdfBlock::new(
+                BlockType::FUND_NAME,
+                metadata(&[("p", BlockValue::Int(1))]),
+                "x",
+            );
+            assert_ne!(
+                base,
+                PdfBlock::new(BlockType::TABLE_BODY, base.metadata.clone(), "x")
+            );
+            assert_ne!(
+                base,
+                PdfBlock::new(BlockType::FUND_NAME, BTreeMap::new(), "x")
+            );
+            assert_ne!(
+                base,
+                PdfBlock::new(BlockType::FUND_NAME, base.metadata.clone(), "y")
+            );
         }
 
         /// Metadata insertion order does not matter, and comparing or hashing two blocks does not
@@ -426,11 +469,17 @@ mod tests {
         #[test]
         fn comparing_and_hashing_does_not_modify_the_blocks() {
             let mut m1 = BTreeMap::new();
-            m1.insert("a".to_string(), BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]));
+            m1.insert(
+                "a".to_string(),
+                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
+            );
             m1.insert("b".to_string(), BlockValue::Int(9));
             let mut m2 = BTreeMap::new();
             m2.insert("b".to_string(), BlockValue::Int(9));
-            m2.insert("a".to_string(), BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]));
+            m2.insert(
+                "a".to_string(),
+                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
+            );
 
             let a = PdfBlock::new(BlockType::FUND_NAME, m1, "x");
             let b = PdfBlock::new(BlockType::FUND_NAME, m2, "x");
@@ -461,7 +510,10 @@ mod tests {
         fn pdf_block_survives_json() {
             let blk = PdfBlock::new(
                 BlockType::TABLE_BODY,
-                metadata(&[("row", BlockValue::Int(2)), ("promise", BlockValue::from(Promise::new("f!")))]),
+                metadata(&[
+                    ("row", BlockValue::Int(2)),
+                    ("promise", BlockValue::from(Promise::new("f!"))),
+                ]),
                 BlockValue::List(vec![BlockValue::from("a"), BlockValue::Null]),
             );
             assert_eq!(PdfBlock::from_json(&blk.to_json().unwrap()).unwrap(), blk);
@@ -469,8 +521,16 @@ mod tests {
 
         #[test]
         fn text_block_with_pdf_block_survives_json() {
-            let pdf = PdfBlock::new(BlockType::FUND_NAME, metadata(&[("p", BlockValue::Int(1))]), "Acme");
-            let txt = TextBlock::new(BlockType::FUND, metadata(&[("m", BlockValue::from("v"))]), pdf);
+            let pdf = PdfBlock::new(
+                BlockType::FUND_NAME,
+                metadata(&[("p", BlockValue::Int(1))]),
+                "Acme",
+            );
+            let txt = TextBlock::new(
+                BlockType::FUND,
+                metadata(&[("m", BlockValue::from("v"))]),
+                pdf,
+            );
             assert_eq!(TextBlock::from_json(&txt.to_json().unwrap()).unwrap(), txt);
         }
 
@@ -486,7 +546,10 @@ mod tests {
         fn malformed_json_is_a_module_error() {
             let err = PdfBlock::from_json("{ non json").unwrap_err();
             assert!(matches!(err, BlockError::Json(_)), "{err:?}");
-            assert!(err.to_string().starts_with("block JSON (de)serialization failed"));
+            assert!(
+                err.to_string()
+                    .starts_with("block JSON (de)serialization failed")
+            );
         }
 
         #[test]

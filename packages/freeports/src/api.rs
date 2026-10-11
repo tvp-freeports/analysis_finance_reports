@@ -43,7 +43,9 @@ pub mod core {
     };
     pub use crate::core::promise::{Promise, PromiseError};
     pub use crate::core::promise_resolution::{FlatPromiseMap, PromiseMap};
-    pub use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage};
+    pub use crate::core::schedule::{
+        PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage,
+    };
 }
 
 pub mod utils {
@@ -109,6 +111,7 @@ pub mod standard_funcs {
     //! single type.
     pub mod pdf_extract {
         //! Pipes that turn a raw page into blocks: text, tables, page classification.
+        pub use crate::formats_utils::pdf_extract::commons::SelectedText;
         pub use crate::formats_utils::pdf_extract::labelled_value::{
             LabelledValueArgs, LabelledValueTake, LabelledValueWhere, LabelledValueWindow,
             PdfExtractLabelledValueStandard,
@@ -116,14 +119,13 @@ pub mod standard_funcs {
         pub use crate::formats_utils::pdf_extract::section::{
             PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd, section_bottom,
         };
-        pub use crate::formats_utils::pdf_extract::commons::SelectedText;
         pub use crate::formats_utils::pdf_extract::standard_funcs::{
             AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage,
-            InvestmentsStandardArgs,
-            PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractDocClassifyStandard,
-            PdfExtractInvestmentsStandard,
+            InvestmentsStandardArgs, PdfExtractAssetsStandard, PdfExtractCurrencyConstant,
+            PdfExtractDocClassifyStandard, PdfExtractInvestmentsStandard,
             PdfExtractPageClassifyStandard, PdfExtractStandardFuncsError,
-            pdf_extract_currency_standard, pdf_extract_fund_standard, pdf_extract_managment_company_standard,
+            pdf_extract_currency_standard, pdf_extract_fund_standard,
+            pdf_extract_managment_company_standard,
         };
     }
 
@@ -131,17 +133,17 @@ pub mod standard_funcs {
         //! Pipes that keep only the blocks belonging to the funds and fields being looked for.
         pub use crate::formats_utils::text_filter::standard_funcs::{
             StandardFuncsError, TextFilterAssetsStandard, TextFilterDocClassifyStandard,
-            TextFilterInvestmentsStandard,
-            TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
+            TextFilterInvestmentsStandard, TextFilterManagmentCompanyStandard,
+            TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
         };
     }
 
     pub mod deserialize {
         //! Pipes that turn surviving blocks into the typed entities of [`super::super::output`].
         pub use crate::formats_utils::deserialize::standard_funcs::{
-            DeserializeSfdrArticleStandard, DeserializeStandardFuncsError, DeserializerAssetsStandard,
-            DeserializerDocClassifyStandard,
-            DeserializerFundStandard, DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
+            DeserializeSfdrArticleStandard, DeserializeStandardFuncsError,
+            DeserializerAssetsStandard, DeserializerDocClassifyStandard, DeserializerFundStandard,
+            DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
             DeserializerInvestmentsManagerStandard, DeserializerManagmentCompanyStandard,
             DeserializerPageClassifyStandard, Unbalanced,
         };
@@ -157,7 +159,9 @@ pub mod formats_repo {
     pub use crate::formats_repo::LoadError;
     pub use crate::formats_repo::format_pattern::{FormatPattern, FormatPatternError};
     pub use crate::formats_repo::load_pipelines;
-    pub use crate::formats_repo::metadata::{MetadataError, get_formats, get_url_mapping, url_to_format};
+    pub use crate::formats_repo::metadata::{
+        MetadataError, get_formats, get_url_mapping, url_to_format,
+    };
 }
 
 pub mod output {
@@ -166,7 +170,9 @@ pub mod output {
     //! One name deserves an explanation: `FundSfdrClassification` is the fund-level entity,
     //! distinct from [`consts::SfdrArticle`](super::consts::SfdrArticle), which is the enumerated
     //! article value carried inside it.
-    pub use crate::output::classes::assets_manager::{AssetsManagerData, InvestmentsManager, ManagementCompany};
+    pub use crate::output::classes::assets_manager::{
+        AssetsManagerData, InvestmentsManager, ManagementCompany,
+    };
     pub use crate::output::classes::fund::Fund;
     pub use crate::output::classes::fund_assets::FundAssets;
     pub use crate::output::classes::fund_change_name::{FundChangeNameData, FundMerge, FundRename};

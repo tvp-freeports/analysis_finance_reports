@@ -120,9 +120,13 @@ impl InputSection {
     /// answers *which section*, this one *which pipe*.
     pub fn pipe(&self) -> Result<Arc<dyn PdfExtractPipe>, SectionConfigError> {
         let section: Arc<dyn PdfExtractPipe> = Arc::new(self.build()?);
-        let Some(printed) = &self.page_number else { return Ok(section) };
+        let Some(printed) = &self.page_number else {
+            return Ok(section);
+        };
         let (selection, key) = printed.build()?;
-        Ok(Arc::new(PdfExtractWithPrintedPage::new(section, selection, key)))
+        Ok(Arc::new(PdfExtractWithPrintedPage::new(
+            section, selection, key,
+        )))
     }
 
     /// The section this configuration describes.
@@ -179,7 +183,9 @@ mod tests {
 
         #[test]
         fn three_of_them_are_enough() {
-            section("").build().expect("a heading, a block and a name are a whole configuration");
+            section("")
+                .build()
+                .expect("a heading, a block and a name are a whole configuration");
         }
 
         #[test]
@@ -205,7 +211,10 @@ mod tests {
                 .err()
                 .expect("a bare anchor is a font name");
             assert!(
-                matches!(error, SectionConfigError::Selection(SelectionConfigError::NotASelection { .. })),
+                matches!(
+                    error,
+                    SectionConfigError::Selection(SelectionConfigError::NotASelection { .. })
+                ),
                 "{error}"
             );
         }
@@ -227,18 +236,24 @@ mod tests {
         /// FINECO-EN23@IR's table ends where nothing is a heading at all.
         #[test]
         fn a_bare_ordinate_is_a_floor() {
-            section("bottom: 520.0").build().expect("an ordinate is a floor");
+            section("bottom: 520.0")
+                .build()
+                .expect("an ordinate is a floor");
         }
 
         #[test]
         fn a_selection_is_a_floor_too() {
-            section("bottom: 'arialmt[7:8] \"^Notes\"'").build().expect("so is a selection");
+            section("bottom: 'arialmt[7:8] \"^Notes\"'")
+                .build()
+                .expect("so is a selection");
         }
 
         /// They are independent on purpose: nothing says a format may not want both.
         #[test]
         fn the_two_can_be_given_together() {
-            section("family: 'lato-bold'\nbottom: 700.0").build().expect("a heading and a floor");
+            section("family: 'lato-bold'\nbottom: 700.0")
+                .build()
+                .expect("a heading and a floor");
         }
     }
 
@@ -247,19 +262,25 @@ mod tests {
 
         #[test]
         fn the_body_narrows_them() {
-            section("body: 'lato-regular[9.5:10.5]'").build().expect("only the body font counts");
+            section("body: 'lato-regular[9.5:10.5]'")
+                .build()
+                .expect("only the body font counts");
         }
 
         #[test]
         fn an_area_narrows_them_too() {
-            section("body: '((50:600)(:850))'").build().expect("a column is an area");
+            section("body: '((50:600)(:850))'")
+                .build()
+                .expect("a column is an area");
         }
 
         /// AMUNDI-EN24 p510 puts the date in the heading and leaves twenty-one dateless rows under
         /// it, so the heading is part of what the section emits.
         #[test]
         fn the_heading_can_be_part_of_the_section() {
-            section("include_heading: true").build().expect("the heading carries the datum");
+            section("include_heading: true")
+                .build()
+                .expect("the heading carries the datum");
         }
     }
 
@@ -320,14 +341,21 @@ mod tests {
         /// CARNE-EN23 p4: 9.2 points within one entry, 18.4 between two, so fifteen separates them.
         #[test]
         fn a_gap_numbers_them() {
-            section("entry_gap: 15.0").build().expect("a positive gap separates two entries");
+            section("entry_gap: 15.0")
+                .build()
+                .expect("a positive gap separates two entries");
         }
 
         #[test]
         fn a_gap_of_zero_is_refused_rather_than_numbering_every_line_alike() {
-            let error =
-                section("entry_gap: 0.0").build().err().expect("zero separates nothing");
-            assert_eq!(error.to_string(), "field 'entry_gap': must be a positive distance, found 0");
+            let error = section("entry_gap: 0.0")
+                .build()
+                .err()
+                .expect("zero separates nothing");
+            assert_eq!(
+                error.to_string(),
+                "field 'entry_gap': must be a positive distance, found 0"
+            );
         }
 
         #[test]

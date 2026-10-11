@@ -21,6 +21,8 @@ package.yaml                     identity and version of the repository
 metadata/
   formats.csv                    the formats it supports
   url_mapping.csv                which URLs belong to which format
+  document_classify.yaml         which format a document is, read from its pages — optional rules
+  document_classify.py           the same in Python, only if the author needs it (or a package)
 content/
   orchestration/
     algorithms_schedule.csv      the order pages are processed in, split into steps
@@ -86,8 +88,21 @@ The name every other file refers to — `AMUNDI-EN24` — is **synthesised** as
 comes from, so a name and its components cannot disagree.
 
 `metadata/url_mapping.csv` maps URL prefixes to format names, and is what lets a document downloaded
-from a known address be read without `--format`. The **order matters**: the first matching prefix
-wins.
+from a known address be read without `--format`. When several prefixes match, the **longest** wins;
+between equal prefixes, the row with the more specific name; after that, the row that comes first.
+A row may give a partial name ({doc}`../../reference/formats/names`) — `MEDIOLANUM-IT` for an
+address that serves every Italian Mediolanum report — and every row is checked against
+`formats.csv` when the repository is loaded, so a name that matches no format is an error at once.
+
+`metadata/document_classify.yaml` recognises a document's format from the text of its pages, for
+documents no URL prefix accounts for. `init-format-repo` creates it with no rules; a file that is
+absent or empty classifies nothing declaratively. When text rules are not enough, the author adds
+`metadata/document_classify.py` — or a `metadata/document_classify/` package — and nothing creates
+it for them.
+
+How to write the two is {doc}`../../reference/formats/document-classify-yaml` and
+{doc}`../../reference/formats/document-classify-python`; how the names they produce are built, and
+which format to try when neither recognises a document, is {doc}`../../reference/formats/names`.
 
 ## Orchestration
 

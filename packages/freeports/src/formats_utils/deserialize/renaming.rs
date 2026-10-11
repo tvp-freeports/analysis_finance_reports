@@ -9,9 +9,9 @@ use std::sync::Arc;
 
 use crate::commons::date::Date;
 use crate::core::classes::TextBlock;
+use crate::core::classes::value::BlockValue;
 use crate::core::pipeline::{DeserializePipe, Extracted, PipeError};
 use crate::formats_utils::deserialize::cast::CastError;
-use crate::core::classes::value::BlockValue;
 use crate::output::classes::OutputClassError;
 use crate::output::classes::fund_change_name::{FundMerge, FundRename};
 
@@ -47,14 +47,20 @@ impl DeserializePipe for DeserializerRenaming {
                 .ok_or_else(|| missing(field))?
                 .str_or_fail(field)
                 .map(str::to_string)
-                .map_err(|source| PipeError::Value { pipe: pipe(), source })
+                .map_err(|source| PipeError::Value {
+                    pipe: pipe(),
+                    source,
+                })
         };
         let merge = block
             .metadata
             .get("merge")
             .ok_or_else(|| missing("merge"))?
             .bool_or_fail("merge")
-            .map_err(|source| PipeError::Value { pipe: pipe(), source })?;
+            .map_err(|source| PipeError::Value {
+                pipe: pipe(),
+                source,
+            })?;
         let when = text("when")?;
         let date = (self.to_date)(&when).map_err(|e| PipeError::Cast {
             pipe: pipe(),
@@ -71,7 +77,9 @@ impl DeserializePipe for DeserializerRenaming {
         Ok(vec![if merge {
             Extracted::FundMerge(FundMerge::build(&old_name, &current_name, &date).map_err(built)?)
         } else {
-            Extracted::FundRename(FundRename::build(&old_name, &current_name, &date).map_err(built)?)
+            Extracted::FundRename(
+                FundRename::build(&old_name, &current_name, &date).map_err(built)?,
+            )
         }])
     }
 }

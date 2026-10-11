@@ -48,7 +48,9 @@ where
         match self {
             SmartAstNode::Leaf(l) => SmartAstNode::Leaf(l.clone()),
             SmartAstNode::EmptySet => SmartAstNode::EmptySet,
-            SmartAstNode::Branch(left, op, right) => SmartAstNode::Branch(left.clone(), *op, right.clone()),
+            SmartAstNode::Branch(left, op, right) => {
+                SmartAstNode::Branch(left.clone(), *op, right.clone())
+            }
         }
     }
 }
@@ -118,9 +120,11 @@ where
                     Box::new(SmartAstNode::Leaf(b)),
                 )),
             },
-            (left_node, right_node) => {
-                Self(SmartAstNode::Branch(Box::new(left_node), SetOps::Union, Box::new(right_node)))
-            }
+            (left_node, right_node) => Self(SmartAstNode::Branch(
+                Box::new(left_node),
+                SetOps::Union,
+                Box::new(right_node),
+            )),
         }
     }
 }
@@ -144,9 +148,11 @@ where
                     Box::new(SmartAstNode::Leaf(b)),
                 )),
             },
-            (left_node, right_node) => {
-                Self(SmartAstNode::Branch(Box::new(left_node), SetOps::Inter, Box::new(right_node)))
-            }
+            (left_node, right_node) => Self(SmartAstNode::Branch(
+                Box::new(left_node),
+                SetOps::Inter,
+                Box::new(right_node),
+            )),
         }
     }
 }
@@ -169,9 +175,11 @@ where
                     Box::new(SmartAstNode::Leaf(b)),
                 )),
             },
-            (left_node, right_node) => {
-                Self(SmartAstNode::Branch(Box::new(left_node), SetOps::Sub, Box::new(right_node)))
-            }
+            (left_node, right_node) => Self(SmartAstNode::Branch(
+                Box::new(left_node),
+                SetOps::Sub,
+                Box::new(right_node),
+            )),
         }
     }
 }
@@ -306,9 +314,9 @@ mod tests {
     /// always building a `Branch`).
     mod simplification_on_union {
         use super::*;
-        use test_case::test_case;
-        use pretty_assertions::assert_eq;
         use SetOps::Union;
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(TestSet::new([1,2,3,4]), TestSet::new([1,2,3,4]), Shape::Leaf(vec![1,2,3,4]); "equal leaves collapse to one leaf")]
         #[test_case(TestSet::new([2,3]), TestSet::new([1,2,3,4]), Shape::Leaf(vec![1,2,3,4]); "subset collapses to the superset leaf")]
@@ -322,9 +330,9 @@ mod tests {
 
     mod simplification_on_intersection {
         use super::*;
-        use test_case::test_case;
-        use pretty_assertions::assert_eq;
         use SetOps::Inter;
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(TestSet::new([3,4,50]), TestSet::new([3,4,50]), Shape::Leaf(vec![3,4,50]); "equal leaves collapse to one leaf")]
         #[test_case(TestSet::new([2,3]), TestSet::new([1,2,3,4]), Shape::Leaf(vec![2,3]); "subset collapses to the subset leaf")]
@@ -338,9 +346,9 @@ mod tests {
 
     mod simplification_on_subtraction {
         use super::*;
-        use test_case::test_case;
-        use pretty_assertions::assert_eq;
         use SetOps::Sub;
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(TestSet::new([3,4,50]), TestSet::new([3,4,50]), Shape::EmptySet; "equal leaves collapse to the empty set")]
         #[test_case(TestSet::new([2,3]), TestSet::new([1,2,3,4]), Shape::EmptySet; "subset collapses to the empty set")]
@@ -354,8 +362,8 @@ mod tests {
 
     mod containment {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(TestSet::new([4,5,70]), 70, true; "leaf hit")]
         #[test_case(TestSet::new([4,5,70]), 71, false; "leaf miss")]

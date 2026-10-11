@@ -22,7 +22,10 @@ pub enum ArgsError {
     #[error("no args entry found for algorithm id '{algorithm_id}'")]
     MissingArgs { algorithm_id: String },
     #[error("malformed args for algorithm id '{algorithm_id}': {message}")]
-    MalformedArgs { algorithm_id: String, message: String },
+    MalformedArgs {
+        algorithm_id: String,
+        message: String,
+    },
 }
 
 /// The path of a segment's arguments file.
@@ -43,9 +46,14 @@ pub fn load(formats_repo_dir: &Path, segment: SegmentKind) -> Result<serde_yaml:
     if !path.is_file() {
         return Err(ArgsError::MissingYaml(path));
     }
-    let content = std::fs::read_to_string(&path)
-        .map_err(|e| ArgsError::Unreadable { path: path.clone(), reason: e.to_string() })?;
-    serde_yaml::from_str(&content).map_err(|e| ArgsError::Unreadable { path, reason: e.to_string() })
+    let content = std::fs::read_to_string(&path).map_err(|e| ArgsError::Unreadable {
+        path: path.clone(),
+        reason: e.to_string(),
+    })?;
+    serde_yaml::from_str(&content).map_err(|e| ArgsError::Unreadable {
+        path,
+        reason: e.to_string(),
+    })
 }
 
 /// The key a pipe looks its arguments up under.
@@ -84,10 +92,15 @@ pub fn positional<'a>(
     algorithm_id: &str,
 ) -> Result<&'a serde_yaml::Value, ArgsError> {
     match selected.as_sequence() {
-        Some(items) => items.get(already_emitted).ok_or_else(|| ArgsError::MalformedArgs {
-            algorithm_id: algorithm_id.to_string(),
-            message: format!("stacked args list has {} entries, needed index {already_emitted}", items.len()),
-        }),
+        Some(items) => items
+            .get(already_emitted)
+            .ok_or_else(|| ArgsError::MalformedArgs {
+                algorithm_id: algorithm_id.to_string(),
+                message: format!(
+                    "stacked args list has {} entries, needed index {already_emitted}",
+                    items.len()
+                ),
+            }),
         None => Ok(selected),
     }
 }

@@ -83,13 +83,17 @@ mod tests {
 
         #[test]
         fn the_fund_pipe_is_called_fund() {
-            let pipe = input("selection: 'Arial,Bold ((:)(:60))'").fund().expect("a selection is enough");
+            let pipe = input("selection: 'Arial,Bold ((:)(:60))'")
+                .fund()
+                .expect("a selection is enough");
             assert_eq!(PdfExtractPipe::name(&pipe), "fund");
         }
 
         #[test]
         fn the_currency_pipe_is_called_currency() {
-            let pipe = input("selection: '\"Controvalore in \"'").currency().expect("a selection is enough");
+            let pipe = input("selection: '\"Controvalore in \"'")
+                .currency()
+                .expect("a selection is enough");
             assert_eq!(PdfExtractPipe::name(&pipe), "currency");
         }
 
@@ -105,13 +109,16 @@ mod tests {
 
         #[test]
         fn a_separator_is_accepted() {
-            input("selection: 'arialmt'\njoin: ' '").fund().expect("a title split in two is one name");
+            input("selection: 'arialmt'\njoin: ' '")
+                .fund()
+                .expect("a title split in two is one name");
         }
 
         #[test]
         fn an_unknown_field_is_refused_rather_than_ignored() {
-            let error = serde_yaml::from_str::<InputSelectedText>("selection: 'arialmt'\njoin_with: ' '\n")
-                .expect_err("a misspelled key must not be dropped in silence");
+            let error =
+                serde_yaml::from_str::<InputSelectedText>("selection: 'arialmt'\njoin_with: ' '\n")
+                    .expect_err("a misspelled key must not be dropped in silence");
             assert!(error.to_string().contains("join_with"), "{error}");
         }
 
@@ -121,7 +128,16 @@ mod tests {
                 .fund()
                 .err()
                 .expect("an unquoted anchor is a font name");
-            assert!(matches!(error, SelectionConfigError::NotASelection { field: "selection", .. }), "{error}");
+            assert!(
+                matches!(
+                    error,
+                    SelectionConfigError::NotASelection {
+                        field: "selection",
+                        ..
+                    }
+                ),
+                "{error}"
+            );
         }
     }
 }

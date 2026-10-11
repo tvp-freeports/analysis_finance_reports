@@ -66,13 +66,24 @@ impl PyPdfExtractPipe {
             // goes through this wrapper's `__call__`), so this is the only place a failure of
             // this specific invocation can ever be recorded before it becomes a Python
             // `RuntimeError`, invisible to this crate's own tracing/CSV pipeline.
-            tracing::error!(error = log_error(&e), pipe = self.0.name(), "native pdf_extract pipe called from Python failed: {e}");
+            tracing::error!(
+                error = log_error(&e),
+                pipe = self.0.name(),
+                "native pdf_extract pipe called from Python failed: {e}"
+            );
             pipe_error(e)
         })?;
         // `trace!`, not `debug!`: mirrors `formats_repo::unstructured::py_pipe`'s own pipes,
         // which run once per page (rule 2, hot per-page dispatch).
-        tracing::trace!(pipe = self.0.name(), block_count = blocks.len(), "native pdf_extract pipe called from Python");
-        blocks.iter().map(|block| PyPdfBlock::from_native(py, block)).collect()
+        tracing::trace!(
+            pipe = self.0.name(),
+            block_count = blocks.len(),
+            "native pdf_extract pipe called from Python"
+        );
+        blocks
+            .iter()
+            .map(|block| PyPdfBlock::from_native(py, block))
+            .collect()
     }
 
     #[getter]
@@ -113,11 +124,21 @@ impl PyTextFilterPipe {
         let previous = previous_results_from_py(filter_data)?;
         let data = filter_data_of(&companies, &previous);
         let out = self.0.filter(&blocks, &data).map_err(|e| {
-            tracing::error!(error = log_error(&e), pipe = self.0.name(), "native text_filter pipe called from Python failed: {e}");
+            tracing::error!(
+                error = log_error(&e),
+                pipe = self.0.name(),
+                "native text_filter pipe called from Python failed: {e}"
+            );
             pipe_error(e)
         })?;
-        tracing::trace!(pipe = self.0.name(), block_count = out.len(), "native text_filter pipe called from Python");
-        out.iter().map(|block| PyTextBlock::from_native(py, block)).collect()
+        tracing::trace!(
+            pipe = self.0.name(),
+            block_count = out.len(),
+            "native text_filter pipe called from Python"
+        );
+        out.iter()
+            .map(|block| PyTextBlock::from_native(py, block))
+            .collect()
     }
 
     #[getter]
@@ -156,11 +177,19 @@ impl PyDeserializePipe {
         txt_blk: PyRef<'_, PyTextBlock>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let results = self.0.deserialize(&txt_blk.native(py)?).map_err(|e| {
-            tracing::error!(error = log_error(&e), pipe = self.0.name(), "native deserialize pipe called from Python failed: {e}");
+            tracing::error!(
+                error = log_error(&e),
+                pipe = self.0.name(),
+                "native deserialize pipe called from Python failed: {e}"
+            );
             pipe_error(e)
         })?;
         // `trace!`: runs once per text block, the finest granularity of the three (rule 2).
-        tracing::trace!(pipe = self.0.name(), result_count = results.len(), "native deserialize pipe called from Python");
+        tracing::trace!(
+            pipe = self.0.name(),
+            result_count = results.len(),
+            "native deserialize pipe called from Python"
+        );
         match results.into_iter().next() {
             Some(extracted) => extracted_to_py(py, &extracted),
             None => Ok(py.None().into_bound(py)),
@@ -186,17 +215,26 @@ impl PyDeserializePipe {
 /// Returning nothing is not an error: it means "this is an author's callable", and the caller will
 /// wrap it in the shape-based adapter as always.
 pub fn unwrap_pdf_extract(object: &Bound<'_, PyAny>) -> Option<Arc<dyn PdfExtractPipe>> {
-    object.extract::<PyRef<'_, PyPdfExtractPipe>>().ok().map(|pipe| pipe.inner())
+    object
+        .extract::<PyRef<'_, PyPdfExtractPipe>>()
+        .ok()
+        .map(|pipe| pipe.inner())
 }
 
 /// As [`unwrap_pdf_extract`], for the filtering segment.
 pub fn unwrap_text_filter(object: &Bound<'_, PyAny>) -> Option<Arc<dyn TextFilterPipe>> {
-    object.extract::<PyRef<'_, PyTextFilterPipe>>().ok().map(|pipe| pipe.inner())
+    object
+        .extract::<PyRef<'_, PyTextFilterPipe>>()
+        .ok()
+        .map(|pipe| pipe.inner())
 }
 
 /// As [`unwrap_pdf_extract`], for the deserialization segment.
 pub fn unwrap_deserialize(object: &Bound<'_, PyAny>) -> Option<Arc<dyn DeserializePipe>> {
-    object.extract::<PyRef<'_, PyDeserializePipe>>().ok().map(|pipe| pipe.inner())
+    object
+        .extract::<PyRef<'_, PyDeserializePipe>>()
+        .ok()
+        .map(|pipe| pipe.inner())
 }
 
 // =================================================================================================
@@ -214,7 +252,9 @@ pub fn unwrap_deserialize(object: &Bound<'_, PyAny>) -> Option<Arc<dyn Deseriali
 /// shape would answer one way in a run and another in `freeports-dev`.
 pub fn page_from_py(page: &Bound<'_, PyAny>) -> PyResult<Page> {
     let dict = page.cast::<PyDict>().map_err(|_| {
-        pyo3::exceptions::PyTypeError::new_err("a page must be the dict returned by page.get_text(\"dict\")")
+        pyo3::exceptions::PyTypeError::new_err(
+            "a page must be the dict returned by page.get_text(\"dict\")",
+        )
     })?;
     let parsed = PageDict::from_py(dict)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -254,7 +294,9 @@ pub fn text_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<TextBlock>
 }
 
 /// The target companies contained in a filter data, if there are any.
-pub fn target_companies_from_py(filter_data: &Bound<'_, PyAny>) -> PyResult<Vec<CompanyMatchInfos>> {
+pub fn target_companies_from_py(
+    filter_data: &Bound<'_, PyAny>,
+) -> PyResult<Vec<CompanyMatchInfos>> {
     let mut out = Vec::new();
     for item in filter_data.try_iter()? {
         if let Ok(company) = item?.extract::<PyRef<'_, super::input::PyCompanyMatchInfos>>() {
@@ -366,7 +408,10 @@ pub fn extracted_from_py(object: &Bound<'_, PyAny>) -> PyResult<Option<Extracted
     if let Ok(dict) = object.cast::<PyDict>() {
         let mut entries = PromiseEntries::new();
         for (key, value) in dict.iter() {
-            entries.push(key.extract::<String>()?, super::convert::block_value_from_py(&value)?);
+            entries.push(
+                key.extract::<String>()?,
+                super::convert::block_value_from_py(&value)?,
+            );
         }
         return Ok(Some(Extracted::Promises(entries)));
     }

@@ -30,7 +30,9 @@ use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 
 use crate::core::doc_classify::{Step, StepKey, YamlEntry};
 use crate::formats_repo::csv_columns;
-use crate::formats_repo::format_pattern::{FormatPattern, FormatPatternError, FormatTemplate, Slot};
+use crate::formats_repo::format_pattern::{
+    FormatPattern, FormatPatternError, FormatTemplate, Slot,
+};
 use crate::input::document::selection::{InputPdfLineSet, pdfline_selection_from_dict};
 
 /// The file name of the declarative document classification, inside the repository's
@@ -74,22 +76,38 @@ pub struct YamlLocation {
 
 impl YamlLocation {
     fn on_page(page: NonZeroI32) -> Self {
-        YamlLocation { page: Some(page.get().into()), ..Default::default() }
+        YamlLocation {
+            page: Some(page.get().into()),
+            ..Default::default()
+        }
     }
 
     /// The location of what is read inside `step`.
     fn within(&self, step: &StepKey) -> Self {
         let mut steps = self.steps.clone();
         steps.push(step.to_string());
-        YamlLocation { page: self.page, steps, key: None }
+        YamlLocation {
+            page: self.page,
+            steps,
+            key: None,
+        }
     }
 
     fn broken(&self, kind: RuleError) -> DocClassifyYamlError {
-        DocClassifyYamlError::Rule { at: self.clone(), kind }
+        DocClassifyYamlError::Rule {
+            at: self.clone(),
+            kind,
+        }
     }
 
     fn broken_at(&self, key: String, kind: RuleError) -> DocClassifyYamlError {
-        DocClassifyYamlError::Rule { at: YamlLocation { key: Some(key), ..self.clone() }, kind }
+        DocClassifyYamlError::Rule {
+            at: YamlLocation {
+                key: Some(key),
+                ..self.clone()
+            },
+            kind,
+        }
     }
 }
 
@@ -128,11 +146,15 @@ pub enum RuleError {
     /// Two keys of one mapping that are the same step — written the same (what `serde_yaml`
     /// rejects) or normalizing to the same pattern (`21`/`"21"`, `LUX`/`"@LUX"`, `A`/`.A`, §2.3.3).
     /// The message suggests the list form, where repeating a key is an ordered OR.
-    #[error("duplicate key: two keys of this mapping name the same step; write the steps as a list to repeat one")]
+    #[error(
+        "duplicate key: two keys of this mapping name the same step; write the steps as a list to repeat one"
+    )]
     DuplicateKey,
     /// An element of the top-level list holding more than one page: one element is one entry
     /// (§2.4).
-    #[error("an element of the list of entries is one page: write several pages as several elements")]
+    #[error(
+        "an element of the list of entries is one page: write several pages as several elements"
+    )]
     SeveralPages,
     /// A page with no steps (`1: ~`, `1: []`, `1: {}`): an entry that cannot classify anything is
     /// a slip (§2.4).
@@ -185,7 +207,9 @@ pub enum RuleError {
 }
 
 fn shape(reason: &str) -> RuleError {
-    RuleError::Shape { reason: reason.to_string() }
+    RuleError::Shape {
+        reason: reason.to_string(),
+    }
 }
 
 /// Why the declarative document classification could not be loaded.
@@ -205,14 +229,19 @@ pub enum DocClassifyYamlError {
     /// set when the refusal is one of the traps of §2.3 — an unquoted `*` (an alias: "unknown
     /// anchor") or `@` (a reserved indicator) opening a key — and suggests the quotes.
     #[error("{reason}{}", in_parentheses(.hint))]
-    Syntax { reason: String, hint: Option<String> },
+    Syntax {
+        reason: String,
+        hint: Option<String>,
+    },
     /// A rule of the grammar broken at `at`.
     #[error("{at}: {kind}{}", both_readings(.kind, .at))]
     Rule { at: YamlLocation, kind: RuleError },
 }
 
 fn in_parentheses(hint: &Option<String>) -> String {
-    hint.as_ref().map(|hint| format!(" ({hint})")).unwrap_or_default()
+    hint.as_ref()
+        .map(|hint| format!(" ({hint})"))
+        .unwrap_or_default()
 }
 
 /// A bare key below `@*.*` is refused because it has two readings (§2.2): the message spells both,
@@ -226,7 +255,9 @@ fn both_readings(kind: &RuleError, at: &YamlLocation) -> String {
 
 /// `<formats_repo_dir>/metadata/document_classify.yaml`.
 pub fn yaml_path(formats_repo_dir: &Path) -> PathBuf {
-    formats_repo_dir.join(super::metadata::METADATA_DIR).join(DOCUMENT_CLASSIFY_YAML)
+    formats_repo_dir
+        .join(super::metadata::METADATA_DIR)
+        .join(DOCUMENT_CLASSIFY_YAML)
 }
 
 /// Reads a declarative document classification and brings it to the verbose form (§4): every
@@ -242,10 +273,14 @@ pub fn normalize(text: &str) -> Result<Vec<VerboseEntry>, DocClassifyYamlError> 
             .map(|element| match element {
                 Node::Map(pairs) => match <[(Node, Node); 1]>::try_from(pairs) {
                     Ok([(page, steps)]) => entry(&page, steps),
-                    Err(pairs) if pairs.is_empty() => Err(top.broken(shape("an entry maps a page to its steps"))),
+                    Err(pairs) if pairs.is_empty() => {
+                        Err(top.broken(shape("an entry maps a page to its steps")))
+                    }
                     Err(_) => Err(top.broken(RuleError::SeveralPages)),
                 },
-                _ => Err(top.broken(shape("an element of the list of entries maps a page to its steps"))),
+                _ => Err(top.broken(shape(
+                    "an element of the list of entries maps a page to its steps",
+                ))),
             })
             .collect(),
         Node::Map(pairs) => {
@@ -255,11 +290,16 @@ pub fn normalize(text: &str) -> Result<Vec<VerboseEntry>, DocClassifyYamlError> 
                 if entries.iter().any(|entry| entry.page == number) {
                     return Err(top.broken_at(page.written(), RuleError::DuplicateKey));
                 }
-                entries.push(VerboseEntry { page: number, steps: page_steps(number, steps)? });
+                entries.push(VerboseEntry {
+                    page: number,
+                    steps: page_steps(number, steps)?,
+                });
             }
             Ok(entries)
         }
-        _ => Err(top.broken(shape("the file is a list of entries, or a mapping of pages to their steps"))),
+        _ => Err(top.broken(shape(
+            "the file is a list of entries, or a mapping of pages to their steps",
+        ))),
     }
 }
 
@@ -269,8 +309,15 @@ pub fn parse(text: &str) -> Result<Vec<YamlEntry>, DocClassifyYamlError> {
         .into_iter()
         .map(|entry| {
             let on_page = YamlLocation::on_page(entry.page);
-            let steps = entry.steps.into_iter().map(|step| build(&on_page, step)).collect::<Result<_, _>>()?;
-            Ok(YamlEntry { page: entry.page, steps })
+            let steps = entry
+                .steps
+                .into_iter()
+                .map(|step| build(&on_page, step))
+                .collect::<Result<_, _>>()?;
+            Ok(YamlEntry {
+                page: entry.page,
+                steps,
+            })
         })
         .collect()
 }
@@ -282,16 +329,27 @@ pub fn load(formats_repo_dir: &Path) -> Result<Vec<YamlEntry>, DocClassifyYamlEr
     let text = match std::fs::read_to_string(&path) {
         Ok(text) => text,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
-        Err(error) => return Err(DocClassifyYamlError::Unreadable { path, reason: error.to_string() }),
+        Err(error) => {
+            return Err(DocClassifyYamlError::Unreadable {
+                path,
+                reason: error.to_string(),
+            });
+        }
     };
-    parse(&text).map_err(|source| DocClassifyYamlError::InFile { path, source: Box::new(source) })
+    parse(&text).map_err(|source| DocClassifyYamlError::InFile {
+        path,
+        source: Box::new(source),
+    })
 }
 
 /// The hint for the two traps of §2.3.1: `*` opens an alias and `@` is reserved, so neither can
 /// open an unquoted key, and `serde_yaml`'s own words do not say that quoting is the fix.
 fn syntax_error(text: &str, error: &serde_yaml::Error) -> DocClassifyYamlError {
     let reason = error.to_string();
-    let at = error.location().and_then(|location| text.get(location.index()..)).and_then(|rest| rest.chars().next());
+    let at = error
+        .location()
+        .and_then(|location| text.get(location.index()..))
+        .and_then(|rest| rest.chars().next());
     let hint = if reason.contains("unknown anchor") {
         Some("an unquoted '*' opens a YAML alias: quote a template key, as in \"*-EN23\":")
     } else if at == Some('@') {
@@ -299,7 +357,10 @@ fn syntax_error(text: &str, error: &serde_yaml::Error) -> DocClassifyYamlError {
     } else {
         None
     };
-    DocClassifyYamlError::Syntax { reason, hint: hint.map(str::to_string) }
+    DocClassifyYamlError::Syntax {
+        reason,
+        hint: hint.map(str::to_string),
+    }
 }
 
 fn page_number(key: &Node) -> Result<NonZeroI32, DocClassifyYamlError> {
@@ -317,7 +378,10 @@ fn page_number(key: &Node) -> Result<NonZeroI32, DocClassifyYamlError> {
 /// One element of the list of entries: `{page: steps}`.
 fn entry(page: &Node, steps: Node) -> Result<VerboseEntry, DocClassifyYamlError> {
     let number = page_number(page)?;
-    Ok(VerboseEntry { page: number, steps: page_steps(number, steps)? })
+    Ok(VerboseEntry {
+        page: number,
+        steps: page_steps(number, steps)?,
+    })
 }
 
 /// The steps of a page, as a list or as a mapping (§4); never none (§2.4).
@@ -330,10 +394,14 @@ fn page_steps(page: NonZeroI32, steps: Node) -> Result<Vec<VerboseStep>, DocClas
             .map(|element| match element {
                 Node::Map(pairs) => match <[(Node, Node); 1]>::try_from(pairs) {
                     Ok([(key, body)]) => step(&on_page, top_key(&on_page, &key)?, body),
-                    Err(pairs) if pairs.is_empty() => Err(on_page.broken(shape("a step maps its key to its body"))),
+                    Err(pairs) if pairs.is_empty() => {
+                        Err(on_page.broken(shape("a step maps its key to its body")))
+                    }
                     Err(_) => Err(on_page.broken(RuleError::SeveralStepKeys)),
                 },
-                _ => Err(on_page.broken(shape("an element of a page's steps maps a step's key to its body"))),
+                _ => Err(on_page.broken(shape(
+                    "an element of a page's steps maps a step's key to its body",
+                ))),
             })
             .collect::<Result<_, _>>()?,
         Node::Map(pairs) => steps_of_mapping(&on_page, pairs, |key| top_key(&on_page, key))?,
@@ -371,12 +439,23 @@ fn top_key(scope: &YamlLocation, key: &Node) -> Result<StepKey, DocClassifyYamlE
         true => text.parse::<FormatTemplate>().map(StepKey::Template),
         false => text.parse::<FormatPattern>().map(StepKey::Pattern),
     };
-    read.map_err(|error| scope.broken_at(key.written(), RuleError::InvalidKey { reason: error.to_string() }))
+    read.map_err(|error| {
+        scope.broken_at(
+            key.written(),
+            RuleError::InvalidKey {
+                reason: error.to_string(),
+            },
+        )
+    })
 }
 
 /// A step's body in any of its forms (§2.1, §4), into its criteria and its children. `scope` is
 /// where the step itself is.
-fn step(scope: &YamlLocation, key: StepKey, body: Node) -> Result<VerboseStep, DocClassifyYamlError> {
+fn step(
+    scope: &YamlLocation,
+    key: StepKey,
+    body: Node,
+) -> Result<VerboseStep, DocClassifyYamlError> {
     let inside = scope.within(&key);
     let mut criteria = Vec::new();
     let mut children = Vec::new();
@@ -385,31 +464,49 @@ fn step(scope: &YamlLocation, key: StepKey, body: Node) -> Result<VerboseStep, D
         Node::Seq(elements) => {
             for element in elements {
                 let Node::Map(pairs) = element else {
-                    return Err(inside.broken(shape("an element of a body is a criterion or a step, both mappings")));
+                    return Err(inside.broken(shape(
+                        "an element of a body is a criterion or a step, both mappings",
+                    )));
                 };
                 match <[(Node, Node); 1]>::try_from(pairs) {
                     Ok([(child, body)]) if !is_selection_key(&child) => {
                         children.push(step(&inside, child_key(&inside, &key, &child)?, body)?);
                     }
                     Ok(pair) => criteria.push(criterion(&inside, Node::Map(pair.into()))?),
-                    Err(pairs) => match pairs.iter().filter(|(key, _)| !is_selection_key(key)).count() {
+                    Err(pairs) => match pairs
+                        .iter()
+                        .filter(|(key, _)| !is_selection_key(key))
+                        .count()
+                    {
                         0 => criteria.push(criterion(&inside, Node::Map(pairs))?),
-                        step_keys if step_keys < pairs.len() => return Err(inside.broken(RuleError::MixedElement)),
+                        step_keys if step_keys < pairs.len() => {
+                            return Err(inside.broken(RuleError::MixedElement));
+                        }
                         _ => return Err(inside.broken(RuleError::SeveralStepKeys)),
                     },
                 }
             }
         }
         Node::Map(pairs) => {
-            let (selection, steps): (Vec<_>, Vec<_>) = pairs.into_iter().partition(|(key, _)| is_selection_key(key));
+            let (selection, steps): (Vec<_>, Vec<_>) = pairs
+                .into_iter()
+                .partition(|(key, _)| is_selection_key(key));
             if !selection.is_empty() {
                 criteria.push(criterion(&inside, Node::Map(selection))?);
             }
             children = steps_of_mapping(&inside, steps, |child| child_key(&inside, &key, child))?;
         }
-        _ => return Err(inside.broken(shape("a body is a list of criteria and steps, a mapping, or empty"))),
+        _ => {
+            return Err(inside.broken(shape(
+                "a body is a list of criteria and steps, a mapping, or empty",
+            )));
+        }
     }
-    Ok(VerboseStep { key, criteria, children })
+    Ok(VerboseStep {
+        key,
+        criteria,
+        children,
+    })
 }
 
 /// A key of `InputPdfLineSet` — the criteria are exactly its keys, reused (§2.1). Anything else is
@@ -419,9 +516,14 @@ fn is_selection_key(key: &Node) -> bool {
 }
 
 fn criterion(scope: &YamlLocation, written: Node) -> Result<InputPdfLineSet, DocClassifyYamlError> {
-    let value = written.into_value().map_err(|duplicate| scope.broken_at(duplicate, RuleError::DuplicateKey))?;
-    let criterion: InputPdfLineSet = serde_yaml::from_value(value)
-        .map_err(|error| scope.broken(RuleError::InvalidSelection { reason: error.to_string() }))?;
+    let value = written
+        .into_value()
+        .map_err(|duplicate| scope.broken_at(duplicate, RuleError::DuplicateKey))?;
+    let criterion: InputPdfLineSet = serde_yaml::from_value(value).map_err(|error| {
+        scope.broken(RuleError::InvalidSelection {
+            reason: error.to_string(),
+        })
+    })?;
     match criterion.states_a_criterion() {
         true => Ok(criterion),
         false => Err(scope.broken(RuleError::EmptyCriterion)),
@@ -430,7 +532,11 @@ fn criterion(scope: &YamlLocation, written: Node) -> Result<InputPdfLineSet, Doc
 
 /// A child key, composed with its parent's pattern into the child's full one. `scope` is where the
 /// parent is.
-fn child_key(scope: &YamlLocation, parent: &StepKey, key: &Node) -> Result<StepKey, DocClassifyYamlError> {
+fn child_key(
+    scope: &YamlLocation,
+    parent: &StepKey,
+    key: &Node,
+) -> Result<StepKey, DocClassifyYamlError> {
     let broken = |kind| scope.broken_at(key.written(), kind);
     let parent = match parent {
         StepKey::Template(_) => return Err(broken(RuleError::TemplateWithChildren)),
@@ -451,13 +557,17 @@ fn compose(parent: &FormatPattern, key: &Node) -> Result<FormatPattern, RuleErro
             suggestion: opened_for(parent, &key.written()),
         });
     }
-    let does_not_refine =
-        |reason: String| RuleError::KeyDoesNotRefineParent { parent: parent.to_string(), reason };
+    let does_not_refine = |reason: String| RuleError::KeyDoesNotRefineParent {
+        parent: parent.to_string(),
+        reason,
+    };
     let name = match (parent.language(), parent.year()) {
         (Slot::Unknown, _) => {
             let text = key_text(key)?;
             if let Some(suggestion) = text.strip_prefix('-') {
-                return Err(RuleError::HyphenatedChildKey { suggestion: suggestion.to_string() });
+                return Err(RuleError::HyphenatedChildKey {
+                    suggestion: suggestion.to_string(),
+                });
             }
             format!("{}-{text}", parent.entity())
         }
@@ -466,18 +576,26 @@ fn compose(parent: &FormatPattern, key: &Node) -> Result<FormatPattern, RuleErro
                 // §2.3.2: YAML reads `05` as a string but `5` as an integer, which in the year slot
                 // can only mean `05`.
                 Node::Int(year) if (0..=99).contains(year) => format!("{year:02}"),
-                Node::Int(year) => return Err(does_not_refine(format!("a year is two digits, and {year} is not"))),
+                Node::Int(year) => {
+                    return Err(does_not_refine(format!(
+                        "a year is two digits, and {year} is not"
+                    )));
+                }
                 _ => key_text(key)?,
             };
             format!("{parent}{year}")
         }
         _ => after_the_year(parent, &key_text(key)?)?,
     };
-    let child: FormatPattern = name.parse().map_err(|error: FormatPatternError| does_not_refine(error.to_string()))?;
+    let child: FormatPattern = name
+        .parse()
+        .map_err(|error: FormatPatternError| does_not_refine(error.to_string()))?;
     match child.strictly_refines(parent) {
         true => Ok(child),
         false if child == *parent => Err(does_not_refine("it names the parent again".to_string())),
-        false => Err(does_not_refine(format!("it composes into '{child}', which does not refine the parent"))),
+        false => Err(does_not_refine(format!(
+            "it composes into '{child}', which does not refine the parent"
+        ))),
     }
 }
 
@@ -485,7 +603,11 @@ fn compose(parent: &FormatPattern, key: &Node) -> Result<FormatPattern, RuleErro
 /// parent's for the others. A bare key goes in the one open slot; with two open, it would have two
 /// readings, and needs its separator (§2.2, R3b).
 fn after_the_year(parent: &FormatPattern, key: &str) -> Result<String, RuleError> {
-    let separated = match (key.starts_with(['@', '.']), parent.location(), parent.variant()) {
+    let separated = match (
+        key.starts_with(['@', '.']),
+        parent.location(),
+        parent.variant(),
+    ) {
         (true, _, _) => key.to_string(),
         (false, Slot::Required, Slot::Required) => return Err(RuleError::SeparatorRequired),
         (false, Slot::Required, _) => format!("@{key}"),
@@ -520,7 +642,12 @@ fn opened_for(parent: &FormatPattern, key: &str) -> String {
 }
 
 fn up_to_the_year(pattern: &FormatPattern) -> String {
-    format!("{}{}{}", pattern.entity(), slot_text("-", pattern.language()), slot_text("", pattern.year()))
+    format!(
+        "{}{}{}",
+        pattern.entity(),
+        slot_text("-", pattern.language()),
+        slot_text("", pattern.year())
+    )
 }
 
 /// A slot as a name writes it after its `prefix`.
@@ -539,7 +666,9 @@ fn key_text(key: &Node) -> Result<String, RuleError> {
         Node::Str(text) => Ok(text.clone()),
         Node::Int(number) => Ok(number.to_string()),
         Node::Float(_) | Node::Bool(_) | Node::Null => Err(RuleError::NonStringKey),
-        Node::Seq(_) | Node::Map(_) => Err(shape("a key is a single word, not a list or a mapping")),
+        Node::Seq(_) | Node::Map(_) => {
+            Err(shape("a key is a single word, not a list or a mapping"))
+        }
     }
 }
 
@@ -550,12 +679,23 @@ fn build(scope: &YamlLocation, step: VerboseStep) -> Result<Step, DocClassifyYam
         .criteria
         .iter()
         .map(|criterion| {
-            pdfline_selection_from_dict(criterion)
-                .map_err(|error| inside.broken(RuleError::InvalidSelection { reason: error.to_string() }))
+            pdfline_selection_from_dict(criterion).map_err(|error| {
+                inside.broken(RuleError::InvalidSelection {
+                    reason: error.to_string(),
+                })
+            })
         })
         .collect::<Result<_, _>>()?;
-    let children = step.children.into_iter().map(|child| build(&inside, child)).collect::<Result<_, _>>()?;
-    Ok(Step { key: step.key, criteria, children })
+    let children = step
+        .children
+        .into_iter()
+        .map(|child| build(&inside, child))
+        .collect::<Result<_, _>>()?;
+    Ok(Step {
+        key: step.key,
+        criteria,
+        children,
+    })
 }
 
 /// A YAML document as written, every mapping a list of pairs.
@@ -598,14 +738,20 @@ impl Node {
             Node::Int(value) => value.into(),
             Node::Float(value) => value.into(),
             Node::Str(value) => value.into(),
-            Node::Seq(items) => {
-                serde_yaml::Value::Sequence(items.into_iter().map(Node::into_value).collect::<Result<_, _>>()?)
-            }
+            Node::Seq(items) => serde_yaml::Value::Sequence(
+                items
+                    .into_iter()
+                    .map(Node::into_value)
+                    .collect::<Result<_, _>>()?,
+            ),
             Node::Map(pairs) => {
                 let mut mapping = serde_yaml::Mapping::with_capacity(pairs.len());
                 for (key, value) in pairs {
                     let written = key.written();
-                    if mapping.insert(key.into_value()?, value.into_value()?).is_some() {
+                    if mapping
+                        .insert(key.into_value()?, value.into_value()?)
+                        .is_some()
+                    {
                         return Err(written);
                     }
                 }
@@ -652,7 +798,9 @@ impl<'de> Visitor<'de> for NodeVisitor {
     }
 
     fn visit_u64<E: de::Error>(self, value: u64) -> Result<Node, E> {
-        i64::try_from(value).map(Node::Int).map_err(|_| E::custom(format!("integer {value} is too large")))
+        i64::try_from(value)
+            .map(Node::Int)
+            .map_err(|_| E::custom(format!("integer {value} is too large")))
     }
 
     fn visit_f64<E>(self, value: f64) -> Result<Node, E> {
@@ -715,12 +863,17 @@ mod tests {
 
     /// A criterion in the structured form, written as a YAML flow mapping.
     fn sel(yaml: &str) -> InputPdfLineSet {
-        serde_yaml::from_str(yaml).unwrap_or_else(|e| panic!("fixture selection {yaml:?} must read: {e}"))
+        serde_yaml::from_str(yaml)
+            .unwrap_or_else(|e| panic!("fixture selection {yaml:?} must read: {e}"))
     }
 
     /// A verbose step keyed by a full pattern.
     fn step(key: &str, criteria: &[&str], children: Vec<VerboseStep>) -> VerboseStep {
-        VerboseStep { key: StepKey::Pattern(p(key)), criteria: criteria.iter().map(|c| sel(c)).collect(), children }
+        VerboseStep {
+            key: StepKey::Pattern(p(key)),
+            criteria: criteria.iter().map(|c| sel(c)).collect(),
+            children,
+        }
     }
 
     fn leaf(key: &str, criteria: &[&str]) -> VerboseStep {
@@ -733,15 +886,23 @@ mod tests {
     }
 
     fn template(key: &str, criteria: &[&str]) -> VerboseStep {
-        VerboseStep { key: StepKey::Template(t(key)), criteria: criteria.iter().map(|c| sel(c)).collect(), children: vec![] }
+        VerboseStep {
+            key: StepKey::Template(t(key)),
+            criteria: criteria.iter().map(|c| sel(c)).collect(),
+            children: vec![],
+        }
     }
 
     fn entry(page: i32, steps: Vec<VerboseStep>) -> VerboseEntry {
-        VerboseEntry { page: n(page), steps }
+        VerboseEntry {
+            page: n(page),
+            steps,
+        }
     }
 
     fn normalized(text: &str) -> Vec<VerboseEntry> {
-        normalize(text).unwrap_or_else(|e| panic!("expected the YAML to normalize, got: {e}\n---\n{text}"))
+        normalize(text)
+            .unwrap_or_else(|e| panic!("expected the YAML to normalize, got: {e}\n---\n{text}"))
     }
 
     /// `Vec<YamlEntry>` is not `Debug` (a `PdfLineSelection` is not), so `unwrap_err` is not
@@ -769,7 +930,11 @@ mod tests {
     }
 
     fn at(page: Option<i64>, steps: &[&str], key: Option<&str>) -> YamlLocation {
-        YamlLocation { page, steps: steps.iter().map(|s| s.to_string()).collect(), key: key.map(str::to_string) }
+        YamlLocation {
+            page,
+            steps: steps.iter().map(|s| s.to_string()).collect(),
+            key: key.map(str::to_string),
+        }
     }
 
     /// The only step of the only entry.
@@ -789,7 +954,11 @@ mod tests {
     /// The full key the loader composes for `child` written under `parent`.
     fn compose(parent: &str, child: &str) -> StepKey {
         let parent_step = only_step(&with_child(parent, child));
-        assert_eq!(parent_step.children.len(), 1, "expected one child under {parent}");
+        assert_eq!(
+            parent_step.children.len(),
+            1,
+            "expected one child under {parent}"
+        );
         parent_step.children[0].key.clone()
     }
 
@@ -825,11 +994,17 @@ mod tests {
     }
 
     fn shape(entries: &[YamlEntry]) -> Vec<(i32, Vec<Shape>)> {
-        entries.iter().map(|e| (e.page.get(), e.steps.iter().map(step_shape).collect())).collect()
+        entries
+            .iter()
+            .map(|e| (e.page.get(), e.steps.iter().map(step_shape).collect()))
+            .collect()
     }
 
     fn shape_of_verbose(entries: &[VerboseEntry]) -> Vec<(i32, Vec<Shape>)> {
-        entries.iter().map(|e| (e.page.get(), e.steps.iter().map(verbose_shape).collect())).collect()
+        entries
+            .iter()
+            .map(|e| (e.page.get(), e.steps.iter().map(verbose_shape).collect()))
+            .collect()
     }
 
     /// A line of a fake page. Every line has the same box: no criterion run on a fake page here
@@ -859,14 +1034,26 @@ mod tests {
         }
 
         fn page(&self, number: NonZeroI32) -> Result<Option<Page>, DocumentError> {
-            Ok(resolve_page_number(number, self.pages.len())
-                .map(|index| Page::new(index as u32 + 1, (595.0, 842.0), self.pages[index].clone(), vec![])))
+            Ok(resolve_page_number(number, self.pages.len()).map(|index| {
+                Page::new(
+                    index as u32 + 1,
+                    (595.0, 842.0),
+                    self.pages[index].clone(),
+                    vec![],
+                )
+            }))
         }
     }
 
-    fn classify(formats: &[&str], entries: Vec<YamlEntry>, document: &FakeDocument) -> DocClassification {
+    fn classify(
+        formats: &[&str],
+        entries: Vec<YamlEntry>,
+        document: &FakeDocument,
+    ) -> DocClassification {
         let formats = formats.iter().map(|f| f.to_string()).collect();
-        DocumentClassifier::new(formats, vec![], entries).classify(document).expect("classification must not fail")
+        DocumentClassifier::new(formats, vec![], entries)
+            .classify(document)
+            .expect("classification must not fail")
     }
 
     fn complete_format(outcome: &DocClassification) -> String {
@@ -877,7 +1064,10 @@ mod tests {
     }
 
     /// Whether a built criterion finds at least one of `lines`.
-    fn finds(criterion: &crate::formats_utils::pdf_extract::select::relative::PdfLineSelection, lines: &[PdfLine]) -> bool {
+    fn finds(
+        criterion: &crate::formats_utils::pdf_extract::select::relative::PdfLineSelection,
+        lines: &[PdfLine],
+    ) -> bool {
         first_line_if_every_selection_matches(std::slice::from_ref(criterion), lines).is_some()
     }
 
@@ -890,7 +1080,12 @@ mod tests {
 
         fn keys(text: &str) -> Vec<serde_yaml::Value> {
             let value: serde_yaml::Value = serde_yaml::from_str(text).unwrap();
-            value.as_mapping().expect("a mapping").keys().cloned().collect()
+            value
+                .as_mapping()
+                .expect("a mapping")
+                .keys()
+                .cloned()
+                .collect()
         }
 
         #[test]
@@ -993,7 +1188,11 @@ mod tests {
             let dir = TempDir::new().unwrap();
             fs::create_dir_all(dir.path().join("metadata")).unwrap();
             if let Some(content) = content {
-                fs::write(dir.path().join("metadata").join("document_classify.yaml"), content).unwrap();
+                fs::write(
+                    dir.path().join("metadata").join("document_classify.yaml"),
+                    content,
+                )
+                .unwrap();
             }
             dir
         }
@@ -1015,7 +1214,10 @@ mod tests {
         #[test]
         fn the_file_is_in_metadata() {
             let repo = Path::new("/some/repo");
-            assert_eq!(yaml_path(repo), PathBuf::from("/some/repo/metadata/document_classify.yaml"));
+            assert_eq!(
+                yaml_path(repo),
+                PathBuf::from("/some/repo/metadata/document_classify.yaml")
+            );
         }
 
         #[test]
@@ -1053,7 +1255,15 @@ mod tests {
             let entries = loaded(repo.path());
             assert_eq!(
                 shape(&entries),
-                vec![(1, vec![Shape { key: "AMUNDI-EN24".into(), template: false, criteria: 1, children: vec![] }])]
+                vec![(
+                    1,
+                    vec![Shape {
+                        key: "AMUNDI-EN24".into(),
+                        template: false,
+                        criteria: 1,
+                        children: vec![]
+                    }]
+                )]
             );
         }
 
@@ -1063,15 +1273,30 @@ mod tests {
             let error = load_err(repo.path());
             let path = yaml_path(repo.path());
             match &error {
-                DocClassifyYamlError::InFile { path: in_file, source } => {
+                DocClassifyYamlError::InFile {
+                    path: in_file,
+                    source,
+                } => {
                     assert_eq!(in_file, &path);
-                    assert!(matches!(**source, DocClassifyYamlError::Rule { kind: RuleError::PageZero, .. }), "{source:?}");
+                    assert!(
+                        matches!(
+                            **source,
+                            DocClassifyYamlError::Rule {
+                                kind: RuleError::PageZero,
+                                ..
+                            }
+                        ),
+                        "{source:?}"
+                    );
                 }
                 other => panic!("expected InFile, got {other:?}"),
             }
             let message = error.to_string();
             assert!(message.contains(&path.display().to_string()), "{message}");
-            assert!(message.contains("page 0"), "the inner defect must show: {message}");
+            assert!(
+                message.contains("page 0"),
+                "the inner defect must show: {message}"
+            );
         }
 
         #[test]
@@ -1085,7 +1310,9 @@ mod tests {
                 return;
             }
             match load_err(repo.path()) {
-                DocClassifyYamlError::Unreadable { path, .. } => assert_eq!(path, yaml_path(repo.path())),
+                DocClassifyYamlError::Unreadable { path, .. } => {
+                    assert_eq!(path, yaml_path(repo.path()))
+                }
                 other => panic!("expected Unreadable, got {other:?}"),
             }
         }
@@ -1123,11 +1350,20 @@ mod tests {
                     entry(
                         1,
                         vec![
-                            leaf("EURIZON-EN23", &["{font: arialmt, text: '^ciao$'}", "{text: PROVA, font_size: 8.9}"]),
+                            leaf(
+                                "EURIZON-EN23",
+                                &[
+                                    "{font: arialmt, text: '^ciao$'}",
+                                    "{text: PROVA, font_size: 8.9}"
+                                ]
+                            ),
                             step(
                                 "MEDIOLANUM",
                                 &["{text: '^Mediolanum'}"],
-                                vec![leaf("MEDIOLANUM-EN", &["{text: 'Annual Report'}"]), leaf("MEDIOLANUM-IT23", &["{text: 'Relazione'}"])],
+                                vec![
+                                    leaf("MEDIOLANUM-EN", &["{text: 'Annual Report'}"]),
+                                    leaf("MEDIOLANUM-IT23", &["{text: 'Relazione'}"])
+                                ],
                             ),
                         ]
                     ),
@@ -1145,7 +1381,8 @@ mod tests {
 
         #[test]
         fn negative_pages_count_from_the_end() {
-            let text = "- -1:\n    - AMUNDI-EN24: [{text: a}]\n- -2:\n    - KAIROS-EN23: [{text: b}]\n";
+            let text =
+                "- -1:\n    - AMUNDI-EN24: [{text: a}]\n- -2:\n    - KAIROS-EN23: [{text: b}]\n";
             let pages: Vec<i32> = normalized(text).iter().map(|e| e.page.get()).collect();
             assert_eq!(pages, vec![-1, -2]);
         }
@@ -1157,7 +1394,11 @@ mod tests {
                 normalized(text),
                 vec![entry(
                     1,
-                    vec![leaf("EURIZON-EN23", &["{text: a}"]), leaf("FIDEURAM-IT21", &["{text: b}"]), leaf("EURIZON-EN23", &["{text: c}"])]
+                    vec![
+                        leaf("EURIZON-EN23", &["{text: a}"]),
+                        leaf("FIDEURAM-IT21", &["{text: b}"]),
+                        leaf("EURIZON-EN23", &["{text: c}"])
+                    ]
                 )]
             );
         }
@@ -1165,15 +1406,30 @@ mod tests {
         #[test]
         fn a_repeated_child_in_a_list_is_an_ordered_or_too() {
             let text = "1:\n  MEDIOLANUM-ES:\n    - 21: [{text: a}]\n    - 23: [{text: b}]\n    - 21: [{text: c}]\n";
-            let children: Vec<StepKey> = only_step(text).children.into_iter().map(|c| c.key).collect();
-            assert_eq!(children, vec![pattern_key("MEDIOLANUM-ES21"), pattern_key("MEDIOLANUM-ES23"), pattern_key("MEDIOLANUM-ES21")]);
+            let children: Vec<StepKey> = only_step(text)
+                .children
+                .into_iter()
+                .map(|c| c.key)
+                .collect();
+            assert_eq!(
+                children,
+                vec![
+                    pattern_key("MEDIOLANUM-ES21"),
+                    pattern_key("MEDIOLANUM-ES23"),
+                    pattern_key("MEDIOLANUM-ES21")
+                ]
+            );
         }
 
         #[test]
         fn criteria_written_after_the_children_are_still_the_steps_criteria() {
             let after = "1:\n  MEDIOLANUM:\n    - EN23: [{text: e}]\n    - {text: m}\n";
             let before = "1:\n  MEDIOLANUM:\n    - {text: m}\n    - EN23: [{text: e}]\n";
-            let expected = step("MEDIOLANUM", &["{text: m}"], vec![leaf("MEDIOLANUM-EN23", &["{text: e}"])]);
+            let expected = step(
+                "MEDIOLANUM",
+                &["{text: m}"],
+                vec![leaf("MEDIOLANUM-EN23", &["{text: e}"])],
+            );
             assert_eq!(only_step(after), expected);
             assert_eq!(only_step(before), expected);
         }
@@ -1186,7 +1442,10 @@ mod tests {
                 step(
                     "MEDIOLANUM",
                     &["{text: a}", "{text: b}"],
-                    vec![leaf("MEDIOLANUM-EN23", &["{text: e}"]), leaf("MEDIOLANUM-IT23", &["{text: i}"])]
+                    vec![
+                        leaf("MEDIOLANUM-EN23", &["{text: e}"]),
+                        leaf("MEDIOLANUM-IT23", &["{text: i}"])
+                    ]
                 )
             );
         }
@@ -1205,7 +1464,10 @@ mod tests {
             let simplified = "5:\n  - EURIZON-IT24: [{text: a}]\n1:\n  - AMUNDI-EN24: [{text: b}]\n-1:\n  - UBS-EN23: [{text: c}]\n";
             let verbose = "- 5:\n    - EURIZON-IT24: [{text: a}]\n- 1:\n    - AMUNDI-EN24: [{text: b}]\n- -1:\n    - UBS-EN23: [{text: c}]\n";
             assert_eq!(normalized(simplified), normalized(verbose));
-            let pages: Vec<i32> = normalized(simplified).iter().map(|e| e.page.get()).collect();
+            let pages: Vec<i32> = normalized(simplified)
+                .iter()
+                .map(|e| e.page.get())
+                .collect();
             assert_eq!(pages, vec![5, 1, -1]);
         }
 
@@ -1226,7 +1488,10 @@ mod tests {
                 step(
                     "MEDIOLANUM",
                     &["{text: '^Mediolanum', font: arialmt}"],
-                    vec![leaf("MEDIOLANUM-EN23", &["{text: e}"]), leaf("MEDIOLANUM-IT23", &["{text: i}"])]
+                    vec![
+                        leaf("MEDIOLANUM-EN23", &["{text: e}"]),
+                        leaf("MEDIOLANUM-IT23", &["{text: i}"])
+                    ]
                 )
             );
         }
@@ -1240,35 +1505,58 @@ mod tests {
 
         #[test]
         fn a_body_of_selection_keys_only_is_a_single_criterion_and_no_children() {
-            let simplified = "1:\n  EURIZON-IT24: {text: '^Relazione di gestione$', font_size: 26}\n";
-            let verbose = "1:\n  - EURIZON-IT24:\n      - {text: '^Relazione di gestione$', font_size: 26}\n";
+            let simplified =
+                "1:\n  EURIZON-IT24: {text: '^Relazione di gestione$', font_size: 26}\n";
+            let verbose =
+                "1:\n  - EURIZON-IT24:\n      - {text: '^Relazione di gestione$', font_size: 26}\n";
             assert_eq!(normalized(simplified), normalized(verbose));
-            assert_eq!(only_step(simplified), leaf("EURIZON-IT24", &["{text: '^Relazione di gestione$', font_size: 26}"]));
+            assert_eq!(
+                only_step(simplified),
+                leaf(
+                    "EURIZON-IT24",
+                    &["{text: '^Relazione di gestione$', font_size: 26}"]
+                )
+            );
         }
 
         #[test]
         fn a_null_body_is_an_unconditional_step() {
-            assert_eq!(only_step("1:\n  ASTERIA-EN23: ~\n"), unconditional("ASTERIA-EN23"));
+            assert_eq!(
+                only_step("1:\n  ASTERIA-EN23: ~\n"),
+                unconditional("ASTERIA-EN23")
+            );
         }
 
         #[test]
         fn an_empty_body_written_null_is_an_unconditional_step() {
-            assert_eq!(only_step("1:\n  ASTERIA-EN23: null\n"), unconditional("ASTERIA-EN23"));
+            assert_eq!(
+                only_step("1:\n  ASTERIA-EN23: null\n"),
+                unconditional("ASTERIA-EN23")
+            );
         }
 
         #[test]
         fn an_empty_body_written_as_nothing_is_an_unconditional_step() {
-            assert_eq!(only_step("1:\n  ASTERIA-EN23:\n"), unconditional("ASTERIA-EN23"));
+            assert_eq!(
+                only_step("1:\n  ASTERIA-EN23:\n"),
+                unconditional("ASTERIA-EN23")
+            );
         }
 
         #[test]
         fn an_empty_list_body_is_an_unconditional_step() {
-            assert_eq!(only_step("1:\n  ASTERIA-EN23: []\n"), unconditional("ASTERIA-EN23"));
+            assert_eq!(
+                only_step("1:\n  ASTERIA-EN23: []\n"),
+                unconditional("ASTERIA-EN23")
+            );
         }
 
         #[test]
         fn an_empty_mapping_body_is_an_unconditional_step_not_an_empty_criterion() {
-            assert_eq!(only_step("1:\n  ASTERIA-EN23: {}\n"), unconditional("ASTERIA-EN23"));
+            assert_eq!(
+                only_step("1:\n  ASTERIA-EN23: {}\n"),
+                unconditional("ASTERIA-EN23")
+            );
         }
 
         #[test]
@@ -1283,19 +1571,40 @@ mod tests {
         #[test]
         fn two_criteria_of_one_step_in_mapping_form_go_through_all_of() {
             let step = only_step("1:\n  ARCA-IT24:\n    all_of: [{text: a}, {text: b}]\n");
-            assert_eq!(step, leaf("ARCA-IT24", &["{all_of: [{text: a}, {text: b}]}"]));
+            assert_eq!(
+                step,
+                leaf("ARCA-IT24", &["{all_of: [{text: a}, {text: b}]}"])
+            );
         }
 
         #[test]
         fn each_level_simplifies_on_its_own_a_mapping_of_pages_with_a_list_of_steps() {
             let text = "1:\n  - AMUNDI-EN24: {text: a}\n  - AMUNDI-EN24: {text: b}\n";
-            assert_eq!(normalized(text), vec![entry(1, vec![leaf("AMUNDI-EN24", &["{text: a}"]), leaf("AMUNDI-EN24", &["{text: b}"])])]);
+            assert_eq!(
+                normalized(text),
+                vec![entry(
+                    1,
+                    vec![
+                        leaf("AMUNDI-EN24", &["{text: a}"]),
+                        leaf("AMUNDI-EN24", &["{text: b}"])
+                    ]
+                )]
+            );
         }
 
         #[test]
         fn each_level_simplifies_on_its_own_a_list_of_pages_with_a_mapping_of_steps() {
             let text = "- 1:\n    AMUNDI-EN24: {text: a}\n    KAIROS-EN23: [{text: b}]\n";
-            assert_eq!(normalized(text), vec![entry(1, vec![leaf("AMUNDI-EN24", &["{text: a}"]), leaf("KAIROS-EN23", &["{text: b}"])])]);
+            assert_eq!(
+                normalized(text),
+                vec![entry(
+                    1,
+                    vec![
+                        leaf("AMUNDI-EN24", &["{text: a}"]),
+                        leaf("KAIROS-EN23", &["{text: b}"])
+                    ]
+                )]
+            );
         }
 
         #[test]
@@ -1303,7 +1612,14 @@ mod tests {
             let text = "1:\n  MEDIOLANUM-IT24.*:\n    A: {text: a}\n    B: {text: b}\n";
             assert_eq!(
                 only_step(text),
-                step("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.A", &["{text: a}"]), leaf("MEDIOLANUM-IT24.B", &["{text: b}"])])
+                step(
+                    "MEDIOLANUM-IT24.*",
+                    &[],
+                    vec![
+                        leaf("MEDIOLANUM-IT24.A", &["{text: a}"]),
+                        leaf("MEDIOLANUM-IT24.B", &["{text: b}"])
+                    ]
+                )
             );
         }
 
@@ -1314,7 +1630,10 @@ mod tests {
                 ("font", "{font: arialmt}"),
                 ("font_size", "{font_size: 9}"),
                 ("area", "{area: {x_min: 10}}"),
-                ("window", "{window: {anchor: {text: a}, dx: 0, dy: 1, width: 1, height: 1}}"),
+                (
+                    "window",
+                    "{window: {anchor: {text: a}, dx: 0, dy: 1, width: 1, height: 1}}",
+                ),
                 ("font_of", "{font_of: {text: a}}"),
                 ("any_of", "{any_of: [{text: a}, {text: b}]}"),
                 ("all_of", "{all_of: [{text: a}, {text: b}]}"),
@@ -1322,7 +1641,11 @@ mod tests {
             ];
             for (key, body) in bodies {
                 let text = format!("1:\n  MEDIOLANUM-EN23: {body}\n");
-                assert_eq!(only_step(&text), leaf("MEDIOLANUM-EN23", &[body]), "`{key}` must be a selection key");
+                assert_eq!(
+                    only_step(&text),
+                    leaf("MEDIOLANUM-EN23", &[body]),
+                    "`{key}` must be a selection key"
+                );
             }
         }
     }
@@ -1427,8 +1750,17 @@ mod tests {
                 entry(
                     1,
                     vec![
-                        leaf("EURIZON-EN23", &["{font: arial, text: '^ciao$'}", "{font: arial, font_size: 8.9, text: PROVA}"]),
-                        leaf("FIDEURAM-IT21", &["{area: {x_min: 10, x_max: 300}, text: '^Fideuram'}"]),
+                        leaf(
+                            "EURIZON-EN23",
+                            &[
+                                "{font: arial, text: '^ciao$'}",
+                                "{font: arial, font_size: 8.9, text: PROVA}",
+                            ],
+                        ),
+                        leaf(
+                            "FIDEURAM-IT21",
+                            &["{area: {x_min: 10, x_max: 300}, text: '^Fideuram'}"],
+                        ),
                         step(
                             "MEDIOLANUM",
                             &["{font: frigigtur, text: sabbia}"],
@@ -1450,11 +1782,17 @@ mod tests {
                         step(
                             "FIDEURAM-IT23@*",
                             &[],
-                            vec![leaf("FIDEURAM-IT23@LUX", &["{text: Luxembourg}"]), leaf("FIDEURAM-IT23@IR", &["{text: Ireland}"])],
+                            vec![
+                                leaf("FIDEURAM-IT23@LUX", &["{text: Luxembourg}"]),
+                                leaf("FIDEURAM-IT23@IR", &["{text: Ireland}"]),
+                            ],
                         ),
                     ],
                 ),
-                entry(3, vec![leaf("EURIZON-IT24", &["{text: '^Relazione di gestione$'}"])]),
+                entry(
+                    3,
+                    vec![leaf("EURIZON-IT24", &["{text: '^Relazione di gestione$'}"])],
+                ),
             ]
         }
 
@@ -1470,8 +1808,14 @@ mod tests {
 
         #[test]
         fn the_two_source_examples_build_the_same_steps() {
-            assert_eq!(shape(&parsed(SOURCE_SIMPLIFIED)), shape(&parsed(SOURCE_VERBOSE)));
-            assert_eq!(shape(&parsed(SOURCE_VERBOSE)), shape_of_verbose(&source_expected()));
+            assert_eq!(
+                shape(&parsed(SOURCE_SIMPLIFIED)),
+                shape(&parsed(SOURCE_VERBOSE))
+            );
+            assert_eq!(
+                shape(&parsed(SOURCE_VERBOSE)),
+                shape_of_verbose(&source_expected())
+            );
         }
 
         /// The two spellings, run by the engine over the same documents, decide the same.
@@ -1479,8 +1823,14 @@ mod tests {
         fn the_two_source_examples_classify_every_document_the_same() {
             let documents = [
                 FakeDocument::new(vec![vec![arial("ciao"), line("Arial", 8.9, "PROVA")]]),
-                FakeDocument::new(vec![vec![line("Frigigtur", 10.0, "sabbia"), arial("Annual Report 2023")]]),
-                FakeDocument::new(vec![vec![line("Frigigtur", 10.0, "sabbia"), arial("Informe anual")]]),
+                FakeDocument::new(vec![vec![
+                    line("Frigigtur", 10.0, "sabbia"),
+                    arial("Annual Report 2023"),
+                ]]),
+                FakeDocument::new(vec![vec![
+                    line("Frigigtur", 10.0, "sabbia"),
+                    arial("Informe anual"),
+                ]]),
                 FakeDocument::new(vec![vec![], vec![], vec![arial("Relazione di gestione")]]),
                 FakeDocument::new(vec![vec![arial("fondi amundi")]]),
                 FakeDocument::new(vec![vec![arial("nothing to see")]]),
@@ -1505,7 +1855,10 @@ mod tests {
                 classify(SOURCE_FORMATS, parsed(SOURCE_SIMPLIFIED), &documents[4]),
                 DocClassification::Partial { ref pattern, .. } if *pattern == p("AMUNDI")
             ));
-            assert_eq!(classify(SOURCE_FORMATS, parsed(SOURCE_SIMPLIFIED), &documents[5]), DocClassification::Unclassified);
+            assert_eq!(
+                classify(SOURCE_FORMATS, parsed(SOURCE_SIMPLIFIED), &documents[5]),
+                DocClassification::Unclassified
+            );
         }
 
         /// The draft of §8 written out in the verbose form.
@@ -1547,12 +1900,18 @@ mod tests {
 
         #[test]
         fn the_draft_of_the_specification_is_the_same_in_both_spellings() {
-            assert_eq!(normalized(super::the_draft_of_the_specification::DRAFT), normalized(DRAFT_VERBOSE));
+            assert_eq!(
+                normalized(super::the_draft_of_the_specification::DRAFT),
+                normalized(DRAFT_VERBOSE)
+            );
         }
 
         #[test]
         fn the_draft_of_the_specification_builds_the_same_steps_in_both_spellings() {
-            assert_eq!(shape(&parsed(super::the_draft_of_the_specification::DRAFT)), shape(&parsed(DRAFT_VERBOSE)));
+            assert_eq!(
+                shape(&parsed(super::the_draft_of_the_specification::DRAFT)),
+                shape(&parsed(DRAFT_VERBOSE))
+            );
         }
     }
 
@@ -1635,7 +1994,12 @@ mod tests {
         }
 
         fn top(key: &str) -> VerboseStep {
-            draft()[0].steps.iter().find(|s| s.key == pattern_key(key)).unwrap_or_else(|| panic!("no step {key} on page 1")).clone()
+            draft()[0]
+                .steps
+                .iter()
+                .find(|s| s.key == pattern_key(key))
+                .unwrap_or_else(|| panic!("no step {key} on page 1"))
+                .clone()
         }
 
         fn complete_leaves(steps: &[VerboseStep], into: &mut Vec<String>) {
@@ -1709,14 +2073,20 @@ mod tests {
                     "MEDIOLANUM",
                     &["{any_of: [{text: '^Mediolanum'}, {text: '^MEDIOLANUM'}]}"],
                     vec![
-                        leaf("MEDIOLANUM-EN23", &["{text: '^Mediolanum Specialities SICAV-SIF$'}"]),
+                        leaf(
+                            "MEDIOLANUM-EN23",
+                            &["{text: '^Mediolanum Specialities SICAV-SIF$'}"]
+                        ),
                         leaf("MEDIOLANUM-ES24.B", &["{text: 'Nº Registro CNMV'}"]),
                         step(
                             "MEDIOLANUM-IT24.*",
                             &[],
                             vec![
                                 leaf("MEDIOLANUM-IT24.A", &["{text: '^Mediolanum Best Brands$'}"]),
-                                leaf("MEDIOLANUM-IT24.B", &["{text: '^Relazione di gestione annuale'}"]),
+                                leaf(
+                                    "MEDIOLANUM-IT24.B",
+                                    &["{text: '^Relazione di gestione annuale'}"]
+                                ),
                             ],
                         ),
                     ],
@@ -1731,7 +2101,10 @@ mod tests {
                 step(
                     "ASTERIA",
                     &["{text: '^Asteria Funds$'}"],
-                    vec![leaf("ASTERIA-EN24", &["{text: '^Investment Managers$'}"]), unconditional("ASTERIA-EN23")],
+                    vec![
+                        leaf("ASTERIA-EN24", &["{text: '^Investment Managers$'}"]),
+                        unconditional("ASTERIA-EN23")
+                    ],
                 )
             );
         }
@@ -1743,20 +2116,44 @@ mod tests {
 
         #[test]
         fn ubs_has_one_criterion_of_text_and_font() {
-            assert_eq!(top("UBS-EN23"), leaf("UBS-EN23", &["{text: '^Annual Report', font: ubsheadline}"]));
+            assert_eq!(
+                top("UBS-EN23"),
+                leaf("UBS-EN23", &["{text: '^Annual Report', font: ubsheadline}"])
+            );
         }
 
         #[test]
         fn fineco_is_two_leaves_with_their_location() {
-            assert_eq!(top("FINECO-EN23@IR"), leaf("FINECO-EN23@IR", &["{text: '^FAM Series UCITS ICAV$'}"]));
-            assert_eq!(top("FINECO-EN23@LUX"), leaf("FINECO-EN23@LUX", &["{text: '^CoRe Series$'}"]));
+            assert_eq!(
+                top("FINECO-EN23@IR"),
+                leaf("FINECO-EN23@IR", &["{text: '^FAM Series UCITS ICAV$'}"])
+            );
+            assert_eq!(
+                top("FINECO-EN23@LUX"),
+                leaf("FINECO-EN23@LUX", &["{text: '^CoRe Series$'}"])
+            );
         }
 
         #[test]
         fn pages_2_and_5_hold_anima_sgr_and_eurizon_it24() {
             let draft = draft();
-            assert_eq!(draft[1], entry(2, vec![leaf("ANIMA_SGR-IT24", &["{text: '^ANIMA SGR S.p.A.$'}"])]));
-            assert_eq!(draft[2], entry(5, vec![leaf("EURIZON-IT24", &["{text: '^Relazione di gestione$', font_size: 26}"])]));
+            assert_eq!(
+                draft[1],
+                entry(
+                    2,
+                    vec![leaf("ANIMA_SGR-IT24", &["{text: '^ANIMA SGR S.p.A.$'}"])]
+                )
+            );
+            assert_eq!(
+                draft[2],
+                entry(
+                    5,
+                    vec![leaf(
+                        "EURIZON-IT24",
+                        &["{text: '^Relazione di gestione$', font_size: 26}"]
+                    )]
+                )
+            );
         }
 
         fn real_formats() -> Vec<&'static str> {
@@ -1765,8 +2162,14 @@ mod tests {
 
         #[test]
         fn run_by_the_engine_it_finds_mediolanum_best_brands_through_the_prefix() {
-            let document = FakeDocument::new(vec![vec![arial("MEDIOLANUM"), arial("Mediolanum Best Brands")]]);
-            assert_eq!(complete_format(&classify(&real_formats(), parsed(DRAFT), &document)), "MEDIOLANUM-IT24.A");
+            let document = FakeDocument::new(vec![vec![
+                arial("MEDIOLANUM"),
+                arial("Mediolanum Best Brands"),
+            ]]);
+            assert_eq!(
+                complete_format(&classify(&real_formats(), parsed(DRAFT), &document)),
+                "MEDIOLANUM-IT24.A"
+            );
         }
 
         #[test]
@@ -1786,12 +2189,18 @@ mod tests {
             let mut pages = vec![vec![]; 4];
             pages.push(vec![line("TrebuchetMS", 26.0, "Relazione di gestione")]);
             let document = FakeDocument::new(pages);
-            assert_eq!(complete_format(&classify(&real_formats(), parsed(DRAFT), &document)), "EURIZON-IT24");
+            assert_eq!(
+                complete_format(&classify(&real_formats(), parsed(DRAFT), &document)),
+                "EURIZON-IT24"
+            );
 
             let mut pages = vec![vec![]; 4];
             pages.push(vec![line("TrebuchetMS", 10.0, "Relazione di gestione")]);
             let document = FakeDocument::new(pages);
-            assert_eq!(classify(&real_formats(), parsed(DRAFT), &document), DocClassification::Unclassified);
+            assert_eq!(
+                classify(&real_formats(), parsed(DRAFT), &document),
+                DocClassification::Unclassified
+            );
         }
     }
 
@@ -1809,7 +2218,10 @@ mod tests {
             let mediolanum = &entries[0].steps[0];
             assert_eq!(mediolanum.key, pattern_key("MEDIOLANUM"));
             assert_eq!(mediolanum.children[0].key, pattern_key("MEDIOLANUM-ES"));
-            assert_eq!(mediolanum.children[0].children[0].key, pattern_key("MEDIOLANUM-ES21"));
+            assert_eq!(
+                mediolanum.children[0].children[0].key,
+                pattern_key("MEDIOLANUM-ES21")
+            );
         }
 
         #[test]
@@ -1834,10 +2246,17 @@ mod tests {
 
         #[test]
         fn a_criterion_intersects_its_keys() {
-            let entries = parsed("1:\n  EURIZON-IT24: {text: '^Relazione di gestione$', font_size: 26}\n");
+            let entries =
+                parsed("1:\n  EURIZON-IT24: {text: '^Relazione di gestione$', font_size: 26}\n");
             let criterion = &entries[0].steps[0].criteria[0];
-            assert!(finds(criterion, &[line("Arial", 26.0, "Relazione di gestione")]));
-            assert!(!finds(criterion, &[line("Arial", 10.0, "Relazione di gestione")]));
+            assert!(finds(
+                criterion,
+                &[line("Arial", 26.0, "Relazione di gestione")]
+            ));
+            assert!(!finds(
+                criterion,
+                &[line("Arial", 10.0, "Relazione di gestione")]
+            ));
         }
 
         #[test]
@@ -1851,10 +2270,14 @@ mod tests {
 
         #[test]
         fn a_relative_criterion_builds_too() {
-            let entries = parsed("1:\n  MEDIOLANUM-EN23: {font_of: {text: '^Heading$'}, text: '^Body$'}\n");
+            let entries =
+                parsed("1:\n  MEDIOLANUM-EN23: {font_of: {text: '^Heading$'}, text: '^Body$'}\n");
             let criterion = &entries[0].steps[0].criteria[0];
             assert!(finds(criterion, &[arial("Heading"), arial("Body")]));
-            assert!(!finds(criterion, &[arial("Heading"), line("Times", 10.0, "Body")]));
+            assert!(!finds(
+                criterion,
+                &[arial("Heading"), line("Times", 10.0, "Body")]
+            ));
         }
     }
 
@@ -1873,27 +2296,42 @@ mod tests {
 
         #[test]
         fn a_language_and_a_year() {
-            assert_eq!(compose("MEDIOLANUM", "IT23"), pattern_key("MEDIOLANUM-IT23"));
+            assert_eq!(
+                compose("MEDIOLANUM", "IT23"),
+                pattern_key("MEDIOLANUM-IT23")
+            );
         }
 
         #[test]
         fn a_language_a_year_and_a_variant() {
-            assert_eq!(compose("MEDIOLANUM", "IT24.A"), pattern_key("MEDIOLANUM-IT24.A"));
+            assert_eq!(
+                compose("MEDIOLANUM", "IT24.A"),
+                pattern_key("MEDIOLANUM-IT24.A")
+            );
         }
 
         #[test]
         fn a_language_a_year_and_a_location() {
-            assert_eq!(compose("FINECO", "EN23@LUX"), pattern_key("FINECO-EN23@LUX"));
+            assert_eq!(
+                compose("FINECO", "EN23@LUX"),
+                pattern_key("FINECO-EN23@LUX")
+            );
         }
 
         #[test]
         fn a_language_a_year_and_an_open_location() {
-            assert_eq!(compose("FIDEURAM", "IT23@*"), pattern_key("FIDEURAM-IT23@*"));
+            assert_eq!(
+                compose("FIDEURAM", "IT23@*"),
+                pattern_key("FIDEURAM-IT23@*")
+            );
         }
 
         #[test]
         fn a_language_a_year_and_an_open_variant() {
-            assert_eq!(compose("MEDIOLANUM", "IT24.*"), pattern_key("MEDIOLANUM-IT24.*"));
+            assert_eq!(
+                compose("MEDIOLANUM", "IT24.*"),
+                pattern_key("MEDIOLANUM-IT24.*")
+            );
         }
 
         #[test]
@@ -1910,20 +2348,33 @@ mod tests {
         fn a_key_that_is_not_a_suffix_does_not_refine_the_parent() {
             let (location, kind) = rule(&with_child("MEDIOLANUM", "\"I T\""));
             assert_eq!(location, at(Some(1), &["MEDIOLANUM"], Some("I T")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { ref parent, .. } if parent == "MEDIOLANUM"), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { ref parent, .. } if parent == "MEDIOLANUM"),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn a_language_written_with_its_hyphen_is_an_error_that_suggests_the_bare_key() {
             let (location, kind) = rule(&with_child("MEDIOLANUM", "-ES"));
             assert_eq!(location, at(Some(1), &["MEDIOLANUM"], Some("-ES")));
-            assert_eq!(kind, RuleError::HyphenatedChildKey { suggestion: "ES".into() });
+            assert_eq!(
+                kind,
+                RuleError::HyphenatedChildKey {
+                    suggestion: "ES".into()
+                }
+            );
         }
 
         #[test]
         fn a_language_and_year_written_with_the_hyphen_suggests_them_without_it() {
             let (_, kind) = rule(&with_child("MEDIOLANUM", "-IT24.*"));
-            assert_eq!(kind, RuleError::HyphenatedChildKey { suggestion: "IT24.*".into() });
+            assert_eq!(
+                kind,
+                RuleError::HyphenatedChildKey {
+                    suggestion: "IT24.*".into()
+                }
+            );
         }
 
         #[test]
@@ -1935,15 +2386,25 @@ mod tests {
         #[test]
         fn a_whole_name_nested_is_not_a_suffix() {
             let (location, kind) = rule(&with_child("MEDIOLANUM", "MEDIOLANUM-IT23"));
-            assert_eq!(location, at(Some(1), &["MEDIOLANUM"], Some("MEDIOLANUM-IT23")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert_eq!(
+                location,
+                at(Some(1), &["MEDIOLANUM"], Some("MEDIOLANUM-IT23"))
+            );
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn a_lowercase_key_that_is_not_a_selection_key_is_a_child_that_does_not_compose() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM:\n    text: m\n    colour: {text: red}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM:\n    text: m\n    colour: {text: red}\n");
             assert_eq!(location, at(Some(1), &["MEDIOLANUM"], Some("colour")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
     }
 
@@ -1953,32 +2414,50 @@ mod tests {
 
         #[test]
         fn an_integer_year() {
-            assert_eq!(compose("MEDIOLANUM-ES", "21"), pattern_key("MEDIOLANUM-ES21"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "21"),
+                pattern_key("MEDIOLANUM-ES21")
+            );
         }
 
         #[test]
         fn a_quoted_year() {
-            assert_eq!(compose("MEDIOLANUM-ES", "\"21\""), pattern_key("MEDIOLANUM-ES21"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "\"21\""),
+                pattern_key("MEDIOLANUM-ES21")
+            );
         }
 
         #[test]
         fn a_one_digit_integer_year_gets_its_leading_zero_back() {
-            assert_eq!(compose("MEDIOLANUM-ES", "5"), pattern_key("MEDIOLANUM-ES05"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "5"),
+                pattern_key("MEDIOLANUM-ES05")
+            );
         }
 
         #[test]
         fn year_zero_is_00() {
-            assert_eq!(compose("MEDIOLANUM-ES", "0"), pattern_key("MEDIOLANUM-ES00"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "0"),
+                pattern_key("MEDIOLANUM-ES00")
+            );
         }
 
         #[test]
         fn year_99_is_the_last_one() {
-            assert_eq!(compose("MEDIOLANUM-ES", "99"), pattern_key("MEDIOLANUM-ES99"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "99"),
+                pattern_key("MEDIOLANUM-ES99")
+            );
         }
 
         #[test]
         fn a_year_with_a_leading_zero_unquoted_is_read_as_written() {
-            assert_eq!(compose("MEDIOLANUM-ES", "08"), pattern_key("MEDIOLANUM-ES08"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "08"),
+                pattern_key("MEDIOLANUM-ES08")
+            );
         }
 
         #[test]
@@ -1995,24 +2474,36 @@ mod tests {
 
         #[test]
         fn a_year_and_an_open_variant() {
-            assert_eq!(compose("MEDIOLANUM-ES", "24.*"), pattern_key("MEDIOLANUM-ES24.*"));
+            assert_eq!(
+                compose("MEDIOLANUM-ES", "24.*"),
+                pattern_key("MEDIOLANUM-ES24.*")
+            );
         }
 
         #[test]
         fn a_year_and_a_numeric_variant_quoted() {
-            assert_eq!(compose("MEDIOLANUM-IT", "\"24.10\""), pattern_key("MEDIOLANUM-IT24.10"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT", "\"24.10\""),
+                pattern_key("MEDIOLANUM-IT24.10")
+            );
         }
 
         #[test]
         fn a_year_and_a_location() {
-            assert_eq!(compose("FINECO-EN", "23@LUX"), pattern_key("FINECO-EN23@LUX"));
+            assert_eq!(
+                compose("FINECO-EN", "23@LUX"),
+                pattern_key("FINECO-EN23@LUX")
+            );
         }
 
         #[test]
         fn a_language_below_a_language_does_not_refine_the_parent() {
             let (location, kind) = rule(&with_child("MEDIOLANUM-ES", "IT"));
             assert_eq!(location, at(Some(1), &["MEDIOLANUM-ES"], Some("IT")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
     }
 
@@ -2022,45 +2513,66 @@ mod tests {
 
         #[test]
         fn a_bare_location() {
-            assert_eq!(compose("FIDEURAM-IT23@*", "LUX"), pattern_key("FIDEURAM-IT23@LUX"));
+            assert_eq!(
+                compose("FIDEURAM-IT23@*", "LUX"),
+                pattern_key("FIDEURAM-IT23@LUX")
+            );
         }
 
         #[test]
         fn a_location_with_its_separator_is_the_same() {
-            assert_eq!(compose("FIDEURAM-IT23@*", "\"@LUX\""), pattern_key("FIDEURAM-IT23@LUX"));
+            assert_eq!(
+                compose("FIDEURAM-IT23@*", "\"@LUX\""),
+                pattern_key("FIDEURAM-IT23@LUX")
+            );
         }
 
         #[test]
         fn a_three_letter_location() {
-            assert_eq!(compose("FIDEURAM-IT23@*", "IRL"), pattern_key("FIDEURAM-IT23@IRL"));
+            assert_eq!(
+                compose("FIDEURAM-IT23@*", "IRL"),
+                pattern_key("FIDEURAM-IT23@IRL")
+            );
         }
 
         #[test]
         fn a_location_and_a_variant_fill_the_absent_variant_and_do_not_refine() {
             let (location, kind) = rule(&with_child("FIDEURAM-IT23@*", "LUX.A"));
             assert_eq!(location, at(Some(1), &["FIDEURAM-IT23@*"], Some("LUX.A")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { ref parent, .. } if parent == "FIDEURAM-IT23@*"), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { ref parent, .. } if parent == "FIDEURAM-IT23@*"),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn an_integer_is_not_a_location() {
             let (location, kind) = rule(&with_child("FIDEURAM-IT23@*", "5"));
             assert_eq!(location, at(Some(1), &["FIDEURAM-IT23@*"], Some("5")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn the_open_location_again_does_not_strictly_refine() {
             let (location, kind) = rule(&with_child("FIDEURAM-IT23@*", "\"@*\""));
             assert_eq!(location, at(Some(1), &["FIDEURAM-IT23@*"], Some("@*")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn a_variant_fills_the_absent_variant_and_does_not_refine() {
             let (location, kind) = rule(&with_child("FIDEURAM-IT23@*", ".A"));
             assert_eq!(location, at(Some(1), &["FIDEURAM-IT23@*"], Some(".A")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
     }
 
@@ -2070,55 +2582,85 @@ mod tests {
 
         #[test]
         fn a_bare_variant() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "A"), pattern_key("MEDIOLANUM-IT24.A"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "A"),
+                pattern_key("MEDIOLANUM-IT24.A")
+            );
         }
 
         #[test]
         fn a_variant_with_its_separator_is_the_same() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", ".A"), pattern_key("MEDIOLANUM-IT24.A"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", ".A"),
+                pattern_key("MEDIOLANUM-IT24.A")
+            );
         }
 
         #[test]
         fn an_integer_variant_is_written_in_decimal() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "1"), pattern_key("MEDIOLANUM-IT24.1"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "1"),
+                pattern_key("MEDIOLANUM-IT24.1")
+            );
         }
 
         #[test]
         fn an_integer_variant_gets_no_padding() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "10"), pattern_key("MEDIOLANUM-IT24.10"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "10"),
+                pattern_key("MEDIOLANUM-IT24.10")
+            );
         }
 
         #[test]
         fn a_negative_integer_variant_is_its_decimal_text() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "-3"), pattern_key("MEDIOLANUM-IT24.-3"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "-3"),
+                pattern_key("MEDIOLANUM-IT24.-3")
+            );
         }
 
         #[test]
         fn integer_zero_is_variant_0() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "0"), pattern_key("MEDIOLANUM-IT24.0"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "0"),
+                pattern_key("MEDIOLANUM-IT24.0")
+            );
         }
 
         #[test]
         fn a_quoted_variant_with_a_leading_zero_keeps_it() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "\"01\""), pattern_key("MEDIOLANUM-IT24.01"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "\"01\""),
+                pattern_key("MEDIOLANUM-IT24.01")
+            );
         }
 
         #[test]
         fn a_numeric_variant_with_its_separator_quoted() {
-            assert_eq!(compose("MEDIOLANUM-IT24.*", "\".10\""), pattern_key("MEDIOLANUM-IT24.10"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT24.*", "\".10\""),
+                pattern_key("MEDIOLANUM-IT24.10")
+            );
         }
 
         #[test]
         fn a_location_fills_the_absent_location_and_does_not_refine() {
             let (location, kind) = rule(&with_child("MEDIOLANUM-IT24.*", "\"@LUX\""));
             assert_eq!(location, at(Some(1), &["MEDIOLANUM-IT24.*"], Some("@LUX")));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn a_variant_named_like_a_selection_key_is_a_criterion() {
             let step = only_step("1:\n  MEDIOLANUM-IT24.*:\n    text: '^Best Brands$'\n");
-            assert_eq!(step, leaf("MEDIOLANUM-IT24.*", &["{text: '^Best Brands$'}"]));
+            assert_eq!(
+                step,
+                leaf("MEDIOLANUM-IT24.*", &["{text: '^Best Brands$'}"])
+            );
         }
 
         #[test]
@@ -2128,7 +2670,11 @@ mod tests {
         }
 
         fn step_with_text_child() -> VerboseStep {
-            step("MEDIOLANUM-IT24.*", &[], vec![leaf("MEDIOLANUM-IT24.text", &["{text: '^Best Brands$'}"])])
+            step(
+                "MEDIOLANUM-IT24.*",
+                &[],
+                vec![leaf("MEDIOLANUM-IT24.text", &["{text: '^Best Brands$'}"])],
+            )
         }
     }
 
@@ -2138,7 +2684,10 @@ mod tests {
 
         #[test]
         fn a_location_with_its_separator_leaves_the_variant_open() {
-            assert_eq!(compose("X-EN23@*.*", "\"@LUX\""), pattern_key("X-EN23@LUX.*"));
+            assert_eq!(
+                compose("X-EN23@*.*", "\"@LUX\""),
+                pattern_key("X-EN23@LUX.*")
+            );
         }
 
         #[test]
@@ -2148,12 +2697,18 @@ mod tests {
 
         #[test]
         fn a_location_and_a_variant() {
-            assert_eq!(compose("X-EN23@*.*", "\"@LUX.A\""), pattern_key("X-EN23@LUX.A"));
+            assert_eq!(
+                compose("X-EN23@*.*", "\"@LUX.A\""),
+                pattern_key("X-EN23@LUX.A")
+            );
         }
 
         #[test]
         fn a_location_and_an_open_variant() {
-            assert_eq!(compose("X-EN23@*.*", "\"@LUX.*\""), pattern_key("X-EN23@LUX.*"));
+            assert_eq!(
+                compose("X-EN23@*.*", "\"@LUX.*\""),
+                pattern_key("X-EN23@LUX.*")
+            );
         }
 
         #[test]
@@ -2190,7 +2745,10 @@ mod tests {
         #[test]
         fn the_two_open_slots_again_do_not_strictly_refine() {
             let (_, kind) = rule(&with_child("X-EN23@*.*", "\"@*.*\""));
-            assert!(matches!(kind, RuleError::KeyDoesNotRefineParent { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::KeyDoesNotRefineParent { .. }),
+                "{kind:?}"
+            );
         }
     }
 
@@ -2204,7 +2762,10 @@ mod tests {
             assert_eq!(location.page, Some(1));
             assert_eq!(
                 kind,
-                RuleError::CompleteParentWithChildren { parent: "FINECO-EN23".into(), suggestion: "FINECO-EN23@*".into() }
+                RuleError::CompleteParentWithChildren {
+                    parent: "FINECO-EN23".into(),
+                    suggestion: "FINECO-EN23@*".into()
+                }
             );
         }
 
@@ -2216,8 +2777,13 @@ mod tests {
 
         #[test]
         fn a_complete_child_with_a_child_is_an_error_too() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM:\n    text: m\n    IT23:\n      text: i\n      .A: {text: a}\n");
-            assert_eq!(location, at(Some(1), &["MEDIOLANUM", "MEDIOLANUM-IT23"], Some(".A")));
+            let (location, kind) = rule(
+                "1:\n  MEDIOLANUM:\n    text: m\n    IT23:\n      text: i\n      .A: {text: a}\n",
+            );
+            assert_eq!(
+                location,
+                at(Some(1), &["MEDIOLANUM", "MEDIOLANUM-IT23"], Some(".A"))
+            );
             assert!(
                 matches!(kind, RuleError::CompleteParentWithChildren { ref parent, .. } if parent == "MEDIOLANUM-IT23"),
                 "{kind:?}"
@@ -2226,7 +2792,10 @@ mod tests {
 
         #[test]
         fn a_complete_step_with_criteria_and_no_children_is_fine() {
-            assert_eq!(only_step("1:\n  FINECO-EN23@LUX: {text: x}\n"), leaf("FINECO-EN23@LUX", &["{text: x}"]));
+            assert_eq!(
+                only_step("1:\n  FINECO-EN23@LUX: {text: x}\n"),
+                leaf("FINECO-EN23@LUX", &["{text: x}"])
+            );
         }
 
         #[test]
@@ -2279,7 +2848,10 @@ mod tests {
 
         #[test]
         fn the_same_key_quoted_is_read() {
-            assert_eq!(compose("MEDIOLANUM-IT", "\"24.10\""), pattern_key("MEDIOLANUM-IT24.10"));
+            assert_eq!(
+                compose("MEDIOLANUM-IT", "\"24.10\""),
+                pattern_key("MEDIOLANUM-IT24.10")
+            );
         }
     }
 
@@ -2293,14 +2865,16 @@ mod tests {
 
         #[test]
         fn the_same_step_twice_in_a_mapping_is_an_error_naming_page_and_key() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM: {text: a}\n  AMUNDI: {text: b}\n  MEDIOLANUM: {text: c}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM: {text: a}\n  AMUNDI: {text: b}\n  MEDIOLANUM: {text: c}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
             assert_eq!(location, at(Some(1), &[], Some("MEDIOLANUM")));
         }
 
         #[test]
         fn the_message_suggests_the_list_form() {
-            let message = parse_err("1:\n  MEDIOLANUM: {text: a}\n  MEDIOLANUM: {text: c}\n").to_string();
+            let message =
+                parse_err("1:\n  MEDIOLANUM: {text: a}\n  MEDIOLANUM: {text: c}\n").to_string();
             assert!(message.contains("list"), "{message}");
             assert!(message.contains("page 1"), "{message}");
             assert!(message.contains("MEDIOLANUM"), "{message}");
@@ -2308,14 +2882,16 @@ mod tests {
 
         #[test]
         fn the_same_page_twice_in_a_mapping_is_an_error() {
-            let (location, kind) = rule("1:\n  AMUNDI-EN24: {text: a}\n1:\n  KAIROS-EN23: {text: b}\n");
+            let (location, kind) =
+                rule("1:\n  AMUNDI-EN24: {text: a}\n1:\n  KAIROS-EN23: {text: b}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
             assert_eq!(location, at(None, &[], Some("1")));
         }
 
         #[test]
         fn the_same_child_twice_in_a_mapping_is_an_error() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM:\n    text: m\n    EN23: {text: a}\n    EN23: {text: b}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM:\n    text: m\n    EN23: {text: a}\n    EN23: {text: b}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
             assert_eq!(location, at(Some(1), &["MEDIOLANUM"], Some("EN23")));
         }
@@ -2329,7 +2905,8 @@ mod tests {
 
         #[test]
         fn an_integer_year_and_its_string_are_the_same_child() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM-ES:\n    21: {text: a}\n    \"21\": {text: b}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM-ES:\n    21: {text: a}\n    \"21\": {text: b}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
             assert_eq!(location.page, Some(1));
             assert_eq!(location.steps, vec!["MEDIOLANUM-ES".to_string()]);
@@ -2344,29 +2921,39 @@ mod tests {
 
         #[test]
         fn a_bare_location_and_the_same_with_its_separator_are_the_same_child() {
-            let (location, kind) = rule("1:\n  FIDEURAM-IT23@*:\n    LUX: {text: a}\n    \"@LUX\": {text: b}\n");
+            let (location, kind) =
+                rule("1:\n  FIDEURAM-IT23@*:\n    LUX: {text: a}\n    \"@LUX\": {text: b}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
             assert_eq!(location, at(Some(1), &["FIDEURAM-IT23@*"], Some("@LUX")));
         }
 
         #[test]
         fn a_bare_variant_and_the_same_with_its_separator_are_the_same_child() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM-IT24.*:\n    A: {text: a}\n    .A: {text: b}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM-IT24.*:\n    A: {text: a}\n    .A: {text: b}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
             assert_eq!(location, at(Some(1), &["MEDIOLANUM-IT24.*"], Some(".A")));
         }
 
         #[test]
         fn an_integer_variant_and_its_string_are_the_same_child() {
-            let (_, kind) = rule("1:\n  MEDIOLANUM-IT24.*:\n    1: {text: a}\n    \"1\": {text: b}\n");
+            let (_, kind) =
+                rule("1:\n  MEDIOLANUM-IT24.*:\n    1: {text: a}\n    \"1\": {text: b}\n");
             assert_eq!(kind, RuleError::DuplicateKey);
         }
 
         #[test]
         fn an_integer_variant_and_a_padded_string_are_two_children() {
-            let step = only_step("1:\n  MEDIOLANUM-IT24.*:\n    1: {text: a}\n    \"01\": {text: b}\n");
+            let step =
+                only_step("1:\n  MEDIOLANUM-IT24.*:\n    1: {text: a}\n    \"01\": {text: b}\n");
             let keys: Vec<StepKey> = step.children.into_iter().map(|c| c.key).collect();
-            assert_eq!(keys, vec![pattern_key("MEDIOLANUM-IT24.1"), pattern_key("MEDIOLANUM-IT24.01")]);
+            assert_eq!(
+                keys,
+                vec![
+                    pattern_key("MEDIOLANUM-IT24.1"),
+                    pattern_key("MEDIOLANUM-IT24.01")
+                ]
+            );
         }
 
         #[test]
@@ -2386,22 +2973,34 @@ mod tests {
 
         #[test]
         fn a_quoted_template_with_language_and_year_is_a_top_level_template() {
-            assert_eq!(only_step("1:\n  \"*-EN23\": {text: x}\n"), template("*-EN23", &["{text: x}"]));
+            assert_eq!(
+                only_step("1:\n  \"*-EN23\": {text: x}\n"),
+                template("*-EN23", &["{text: x}"])
+            );
         }
 
         #[test]
         fn a_template_with_the_language_only() {
-            assert_eq!(only_step("1:\n  \"*-EN\": {text: x}\n"), template("*-EN", &["{text: x}"]));
+            assert_eq!(
+                only_step("1:\n  \"*-EN\": {text: x}\n"),
+                template("*-EN", &["{text: x}"])
+            );
         }
 
         #[test]
         fn a_template_with_an_open_location() {
-            assert_eq!(only_step("1:\n  \"*-EN23@*\": {text: x}\n"), template("*-EN23@*", &["{text: x}"]));
+            assert_eq!(
+                only_step("1:\n  \"*-EN23@*\": {text: x}\n"),
+                template("*-EN23@*", &["{text: x}"])
+            );
         }
 
         #[test]
         fn a_template_in_the_verbose_form() {
-            assert_eq!(only_step("- 1:\n    - \"*-EN23\": [{text: x}]\n"), template("*-EN23", &["{text: x}"]));
+            assert_eq!(
+                only_step("- 1:\n    - \"*-EN23\": [{text: x}]\n"),
+                template("*-EN23", &["{text: x}"])
+            );
         }
 
         #[test]
@@ -2419,7 +3018,11 @@ mod tests {
         fn an_unconditional_template_decides_by_exclusion_for_the_entity_already_found() {
             let text = "1:\n  MEDIOLANUM: {text: '^Mediolanum'}\n  \"*-EN23\": ~\n";
             let document = FakeDocument::new(vec![vec![arial("Mediolanum")]]);
-            match classify(&["MEDIOLANUM-EN23", "MEDIOLANUM-IT23"], parsed(text), &document) {
+            match classify(
+                &["MEDIOLANUM-EN23", "MEDIOLANUM-IT23"],
+                parsed(text),
+                &document,
+            ) {
                 DocClassification::Complete(complete) => {
                     assert_eq!(complete.format, p("MEDIOLANUM-EN23"));
                     assert!(complete.by_exclusion);
@@ -2436,7 +3039,8 @@ mod tests {
 
         #[test]
         fn a_template_below_the_top_level_is_an_error() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM:\n    text: m\n    \"*-EN23\": {text: x}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM:\n    text: m\n    \"*-EN23\": {text: x}\n");
             assert_eq!(kind, RuleError::TemplateNotAtTopLevel);
             assert_eq!(location, at(Some(1), &["MEDIOLANUM"], Some("*-EN23")));
         }
@@ -2480,24 +3084,36 @@ mod tests {
 
         #[test]
         fn an_open_location_at_the_top_level_is_a_pattern() {
-            assert_eq!(only_step("1:\n  FIDEURAM-IT23@*: {text: x}\n").key, pattern_key("FIDEURAM-IT23@*"));
+            assert_eq!(
+                only_step("1:\n  FIDEURAM-IT23@*: {text: x}\n").key,
+                pattern_key("FIDEURAM-IT23@*")
+            );
         }
 
         #[test]
         fn an_open_variant_at_the_top_level_is_a_pattern() {
-            assert_eq!(only_step("1:\n  MEDIOLANUM-IT24.*: {text: x}\n").key, pattern_key("MEDIOLANUM-IT24.*"));
+            assert_eq!(
+                only_step("1:\n  MEDIOLANUM-IT24.*: {text: x}\n").key,
+                pattern_key("MEDIOLANUM-IT24.*")
+            );
         }
 
         #[test]
         fn both_slots_open_at_the_top_level_is_a_pattern() {
-            assert_eq!(only_step("1:\n  X-EN23@*.*: {text: x}\n").key, pattern_key("X-EN23@*.*"));
+            assert_eq!(
+                only_step("1:\n  X-EN23@*.*: {text: x}\n").key,
+                pattern_key("X-EN23@*.*")
+            );
         }
 
         #[test]
         fn an_unquoted_template_is_a_yaml_error_with_the_hint_to_quote_it() {
             match parse_err("1:\n  *-EN23: {text: x}\n") {
                 DocClassifyYamlError::Syntax { reason, hint } => {
-                    assert!(reason.contains("unknown anchor"), "the YAML reader's own words must stay: {reason}");
+                    assert!(
+                        reason.contains("unknown anchor"),
+                        "the YAML reader's own words must stay: {reason}"
+                    );
                     let hint = hint.expect("an unquoted `*` must come with a hint");
                     assert!(hint.contains("quote"), "{hint}");
                 }
@@ -2587,7 +3203,8 @@ mod tests {
 
         #[test]
         fn an_element_of_the_entries_with_two_pages_is_an_error() {
-            let (_, kind) = rule("- {1: [{AMUNDI-EN24: [{text: a}]}], 3: [{KAIROS-EN23: [{text: b}]}]}\n");
+            let (_, kind) =
+                rule("- {1: [{AMUNDI-EN24: [{text: a}]}], 3: [{KAIROS-EN23: [{text: b}]}]}\n");
             assert_eq!(kind, RuleError::SeveralPages);
         }
 
@@ -2653,14 +3270,16 @@ mod tests {
 
         #[test]
         fn an_element_of_a_body_with_two_step_keys_is_an_error() {
-            let (location, kind) = rule("1:\n  MEDIOLANUM:\n    - {text: m}\n    - {EN23: ~, IT23: ~}\n");
+            let (location, kind) =
+                rule("1:\n  MEDIOLANUM:\n    - {text: m}\n    - {EN23: ~, IT23: ~}\n");
             assert_eq!(kind, RuleError::SeveralStepKeys);
             assert_eq!(location.steps, vec!["MEDIOLANUM".to_string()]);
         }
 
         #[test]
         fn an_element_of_a_pages_steps_with_two_step_keys_is_an_error() {
-            let (location, kind) = rule("- 1:\n    - {AMUNDI-EN24: [{text: a}], KAIROS-EN23: [{text: b}]}\n");
+            let (location, kind) =
+                rule("- 1:\n    - {AMUNDI-EN24: [{text: a}], KAIROS-EN23: [{text: b}]}\n");
             assert_eq!(kind, RuleError::SeveralStepKeys);
             assert_eq!(location.page, Some(1));
         }
@@ -2705,26 +3324,44 @@ mod tests {
         #[test]
         fn a_criterion_that_is_not_a_valid_selection_is_an_error() {
             let (location, kind) = rule("1:\n  MEDIOLANUM-EN23: {text: x, font_size: -1}\n");
-            assert!(matches!(kind, RuleError::InvalidSelection { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::InvalidSelection { .. }),
+                "{kind:?}"
+            );
             assert_eq!(location, at(Some(1), &["MEDIOLANUM-EN23"], None));
         }
 
         #[test]
         fn a_criterion_of_the_wrong_type_is_an_invalid_selection() {
             let (_, kind) = rule("1:\n  MEDIOLANUM-EN23: {text: [a, b]}\n");
-            assert!(matches!(kind, RuleError::InvalidSelection { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::InvalidSelection { .. }),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn an_unknown_key_inside_a_criterion_is_an_invalid_selection() {
             let (_, kind) = rule("1:\n  MEDIOLANUM-EN23: {text: x, area: {x_minimum: 3}}\n");
-            assert!(matches!(kind, RuleError::InvalidSelection { .. }), "{kind:?}");
+            assert!(
+                matches!(kind, RuleError::InvalidSelection { .. }),
+                "{kind:?}"
+            );
         }
 
         #[test]
         fn an_invalid_selection_deep_in_the_tree_names_the_path() {
-            let (location, _) = rule("1:\n  MEDIOLANUM:\n    text: m\n    IT24.*:\n      A: {text: a, font_size: [9, 8]}\n");
-            assert_eq!(location, at(Some(1), &["MEDIOLANUM", "MEDIOLANUM-IT24.*", "MEDIOLANUM-IT24.A"], None));
+            let (location, _) = rule(
+                "1:\n  MEDIOLANUM:\n    text: m\n    IT24.*:\n      A: {text: a, font_size: [9, 8]}\n",
+            );
+            assert_eq!(
+                location,
+                at(
+                    Some(1),
+                    &["MEDIOLANUM", "MEDIOLANUM-IT24.*", "MEDIOLANUM-IT24.A"],
+                    None
+                )
+            );
         }
 
         #[test]
@@ -2813,7 +3450,10 @@ mod tests {
                             vec![step(
                                 "MEDIOLANUM-IT24@LUX.*",
                                 &["{text: l}"],
-                                vec![leaf("MEDIOLANUM-IT24@LUX.A", &["{text: a}"]), unconditional("MEDIOLANUM-IT24@LUX.B")],
+                                vec![
+                                    leaf("MEDIOLANUM-IT24@LUX.A", &["{text: a}"]),
+                                    unconditional("MEDIOLANUM-IT24@LUX.B")
+                                ],
                             )],
                         )],
                     )],
@@ -2832,7 +3472,11 @@ mod tests {
                     vec![step(
                         "MEDIOLANUM-ES",
                         &["{text: e}"],
-                        vec![step("MEDIOLANUM-ES24.*", &["{text: s}"], vec![leaf("MEDIOLANUM-ES24.A", &["{text: a}"])])],
+                        vec![step(
+                            "MEDIOLANUM-ES24.*",
+                            &["{text: s}"],
+                            vec![leaf("MEDIOLANUM-ES24.A", &["{text: a}"])]
+                        )],
                     )],
                 )
             );
@@ -2857,13 +3501,25 @@ mod tests {
 
         #[test]
         fn an_error_at_depth_names_every_enclosing_step() {
-            let (location, _) = rule("1:\n  MEDIOLANUM:\n    text: m\n    IT:\n      24.*:\n        \"@LUX\": {text: x}\n");
-            assert_eq!(location, at(Some(1), &["MEDIOLANUM", "MEDIOLANUM-IT", "MEDIOLANUM-IT24.*"], Some("@LUX")));
+            let (location, _) = rule(
+                "1:\n  MEDIOLANUM:\n    text: m\n    IT:\n      24.*:\n        \"@LUX\": {text: x}\n",
+            );
+            assert_eq!(
+                location,
+                at(
+                    Some(1),
+                    &["MEDIOLANUM", "MEDIOLANUM-IT", "MEDIOLANUM-IT24.*"],
+                    Some("@LUX")
+                )
+            );
         }
 
         #[test]
         fn the_message_shows_the_page_the_path_and_the_key() {
-            let message = parse_err("3:\n  MEDIOLANUM:\n    text: m\n    IT24.*:\n      \"@LUX\": {text: x}\n").to_string();
+            let message = parse_err(
+                "3:\n  MEDIOLANUM:\n    text: m\n    IT24.*:\n      \"@LUX\": {text: x}\n",
+            )
+            .to_string();
             assert!(message.contains("page 3"), "{message}");
             assert!(message.contains("MEDIOLANUM-IT24.*"), "{message}");
             assert!(message.contains("@LUX"), "{message}");
@@ -2881,14 +3537,32 @@ mod tests {
         #[test]
         fn the_order_of_steps_in_a_mapping_is_kept_and_not_sorted() {
             let text = "1:\n  ZETA-EN23: {text: z}\n  ALPHA-EN23: {text: a}\n  MID-EN23: {text: m}\n  BETA-EN23: {text: b}\n  OMEGA-EN23: {text: o}\n";
-            let keys: Vec<String> = normalized(text)[0].steps.iter().map(|s| s.key.to_string()).collect();
-            assert_eq!(keys, vec!["ZETA-EN23", "ALPHA-EN23", "MID-EN23", "BETA-EN23", "OMEGA-EN23"]);
+            let keys: Vec<String> = normalized(text)[0]
+                .steps
+                .iter()
+                .map(|s| s.key.to_string())
+                .collect();
+            assert_eq!(
+                keys,
+                vec![
+                    "ZETA-EN23",
+                    "ALPHA-EN23",
+                    "MID-EN23",
+                    "BETA-EN23",
+                    "OMEGA-EN23"
+                ]
+            );
         }
 
         #[test]
         fn the_order_of_children_in_a_mixed_mapping_is_kept() {
-            let text = "1:\n  X:\n    ZZ: {text: z}\n    text: x\n    AA: {text: a}\n    MM: {text: m}\n";
-            let keys: Vec<String> = only_step(text).children.iter().map(|s| s.key.to_string()).collect();
+            let text =
+                "1:\n  X:\n    ZZ: {text: z}\n    text: x\n    AA: {text: a}\n    MM: {text: m}\n";
+            let keys: Vec<String> = only_step(text)
+                .children
+                .iter()
+                .map(|s| s.key.to_string())
+                .collect();
             assert_eq!(keys, vec!["X-ZZ", "X-AA", "X-MM"]);
         }
 
@@ -2902,14 +3576,25 @@ mod tests {
         #[test]
         fn the_order_of_numeric_children_is_kept() {
             let text = "1:\n  MEDIOLANUM-ES:\n    23: {text: b}\n    21: {text: a}\n    \"05\": {text: c}\n";
-            let keys: Vec<String> = only_step(text).children.iter().map(|s| s.key.to_string()).collect();
-            assert_eq!(keys, vec!["MEDIOLANUM-ES23", "MEDIOLANUM-ES21", "MEDIOLANUM-ES05"]);
+            let keys: Vec<String> = only_step(text)
+                .children
+                .iter()
+                .map(|s| s.key.to_string())
+                .collect();
+            assert_eq!(
+                keys,
+                vec!["MEDIOLANUM-ES23", "MEDIOLANUM-ES21", "MEDIOLANUM-ES05"]
+            );
         }
 
         #[test]
         fn the_built_entries_keep_the_order_too() {
             let text = "1:\n  ZETA-EN23: {text: z}\n  ALPHA-EN23: {text: a}\n";
-            let keys: Vec<String> = parsed(text)[0].steps.iter().map(|s| s.key.to_string()).collect();
+            let keys: Vec<String> = parsed(text)[0]
+                .steps
+                .iter()
+                .map(|s| s.key.to_string())
+                .collect();
             assert_eq!(keys, vec!["ZETA-EN23", "ALPHA-EN23"]);
         }
     }

@@ -237,9 +237,17 @@ entity_shim!(PyFundAssets, FundAssets, "FundAssets");
 entity_shim!(PyFundRename, FundRename, "FundRename");
 entity_shim!(PyFundMerge, FundMerge, "FundMerge");
 entity_shim!(PyFundEsgIndicator, FundEsgIndicator, "FundEsgIndicator");
-entity_shim!(PyFundSfdrClassification, FundSfdrClassification, "FundSfdrClassification");
+entity_shim!(
+    PyFundSfdrClassification,
+    FundSfdrClassification,
+    "FundSfdrClassification"
+);
 entity_shim!(PyManagementCompany, ManagementCompany, "ManagementCompany");
-entity_shim!(PyInvestmentsManager, InvestmentsManager, "InvestmentsManager");
+entity_shim!(
+    PyInvestmentsManager,
+    InvestmentsManager,
+    "InvestmentsManager"
+);
 
 /// A field that may be already resolved or still promised, as a Python object: the value itself, or
 /// the promise shim.
@@ -260,28 +268,30 @@ where
 }
 
 entity_pymethods!(PyFund, "Fund", {
-        /// The name accepts a string or a promise: a fund's name is often discovered on a page
-        /// other than the one citing it.
-        #[new]
-        #[pyo3(signature = (name))]
-        fn new(name: &Bound<'_, PyAny>) -> PyResult<PyFund> {
-            Ok(PyFund(Fund::from_value(&block_value_from_py(name)?).map_err(|e| {
+    /// The name accepts a string or a promise: a fund's name is often discovered on a page
+    /// other than the one citing it.
+    #[new]
+    #[pyo3(signature = (name))]
+    fn new(name: &Bound<'_, PyAny>) -> PyResult<PyFund> {
+        Ok(PyFund(
+            Fund::from_value(&block_value_from_py(name)?).map_err(|e| {
                 tracing::error!(error = log_error(&e), "Fund construction failed: {e}");
                 value_error(e)
-            })?))
-        }
+            })?,
+        ))
+    }
 
-        /// The upper-cased name — or the promise, if still pending.
-        #[getter]
-        fn name<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-            match (self.0.name(), self.0.pending_name()) {
-                (Some(name), _) => Ok(name.into_pyobject(py)?.into_any()),
-                (None, Some(promise)) => {
-                    Ok(Bound::new(py, PyPromise::from(promise.clone()))?.into_any())
-                }
-                (None, None) => Ok(py.None().into_bound(py)),
+    /// The upper-cased name — or the promise, if still pending.
+    #[getter]
+    fn name<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match (self.0.name(), self.0.pending_name()) {
+            (Some(name), _) => Ok(name.into_pyobject(py)?.into_any()),
+            (None, Some(promise)) => {
+                Ok(Bound::new(py, PyPromise::from(promise.clone()))?.into_any())
             }
+            (None, None) => Ok(py.None().into_bound(py)),
         }
+    }
 });
 
 /// The fields an equity and a bond share, read from keyword arguments under their public names.
@@ -298,7 +308,10 @@ fn investment_fields(
     acquisition_currency: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<InvestmentFields> {
     let optional = |value: Option<&Bound<'_, PyAny>>| -> PyResult<Option<BlockValue>> {
-        value.filter(|v| !v.is_none()).map(block_value_from_py).transpose()
+        value
+            .filter(|v| !v.is_none())
+            .map(block_value_from_py)
+            .transpose()
     };
     let mut fields = InvestmentFields::new(
         company,
@@ -317,98 +330,100 @@ fn investment_fields(
 // `Equity` e `Bond` condividono i nove getter di `InvestmentData`: li porta l'arm `investment`
 // di `entity_pymethods!`.
 entity_pymethods!(PyEquity, "Equity", investment, {
-        #[new]
-        #[pyo3(signature = (
+    #[new]
+    #[pyo3(signature = (
             *, company, company_match, fund, market_value, currency,
             nominal_quantity = None, perc_net_assets = None, acquisition_cost = None,
             acquisition_currency = None,
         ))]
-        #[allow(clippy::too_many_arguments)]
-        fn new(
-            company: String,
-            company_match: String,
-            fund: &Bound<'_, PyAny>,
-            market_value: &Bound<'_, PyAny>,
-            currency: &Bound<'_, PyAny>,
-            nominal_quantity: Option<f64>,
-            perc_net_assets: Option<&Bound<'_, PyAny>>,
-            acquisition_cost: Option<&Bound<'_, PyAny>>,
-            acquisition_currency: Option<&Bound<'_, PyAny>>,
-        ) -> PyResult<PyEquity> {
-            let fields = investment_fields(
-                company,
-                company_match,
-                fund,
-                market_value,
-                currency,
-                nominal_quantity,
-                perc_net_assets,
-                acquisition_cost,
-                acquisition_currency,
-            )?;
-            Ok(PyEquity(Equity::build(fields).map_err(|e| {
-                tracing::error!(error = log_error(&e), "Equity construction failed: {e}");
-                value_error(e)
-            })?))
-        }
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        company: String,
+        company_match: String,
+        fund: &Bound<'_, PyAny>,
+        market_value: &Bound<'_, PyAny>,
+        currency: &Bound<'_, PyAny>,
+        nominal_quantity: Option<f64>,
+        perc_net_assets: Option<&Bound<'_, PyAny>>,
+        acquisition_cost: Option<&Bound<'_, PyAny>>,
+        acquisition_currency: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyEquity> {
+        let fields = investment_fields(
+            company,
+            company_match,
+            fund,
+            market_value,
+            currency,
+            nominal_quantity,
+            perc_net_assets,
+            acquisition_cost,
+            acquisition_currency,
+        )?;
+        Ok(PyEquity(Equity::build(fields).map_err(|e| {
+            tracing::error!(error = log_error(&e), "Equity construction failed: {e}");
+            value_error(e)
+        })?))
+    }
 });
 
 entity_pymethods!(PyBond, "Bond", investment, {
-        #[new]
-        #[pyo3(signature = (
+    #[new]
+    #[pyo3(signature = (
             *, company, company_match, fund, market_value, currency,
             nominal_quantity = None, perc_net_assets = None, acquisition_cost = None,
             acquisition_currency = None, maturity = None, interest_rate = None,
         ))]
-        #[allow(clippy::too_many_arguments)]
-        fn new(
-            company: String,
-            company_match: String,
-            fund: &Bound<'_, PyAny>,
-            market_value: &Bound<'_, PyAny>,
-            currency: &Bound<'_, PyAny>,
-            nominal_quantity: Option<f64>,
-            perc_net_assets: Option<&Bound<'_, PyAny>>,
-            acquisition_cost: Option<&Bound<'_, PyAny>>,
-            acquisition_currency: Option<&Bound<'_, PyAny>>,
-            maturity: Option<&Bound<'_, PyAny>>,
-            interest_rate: Option<f64>,
-        ) -> PyResult<PyBond> {
-            let fields = investment_fields(
-                company,
-                company_match,
-                fund,
-                market_value,
-                currency,
-                nominal_quantity,
-                perc_net_assets,
-                acquisition_cost,
-                acquisition_currency,
-            )?;
-            let maturity = date_argument("maturity", maturity)?;
-            Ok(PyBond(Bond::build(fields, maturity, interest_rate).map_err(|e| {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        company: String,
+        company_match: String,
+        fund: &Bound<'_, PyAny>,
+        market_value: &Bound<'_, PyAny>,
+        currency: &Bound<'_, PyAny>,
+        nominal_quantity: Option<f64>,
+        perc_net_assets: Option<&Bound<'_, PyAny>>,
+        acquisition_cost: Option<&Bound<'_, PyAny>>,
+        acquisition_currency: Option<&Bound<'_, PyAny>>,
+        maturity: Option<&Bound<'_, PyAny>>,
+        interest_rate: Option<f64>,
+    ) -> PyResult<PyBond> {
+        let fields = investment_fields(
+            company,
+            company_match,
+            fund,
+            market_value,
+            currency,
+            nominal_quantity,
+            perc_net_assets,
+            acquisition_cost,
+            acquisition_currency,
+        )?;
+        let maturity = date_argument("maturity", maturity)?;
+        Ok(PyBond(
+            Bond::build(fields, maturity, interest_rate).map_err(|e| {
                 tracing::error!(error = log_error(&e), "Bond construction failed: {e}");
                 value_error(e)
-            })?))
-        }
+            })?,
+        ))
+    }
 
-        #[getter]
-        fn maturity<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
-            self.0
-                .maturity
-                .as_ref()
-                .map(|d| {
-                    py.import("datetime")?
-                        .getattr("date")?
-                        .call_method1("fromisoformat", (d.to_string(),))
-                })
-                .transpose()
-        }
+    #[getter]
+    fn maturity<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
+        self.0
+            .maturity
+            .as_ref()
+            .map(|d| {
+                py.import("datetime")?
+                    .getattr("date")?
+                    .call_method1("fromisoformat", (d.to_string(),))
+            })
+            .transpose()
+    }
 
-        #[getter]
-        fn interest_rate(&self) -> Option<f64> {
-            self.0.interest_rate.map(|v| v.into_inner())
-        }
+    #[getter]
+    fn interest_rate(&self) -> Option<f64> {
+        self.0.interest_rate.map(|v| v.into_inner())
+    }
 });
 
 /// A non-promisable date passed as an argument.
@@ -416,7 +431,9 @@ entity_pymethods!(PyBond, "Bond", investment, {
 /// Different from a promisable field: a bond's maturity is a plain optional date, so a promise here
 /// is a usage error rather than an acceptable value.
 fn date_argument(field: &str, value: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Date>> {
-    let Some(value) = value.filter(|v| !v.is_none()) else { return Ok(None) };
+    let Some(value) = value.filter(|v| !v.is_none()) else {
+        return Ok(None);
+    };
     match block_value_from_py(value)? {
         BlockValue::Date(date) => Ok(Some(date)),
         BlockValue::Str(raw) => raw.parse::<Date>().map(Some).map_err(|e| {
@@ -432,69 +449,78 @@ fn date_argument(field: &str, value: Option<&Bound<'_, PyAny>>) -> PyResult<Opti
 }
 
 entity_pymethods!(PyFundAssets, "FundAssets", {
-        #[new]
-        #[pyo3(signature = (*, fund, tot_assets, liabilities, net_assets, currency, date = None))]
-        fn new(
-            fund: String,
-            tot_assets: f64,
-            liabilities: f64,
-            net_assets: f64,
-            currency: &Bound<'_, PyAny>,
-            date: Option<&Bound<'_, PyAny>>,
-        ) -> PyResult<PyFundAssets> {
-            let currency = block_value_from_py(currency)?;
-            let date = date.filter(|v| !v.is_none()).map(block_value_from_py).transpose()?;
-            Ok(PyFundAssets(
-                FundAssets::build(fund, tot_assets, liabilities, net_assets, &currency, date.as_ref()).map_err(
-                    |e| {
-                        tracing::error!(error = log_error(&e), "FundAssets construction failed: {e}");
-                        value_error(e)
-                    },
-                )?,
-            ))
-        }
+    #[new]
+    #[pyo3(signature = (*, fund, tot_assets, liabilities, net_assets, currency, date = None))]
+    fn new(
+        fund: String,
+        tot_assets: f64,
+        liabilities: f64,
+        net_assets: f64,
+        currency: &Bound<'_, PyAny>,
+        date: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyFundAssets> {
+        let currency = block_value_from_py(currency)?;
+        let date = date
+            .filter(|v| !v.is_none())
+            .map(block_value_from_py)
+            .transpose()?;
+        Ok(PyFundAssets(
+            FundAssets::build(
+                fund,
+                tot_assets,
+                liabilities,
+                net_assets,
+                &currency,
+                date.as_ref(),
+            )
+            .map_err(|e| {
+                tracing::error!(error = log_error(&e), "FundAssets construction failed: {e}");
+                value_error(e)
+            })?,
+        ))
+    }
 
-        #[getter]
-        fn fund(&self) -> &str {
-            &self.0.fund
-        }
+    #[getter]
+    fn fund(&self) -> &str {
+        &self.0.fund
+    }
 
-        #[getter]
-        fn tot_assets(&self) -> f64 {
-            self.0.tot_assets.into_inner()
-        }
+    #[getter]
+    fn tot_assets(&self) -> f64 {
+        self.0.tot_assets.into_inner()
+    }
 
-        #[getter]
-        fn liabilities(&self) -> f64 {
-            self.0.liabilities.into_inner()
-        }
+    #[getter]
+    fn liabilities(&self) -> f64 {
+        self.0.liabilities.into_inner()
+    }
 
-        #[getter]
-        fn net_assets(&self) -> f64 {
-            self.0.net_assets.into_inner()
-        }
+    #[getter]
+    fn net_assets(&self) -> f64 {
+        self.0.net_assets.into_inner()
+    }
 
-        #[getter]
-        fn currency<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-            promised_to_py(py, &self.0.currency, |v| {
-                Ok(Bound::new(py, super::consts::PyCurrency::from(*v))?.into_any())
-            })
-        }
+    #[getter]
+    fn currency<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        promised_to_py(py, &self.0.currency, |v| {
+            Ok(Bound::new(py, super::consts::PyCurrency::from(*v))?.into_any())
+        })
+    }
 
-        #[getter]
-        fn date<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
-            self.0
-                .date
-                .as_ref()
-                .map(|p| {
-                    promised_to_py(py, p, |d| {
-                        py.import("datetime")?
-                            .getattr("date")?
-                            .call_method1("fromisoformat", (d.to_string(),))
-                    })
+    #[getter]
+    fn date<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
+        self.0
+            .date
+            .as_ref()
+            .map(|p| {
+                promised_to_py(py, p, |d| {
+                    py.import("datetime")?
+                        .getattr("date")?
+                        .call_method1("fromisoformat", (d.to_string(),))
                 })
-                .transpose()
-        }
+            })
+            .transpose()
+    }
 });
 
 /// The two change-of-name entities differ only in type: same three fields, same construction.
@@ -509,10 +535,16 @@ macro_rules! change_name_shim {
                 date: &Bound<'_, PyAny>,
             ) -> PyResult<$shim> {
                 let date = block_value_from_py(date)?;
-                Ok($shim(<$native>::build(old_name, current_name, &date).map_err(|e| {
-                    tracing::error!(error = log_error(&e), entity = $py_name, "construction failed: {e}");
-                    value_error(e)
-                })?))
+                Ok($shim(
+                    <$native>::build(old_name, current_name, &date).map_err(|e| {
+                        tracing::error!(
+                            error = log_error(&e),
+                            entity = $py_name,
+                            "construction failed: {e}"
+                        );
+                        value_error(e)
+                    })?,
+                ))
             }
 
             #[getter]
@@ -541,56 +573,64 @@ change_name_shim!(PyFundRename, FundRename, "FundRename");
 change_name_shim!(PyFundMerge, FundMerge, "FundMerge");
 
 entity_pymethods!(PyFundEsgIndicator, "FundEsgIndicator", {
-        #[new]
-        #[pyo3(signature = (*, fund, name, value))]
-        fn new(fund: &Bound<'_, PyAny>, name: String, value: String) -> PyResult<PyFundEsgIndicator> {
-            let fund = block_value_from_py(fund)?;
-            Ok(PyFundEsgIndicator(FundEsgIndicator::build(&fund, name, value).map_err(|e| {
-                tracing::error!(error = log_error(&e), "FundEsgIndicator construction failed: {e}");
+    #[new]
+    #[pyo3(signature = (*, fund, name, value))]
+    fn new(fund: &Bound<'_, PyAny>, name: String, value: String) -> PyResult<PyFundEsgIndicator> {
+        let fund = block_value_from_py(fund)?;
+        Ok(PyFundEsgIndicator(
+            FundEsgIndicator::build(&fund, name, value).map_err(|e| {
+                tracing::error!(
+                    error = log_error(&e),
+                    "FundEsgIndicator construction failed: {e}"
+                );
                 value_error(e)
-            })?))
-        }
+            })?,
+        ))
+    }
 
-        #[getter]
-        fn fund<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-            promised_to_py(py, &self.0.fund, |v| Ok(v.into_pyobject(py)?.into_any()))
-        }
+    #[getter]
+    fn fund<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        promised_to_py(py, &self.0.fund, |v| Ok(v.into_pyobject(py)?.into_any()))
+    }
 
-        #[getter]
-        fn name(&self) -> &str {
-            &self.0.name
-        }
+    #[getter]
+    fn name(&self) -> &str {
+        &self.0.name
+    }
 
-        #[getter]
-        fn value(&self) -> &str {
-            &self.0.value
-        }
+    #[getter]
+    fn value(&self) -> &str {
+        &self.0.value
+    }
 });
 
 entity_pymethods!(PyFundSfdrClassification, "FundSfdrClassification", {
-        #[new]
-        #[pyo3(signature = (*, fund, article))]
-        fn new(fund: String, article: &Bound<'_, PyAny>) -> PyResult<PyFundSfdrClassification> {
-            let article = block_value_from_py(article)?;
-            Ok(PyFundSfdrClassification(
-                FundSfdrClassification::build(fund, &article).map_err(|e| {
-                    tracing::error!(error = log_error(&e), "FundSfdrClassification construction failed: {e}");
-                    value_error(e)
-                })?,
-            ))
-        }
+    #[new]
+    #[pyo3(signature = (*, fund, article))]
+    fn new(fund: String, article: &Bound<'_, PyAny>) -> PyResult<PyFundSfdrClassification> {
+        let article = block_value_from_py(article)?;
+        Ok(PyFundSfdrClassification(
+            FundSfdrClassification::build(fund, &article).map_err(|e| {
+                tracing::error!(
+                    error = log_error(&e),
+                    "FundSfdrClassification construction failed: {e}"
+                );
+                value_error(e)
+            })?,
+        ))
+    }
 
-        #[getter]
-        fn fund(&self) -> &str {
-            &self.0.fund
-        }
+    #[getter]
+    fn fund(&self) -> &str {
+        &self.0.fund
+    }
 
-        #[getter]
-        fn article<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-            promised_to_py(py, &self.0.article, |v| {
-                Ok(Bound::new(py, super::consts::PySfdrArticle::from(*v))?.into_any())
-            })
-        }
+    #[getter]
+    fn article<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        promised_to_py(py, &self.0.article, |v| {
+            Ok(Bound::new(py, super::consts::PySfdrArticle::from(*v))?.into_any())
+        })
+    }
 });
 
 /// The two asset managers: same two fields, same construction.
@@ -610,10 +650,16 @@ macro_rules! assets_manager_shim {
                         .collect::<PyResult<_>>()?,
                 );
                 let name = BlockValue::Str(name);
-                Ok($shim(<$native>::build(&name, &managed_funds).map_err(|e| {
-                    tracing::error!(error = log_error(&e), entity = $py_name, "construction failed: {e}");
-                    value_error(e)
-                })?))
+                Ok($shim(<$native>::build(&name, &managed_funds).map_err(
+                    |e| {
+                        tracing::error!(
+                            error = log_error(&e),
+                            entity = $py_name,
+                            "construction failed: {e}"
+                        );
+                        value_error(e)
+                    },
+                )?))
             }
 
             #[getter]
@@ -630,7 +676,11 @@ macro_rules! assets_manager_shim {
 }
 
 assets_manager_shim!(PyManagementCompany, ManagementCompany, "ManagementCompany");
-assets_manager_shim!(PyInvestmentsManager, InvestmentsManager, "InvestmentsManager");
+assets_manager_shim!(
+    PyInvestmentsManager,
+    InvestmentsManager,
+    "InvestmentsManager"
+);
 
 /// Attaches the three tuple aliases to the module.
 ///
@@ -641,10 +691,16 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = module.py();
     for (alias, members) in [
         ("Investment", ["Equity", "Bond"].as_slice()),
-        ("AssetsManager", ["ManagementCompany", "InvestmentsManager"].as_slice()),
+        (
+            "AssetsManager",
+            ["ManagementCompany", "InvestmentsManager"].as_slice(),
+        ),
         ("FundChangeName", ["FundRename", "FundMerge"].as_slice()),
     ] {
-        let types = members.iter().map(|name| module.getattr(*name)).collect::<PyResult<Vec<_>>>()?;
+        let types = members
+            .iter()
+            .map(|name| module.getattr(*name))
+            .collect::<PyResult<Vec<_>>>()?;
         module.setattr(alias, PyTuple::new(py, types)?)?;
     }
     Ok(())

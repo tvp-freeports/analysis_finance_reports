@@ -123,14 +123,32 @@ msgstr ""
 "possono contraddirsi."
 
 #: ../../source/guides/formats/repository.md:88
+#, python-brace-format
 msgid ""
-"`metadata/url_mapping.csv` maps URL prefixes to format names, and is what lets a "
-"document downloaded from a known address be read without `--format`. The **order "
-"matters**: the first matching prefix wins."
+"`metadata/url_mapping.csv` maps URL prefixes to format names, and is what lets a document downloaded from a known address be read without `--format`. When several prefixes match, the **longest** wins; between equal prefixes, the row with the more specific name; after that, the row that comes first. A row may give a partial name ({doc}`../../reference/formats/names`) — `MEDIOLANUM-IT` for an address that serves every Italian Mediolanum report — and every row is checked against `formats.csv` when the repository is loaded, so a name that matches no format is an error at once."
 msgstr ""
-"`metadata/url_mapping.csv` associa prefissi di URL a nomi di formato, ed è ciò che "
-"permette di leggere senza `--format` un documento scaricato da un indirizzo noto. "
-"L'**ordine conta**: vince il primo prefisso che corrisponde."
+"`metadata/url_mapping.csv` associa prefissi di URL a nomi di formato, ed è ciò che permette di leggere senza `--format` un documento scaricato da un indirizzo noto. Quando più prefissi corrispondono vince il **più lungo**; a parità di prefisso, la riga con il nome più specifico; poi, la riga che viene prima. Una riga può dare un nome parziale ({doc}`../../reference/formats/names`) — `MEDIOLANUM-IT` per un indirizzo che serve tutte le relazioni italiane di Mediolanum — e ogni riga è verificata rispetto a `formats.csv` quando il repository viene caricato, così un nome che non corrisponde a nessun formato è subito un errore."
+
+#: ../../source/guides/formats/repository.md:94
+msgid ""
+"`metadata/document_classify.yaml` recognises a document's format from the text of its "
+"pages, for documents no URL prefix accounts for. `init-format-repo` creates it with no "
+"rules; a file that is absent or empty classifies nothing declaratively. When text rules "
+"are not enough, the author adds `metadata/document_classify.py` — or a "
+"`metadata/document_classify/` package — and nothing creates it for them."
+msgstr ""
+"`metadata/document_classify.yaml` riconosce il formato di un documento dal testo delle "
+"sue pagine, per i documenti che nessun prefisso di URL copre. `init-format-repo` lo crea "
+"senza regole; se il file manca o è vuoto, non si classifica niente in modo dichiarativo. "
+"Quando le regole sul testo non bastano, l'autore aggiunge `metadata/document_classify.py` "
+"— o un pacchetto `metadata/document_classify/` — e nessuno lo crea al posto suo."
+
+#: ../../source/guides/formats/repository.md:94
+#, python-brace-format
+msgid ""
+"How to write the two is {doc}`../../reference/formats/document-classify-yaml` and {doc}`../../reference/formats/document-classify-python`; how the names they produce are built, and which format to try when neither recognises a document, is {doc}`../../reference/formats/names`."
+msgstr ""
+"Come scriverli è spiegato in {doc}`../../reference/formats/document-classify-yaml` e {doc}`../../reference/formats/document-classify-python`; come sono costruiti i nomi che producono, e quale formato provare quando nessuno dei due riconosce un documento, è in {doc}`../../reference/formats/names`."
 
 #: ../../source/guides/formats/repository.md:92
 msgid "Orchestration"

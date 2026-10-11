@@ -30,7 +30,10 @@
 //! [`doc_classify_yaml`] reads `metadata/document_classify.yaml`, the declarative document
 //! classification, into the steps [`crate::core::doc_classify`] runs; [`doc_classify_py`] reads the
 //! author's `metadata/document_classify.py` (or package) into its Python entries; [`doc_classify`]
-//! puts the two together with `formats.csv` into a ready [`DocumentClassifier`](crate::core::doc_classify::DocumentClassifier).
+//! puts the two together with `formats.csv` into a ready [`DocumentClassifier`](crate::core::doc_classify::DocumentClassifier),
+//! after [`doc_classify_validate`] has checked the YAML against `formats.csv` (names that cannot
+//! exist, steps no document reaches). [`doc_classify_sources`] combines what the classification and
+//! the URL mapping say of a document's format, for one document and for a set of them.
 //!
 //! [`id_format`] reads nothing: it is the grammar of identifiers the others share; [`format_pattern`]
 //! is the grammar of partial format names built on top of it.
@@ -38,6 +41,8 @@
 pub mod csv_columns;
 pub mod doc_classify;
 pub mod doc_classify_py;
+pub mod doc_classify_sources;
+pub mod doc_classify_validate;
 pub mod doc_classify_yaml;
 pub mod format_pattern;
 pub mod id_format;
@@ -82,7 +87,11 @@ pub enum LoadError {
 }
 
 /// Adds `incoming` to the pipeline already present under the same name, if any.
-fn merge_into(pipelines: &mut HashMap<PipelineName, Pipeline>, name: PipelineName, incoming: Pipeline) {
+fn merge_into(
+    pipelines: &mut HashMap<PipelineName, Pipeline>,
+    name: PipelineName,
+    incoming: Pipeline,
+) {
     match pipelines.remove(&name) {
         Some(existing) => pipelines.insert(name, existing + incoming),
         None => pipelines.insert(name, incoming),
@@ -161,15 +170,20 @@ impl Algorithm {
 
         let known_formats = metadata::get_formats(formats_repo_dir)?;
         if !known_formats.iter().any(|f| f == name) {
-            return Err(LoadError::UnknownFormat { format: name.to_string(), known: known_formats.len() });
+            return Err(LoadError::UnknownFormat {
+                format: name.to_string(),
+                known: known_formats.len(),
+            });
         }
 
         let pipelines = load_pipelines(formats_repo_dir, name, false)?;
         let defined: HashSet<PipelineName> = pipelines.keys().cloned().collect();
 
-        let classifiers = orchestration::get_pageclassify_pipelines(formats_repo_dir, name, &known_formats)?;
+        let classifiers =
+            orchestration::get_pageclassify_pipelines(formats_repo_dir, name, &known_formats)?;
         let mapping = orchestration::get_mapping(formats_repo_dir, name, &known_formats, &defined)?;
-        let schedule = orchestration::get_schedule(formats_repo_dir, name, &known_formats, &defined)?;
+        let schedule =
+            orchestration::get_schedule(formats_repo_dir, name, &known_formats, &defined)?;
         let finalizer = unstructured::loader::get_page_class_finalizer(formats_repo_dir, name)?;
 
         // Sorted everywhere: an [`Algorithm`] keeps the order it is given, and the order in which

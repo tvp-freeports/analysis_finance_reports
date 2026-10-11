@@ -3,9 +3,11 @@
 //! A run is configured from four sources — command line, environment, configuration file, batch CSV
 //! — merged by precedence in [`config_locations`], resolved into one
 //! [`freeports_config::FreeportsConfig`], and then executed by [`run`], one [`job`] at a time or
-//! several at once in [`worker`] processes.
+//! several at once in [`worker`] processes. [`classify`] is `freeports classify`: the same
+//! configuration sources, and the format of the documents instead of their extraction.
 
 pub mod batch;
+pub mod classify;
 pub mod conf_parse;
 pub mod config_locations;
 pub mod freeports_config;

@@ -82,7 +82,12 @@ impl PdfLine {
             panic!("Font size of a PdfLine cannot be negative")
         }
         let (x0, y0, x1, y1) = area;
-        Self { font: Font::new(font), font_size, text: text.to_string(), bbox: Rectangle::new(x0, y0, x1, y1) }
+        Self {
+            font: Font::new(font),
+            font_size,
+            text: text.to_string(),
+            bbox: Rectangle::new(x0, y0, x1, y1),
+        }
     }
 
     pub fn font(&self) -> &Font {
@@ -133,7 +138,12 @@ mod tests {
 
         #[test]
         fn stores_normalized_font_size_text_and_bbox() {
-            let line = PdfLine::new("Arial", 45.3, "La grange muraja axur!", (6.0, 4.0, 70.0, 60.0));
+            let line = PdfLine::new(
+                "Arial",
+                45.3,
+                "La grange muraja axur!",
+                (6.0, 4.0, 70.0, 60.0),
+            );
             assert_eq!(line.font(), &Font::new("Arial"));
             assert_eq!(*line.font_size(), 45.3);
             assert_eq!(line.text(), "La grange muraja axur!");
@@ -150,7 +160,12 @@ mod tests {
         #[test]
         #[should_panic(expected = "Font size of a PdfLine cannot be negative")]
         fn panics_on_negative_font_size() {
-            PdfLine::new("Arial", -45.3, "La grange muraja axur!", (6.0, 4.0, 70.0, 60.0));
+            PdfLine::new(
+                "Arial",
+                -45.3,
+                "La grange muraja axur!",
+                (6.0, 4.0, 70.0, 60.0),
+            );
         }
 
         #[test]

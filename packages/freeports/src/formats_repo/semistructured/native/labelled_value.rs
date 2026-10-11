@@ -23,13 +23,13 @@
 
 use serde::Deserialize;
 
+use super::selection::{InputSelection, SelectionConfigError};
 use crate::core::classes::BlockType;
 use crate::formats_utils::pdf_extract::labelled_value::{
     LabelledValueArgs, LabelledValueTake, LabelledValueWhere, LabelledValueWindow,
     PdfExtractLabelledValueStandard,
 };
 use crate::formats_utils::pdf_extract::section::SectionEnd;
-use super::selection::{InputSelection, SelectionConfigError};
 
 /// What a labelled-value configuration can be refused for.
 #[derive(Debug, thiserror::Error)]
@@ -156,7 +156,9 @@ mod tests {
     /// a font name, and a text criterion is quoted. A cell that forgets them is the mistake
     /// [`is_pdfline_selection`] catches, and `a_text_criterion_has_to_be_quoted` freezes it.
     fn labelled(label: &str, rest: &str) -> InputLabelledValue {
-        input(&format!("label: '\"{label}\"'\nblock_type: X\nname: n\n{rest}"))
+        input(&format!(
+            "label: '\"{label}\"'\nblock_type: X\nname: n\n{rest}"
+        ))
     }
 
     mod the_required_fields {
@@ -194,9 +196,11 @@ mod tests {
 
         #[test]
         fn a_string_goes_through_the_compact_grammar() {
-            input("label: 'Lato|TrebuchetMS[6.9:7.1] \"^TOTALE ATTIVITA\"'\nblock_type: X\nname: n\n")
-                .build()
-                .expect("a font union, a size interval and an anchor are one cell");
+            input(
+                "label: 'Lato|TrebuchetMS[6.9:7.1] \"^TOTALE ATTIVITA\"'\nblock_type: X\nname: n\n",
+            )
+            .build()
+            .expect("a font union, a size interval and an anchor are one cell");
         }
 
         #[test]
@@ -254,7 +258,10 @@ mod tests {
                 .err()
                 .expect("a bare anchor is not a selection: a font name has no '^' in it");
             assert!(
-                matches!(error, LabelledValueConfigError::Selection(SelectionConfigError::NotASelection { .. })),
+                matches!(
+                    error,
+                    LabelledValueConfigError::Selection(SelectionConfigError::NotASelection { .. })
+                ),
                 "{error}"
             );
         }
@@ -266,14 +273,21 @@ mod tests {
 
         #[test]
         fn below_carries_its_measured_default() {
-            let pipe = labelled("^Situazione al", "where: below\n").build().expect("below needs nothing else");
+            let pipe = labelled("^Situazione al", "where: below\n")
+                .build()
+                .expect("below needs nothing else");
             assert_eq!(pipe.placement(), LabelledValueWhere::Below);
-            assert_eq!(pipe.window(), LabelledValueWindow::default_for(LabelledValueWhere::Below));
+            assert_eq!(
+                pipe.window(),
+                LabelledValueWindow::default_for(LabelledValueWhere::Below)
+            );
         }
 
         #[test]
         fn right_sets_no_reach_at_all() {
-            let pipe = labelled("^Total Assets", "where: right\n").build().expect("right needs nothing else");
+            let pipe = labelled("^Total Assets", "where: right\n")
+                .build()
+                .expect("right needs nothing else");
             assert_eq!(pipe.window().reach, None);
             assert_eq!(pipe.window().across, 0.0);
         }
@@ -289,9 +303,14 @@ mod tests {
 
         #[test]
         fn an_unknown_placement_names_the_three_that_exist() {
-            let error =
-                labelled("^A", "where: beside\n").build().err().expect("there are three placements");
-            assert_eq!(error.to_string(), "'beside' is not a placement: on_line, below or right");
+            let error = labelled("^A", "where: beside\n")
+                .build()
+                .err()
+                .expect("there are three placements");
+            assert_eq!(
+                error.to_string(),
+                "'beside' is not a placement: on_line, below or right"
+            );
         }
     }
 
@@ -318,7 +337,10 @@ mod tests {
                 .build()
                 .err()
                 .expect("there is no way to honour both");
-            assert!(matches!(error, LabelledValueConfigError::TwoStops), "{error}");
+            assert!(
+                matches!(error, LabelledValueConfigError::TwoStops),
+                "{error}"
+            );
         }
     }
 
@@ -335,9 +357,14 @@ mod tests {
 
         #[test]
         fn an_unknown_word_is_refused() {
-            let error =
-                labelled("^A", "take: some\n").build().err().expect("there are two ways of taking a value");
-            assert_eq!(error.to_string(), "'some' is not a way of taking the value: first or all");
+            let error = labelled("^A", "take: some\n")
+                .build()
+                .err()
+                .expect("there are two ways of taking a value");
+            assert_eq!(
+                error.to_string(),
+                "'some' is not a way of taking the value: first or all"
+            );
         }
     }
 }

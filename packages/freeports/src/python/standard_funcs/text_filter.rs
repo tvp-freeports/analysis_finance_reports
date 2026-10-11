@@ -9,12 +9,13 @@ use pyo3::types::PyString;
 use crate::core::classes::BlockType;
 use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
 use crate::formats_utils::text_filter::standard_funcs::{
-    StandardFuncsError, TextFilterAssetsStandard, TextFilterDocClassifyStandard, TextFilterInvestmentsStandard,
-    TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
+    StandardFuncsError, TextFilterAssetsStandard, TextFilterDocClassifyStandard,
+    TextFilterInvestmentsStandard, TextFilterManagmentCompanyStandard,
+    TextFilterPageClassifyStandard, TextFilterSfdrSignStandard,
 };
 
-use crate::python::pipes::PyTextFilterPipe;
 use crate::core::tracing_setup::log_error;
+use crate::python::pipes::PyTextFilterPipe;
 
 /// The compiled-pattern type, for telling a compiled regex from a literal string.
 fn re_pattern_type(py: Python<'_>) -> PyResult<Bound<'_, PyAny>> {
@@ -97,7 +98,10 @@ pub fn py_text_filter_investments_standard(
     let dash_as_zero = match dash_as_zero {
         None => DashAsZero::empty(),
         Some(expression) => DashAsZero::from_expression(expression).map_err(|e| {
-            tracing::error!(error = log_error(&e), "invalid dash_as_zero expression {expression:?}: {e}");
+            tracing::error!(
+                error = log_error(&e),
+                "invalid dash_as_zero expression {expression:?}: {e}"
+            );
             PyValueError::new_err(e.to_string())
         })?,
     };
@@ -111,7 +115,10 @@ pub fn py_text_filter_investments_standard(
         dash_as_zero,
     )
     .map_err(|e| {
-        tracing::error!(error = log_error(&e), "TextFilterInvestmentsStandard construction failed: {e}");
+        tracing::error!(
+            error = log_error(&e),
+            "TextFilterInvestmentsStandard construction failed: {e}"
+        );
         PyValueError::new_err(e.to_string())
     })?;
     let patterns = match remove_from_fund_regexes.filter(|object| !object.is_none()) {
@@ -119,12 +126,19 @@ pub fn py_text_filter_investments_standard(
         Some(object) => scalar_or_iterable(object)?
             .iter()
             .map(|item| {
-                if item.is_instance_of::<PyString>() { item.extract() } else { pattern_source(item) }
+                if item.is_instance_of::<PyString>() {
+                    item.extract()
+                } else {
+                    pattern_source(item)
+                }
             })
             .collect::<PyResult<Vec<String>>>()?,
     };
     let pipe = pipe.with_remove_from_fund_regexes(&patterns).map_err(|e| {
-        tracing::error!(error = log_error(&e), "invalid remove_from_fund_regexes: {e}");
+        tracing::error!(
+            error = log_error(&e),
+            "invalid remove_from_fund_regexes: {e}"
+        );
         PyValueError::new_err(e.to_string())
     })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
@@ -160,7 +174,9 @@ pub fn py_text_filter_sfdr_sign_standard(
                 prefix_patterns.push(pattern_source(&item)?);
             } else {
                 tracing::error!("fund_prefix item is neither a str nor a re.Pattern");
-                return Err(PyValueError::new_err("fund_prefix items must be str or re.Pattern"));
+                return Err(PyValueError::new_err(
+                    "fund_prefix items must be str or re.Pattern",
+                ));
             }
         }
     }
@@ -172,7 +188,10 @@ pub fn py_text_filter_sfdr_sign_standard(
         demand_investment_funds_match,
     )
     .map_err(|e: StandardFuncsError| {
-        tracing::error!(error = log_error(&e), "TextFilterSfdrSignStandard construction failed: {e}");
+        tracing::error!(
+            error = log_error(&e),
+            "TextFilterSfdrSignStandard construction failed: {e}"
+        );
         PyValueError::new_err(e.to_string())
     })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
@@ -190,7 +209,11 @@ pub fn py_text_filter_assets_standard(
     remove_from_fund_regexes: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyTextFilterPipe> {
     let source_of = |object: &Bound<'_, PyAny>| -> PyResult<String> {
-        if object.is_instance_of::<PyString>() { object.extract() } else { pattern_source(object) }
+        if object.is_instance_of::<PyString>() {
+            object.extract()
+        } else {
+            pattern_source(object)
+        }
     };
 
     let date_regex = match date_regex.filter(|object| !object.is_none()) {
@@ -198,14 +221,22 @@ pub fn py_text_filter_assets_standard(
         Some(object) => Some(source_of(object)?),
     };
 
-    let remove_from_fund_regexes = match remove_from_fund_regexes.filter(|object| !object.is_none()) {
+    let remove_from_fund_regexes = match remove_from_fund_regexes.filter(|object| !object.is_none())
+    {
         None => Vec::new(),
-        Some(object) => scalar_or_iterable(object)?.iter().map(source_of).collect::<PyResult<_>>()?,
+        Some(object) => scalar_or_iterable(object)?
+            .iter()
+            .map(source_of)
+            .collect::<PyResult<_>>()?,
     };
 
-    let pipe = TextFilterAssetsStandard::new(date_regex.as_deref(), remove_from_fund_regexes).map_err(|e| {
-        tracing::error!(error = log_error(&e), "TextFilterAssetsStandard construction failed: {e}");
-        PyValueError::new_err(e.to_string())
-    })?;
+    let pipe = TextFilterAssetsStandard::new(date_regex.as_deref(), remove_from_fund_regexes)
+        .map_err(|e| {
+            tracing::error!(
+                error = log_error(&e),
+                "TextFilterAssetsStandard construction failed: {e}"
+            );
+            PyValueError::new_err(e.to_string())
+        })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }

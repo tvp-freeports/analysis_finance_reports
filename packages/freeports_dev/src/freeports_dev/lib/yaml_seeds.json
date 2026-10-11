@@ -1,5 +1,6 @@
 {
     "content/algorithms/semistructured/args/deserialize.yaml": "{}\n",
     "content/algorithms/semistructured/args/pdf_extract.yaml": "{}\n",
-    "content/algorithms/semistructured/args/text_filter.yaml": "{}\n"
+    "content/algorithms/semistructured/args/text_filter.yaml": "{}\n",
+    "metadata/document_classify.yaml": "# Declarative document classification: which format a report is, read from its pages.\n# No rules yet, so nothing is classified. The minimal form, a page and a step under it:\n#\n# 1:\n#   ACME-EN24: {text: '^ACME FUNDS$'}\n#\n# `text` is literal text, not a regex: only a leading ^ and a trailing $ anchor it.\n# See https://docs.freeports.org/en/latest/guides/formats/repository.html\n"
 }

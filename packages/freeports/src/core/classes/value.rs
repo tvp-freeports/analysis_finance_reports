@@ -58,7 +58,11 @@ pub enum BlockValue {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BlockValueError {
     #[error("field '{field}' expected {expected}, found {found}")]
-    TypeMismatch { field: String, expected: &'static str, found: &'static str },
+    TypeMismatch {
+        field: String,
+        expected: &'static str,
+        found: &'static str,
+    },
     #[error("missing field '{field}'")]
     MissingField { field: String },
     #[error("cannot read field '{field}': the value is a {found}, not a map")]
@@ -162,7 +166,9 @@ impl BlockValue {
             field: field.to_string(),
             found: self.kind(),
         })?;
-        map.get(field).ok_or_else(|| BlockValueError::MissingField { field: field.to_string() })
+        map.get(field).ok_or_else(|| BlockValueError::MissingField {
+            field: field.to_string(),
+        })
     }
 }
 
@@ -292,8 +298,19 @@ mod tests {
             assert_eq!(
                 kinds,
                 vec![
-                    "null", "bool", "int", "float", "str", "date", "currency", "sfdr_article",
-                    "financial_instrument", "promise", "list", "set", "map"
+                    "null",
+                    "bool",
+                    "int",
+                    "float",
+                    "str",
+                    "date",
+                    "currency",
+                    "sfdr_article",
+                    "financial_instrument",
+                    "promise",
+                    "list",
+                    "set",
+                    "map"
                 ]
             );
         }
@@ -325,15 +342,27 @@ mod tests {
             assert_eq!(BlockValue::from("x").as_str(), Some("x"));
             let date = Date::new(2024, 1, 2).unwrap();
             assert_eq!(BlockValue::from(date).as_date(), Some(date));
-            assert_eq!(BlockValue::from(Currency::EUR).as_currency(), Some(Currency::EUR));
-            assert_eq!(BlockValue::from(SfdrArticle::Art9).as_sfdr_article(), Some(SfdrArticle::Art9));
+            assert_eq!(
+                BlockValue::from(Currency::EUR).as_currency(),
+                Some(Currency::EUR)
+            );
+            assert_eq!(
+                BlockValue::from(SfdrArticle::Art9).as_sfdr_article(),
+                Some(SfdrArticle::Art9)
+            );
             assert_eq!(
                 BlockValue::from(FinancialInstrument::EQUITY).as_financial_instrument(),
                 Some(FinancialInstrument::EQUITY)
             );
             let promise = Promise::new("p");
-            assert_eq!(BlockValue::from(promise.clone()).as_promise(), Some(&promise));
-            assert_eq!(BlockValue::List(vec![BlockValue::Int(1)]).as_list(), Some(&[BlockValue::Int(1)][..]));
+            assert_eq!(
+                BlockValue::from(promise.clone()).as_promise(),
+                Some(&promise)
+            );
+            assert_eq!(
+                BlockValue::List(vec![BlockValue::Int(1)]).as_list(),
+                Some(&[BlockValue::Int(1)][..])
+            );
             let set = BTreeSet::from([BlockValue::Int(1)]);
             assert_eq!(BlockValue::from(set.clone()).as_set(), Some(&set));
             let map = BTreeMap::from([("k".to_string(), BlockValue::Int(1))]);
@@ -356,7 +385,9 @@ mod tests {
                 ("date", |v| v.as_date().is_some()),
                 ("currency", |v| v.as_currency().is_some()),
                 ("sfdr_article", |v| v.as_sfdr_article().is_some()),
-                ("financial_instrument", |v| v.as_financial_instrument().is_some()),
+                ("financial_instrument", |v| {
+                    v.as_financial_instrument().is_some()
+                }),
                 ("promise", |v| v.as_promise().is_some()),
                 ("list", |v| v.as_list().is_some()),
                 ("set", |v| v.as_set().is_some()),
@@ -390,9 +421,21 @@ mod tests {
         #[test]
         fn or_fail_succeeds_exactly_when_as_succeeds() {
             for value in one_of_each() {
-                assert_eq!(value.as_int().is_some(), value.int_or_fail("f").is_ok(), "{value:?}");
-                assert_eq!(value.as_str().is_some(), value.str_or_fail("f").is_ok(), "{value:?}");
-                assert_eq!(value.as_promise().is_some(), value.promise_or_fail("f").is_ok(), "{value:?}");
+                assert_eq!(
+                    value.as_int().is_some(),
+                    value.int_or_fail("f").is_ok(),
+                    "{value:?}"
+                );
+                assert_eq!(
+                    value.as_str().is_some(),
+                    value.str_or_fail("f").is_ok(),
+                    "{value:?}"
+                );
+                assert_eq!(
+                    value.as_promise().is_some(),
+                    value.promise_or_fail("f").is_ok(),
+                    "{value:?}"
+                );
             }
         }
 
@@ -443,20 +486,34 @@ mod tests {
         fn get_or_fail_distinguishes_missing_key_from_non_map_value() {
             assert_eq!(
                 map_value().get_or_fail("assente").unwrap_err(),
-                BlockValueError::MissingField { field: "assente".into() }
+                BlockValueError::MissingField {
+                    field: "assente".into()
+                }
             );
             assert_eq!(
                 BlockValue::Int(1).get_or_fail("nome").unwrap_err(),
-                BlockValueError::NotAMap { field: "nome".into(), found: "int" }
+                BlockValueError::NotAMap {
+                    field: "nome".into(),
+                    found: "int"
+                }
             );
         }
 
         #[test]
         fn get_or_fail_succeeds_exactly_when_get_succeeds() {
-            let values = [map_value(), BlockValue::Int(1), BlockValue::Map(BTreeMap::new()), BlockValue::Null];
+            let values = [
+                map_value(),
+                BlockValue::Int(1),
+                BlockValue::Map(BTreeMap::new()),
+                BlockValue::Null,
+            ];
             for v in values {
                 for key in ["nome", "assente", ""] {
-                    assert_eq!(v.get(key).is_some(), v.get_or_fail(key).is_ok(), "{v:?} / {key}");
+                    assert_eq!(
+                        v.get(key).is_some(),
+                        v.get_or_fail(key).is_ok(),
+                        "{v:?} / {key}"
+                    );
                 }
             }
         }
@@ -468,7 +525,10 @@ mod tests {
                 "missing field 'assente'"
             );
             assert_eq!(
-                BlockValue::Null.get_or_fail("nome").unwrap_err().to_string(),
+                BlockValue::Null
+                    .get_or_fail("nome")
+                    .unwrap_err()
+                    .to_string(),
                 "cannot read field 'nome': the value is a null, not a map"
             );
         }
@@ -482,9 +542,15 @@ mod tests {
         fn from_covers_scalar_types() {
             assert_eq!(BlockValue::from(true), BlockValue::Bool(true));
             assert_eq!(BlockValue::from(3_i64), BlockValue::Int(3));
-            assert_eq!(BlockValue::from(3.5_f64), BlockValue::Float(OrderedFloat(3.5)));
+            assert_eq!(
+                BlockValue::from(3.5_f64),
+                BlockValue::Float(OrderedFloat(3.5))
+            );
             assert_eq!(BlockValue::from("x"), BlockValue::Str("x".into()));
-            assert_eq!(BlockValue::from("x".to_string()), BlockValue::Str("x".into()));
+            assert_eq!(
+                BlockValue::from("x".to_string()),
+                BlockValue::Str("x".into())
+            );
         }
 
         #[test]
@@ -564,7 +630,10 @@ mod tests {
             let mut map_b = BTreeMap::new();
             map_b.insert("y".to_string(), BlockValue::Int(2));
             map_b.insert("x".to_string(), BlockValue::Int(1));
-            assert_eq!(hash_of(&BlockValue::from(map_a)), hash_of(&BlockValue::from(map_b)));
+            assert_eq!(
+                hash_of(&BlockValue::from(map_a)),
+                hash_of(&BlockValue::from(map_b))
+            );
         }
 
         /// The order of a `List`, in contrast, does matter: it is a sequence, not a set.
@@ -612,14 +681,24 @@ mod tests {
         fn kind_matches_the_serde_tag() {
             for value in one_of_each() {
                 let json: serde_json::Value = serde_json::to_value(&value).unwrap();
-                assert_eq!(json["kind"], serde_json::Value::from(value.kind()), "{value:?}");
+                assert_eq!(
+                    json["kind"],
+                    serde_json::Value::from(value.kind()),
+                    "{value:?}"
+                );
             }
         }
 
         #[test]
         fn the_shape_is_adjacently_tagged() {
-            assert_eq!(serde_json::to_string(&BlockValue::Int(3)).unwrap(), r#"{"kind":"int","v":3}"#);
-            assert_eq!(serde_json::to_string(&BlockValue::Null).unwrap(), r#"{"kind":"null"}"#);
+            assert_eq!(
+                serde_json::to_string(&BlockValue::Int(3)).unwrap(),
+                r#"{"kind":"int","v":3}"#
+            );
+            assert_eq!(
+                serde_json::to_string(&BlockValue::Null).unwrap(),
+                r#"{"kind":"null"}"#
+            );
             assert_eq!(
                 serde_json::to_string(&BlockValue::from(Promise::new("fund[]!"))).unwrap(),
                 r#"{"kind":"promise","v":"fund[]!"}"#
@@ -644,7 +723,10 @@ mod tests {
                         BlockValue::Map(BTreeMap::from([("dentro".to_string(), BlockValue::Null)])),
                     ]),
                 ),
-                ("insieme".to_string(), BlockValue::Set(BTreeSet::from([BlockValue::from("a")]))),
+                (
+                    "insieme".to_string(),
+                    BlockValue::Set(BTreeSet::from([BlockValue::from("a")])),
+                ),
             ]));
             let json = serde_json::to_string(&nested).unwrap();
             assert_eq!(serde_json::from_str::<BlockValue>(&json).unwrap(), nested);
@@ -658,7 +740,9 @@ mod tests {
         #[test]
         fn wrong_type_content_is_an_error() {
             assert!(serde_json::from_str::<BlockValue>(r#"{"kind":"int","v":"tre"}"#).is_err());
-            assert!(serde_json::from_str::<BlockValue>(r#"{"kind":"currency","v":"EURO"}"#).is_err());
+            assert!(
+                serde_json::from_str::<BlockValue>(r#"{"kind":"currency","v":"EURO"}"#).is_err()
+            );
         }
 
         /// Known and accepted limit: JSON has no `NaN`, so a `Float(NaN)` — legitimate in memory

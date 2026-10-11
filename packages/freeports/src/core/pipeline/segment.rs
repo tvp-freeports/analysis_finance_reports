@@ -190,10 +190,16 @@ fn searchable_excerpt(value: &BlockValue) -> String {
         BlockValue::Null => String::new(),
         BlockValue::Str(text) => text.clone(),
         BlockValue::List(items) => items.first().map(searchable_excerpt).unwrap_or_default(),
-        BlockValue::Set(items) => items.iter().next().map(searchable_excerpt).unwrap_or_default(),
-        BlockValue::Map(entries) => {
-            entries.values().next().map(searchable_excerpt).unwrap_or_default()
-        }
+        BlockValue::Set(items) => items
+            .iter()
+            .next()
+            .map(searchable_excerpt)
+            .unwrap_or_default(),
+        BlockValue::Map(entries) => entries
+            .values()
+            .next()
+            .map(searchable_excerpt)
+            .unwrap_or_default(),
         other => format!("{other:?}"),
     };
     if raw.chars().count() <= MAX_CHARS {
@@ -218,7 +224,10 @@ fn searchable_excerpt(value: &BlockValue) -> String {
 /// quiet there made a page that produced nothing indistinguishable from a page that failed, which
 /// is precisely the pair a reader of the log needs to tell apart.
 fn log_segment_output(message: &'static str, produced: usize, sample: Option<&BlockValue>) {
-    let Some(excerpt) = sample.map(searchable_excerpt).filter(|text| !text.is_empty()) else {
+    let Some(excerpt) = sample
+        .map(searchable_excerpt)
+        .filter(|text| !text.is_empty())
+    else {
         return;
     };
     tracing::debug!(found = %excerpt, produced, "{}", message);
@@ -244,7 +253,11 @@ impl PdfExtractSegment {
             // A pipe that does not apply to this page is the normal case — every page class is
             // tried against every page — and it produces nothing to anchor a line to, so it says
             // nothing: its empty row was on its own half of the `.log.csv` at `-vv`.
-            log_segment_output("pdf blocks extracted", blocks.len(), blocks.first().map(|b| &b.content));
+            log_segment_output(
+                "pdf blocks extracted",
+                blocks.len(),
+                blocks.first().map(|b| &b.content),
+            );
             out.extend(blocks);
         }
         Ok(out)
@@ -266,7 +279,11 @@ impl TextFilterSegment {
             let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
             let _pipe_guard = pipe_span.enter();
             let filtered = pipe.filter(blocks, data)?;
-            log_segment_output("text blocks kept", filtered.len(), filtered.first().map(|b| &b.content));
+            log_segment_output(
+                "text blocks kept",
+                filtered.len(),
+                filtered.first().map(|b| &b.content),
+            );
             out.extend(filtered);
         }
         Ok(out)
@@ -298,7 +315,11 @@ impl DeserializeSegment {
                 produced += results.len();
                 out.extend(results);
             }
-            log_segment_output("entities deserialized", produced, blocks.first().map(|b| &b.content));
+            log_segment_output(
+                "entities deserialized",
+                produced,
+                blocks.first().map(|b| &b.content),
+            );
         }
         Ok(out)
     }
@@ -357,9 +378,12 @@ pub(crate) mod test_pipes {
         pub(crate) fn page_parse(name: &str) -> Arc<dyn PdfExtractPipe> {
             Arc::new(FailingExtract {
                 name: name.to_string(),
-                error: PipeError::page_parse(name, PageError::ParseFail {
-                    message: "unreadable page".to_string(),
-                }),
+                error: PipeError::page_parse(
+                    name,
+                    PageError::ParseFail {
+                        message: "unreadable page".to_string(),
+                    },
+                ),
             })
         }
 
@@ -390,7 +414,10 @@ pub(crate) mod test_pipes {
 
     impl FailingOnPages {
         pub(crate) fn fatal(name: &str, pages: &[u32]) -> Arc<dyn PdfExtractPipe> {
-            Arc::new(FailingOnPages { name: name.to_string(), pages: pages.to_vec() })
+            Arc::new(FailingOnPages {
+                name: name.to_string(),
+                pages: pages.to_vec(),
+            })
         }
     }
 
@@ -401,7 +428,10 @@ pub(crate) mod test_pipes {
 
         fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
             if self.pages.contains(&page.number) {
-                return Err(PipeError::extraction(&self.name, format!("page {} is doomed", page.number)));
+                return Err(PipeError::extraction(
+                    &self.name,
+                    format!("page {} is doomed", page.number),
+                ));
             }
             Ok(page
                 .lines
@@ -424,7 +454,10 @@ pub(crate) mod test_pipes {
 
     impl PanickingOnPages {
         pub(crate) fn pipe(name: &str, pages: &[u32]) -> Arc<dyn PdfExtractPipe> {
-            Arc::new(PanickingOnPages { name: name.to_string(), pages: pages.to_vec() })
+            Arc::new(PanickingOnPages {
+                name: name.to_string(),
+                pages: pages.to_vec(),
+            })
         }
     }
 
@@ -434,7 +467,11 @@ pub(crate) mod test_pipes {
         }
 
         fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-            assert!(!self.pages.contains(&page.number), "page {} made the engine panic", page.number);
+            assert!(
+                !self.pages.contains(&page.number),
+                "page {} made the engine panic",
+                page.number
+            );
             Ok(page
                 .lines
                 .iter()
@@ -452,7 +489,9 @@ pub(crate) mod test_pipes {
 
     impl GilBoundExtract {
         pub(crate) fn pipe(name: &str) -> Arc<dyn PdfExtractPipe> {
-            Arc::new(GilBoundExtract { name: name.to_string() })
+            Arc::new(GilBoundExtract {
+                name: name.to_string(),
+            })
         }
     }
 
@@ -500,8 +539,15 @@ pub(crate) mod test_pipes {
         /// How many distinct threads ran this pipe.
         pub(crate) fn distinct_threads(&self) -> usize {
             // `ThreadId` is `Hash` but not `Ord`: deduplicate with a set, not by sorting.
-            let threads = self.threads.lock().expect("test-only mutex is never poisoned");
-            threads.iter().copied().collect::<std::collections::HashSet<_>>().len()
+            let threads = self
+                .threads
+                .lock()
+                .expect("test-only mutex is never poisoned");
+            threads
+                .iter()
+                .copied()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
         }
     }
 
@@ -519,7 +565,8 @@ pub(crate) mod test_pipes {
                 .lock()
                 .expect("test-only mutex is never poisoned")
                 .push(std::thread::current().id());
-            self.arrived.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.arrived
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
             while self.arrived.load(std::sync::atomic::Ordering::SeqCst) < self.wanted
                 && std::time::Instant::now() < deadline
@@ -541,12 +588,18 @@ pub(crate) mod test_pipes {
 
     impl RecordingFilter {
         pub(crate) fn new(name: &str) -> Arc<RecordingFilter> {
-            Arc::new(RecordingFilter { name: name.to_string(), seen: Mutex::new(Vec::new()) })
+            Arc::new(RecordingFilter {
+                name: name.to_string(),
+                seen: Mutex::new(Vec::new()),
+            })
         }
 
         /// `(number of target companies, number of previous results)` seen at each call.
         pub(crate) fn seen(&self) -> Vec<(usize, usize)> {
-            self.seen.lock().expect("test-only mutex is never poisoned").clone()
+            self.seen
+                .lock()
+                .expect("test-only mutex is never poisoned")
+                .clone()
         }
     }
 
@@ -604,7 +657,10 @@ pub(crate) mod test_pipes {
 
     impl PromiseDepositor {
         pub(crate) fn pipe(name: &str, id: &str) -> Arc<dyn DeserializePipe> {
-            Arc::new(PromiseDepositor { name: name.to_string(), id: id.to_string() })
+            Arc::new(PromiseDepositor {
+                name: name.to_string(),
+                id: id.to_string(),
+            })
         }
     }
 
@@ -614,7 +670,9 @@ pub(crate) mod test_pipes {
         }
 
         fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
-            let entries = [(self.id.clone(), block.content.clone())].into_iter().collect();
+            let entries = [(self.id.clone(), block.content.clone())]
+                .into_iter()
+                .collect();
             Ok(vec![Extracted::Promises(entries)])
         }
     }
@@ -695,8 +753,7 @@ mod tests {
         #[test]
         fn collecting_from_an_iterator_deduplicates_too() {
             let pipe = LinesToBlocks::pipe("only");
-            let segment: PdfExtractSegment =
-                [Arc::clone(&pipe), pipe].into_iter().collect();
+            let segment: PdfExtractSegment = [Arc::clone(&pipe), pipe].into_iter().collect();
             assert_eq!(segment.len(), 1);
         }
     }
@@ -773,14 +830,15 @@ mod tests {
             segment.push(LinesToBlocks::pipe("second"));
 
             let blocks = segment.apply(&page_with(&["alpha"])).unwrap();
-            let contents: Vec<&str> =
-                blocks.iter().map(|b| b.content.as_str().unwrap()).collect();
+            let contents: Vec<&str> = blocks.iter().map(|b| b.content.as_str().unwrap()).collect();
             assert_eq!(contents, vec!["alpha", "alpha"]);
         }
 
         #[test]
         fn an_empty_segment_extracts_nothing() {
-            let blocks = PdfExtractSegment::new().apply(&page_with(&["alpha"])).unwrap();
+            let blocks = PdfExtractSegment::new()
+                .apply(&page_with(&["alpha"]))
+                .unwrap();
             assert!(blocks.is_empty());
         }
 
@@ -824,7 +882,9 @@ mod tests {
 
             let blocks = vec![PdfBlock::bare(BlockType::RELEVANT_BLOCK, "x")];
             let previous = vec![Extracted::PageClass(None)];
-            let out = segment.apply(&blocks, &FilterData::Previous(&previous)).unwrap();
+            let out = segment
+                .apply(&blocks, &FilterData::Previous(&previous))
+                .unwrap();
 
             assert_eq!(out.len(), 2);
             assert_eq!(first.seen(), vec![(0, 1)]);
@@ -833,7 +893,9 @@ mod tests {
 
         #[test]
         fn an_empty_segment_filters_nothing() {
-            let out = TextFilterSegment::new().apply(&[], &FilterData::EMPTY).unwrap();
+            let out = TextFilterSegment::new()
+                .apply(&[], &FilterData::EMPTY)
+                .unwrap();
             assert!(out.is_empty());
         }
     }
@@ -909,7 +971,11 @@ mod tests {
         }
 
         fn text_block(content: &str) -> TextBlock {
-            TextBlock::from_content(BlockType::PAGE_CLASS, std::collections::BTreeMap::new(), content)
+            TextBlock::from_content(
+                BlockType::PAGE_CLASS,
+                std::collections::BTreeMap::new(),
+                content,
+            )
         }
 
         #[test]
@@ -925,7 +991,13 @@ mod tests {
                 .find(|r| r.message.contains("entities deserialized"))
                 .unwrap_or_else(|| panic!("no line about the segment's output: {records:?}"));
             assert_eq!(line.produced, Some(0));
-            assert!(line.found.as_deref().unwrap_or_default().contains("ACME CORP"), "{line:?}");
+            assert!(
+                line.found
+                    .as_deref()
+                    .unwrap_or_default()
+                    .contains("ACME CORP"),
+                "{line:?}"
+            );
         }
 
         #[test]
@@ -936,7 +1008,10 @@ mod tests {
             let records = records_of(|| {
                 let _ = segment.apply(&[text_block("ACME CORP")]);
             });
-            let line = records.iter().find(|r| r.message.contains("entities deserialized")).unwrap();
+            let line = records
+                .iter()
+                .find(|r| r.message.contains("entities deserialized"))
+                .unwrap();
             assert_eq!(line.produced, Some(1));
         }
 
@@ -952,7 +1027,9 @@ mod tests {
                 let _ = segment.apply(&[text_block("")]);
             });
             assert!(
-                !records.iter().any(|r| r.message.contains("entities deserialized")),
+                !records
+                    .iter()
+                    .any(|r| r.message.contains("entities deserialized")),
                 "{records:?}"
             );
         }
@@ -965,7 +1042,12 @@ mod tests {
             let records = records_of(|| {
                 let _ = segment.apply(&page_with(&[]));
             });
-            assert!(!records.iter().any(|r| r.message.contains("pdf blocks extracted")), "{records:?}");
+            assert!(
+                !records
+                    .iter()
+                    .any(|r| r.message.contains("pdf blocks extracted")),
+                "{records:?}"
+            );
         }
     }
 
@@ -1028,7 +1110,12 @@ mod tests {
 
         #[test]
         fn an_empty_segment_deserializes_nothing() {
-            assert!(DeserializeSegment::new().apply(&text_blocks(2)).unwrap().is_empty());
+            assert!(
+                DeserializeSegment::new()
+                    .apply(&text_blocks(2))
+                    .unwrap()
+                    .is_empty()
+            );
         }
     }
 }

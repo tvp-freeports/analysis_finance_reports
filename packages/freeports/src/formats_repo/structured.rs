@@ -99,7 +99,9 @@ pub enum StructuredError {
     #[error("'{id}': column 'Market value' is required to build the text_filter segment")]
     MissingMarketValue { id: String },
     /// The `Collapse` cell is not a column index, nor several separated by `|`.
-    #[error("'{id}': column 'Collapse' must be a column index, or several separated by '|', found '{cell}'")]
+    #[error(
+        "'{id}': column 'Collapse' must be a column index, or several separated by '|', found '{cell}'"
+    )]
     CollapseColumn { id: String, cell: String },
 }
 
@@ -111,8 +113,10 @@ pub enum StructuredError {
 pub fn get_pipelines(
     formats_repo_dir: &std::path::Path,
     format_name: &str,
-) -> Result<std::collections::HashMap<crate::core::pipeline::PipelineName, crate::core::pipeline::Pipeline>, StructuredError>
-{
+) -> Result<
+    std::collections::HashMap<crate::core::pipeline::PipelineName, crate::core::pipeline::Pipeline>,
+    StructuredError,
+> {
     let mut merged = investments::get_pipelines(formats_repo_dir, format_name)?;
     for sublevel in [
         page_classify::get_pipelines(formats_repo_dir, format_name)?,

@@ -27,14 +27,25 @@ pub enum CommonsError {
 /// # Errors
 ///
 /// [`CommonsError::ExpectedTextNotFound`] if no line matches, the empty list included.
-pub fn select_expected_text(selection: &PdfLineSet, lines: &[PdfLine], name: &str) -> Result<String, CommonsError> {
-    let found = lines.iter().find(|line| selection.contains(line)).map(|line| line.text().clone());
+pub fn select_expected_text(
+    selection: &PdfLineSet,
+    lines: &[PdfLine],
+    name: &str,
+) -> Result<String, CommonsError> {
+    let found = lines
+        .iter()
+        .find(|line| selection.contains(line))
+        .map(|line| line.text().clone());
     // The chosen text, not a boolean: it is the line a format author goes looking for in the PDF.
     match &found {
-        Some(text) => tracing::trace!(coord_ref_2 = name, found = %text, "selection resolved to a line"),
+        Some(text) => {
+            tracing::trace!(coord_ref_2 = name, found = %text, "selection resolved to a line")
+        }
         None => tracing::debug!(coord_ref_2 = name, "selection matched no line on this page"),
     }
-    found.ok_or_else(|| CommonsError::ExpectedTextNotFound { name: name.to_string() })
+    found.ok_or_else(|| CommonsError::ExpectedTextNotFound {
+        name: name.to_string(),
+    })
 }
 
 /// How many of the selected lines a block's text is made of.
@@ -77,7 +88,10 @@ pub fn select_every_text(
     name: &str,
     separator: &str,
 ) -> Result<String, CommonsError> {
-    let mut selected: Vec<&PdfLine> = lines.iter().filter(|line| selection.contains(line)).collect();
+    let mut selected: Vec<&PdfLine> = lines
+        .iter()
+        .filter(|line| selection.contains(line))
+        .collect();
     selected.sort_by(|a, b| {
         let (ax, ay) = (a.bbox().as_tuple().0, a.bbox().as_tuple().1);
         let (bx, by) = (b.bbox().as_tuple().0, b.bbox().as_tuple().1);
@@ -85,9 +99,15 @@ pub fn select_every_text(
     });
     if selected.is_empty() {
         tracing::debug!(coord_ref_2 = name, "selection matched no line on this page");
-        return Err(CommonsError::ExpectedTextNotFound { name: name.to_string() });
+        return Err(CommonsError::ExpectedTextNotFound {
+            name: name.to_string(),
+        });
     }
-    let joined = selected.iter().map(|line| line.text().as_str()).collect::<Vec<_>>().join(separator);
+    let joined = selected
+        .iter()
+        .map(|line| line.text().as_str())
+        .collect::<Vec<_>>()
+        .join(separator);
     let squeezed = joined.split_whitespace().collect::<Vec<_>>().join(" ");
     // The pieces as well as the result: a name that came out wrong came out of these, and which
     // fragments were picked up is the thing a format author needs to see.
@@ -116,11 +136,15 @@ pub fn extract_text_pdf_block_or_fail_page(
 ) -> Result<Vec<PdfBlock>, CommonsError> {
     let found = match text {
         SelectedText::FirstLine => select_expected_text(selection, lines, name),
-        SelectedText::EveryLine { separator } => select_every_text(selection, lines, name, separator),
+        SelectedText::EveryLine { separator } => {
+            select_every_text(selection, lines, name, separator)
+        }
     };
     match found {
         Ok(text) => Ok(vec![PdfBlock::bare(type_block, text)]),
-        Err(source) => Err(CommonsError::PageParseFail { source: Box::new(source) }),
+        Err(source) => Err(CommonsError::PageParseFail {
+            source: Box::new(source),
+        }),
     }
 }
 
@@ -146,7 +170,10 @@ mod tests {
         fn returns_the_text_of_the_matching_line() {
             let ls = lines();
             let selection = PdfLineSet::select_text("^Alpha$");
-            assert_eq!(select_expected_text(&selection, &ls, "field").unwrap(), "Alpha");
+            assert_eq!(
+                select_expected_text(&selection, &ls, "field").unwrap(),
+                "Alpha"
+            );
         }
 
         #[test]
@@ -157,7 +184,10 @@ mod tests {
                 PdfLine::new("Arial", 12.0, "Second", (0.0, 20.0, 10.0, 30.0)),
             ];
             let selection = PdfLineSet::select_fontsize(10.0, 14.0);
-            assert_eq!(select_expected_text(&selection, &ls, "field").unwrap(), "First");
+            assert_eq!(
+                select_expected_text(&selection, &ls, "field").unwrap(),
+                "First"
+            );
         }
 
         #[test]
@@ -165,7 +195,9 @@ mod tests {
             let ls = lines();
             let selection = PdfLineSet::select_text("^Gamma$");
             let err = select_expected_text(&selection, &ls, "the field").unwrap_err();
-            let CommonsError::ExpectedTextNotFound { name } = err else { panic!("expected ExpectedTextNotFound") };
+            let CommonsError::ExpectedTextNotFound { name } = err else {
+                panic!("expected ExpectedTextNotFound")
+            };
             assert_eq!(name, "the field");
         }
 
@@ -195,7 +227,10 @@ mod tests {
 
         /// A page carrying only the lines given, each at the box given.
         fn page(pieces: &[Piece<'_>]) -> Vec<PdfLine> {
-            pieces.iter().map(|(text, bbox)| PdfLine::new("Arial", 8.0, text, *bbox)).collect()
+            pieces
+                .iter()
+                .map(|(text, bbox)| PdfLine::new("Arial", 8.0, text, *bbox))
+                .collect()
         }
 
         fn everything() -> PdfLineSet {
@@ -245,7 +280,10 @@ mod tests {
         #[test]
         fn the_spacing_of_a_single_object_is_squeezed() {
             // A name with a leading space is a different name under the uniqueness key (`R24`).
-            let lines = page(&[(" Sidera Funds SICAV –  Balanced Growth", (413.4, 68.6, 540.0, 76.0))]);
+            let lines = page(&[(
+                " Sidera Funds SICAV –  Balanced Growth",
+                (413.4, 68.6, 540.0, 76.0),
+            )]);
             assert_eq!(
                 select_every_text(&everything(), &lines, "fund", " ").unwrap(),
                 "Sidera Funds SICAV – Balanced Growth"
@@ -259,7 +297,10 @@ mod tests {
                 ("Challen", (413.4, 68.6, 450.0, 76.0)),
                 ("ge Equity", (450.0, 68.6, 485.7, 76.0)),
             ]);
-            assert_eq!(select_every_text(&everything(), &lines, "fund", "").unwrap(), "Challenge Equity");
+            assert_eq!(
+                select_every_text(&everything(), &lines, "fund", "").unwrap(),
+                "Challenge Equity"
+            );
         }
 
         #[test]
@@ -278,7 +319,10 @@ mod tests {
             // The guarantee the nineteen call sites of `new` rest on: squeezing belongs to the
             // joining mode, and a single untouched line is what the other mode returns.
             let lines = page(&[(" Sidera  Funds ", (413.4, 68.6, 485.7, 76.0))]);
-            assert_eq!(select_expected_text(&everything(), &lines, "fund").unwrap(), " Sidera  Funds ");
+            assert_eq!(
+                select_expected_text(&everything(), &lines, "fund").unwrap(),
+                " Sidera  Funds "
+            );
         }
     }
 
@@ -288,17 +332,32 @@ mod tests {
         #[test]
         fn the_joining_mode_reaches_the_block() {
             let lines = vec![
-                PdfLine::new("Arial", 8.0, "Sidera Funds SICAV – ", (413.4, 68.6, 485.7, 76.0)),
+                PdfLine::new(
+                    "Arial",
+                    8.0,
+                    "Sidera Funds SICAV – ",
+                    (413.4, 68.6, 485.7, 76.0),
+                ),
                 PdfLine::new("Arial", 8.0, "Euro ESG Credit", (485.6, 68.6, 537.8, 76.0)),
             ];
             let selection = PdfLineSet::select_fontsize(0.0, 1e6);
-            let mode = SelectedText::EveryLine { separator: " ".to_string() };
-            let blocks =
-                extract_text_pdf_block_or_fail_page(&selection, &lines, "fund", BlockType::new("FUND"), &mode)
-                    .unwrap();
+            let mode = SelectedText::EveryLine {
+                separator: " ".to_string(),
+            };
+            let blocks = extract_text_pdf_block_or_fail_page(
+                &selection,
+                &lines,
+                "fund",
+                BlockType::new("FUND"),
+                &mode,
+            )
+            .unwrap();
             assert_eq!(
                 blocks,
-                vec![PdfBlock::bare(BlockType::new("FUND"), "Sidera Funds SICAV – Euro ESG Credit")]
+                vec![PdfBlock::bare(
+                    BlockType::new("FUND"),
+                    "Sidera Funds SICAV – Euro ESG Credit"
+                )]
             );
         }
 
@@ -306,25 +365,56 @@ mod tests {
         fn builds_a_single_bare_pdfblock_from_the_matched_text() {
             let ls = lines();
             let selection = PdfLineSet::select_text("^Alpha$");
-            let blocks = extract_text_pdf_block_or_fail_page(&selection, &ls, "field", BlockType::new("FUND"), &SelectedText::FirstLine).unwrap();
-            assert_eq!(blocks, vec![PdfBlock::bare(BlockType::new("FUND"), "Alpha")]);
+            let blocks = extract_text_pdf_block_or_fail_page(
+                &selection,
+                &ls,
+                "field",
+                BlockType::new("FUND"),
+                &SelectedText::FirstLine,
+            )
+            .unwrap();
+            assert_eq!(
+                blocks,
+                vec![PdfBlock::bare(BlockType::new("FUND"), "Alpha")]
+            );
         }
 
         #[test]
         fn wraps_not_found_into_a_page_parse_fail_carrying_the_leaf_as_source() {
             let ls: Vec<PdfLine> = vec![];
             let selection = PdfLineSet::select_text("^Anything$");
-            let err = extract_text_pdf_block_or_fail_page(&selection, &ls, "field", BlockType::new("FUND"), &SelectedText::FirstLine).unwrap_err();
-            let CommonsError::PageParseFail { source } = &err else { panic!("expected PageParseFail") };
-            assert!(matches!(&**source, CommonsError::ExpectedTextNotFound { .. }));
+            let err = extract_text_pdf_block_or_fail_page(
+                &selection,
+                &ls,
+                "field",
+                BlockType::new("FUND"),
+                &SelectedText::FirstLine,
+            )
+            .unwrap_err();
+            let CommonsError::PageParseFail { source } = &err else {
+                panic!("expected PageParseFail")
+            };
+            assert!(matches!(
+                &**source,
+                CommonsError::ExpectedTextNotFound { .. }
+            ));
         }
 
         #[test]
         fn page_parse_fail_message_matches_its_source_message() {
             let ls: Vec<PdfLine> = vec![];
             let selection = PdfLineSet::select_text("^Anything$");
-            let err = extract_text_pdf_block_or_fail_page(&selection, &ls, "field", BlockType::new("FUND"), &SelectedText::FirstLine).unwrap_err();
-            let CommonsError::PageParseFail { source } = &err else { panic!("expected PageParseFail") };
+            let err = extract_text_pdf_block_or_fail_page(
+                &selection,
+                &ls,
+                "field",
+                BlockType::new("FUND"),
+                &SelectedText::FirstLine,
+            )
+            .unwrap_err();
+            let CommonsError::PageParseFail { source } = &err else {
+                panic!("expected PageParseFail")
+            };
             assert_eq!(err.to_string(), source.to_string());
         }
 
@@ -333,7 +423,14 @@ mod tests {
             use std::error::Error;
             let ls: Vec<PdfLine> = vec![];
             let selection = PdfLineSet::select_text("^Anything$");
-            let err = extract_text_pdf_block_or_fail_page(&selection, &ls, "field", BlockType::new("FUND"), &SelectedText::FirstLine).unwrap_err();
+            let err = extract_text_pdf_block_or_fail_page(
+                &selection,
+                &ls,
+                "field",
+                BlockType::new("FUND"),
+                &SelectedText::FirstLine,
+            )
+            .unwrap_err();
             assert!(err.source().is_some());
         }
     }

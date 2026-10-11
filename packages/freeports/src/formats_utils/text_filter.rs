@@ -12,12 +12,12 @@
 //! written as labels and the value one page leaves to the next.
 
 pub mod carryover;
-pub mod esg;
 pub mod dash_as_zero;
 pub mod declared_funds;
+pub mod esg;
 pub mod inv_managers;
-pub mod renaming;
 pub mod managment_company;
 pub mod matcher;
+pub mod renaming;
 pub mod standard_funcs;
 pub mod standard_txt_blk_builders;

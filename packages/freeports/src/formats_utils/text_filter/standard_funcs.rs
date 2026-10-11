@@ -70,7 +70,10 @@ pub enum StandardFuncsError {
     /// second line (the grid is normal, the neighbouring cell is empty). Without them the warning
     /// says a row was skipped and leaves the PDF as the only way to find out why.
     #[error("the {field} is missing: {probe}")]
-    ExpectedTextBlockNotFound { field: &'static str, probe: FieldProbe },
+    ExpectedTextBlockNotFound {
+        field: &'static str,
+        probe: FieldProbe,
+    },
     /// A pipe that searches a **flat list** of blocks for one of a given type found none. It has
     /// nothing to do with the variant above — there is no table, no anchor and no offset here — and
     /// sharing one error between the two only meant neither could say what it was looking for.
@@ -120,19 +123,24 @@ pub struct TextFilterPageClassifyStandard;
 
 impl TextFilterPageClassifyStandard {
     pub fn call(&self, pdf_blks: &[PdfBlock]) -> Result<Vec<TextBlock>, StandardFuncsError> {
-        let (page_type, last) = reduce_class_contributions(pdf_blks, "page_type", |first, second| {
-            Err(StandardFuncsError::ConflictingPageClass {
-                first: format!("{first:?}"),
-                second: format!("{second:?}"),
-            })
-        })?;
+        let (page_type, last) =
+            reduce_class_contributions(pdf_blks, "page_type", |first, second| {
+                Err(StandardFuncsError::ConflictingPageClass {
+                    first: format!("{first:?}"),
+                    second: format!("{second:?}"),
+                })
+            })?;
         // As for the page classifier: not being classified is the normal case on nearly every page,
         // and logging it would fill the file without saying anything.
         if !page_type.is_null() {
             tracing::debug!(coord_ref_2 = ?page_type, "page class assigned");
         }
         let metadata = BTreeMap::from([("page_type".to_string(), page_type)]);
-        Ok(vec![TextBlock::new(BlockType::PAGE_CLASS, metadata, last.clone())])
+        Ok(vec![TextBlock::new(
+            BlockType::PAGE_CLASS,
+            metadata,
+            last.clone(),
+        )])
     }
 }
 
@@ -164,8 +172,9 @@ fn reduce_class_contributions<'a>(
     Ok((found.cloned().unwrap_or(BlockValue::Null), last))
 }
 
-static ISO_CODE_CANDIDATE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b[A-Z]{3}\b").expect("fixed, hand-written pattern, valid onig regex"));
+static ISO_CODE_CANDIDATE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b[A-Z]{3}\b").expect("fixed, hand-written pattern, valid onig regex")
+});
 
 fn word_boundary_pattern(word: &str) -> Regex {
     Regex::new(&format!(r"\b{word}\b")).expect("currency code/alias is a fixed, valid pattern")
@@ -187,7 +196,10 @@ pub fn extract_currency_from_text(text: &str) -> Result<Currency, StandardFuncsE
     // `Currency::prose_candidates` for why guessing and being told are two different questions.
     let upper = text.to_uppercase();
     for currency in Currency::prose_candidates() {
-        if word_boundary_pattern(currency.code()).find(&upper).is_some() {
+        if word_boundary_pattern(currency.code())
+            .find(&upper)
+            .is_some()
+        {
             return Ok(*currency);
         }
     }
@@ -208,10 +220,10 @@ impl TextFilterPipe for TextFilterPageClassifyStandard {
         blocks: &[PdfBlock],
         _data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks).map_err(|e| e.into_pipe_error(self.name()))
+        self.call(blocks)
+            .map_err(|e| e.into_pipe_error(self.name()))
     }
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // TextFilterDocClassifyStandard
@@ -224,17 +236,29 @@ pub struct TextFilterDocClassifyStandard;
 
 impl TextFilterDocClassifyStandard {
     pub fn call(&self, pdf_blks: &[PdfBlock]) -> Result<Vec<TextBlock>, StandardFuncsError> {
-        let (format_pattern, last) = reduce_class_contributions(pdf_blks, "format_pattern", |first, second| {
-            if first == second {
-                return Ok(());
-            }
-            // The patterns as the author wrote them; a non-string value is the deserializer's
-            // error to report, and here only needs to stay recognisable.
-            let spelled = |value: &BlockValue| value.as_str().map_or_else(|| format!("{value:?}"), str::to_string);
-            Err(StandardFuncsError::ConflictingDocClass { first: spelled(first), second: spelled(second) })
-        })?;
+        let (format_pattern, last) =
+            reduce_class_contributions(pdf_blks, "format_pattern", |first, second| {
+                if first == second {
+                    return Ok(());
+                }
+                // The patterns as the author wrote them; a non-string value is the deserializer's
+                // error to report, and here only needs to stay recognisable.
+                let spelled = |value: &BlockValue| {
+                    value
+                        .as_str()
+                        .map_or_else(|| format!("{value:?}"), str::to_string)
+                };
+                Err(StandardFuncsError::ConflictingDocClass {
+                    first: spelled(first),
+                    second: spelled(second),
+                })
+            })?;
         let metadata = BTreeMap::from([("format_pattern".to_string(), format_pattern)]);
-        Ok(vec![TextBlock::new(BlockType::DOC_CLASS, metadata, last.clone())])
+        Ok(vec![TextBlock::new(
+            BlockType::DOC_CLASS,
+            metadata,
+            last.clone(),
+        )])
     }
 }
 
@@ -248,7 +272,8 @@ impl TextFilterPipe for TextFilterDocClassifyStandard {
         blocks: &[PdfBlock],
         _data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks).map_err(|e| e.into_pipe_error(self.name()))
+        self.call(blocks)
+            .map_err(|e| e.into_pipe_error(self.name()))
     }
 }
 
@@ -307,13 +332,20 @@ impl PdfBlocksTable {
             let row = table_meta_int(blk, "table-row")?;
             let col = table_meta_int(blk, "table-col")?;
             col_max = col_max.max(col);
-            grouped.entry(row).or_default().entry(col).or_default().push(i);
+            grouped
+                .entry(row)
+                .or_default()
+                .entry(col)
+                .or_default()
+                .push(i);
         }
 
         let indexes = grouped
             .values()
             .map(|cols| {
-                (0..=col_max).map(|col| cols.get(&col).cloned().unwrap_or_default()).collect()
+                (0..=col_max)
+                    .map(|col| cols.get(&col).cloned().unwrap_or_default())
+                    .collect()
             })
             .collect();
 
@@ -355,9 +387,7 @@ impl PdfBlocksTable {
             _ => Cell::Many,
         }
     }
-
 }
-
 
 /// Where the row being extracted is: its position in the flat list, its anchor cell in the grid,
 /// and the table's width.
@@ -379,7 +409,12 @@ pub enum FieldProbe {
     /// Geometric mode: the offset from the anchor, the cell it resolved to, and the grid's width —
     /// the width being the one number that tells a page whose columns came out wrong from a page
     /// whose columns are fine.
-    Grid { offset: i64, row: i64, col: i64, n_cols: i64 },
+    Grid {
+        offset: i64,
+        row: i64,
+        col: i64,
+        n_cols: i64,
+    },
     /// Flat mode: the offset from the anchor and the position it resolved to in the block list.
     Flat { offset: i64, index: i64 },
 }
@@ -389,13 +424,26 @@ impl std::fmt::Display for FieldProbe {
         // Offset zero is the anchor itself, and "0 cells past the anchor" is not a sentence anyone
         // wants to read: the clause is dropped rather than printed as a degenerate case.
         match *self {
-            FieldProbe::Grid { offset: 0, row, col, n_cols } => {
+            FieldProbe::Grid {
+                offset: 0,
+                row,
+                col,
+                n_cols,
+            } => {
                 let (row, col) = crate::core::tracing_setup::table_coords(row, col);
                 write!(f, "{row} {col} of a {n_cols}-column grid")
             }
-            FieldProbe::Grid { offset, row, col, n_cols } => {
+            FieldProbe::Grid {
+                offset,
+                row,
+                col,
+                n_cols,
+            } => {
                 let (row, col) = crate::core::tracing_setup::table_coords(row, col);
-                write!(f, "{offset} cells past the anchor, {row} {col} of a {n_cols}-column grid")
+                write!(
+                    f,
+                    "{offset} cells past the anchor, {row} {col} of a {n_cols}-column grid"
+                )
             }
             FieldProbe::Flat { offset: 0, index } => write!(f, "block {}", index + 1),
             FieldProbe::Flat { offset, index } => {
@@ -450,7 +498,10 @@ impl Eq for QuantityInName {}
 
 impl QuantityInName {
     pub fn new(pattern: &str) -> Result<Self, StandardFuncsError> {
-        Ok(Self { source: pattern.to_string(), compiled: Arc::new(compile_pattern(pattern)?) })
+        Ok(Self {
+            source: pattern.to_string(),
+            compiled: Arc::new(compile_pattern(pattern)?),
+        })
     }
 
     /// The quantity at the head of `content`, trailing separator included, or `None` when the
@@ -474,8 +525,14 @@ impl Eq for FundNameCuts {}
 impl FundNameCuts {
     /// Compiles the patterns, failing on the first one that is not a regex.
     pub fn new(patterns: &[String]) -> Result<Self, StandardFuncsError> {
-        let compiled = patterns.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { sources: patterns.to_vec(), compiled: Arc::new(compiled) })
+        let compiled = patterns
+            .iter()
+            .map(|p| compile_pattern(p))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self {
+            sources: patterns.to_vec(),
+            compiled: Arc::new(compiled),
+        })
     }
 
     fn is_empty(&self) -> bool {
@@ -624,7 +681,9 @@ impl TextFilterInvestmentsStandard {
                 // del comparto. Piu' avanti non si puo' piu': il nome finisce nei metadati di ogni
                 // riga di questa pagina e in `funds.csv`, e le fasi dopo lo confrontano cosi' com'e'.
                 let cleaned = match blk.content.as_str() {
-                    Some(name) if !self.remove_from_fund.is_empty() => Some(self.remove_from_fund.applied(name)),
+                    Some(name) if !self.remove_from_fund.is_empty() => {
+                        Some(self.remove_from_fund.applied(name))
+                    }
                     _ => None,
                 };
                 let blk = match cleaned {
@@ -645,7 +704,9 @@ impl TextFilterInvestmentsStandard {
                 // Here, and only here, an unrecognised currency fails the **page** rather than the
                 // document.
                 currency_found = Some(extract_currency_from_text(text).map_err(|e| {
-                    StandardFuncsError::PageParseFail { message: e.to_string() }
+                    StandardFuncsError::PageParseFail {
+                        message: e.to_string(),
+                    }
                 })?);
             } else {
                 investments_blks.push(blk.clone());
@@ -667,7 +728,9 @@ impl TextFilterInvestmentsStandard {
         let currency = currency_found.map_or(BlockValue::Null, BlockValue::from);
         for txt_blk in &mut inv {
             txt_blk.metadata.insert("fund".to_string(), fund.clone());
-            txt_blk.metadata.insert("currency".to_string(), currency.clone());
+            txt_blk
+                .metadata
+                .insert("currency".to_string(), currency.clone());
         }
         tracing::debug!(coord_ref_1 = ?fund, rows = inv.len(), "investment rows extracted");
         results.extend(inv);
@@ -702,9 +765,11 @@ impl TextFilterInvestmentsStandard {
 
         for i in 0..table.len() as i64 {
             let (row, col, content) = {
-                let current = table.get_flat(i).ok_or(StandardFuncsError::InconsistentTable {
-                    message: format!("block {i} disappeared from the table"),
-                })?;
+                let current = table
+                    .get_flat(i)
+                    .ok_or(StandardFuncsError::InconsistentTable {
+                        message: format!("block {i} disappeared from the table"),
+                    })?;
                 (
                     table_meta_int(current, "table-row")?,
                     table_meta_int(current, "table-col")?,
@@ -712,7 +777,11 @@ impl TextFilterInvestmentsStandard {
                 )
             };
             if let Some(company) = self.matched_company(&content, target_companies)? {
-                let anchor = RowAnchor { flat_index: i, base: (row, col), n_cols };
+                let anchor = RowAnchor {
+                    flat_index: i,
+                    base: (row, col),
+                    n_cols,
+                };
                 self.push_extracted_field(&mut out, &table, anchor, &content, &company)?;
             }
         }
@@ -727,7 +796,9 @@ impl TextFilterInvestmentsStandard {
     ) -> Result<Option<String>, StandardFuncsError> {
         match_company(content, target_companies)
             .map(|found| found.map(str::to_string))
-            .map_err(|e| StandardFuncsError::Match { message: e.to_string() })
+            .map_err(|e| StandardFuncsError::Match {
+                message: e.to_string(),
+            })
     }
 
     /// Extracts the row's fields and, if the expected block was there, appends it to `out`.
@@ -751,7 +822,8 @@ impl TextFilterInvestmentsStandard {
                 //
                 // `debug`, because it is one line per position found: it lives in the JSONL and on
                 // stderr at `-vv`, never in the `.log.csv`, whose ceiling is `warn`.
-                let (row, col) = crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
+                let (row, col) =
+                    crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
                 tracing::debug!(
                     coord_ref_1 = %content,
                     coord_ref_2 = company,
@@ -759,13 +831,21 @@ impl TextFilterInvestmentsStandard {
                     coord_2 = %col,
                     "investment row anchored on the matched company"
                 );
-                txt_blk.metadata.insert("company match".to_string(), BlockValue::from(content));
-                txt_blk.metadata.insert("company".to_string(), BlockValue::from(company));
+                txt_blk
+                    .metadata
+                    .insert("company match".to_string(), BlockValue::from(content));
+                txt_blk
+                    .metadata
+                    .insert("company".to_string(), BlockValue::from(company));
                 // The position travels with the row, because the deserializer cannot recover it:
                 // by the time it sees this block the table it came from no longer exists, and the
                 // events it emits are the ones that end up in the `.log.csv` needing a coordinate.
-                txt_blk.metadata.insert("table row".to_string(), BlockValue::from(anchor.base.0));
-                txt_blk.metadata.insert("table col".to_string(), BlockValue::from(anchor.base.1));
+                txt_blk
+                    .metadata
+                    .insert("table row".to_string(), BlockValue::from(anchor.base.0));
+                txt_blk
+                    .metadata
+                    .insert("table col".to_string(), BlockValue::from(anchor.base.1));
                 out.push(txt_blk);
                 Ok(())
             }
@@ -783,7 +863,8 @@ impl TextFilterInvestmentsStandard {
                 // in the message, where it reads as a sentence and where it is not a coordinate
                 // competing with the one the reader needs. It is not repeated as a structured
                 // field: one statement of a fact per event.
-                let (row, col) = crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
+                let (row, col) =
+                    crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
                 tracing::warn!(
                     coord_ref_1 = %content,
                     coord_ref_2 = company,
@@ -827,7 +908,11 @@ impl TextFilterInvestmentsStandard {
     fn extract_field(
         &self,
         table: &PdfBlocksTable,
-        RowAnchor { flat_index, base, n_cols }: RowAnchor,
+        RowAnchor {
+            flat_index,
+            base,
+            n_cols,
+        }: RowAnchor,
     ) -> Result<TextBlock, StandardFuncsError> {
         // Where an offset lands, without reading anything. Split out from the reading below so the
         // cell a failure reports is, by construction, the cell the reading tried: the two cannot
@@ -844,7 +929,10 @@ impl TextFilterInvestmentsStandard {
                     n_cols,
                 }
             } else {
-                FieldProbe::Flat { offset, index: flat_index + offset }
+                FieldProbe::Flat {
+                    offset,
+                    index: flat_index + offset,
+                }
             }
         };
         // `Err` carries the probe rather than nothing, so both callers below — the required field
@@ -856,9 +944,9 @@ impl TextFilterInvestmentsStandard {
                     Cell::One(b) => b.content.as_str().map(str::to_string),
                     _ => None,
                 },
-                FieldProbe::Flat { index, .. } => {
-                    table.get_flat(index).and_then(|b| b.content.as_str().map(str::to_string))
-                }
+                FieldProbe::Flat { index, .. } => table
+                    .get_flat(index)
+                    .and_then(|b| b.content.as_str().map(str::to_string)),
             };
             found.ok_or(probe)
         };
@@ -866,8 +954,10 @@ impl TextFilterInvestmentsStandard {
         // The anchor is the field at offset zero: naming it that way rather than special-casing it
         // means it reports its own absence in the same words as every other field.
         let anchor_probe = probe_of(0);
-        let missing_anchor =
-            || StandardFuncsError::ExpectedTextBlockNotFound { field: "anchor cell", probe: anchor_probe };
+        let missing_anchor = || StandardFuncsError::ExpectedTextBlockNotFound {
+            field: "anchor cell",
+            probe: anchor_probe,
+        };
         let anchor = match anchor_probe {
             FieldProbe::Grid { row, col, .. } => match table.get_cell(row, col) {
                 Cell::One(block) => block,
@@ -880,24 +970,48 @@ impl TextFilterInvestmentsStandard {
         // An absent key is `None` rather than an error.
         metadata.insert(
             "manco".to_string(),
-            anchor.metadata.get("manco").cloned().unwrap_or(BlockValue::Null),
+            anchor
+                .metadata
+                .get("manco")
+                .cloned()
+                .unwrap_or(BlockValue::Null),
         );
 
-        let market_value = resolve(self.market_value_pos)
-            .map_err(|probe| StandardFuncsError::ExpectedTextBlockNotFound { field: "market value", probe })?;
+        let market_value = resolve(self.market_value_pos).map_err(|probe| {
+            StandardFuncsError::ExpectedTextBlockNotFound {
+                field: "market value",
+                probe,
+            }
+        })?;
         metadata.insert(
             "market value".to_string(),
-            BlockValue::from(self.read_dash_as_zero(Some(DashAsZero::MarketValue), "market value", market_value)),
+            BlockValue::from(self.read_dash_as_zero(
+                Some(DashAsZero::MarketValue),
+                "market value",
+                market_value,
+            )),
         );
 
         // `acquisition currency` is in the loop with **no** flag: a dash there says "no currency",
         // and zero is not a currency. `None` and not `DashAsZero::empty()` — see `substituted`,
         // where the difference between the two is the difference between never and always.
         for (pos, name, field) in [
-            (self.perc_net_assets_pos, "% net assets", Some(DashAsZero::PercNetAssets)),
-            (self.nominal_quantity_pos, "quantity", Some(DashAsZero::Quantity)),
+            (
+                self.perc_net_assets_pos,
+                "% net assets",
+                Some(DashAsZero::PercNetAssets),
+            ),
+            (
+                self.nominal_quantity_pos,
+                "quantity",
+                Some(DashAsZero::Quantity),
+            ),
             (self.acquisition_currency_pos, "acquisition currency", None),
-            (self.acquisition_cost_pos, "acquisition cost", Some(DashAsZero::AcquisitionCost)),
+            (
+                self.acquisition_cost_pos,
+                "acquisition cost",
+                Some(DashAsZero::AcquisitionCost),
+            ),
         ] {
             if let Some(pos) = pos {
                 // Unlike the market value, an optional field that is not found does not fail the
@@ -971,7 +1085,8 @@ impl TextFilterPipe for TextFilterInvestmentsStandard {
         blocks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks, data.target_companies()).map_err(|e| e.into_pipe_error(self.name()))
+        self.call(blocks, data.target_companies())
+            .map_err(|e| e.into_pipe_error(self.name()))
     }
 }
 
@@ -998,10 +1113,13 @@ impl TextFilterPipe for TextFilterInvestmentsStandard {
 // pattern here, fell through to the second one, and came back with a fragment of the maturity
 // date read as an interest rate.
 static PERC_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
-    [r"\A.*?((\d+(?:[.,]\d+)?)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
-        .into_iter()
-        .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
-        .collect()
+    [
+        r"\A.*?((\d+(?:[.,]\d+)?)\s*%).*",
+        r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*",
+    ]
+    .into_iter()
+    .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
+    .collect()
 });
 
 static DATE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
@@ -1032,7 +1150,12 @@ fn compile_pattern(pattern: &str) -> Result<Regex, StandardFuncsError> {
 /// The funds seen as **resolved** `Fund`s in the preceding steps of the schedule, as a set of
 /// [`MatchFund`].
 fn resolved_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
-    data.previous().iter().filter_map(Extracted::as_fund).filter_map(Fund::name).map(MatchFund::new).collect()
+    data.previous()
+        .iter()
+        .filter_map(Extracted::as_fund)
+        .filter_map(Fund::name)
+        .map(MatchFund::new)
+        .collect()
 }
 
 /// The `text_filter` pipe that turns a tick into an SFDR classification.
@@ -1081,8 +1204,10 @@ impl TextFilterSfdrSignStandard {
         prefix_patterns: Vec<String>,
         demand_investment_funds_match: bool,
     ) -> Result<Self, StandardFuncsError> {
-        let prefix_patterns =
-            prefix_patterns.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
+        let prefix_patterns = prefix_patterns
+            .iter()
+            .map(|p| compile_pattern(p))
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
             fund_block_type: fund_block_type.unwrap_or(BlockType::FUND_NAME),
             prefix_strings,
@@ -1095,7 +1220,11 @@ impl TextFilterSfdrSignStandard {
     fn resolved_investment_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
         data.previous()
             .iter()
-            .filter_map(|e| e.as_equity().map(|eq| &eq.data).or_else(|| e.as_bond().map(|b| &b.data)))
+            .filter_map(|e| {
+                e.as_equity()
+                    .map(|eq| &eq.data)
+                    .or_else(|| e.as_bond().map(|b| &b.data))
+            })
             .filter_map(|inv| inv.fund.resolved())
             .map(MatchFund::new)
             .collect()
@@ -1127,11 +1256,18 @@ impl TextFilterSfdrSignStandard {
         pdf_blks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, StandardFuncsError> {
-        let Some(sign) = pdf_blks.iter().find(|blk| blk.type_block == BlockType::SFDR_ARTICLE) else {
+        let Some(sign) = pdf_blks
+            .iter()
+            .find(|blk| blk.type_block == BlockType::SFDR_ARTICLE)
+        else {
             // The extractor returns nothing when it finds no tick, and says why in its own warning.
             return Ok(Vec::new());
         };
-        let answer = sign.metadata.get("answer").and_then(BlockValue::as_str).unwrap_or_default();
+        let answer = sign
+            .metadata
+            .get("answer")
+            .and_then(BlockValue::as_str)
+            .unwrap_or_default();
         let Some(article) = Self::article(answer) else {
             return Err(StandardFuncsError::NoPdfBlocks);
         };
@@ -1197,7 +1333,11 @@ impl TextFilterSfdrSignStandard {
         }
 
         let metadata = BTreeMap::from([("article".to_string(), BlockValue::from(article))]);
-        Ok(vec![TextBlock::from_content(BlockType::SFDR_ARTICLE, metadata, fund_name)])
+        Ok(vec![TextBlock::from_content(
+            BlockType::SFDR_ARTICLE,
+            metadata,
+            fund_name,
+        )])
     }
 }
 
@@ -1206,8 +1346,13 @@ impl TextFilterPipe for TextFilterSfdrSignStandard {
         "TextFilterSfdrSignStandard"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks, data).map_err(|e| e.into_pipe_error(self.name()))
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data)
+            .map_err(|e| e.into_pipe_error(self.name()))
     }
 }
 
@@ -1224,9 +1369,14 @@ impl TextFilterManagmentCompanyStandard {
         let block = pdf_blks
             .iter()
             .find(|b| b.type_block == BlockType::MANAGEMENT_COMPANY)
-            .ok_or(StandardFuncsError::ExpectedBlockTypeMissing { block_type: "management company" })?;
+            .ok_or(StandardFuncsError::ExpectedBlockTypeMissing {
+                block_type: "management company",
+            })?;
         let funds = resolved_funds(data);
-        Ok(vec![standard_management_company_txt_blk(block.clone(), &funds)])
+        Ok(vec![standard_management_company_txt_blk(
+            block.clone(),
+            &funds,
+        )])
     }
 }
 
@@ -1235,8 +1385,13 @@ impl TextFilterPipe for TextFilterManagmentCompanyStandard {
         "TextFilterManagmentCompanyStandard"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks, data).map_err(|e| e.into_pipe_error(self.name()))
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data)
+            .map_err(|e| e.into_pipe_error(self.name()))
     }
 }
 
@@ -1268,9 +1423,14 @@ impl TextFilterAssetsStandard {
                 Ok(compiled)
             })
             .transpose()?;
-        let remove_from_fund_regexes =
-            remove_from_fund_regexes.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { date_regex, remove_from_fund_regexes })
+        let remove_from_fund_regexes = remove_from_fund_regexes
+            .iter()
+            .map(|p| compile_pattern(p))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self {
+            date_regex,
+            remove_from_fund_regexes,
+        })
     }
 
     pub fn call(
@@ -1289,7 +1449,10 @@ impl TextFilterAssetsStandard {
             }
 
             if !known_funds.contains(&MatchFund::new(&fund_name)) {
-                tracing::trace!(fund = fund_name, "assets block skipped: fund not among the known funds");
+                tracing::trace!(
+                    fund = fund_name,
+                    "assets block skipped: fund not among the known funds"
+                );
                 continue;
             }
 
@@ -1303,22 +1466,33 @@ impl TextFilterAssetsStandard {
                 let captured = date_regex
                     .captures(text)
                     .and_then(|caps| caps.at(1))
-                    .ok_or_else(|| StandardFuncsError::DateRegexMismatch { text: text.to_string() })?;
+                    .ok_or_else(|| StandardFuncsError::DateRegexMismatch {
+                        text: text.to_string(),
+                    })?;
                 metadata.insert("date".to_string(), BlockValue::from(captured));
             }
 
             let currency_text = metadata.get("currency").ok_or_else(|| {
-                StandardFuncsError::Value(crate::core::classes::value::BlockValueError::MissingField {
-                    field: "currency".to_string(),
-                })
+                StandardFuncsError::Value(
+                    crate::core::classes::value::BlockValueError::MissingField {
+                        field: "currency".to_string(),
+                    },
+                )
             })?;
             let currency = extract_currency_from_text(currency_text.str_or_fail("currency")?)?;
             metadata.insert("currency".to_string(), BlockValue::from(currency));
 
-            out.push(TextBlock::from_content(BlockType::RELEVANT_BLOCK, metadata, ""));
+            out.push(TextBlock::from_content(
+                BlockType::RELEVANT_BLOCK,
+                metadata,
+                "",
+            ));
         }
 
-        tracing::debug!(blocks = out.len(), "assets blocks matched against known funds");
+        tracing::debug!(
+            blocks = out.len(),
+            "assets blocks matched against known funds"
+        );
         Ok(out)
     }
 }
@@ -1328,8 +1502,13 @@ impl TextFilterPipe for TextFilterAssetsStandard {
         "TextFilterAssetsStandard"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
-        self.call(blocks, data).map_err(|e| e.into_pipe_error(self.name()))
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data)
+            .map_err(|e| e.into_pipe_error(self.name()))
     }
 }
 
@@ -1365,7 +1544,10 @@ mod tests {
 
         #[test]
         fn a_single_classified_block_is_reported() {
-            let blks = vec![page_class_block(None), page_class_block(Some("investments"))];
+            let blks = vec![
+                page_class_block(None),
+                page_class_block(Some("investments")),
+            ];
             let result = TextFilterPageClassifyStandard.call(&blks).unwrap();
             assert_eq!(
                 result[0].metadata.get("page_type"),
@@ -1375,8 +1557,10 @@ mod tests {
 
         #[test]
         fn two_conflicting_classifications_is_an_error() {
-            let blks =
-                vec![page_class_block(Some("investments")), page_class_block(Some("other"))];
+            let blks = vec![
+                page_class_block(Some("investments")),
+                page_class_block(Some("other")),
+            ];
             assert!(TextFilterPageClassifyStandard.call(&blks).is_err());
         }
 
@@ -1419,33 +1603,51 @@ mod tests {
 
             #[test]
             fn a_single_null_contribution_yields_null() {
-                let result = TextFilterDocClassifyStandard.call(&[doc_class_block(None)]).unwrap();
+                let result = TextFilterDocClassifyStandard
+                    .call(&[doc_class_block(None)])
+                    .unwrap();
                 assert_eq!(declared(&result), Some(&BlockValue::Null));
             }
 
             #[test]
             fn only_null_contributions_yield_null() {
-                let blks = vec![doc_class_block(None), doc_class_block(None), doc_class_block(None)];
+                let blks = vec![
+                    doc_class_block(None),
+                    doc_class_block(None),
+                    doc_class_block(None),
+                ];
                 let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
                 assert_eq!(declared(&result), Some(&BlockValue::Null));
             }
 
             #[test]
             fn a_single_value_is_reported() {
-                let result = TextFilterDocClassifyStandard.call(&[doc_class_block(Some("MEDIOLANUM"))]).unwrap();
+                let result = TextFilterDocClassifyStandard
+                    .call(&[doc_class_block(Some("MEDIOLANUM"))])
+                    .unwrap();
                 assert_eq!(declared(&result), Some(&BlockValue::from("MEDIOLANUM")));
             }
 
             #[test]
             fn the_nulls_around_a_single_value_are_dropped() {
-                let blks = vec![doc_class_block(None), doc_class_block(Some("MEDIOLANUM-IT24.*")), doc_class_block(None)];
+                let blks = vec![
+                    doc_class_block(None),
+                    doc_class_block(Some("MEDIOLANUM-IT24.*")),
+                    doc_class_block(None),
+                ];
                 let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
-                assert_eq!(declared(&result), Some(&BlockValue::from("MEDIOLANUM-IT24.*")));
+                assert_eq!(
+                    declared(&result),
+                    Some(&BlockValue::from("MEDIOLANUM-IT24.*"))
+                );
             }
 
             #[test]
             fn equal_values_repeated_collapse_into_one() {
-                let blks = vec![doc_class_block(Some("AMUNDI-EN24")), doc_class_block(Some("AMUNDI-EN24"))];
+                let blks = vec![
+                    doc_class_block(Some("AMUNDI-EN24")),
+                    doc_class_block(Some("AMUNDI-EN24")),
+                ];
                 let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
                 assert_eq!(result.len(), 1);
                 assert_eq!(declared(&result), Some(&BlockValue::from("AMUNDI-EN24")));
@@ -1469,7 +1671,10 @@ mod tests {
 
             #[test]
             fn two_different_values_are_a_conflict_naming_both_in_order() {
-                let blks = vec![doc_class_block(Some("MEDIOLANUM-IT24.*")), doc_class_block(Some("AMUNDI-EN24"))];
+                let blks = vec![
+                    doc_class_block(Some("MEDIOLANUM-IT24.*")),
+                    doc_class_block(Some("AMUNDI-EN24")),
+                ];
                 let err = TextFilterDocClassifyStandard.call(&blks).unwrap_err();
                 match err {
                     StandardFuncsError::ConflictingDocClass { first, second } => {
@@ -1484,7 +1689,10 @@ mod tests {
             /// reason about refinement — that is the engine's business, with `A` in hand.
             #[test]
             fn a_value_and_one_refining_it_are_still_a_conflict() {
-                let blks = vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(Some("MEDIOLANUM-IT24.A"))];
+                let blks = vec![
+                    doc_class_block(Some("MEDIOLANUM")),
+                    doc_class_block(Some("MEDIOLANUM-IT24.A")),
+                ];
                 assert!(matches!(
                     TextFilterDocClassifyStandard.call(&blks),
                     Err(StandardFuncsError::ConflictingDocClass { .. })
@@ -1503,7 +1711,10 @@ mod tests {
                 let err = TextFilterDocClassifyStandard.call(&blks).unwrap_err();
                 match err {
                     StandardFuncsError::ConflictingDocClass { first, second } => {
-                        assert_eq!((first.as_str(), second.as_str()), ("AMUNDI-EN24", "ANIMA_SGR-IT24"));
+                        assert_eq!(
+                            (first.as_str(), second.as_str()),
+                            ("AMUNDI-EN24", "ANIMA_SGR-IT24")
+                        );
                     }
                     other => panic!("expected ConflictingDocClass, got {other:?}"),
                 }
@@ -1511,8 +1722,14 @@ mod tests {
 
             #[test]
             fn the_conflict_message_names_both_patterns() {
-                let blks = vec![doc_class_block(Some("MEDIOLANUM-IT24.*")), doc_class_block(Some("AMUNDI-EN24"))];
-                let message = TextFilterDocClassifyStandard.call(&blks).unwrap_err().to_string();
+                let blks = vec![
+                    doc_class_block(Some("MEDIOLANUM-IT24.*")),
+                    doc_class_block(Some("AMUNDI-EN24")),
+                ];
+                let message = TextFilterDocClassifyStandard
+                    .call(&blks)
+                    .unwrap_err()
+                    .to_string();
                 assert!(message.contains("MEDIOLANUM-IT24.*"), "{message}");
                 assert!(message.contains("AMUNDI-EN24"), "{message}");
             }
@@ -1527,7 +1744,10 @@ mod tests {
                 for blks in [
                     vec![doc_class_block(None)],
                     vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(None)],
-                    vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(Some("MEDIOLANUM"))],
+                    vec![
+                        doc_class_block(Some("MEDIOLANUM")),
+                        doc_class_block(Some("MEDIOLANUM")),
+                    ],
                 ] {
                     let result = TextFilterDocClassifyStandard.call(&blks).unwrap();
                     assert_eq!(result.len(), 1);
@@ -1539,7 +1759,9 @@ mod tests {
             fn the_resulting_pdf_block_is_the_last_one_in_the_list_not_the_first() {
                 let first = doc_class_block(Some("MEDIOLANUM"));
                 let last = doc_class_block(None);
-                let result = TextFilterDocClassifyStandard.call(&[first, last.clone()]).unwrap();
+                let result = TextFilterDocClassifyStandard
+                    .call(&[first, last.clone()])
+                    .unwrap();
                 assert_eq!(result[0].pdf_block.as_deref(), Some(&last));
             }
         }
@@ -1551,21 +1773,34 @@ mod tests {
 
             #[test]
             fn an_empty_list_of_pdf_blocks_is_an_error_as_for_the_page_twin() {
-                assert!(matches!(TextFilterDocClassifyStandard.call(&[]), Err(StandardFuncsError::NoPdfBlocks)));
-                assert!(matches!(TextFilterPageClassifyStandard.call(&[]), Err(StandardFuncsError::NoPdfBlocks)));
+                assert!(matches!(
+                    TextFilterDocClassifyStandard.call(&[]),
+                    Err(StandardFuncsError::NoPdfBlocks)
+                ));
+                assert!(matches!(
+                    TextFilterPageClassifyStandard.call(&[]),
+                    Err(StandardFuncsError::NoPdfBlocks)
+                ));
             }
 
             #[test]
             fn a_block_without_the_format_pattern_key_is_a_value_error() {
                 let blks = vec![PdfBlock::new(BlockType::DOC_CLASS, BTreeMap::new(), "")];
-                assert!(matches!(TextFilterDocClassifyStandard.call(&blks), Err(StandardFuncsError::Value(_))));
+                assert!(matches!(
+                    TextFilterDocClassifyStandard.call(&blks),
+                    Err(StandardFuncsError::Value(_))
+                ));
             }
 
             /// A page-class block carries `page_type`, not `format_pattern`: mixing the two
             /// classifications in one pipeline is caught, not read as "nothing".
             #[test]
             fn a_page_class_block_is_not_read_as_a_document_class() {
-                assert!(TextFilterDocClassifyStandard.call(&[page_class_block(Some("investments"))]).is_err());
+                assert!(
+                    TextFilterDocClassifyStandard
+                        .call(&[page_class_block(Some("investments"))])
+                        .is_err()
+                );
             }
         }
 
@@ -1575,14 +1810,19 @@ mod tests {
 
             #[test]
             fn the_pipe_name_identifies_it_in_errors() {
-                assert_eq!(TextFilterDocClassifyStandard.name(), "TextFilterDocClassifyStandard");
+                assert_eq!(
+                    TextFilterDocClassifyStandard.name(),
+                    "TextFilterDocClassifyStandard"
+                );
             }
 
             #[test]
             fn filtering_produces_the_same_block_as_the_direct_call() {
                 let blks = vec![doc_class_block(None), doc_class_block(Some("MEDIOLANUM"))];
                 assert_eq!(
-                    TextFilterDocClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap(),
+                    TextFilterDocClassifyStandard
+                        .filter(&blks, &FilterData::EMPTY)
+                        .unwrap(),
                     TextFilterDocClassifyStandard.call(&blks).unwrap()
                 );
             }
@@ -1592,15 +1832,24 @@ mod tests {
                 let blks = vec![doc_class_block(Some("MEDIOLANUM"))];
                 let companies = targets(&["Acme"]);
                 assert_eq!(
-                    TextFilterDocClassifyStandard.filter(&blks, &FilterData::TargetCompanies(&companies)).unwrap(),
-                    TextFilterDocClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap()
+                    TextFilterDocClassifyStandard
+                        .filter(&blks, &FilterData::TargetCompanies(&companies))
+                        .unwrap(),
+                    TextFilterDocClassifyStandard
+                        .filter(&blks, &FilterData::EMPTY)
+                        .unwrap()
                 );
             }
 
             #[test]
             fn a_conflict_is_a_fatal_extraction_error_naming_the_pipe() {
-                let blks = vec![doc_class_block(Some("MEDIOLANUM")), doc_class_block(Some("AMUNDI"))];
-                let err = TextFilterDocClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap_err();
+                let blks = vec![
+                    doc_class_block(Some("MEDIOLANUM")),
+                    doc_class_block(Some("AMUNDI")),
+                ];
+                let err = TextFilterDocClassifyStandard
+                    .filter(&blks, &FilterData::EMPTY)
+                    .unwrap_err();
                 assert_eq!(err.pipe(), "TextFilterDocClassifyStandard");
                 assert!(matches!(err, PipeError::Extraction { .. }));
                 assert!(!err.is_page_failure());
@@ -1609,7 +1858,9 @@ mod tests {
 
             #[test]
             fn an_empty_page_is_a_fatal_error_not_a_page_failure() {
-                let err = TextFilterDocClassifyStandard.filter(&[], &FilterData::EMPTY).unwrap_err();
+                let err = TextFilterDocClassifyStandard
+                    .filter(&[], &FilterData::EMPTY)
+                    .unwrap_err();
                 assert_eq!(err.pipe(), "TextFilterDocClassifyStandard");
                 assert!(!err.is_page_failure());
             }
@@ -1630,12 +1881,18 @@ mod tests {
 
         #[test]
         fn finds_a_currency_by_full_name_case_insensitively() {
-            assert_eq!(extract_currency_from_text("amount in euro today").unwrap(), Currency::EUR);
+            assert_eq!(
+                extract_currency_from_text("amount in euro today").unwrap(),
+                Currency::EUR
+            );
         }
 
         #[test]
         fn finds_the_euro_alias() {
-            assert_eq!(extract_currency_from_text("priced in EURO").unwrap(), Currency::EUR);
+            assert_eq!(
+                extract_currency_from_text("priced in EURO").unwrap(),
+                Currency::EUR
+            );
         }
 
         #[test]
@@ -1674,8 +1931,15 @@ mod tests {
         /// reason the pass searches `Currency::prose_candidates` instead.
         #[test]
         fn an_ordinary_word_that_happens_to_be_an_iso_code_is_not_a_currency() {
-            for text in ["nothing at all here", "the top ten holdings", "a cup of coffee"] {
-                assert!(extract_currency_from_text(text).is_err(), "{text:?} is not a currency");
+            for text in [
+                "nothing at all here",
+                "the top ten holdings",
+                "a cup of coffee",
+            ] {
+                assert!(
+                    extract_currency_from_text(text).is_err(),
+                    "{text:?} is not a currency"
+                );
             }
         }
 
@@ -1683,10 +1947,12 @@ mod tests {
         /// text as written, so an upper-case standalone token is taken at face value.
         #[test]
         fn the_same_letters_written_as_an_upper_case_code_still_are_one() {
-            assert_eq!(extract_currency_from_text("expressed in ALL").unwrap(), Currency::ALL);
+            assert_eq!(
+                extract_currency_from_text("expressed in ALL").unwrap(),
+                Currency::ALL
+            );
         }
     }
-
 
     use crate::core::pipeline::{FilterData, PipeError, TextFilterPipe};
     // ------------------------------------------------------------------------------------------
@@ -1722,8 +1988,16 @@ mod tests {
 
     /// The filter in its simplest configuration: only `market_value_pos`, geometric indices.
     fn simple_investments(market_value_pos: i64) -> TextFilterInvestmentsStandard {
-        TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, DashAsZero::empty())
-            .expect("positions are consistent")
+        TextFilterInvestmentsStandard::new(
+            market_value_pos,
+            None,
+            None,
+            None,
+            None,
+            true,
+            DashAsZero::empty(),
+        )
+        .expect("positions are consistent")
     }
 
     mod page_classify_as_a_text_filter_pipe {
@@ -1732,15 +2006,19 @@ mod tests {
 
         #[test]
         fn the_pipe_name_identifies_it_in_errors() {
-            assert_eq!(TextFilterPageClassifyStandard.name(), "TextFilterPageClassifyStandard");
+            assert_eq!(
+                TextFilterPageClassifyStandard.name(),
+                "TextFilterPageClassifyStandard"
+            );
         }
 
         #[test]
         fn filtering_produces_the_same_block_as_the_direct_call() {
             let blks = vec![page_class_block(Some("investments"))];
             let direct = TextFilterPageClassifyStandard.call(&blks).unwrap();
-            let through_trait =
-                TextFilterPageClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap();
+            let through_trait = TextFilterPageClassifyStandard
+                .filter(&blks, &FilterData::EMPTY)
+                .unwrap();
             assert_eq!(direct, through_trait);
         }
 
@@ -1752,13 +2030,17 @@ mod tests {
                 TextFilterPageClassifyStandard
                     .filter(&blks, &FilterData::TargetCompanies(&companies))
                     .unwrap(),
-                TextFilterPageClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap()
+                TextFilterPageClassifyStandard
+                    .filter(&blks, &FilterData::EMPTY)
+                    .unwrap()
             );
         }
 
         #[test]
         fn an_empty_page_is_a_fatal_error_not_a_page_failure() {
-            let err = TextFilterPageClassifyStandard.filter(&[], &FilterData::EMPTY).unwrap_err();
+            let err = TextFilterPageClassifyStandard
+                .filter(&[], &FilterData::EMPTY)
+                .unwrap_err();
             assert_eq!(err.pipe(), "TextFilterPageClassifyStandard");
             assert!(!err.is_page_failure());
         }
@@ -1770,8 +2052,16 @@ mod tests {
         #[test]
         fn distinct_positions_are_accepted() {
             assert!(
-                TextFilterInvestmentsStandard::new(0, Some(1), Some(2), None, None, true, DashAsZero::empty())
-                    .is_ok()
+                TextFilterInvestmentsStandard::new(
+                    0,
+                    Some(1),
+                    Some(2),
+                    None,
+                    None,
+                    true,
+                    DashAsZero::empty()
+                )
+                .is_ok()
             );
         }
 
@@ -1799,20 +2089,44 @@ mod tests {
             // The check fires only if *both* optional positions are present, so the collision with
             // `market_value_pos` goes unnoticed here.
             assert!(
-                TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, DashAsZero::empty())
-                    .is_ok()
+                TextFilterInvestmentsStandard::new(
+                    0,
+                    Some(0),
+                    None,
+                    None,
+                    None,
+                    true,
+                    DashAsZero::empty()
+                )
+                .is_ok()
             );
             assert!(
-                TextFilterInvestmentsStandard::new(0, None, Some(0), None, None, true, DashAsZero::empty())
-                    .is_ok()
+                TextFilterInvestmentsStandard::new(
+                    0,
+                    None,
+                    Some(0),
+                    None,
+                    None,
+                    true,
+                    DashAsZero::empty()
+                )
+                .is_ok()
             );
         }
 
         #[test]
         fn the_optional_acquisition_positions_are_never_checked() {
             assert!(
-                TextFilterInvestmentsStandard::new(0, None, None, Some(0), Some(0), true, DashAsZero::empty())
-                    .is_ok()
+                TextFilterInvestmentsStandard::new(
+                    0,
+                    None,
+                    None,
+                    Some(0),
+                    Some(0),
+                    true,
+                    DashAsZero::empty()
+                )
+                .is_ok()
             );
         }
     }
@@ -1843,15 +2157,24 @@ mod tests {
         }
 
         fn field(flags: DashAsZero, blks: &[PdfBlock], name: &str) -> BlockValue {
-            let out = pipe(flags).call(blks, &targets(&["Acme Corp"])).expect("the page parses");
+            let out = pipe(flags)
+                .call(blks, &targets(&["Acme Corp"]))
+                .expect("the page parses");
             assert_eq!(out.len(), 1, "expected exactly one row");
-            out[0].metadata.get(name).expect("the field is configured").clone()
+            out[0]
+                .metadata
+                .get(name)
+                .expect("the field is configured")
+                .clone()
         }
 
         #[test]
         fn a_flagged_market_value_reads_its_dash_as_zero() {
             let blks = row_of("Acme Corp", "-", "10", "0.5");
-            assert_eq!(field(DashAsZero::MarketValue, &blks, "market value"), BlockValue::from("0"));
+            assert_eq!(
+                field(DashAsZero::MarketValue, &blks, "market value"),
+                BlockValue::from("0")
+            );
         }
 
         /// Without the flag the dash travels on untouched, and the deserializer drops the holding
@@ -1859,18 +2182,37 @@ mod tests {
         #[test]
         fn an_unflagged_market_value_keeps_its_dash() {
             let blks = row_of("Acme Corp", "-", "10", "0.5");
-            assert_eq!(field(DashAsZero::empty(), &blks, "market value"), BlockValue::from("-"));
+            assert_eq!(
+                field(DashAsZero::empty(), &blks, "market value"),
+                BlockValue::from("-")
+            );
         }
 
         #[test]
         fn each_flag_reaches_its_own_field_and_no_other() {
             let blks = row_of("Acme Corp", "-", "-", "-");
             for (flag, substituted, untouched) in [
-                (DashAsZero::MarketValue, "market value", ["quantity", "% net assets"]),
-                (DashAsZero::Quantity, "quantity", ["market value", "% net assets"]),
-                (DashAsZero::PercNetAssets, "% net assets", ["market value", "quantity"]),
+                (
+                    DashAsZero::MarketValue,
+                    "market value",
+                    ["quantity", "% net assets"],
+                ),
+                (
+                    DashAsZero::Quantity,
+                    "quantity",
+                    ["market value", "% net assets"],
+                ),
+                (
+                    DashAsZero::PercNetAssets,
+                    "% net assets",
+                    ["market value", "quantity"],
+                ),
             ] {
-                assert_eq!(field(flag, &blks, substituted), BlockValue::from("0"), "{substituted}");
+                assert_eq!(
+                    field(flag, &blks, substituted),
+                    BlockValue::from("0"),
+                    "{substituted}"
+                );
                 for name in untouched {
                     assert_eq!(field(flag, &blks, name), BlockValue::from("-"), "{name}");
                 }
@@ -1881,7 +2223,11 @@ mod tests {
         fn all_substitutes_every_numeric_field_at_once() {
             let blks = row_of("Acme Corp", "-", "-", "-");
             for name in ["market value", "quantity", "% net assets"] {
-                assert_eq!(field(DashAsZero::all(), &blks, name), BlockValue::from("0"), "{name}");
+                assert_eq!(
+                    field(DashAsZero::all(), &blks, name),
+                    BlockValue::from("0"),
+                    "{name}"
+                );
             }
         }
 
@@ -1922,10 +2268,19 @@ mod tests {
                 table_row(0, 1, "1.000"),
                 table_row(0, 2, "-"),
             ];
-            let pipe =
-                TextFilterInvestmentsStandard::new(1, None, None, Some(2), None, true, DashAsZero::all())
-                    .expect("positions are consistent");
-            let out = pipe.call(&blks, &targets(&["Acme Corp"])).expect("the page parses");
+            let pipe = TextFilterInvestmentsStandard::new(
+                1,
+                None,
+                None,
+                Some(2),
+                None,
+                true,
+                DashAsZero::all(),
+            )
+            .expect("positions are consistent");
+            let out = pipe
+                .call(&blks, &targets(&["Acme Corp"]))
+                .expect("the page parses");
             assert_eq!(
                 out[0].metadata.get("acquisition currency"),
                 Some(&BlockValue::from("-")),
@@ -1941,18 +2296,34 @@ mod tests {
         #[test]
         fn a_matched_row_becomes_one_text_block_carrying_the_company() {
             let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
 
             assert_eq!(out.len(), 1);
-            assert_eq!(out[0].metadata.get("company"), Some(&BlockValue::from("Acme Corp")));
-            assert_eq!(out[0].metadata.get("company match"), Some(&BlockValue::from("Acme Corp")));
-            assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("1.000")));
+            assert_eq!(
+                out[0].metadata.get("company"),
+                Some(&BlockValue::from("Acme Corp"))
+            );
+            assert_eq!(
+                out[0].metadata.get("company match"),
+                Some(&BlockValue::from("Acme Corp"))
+            );
+            assert_eq!(
+                out[0].metadata.get("market value"),
+                Some(&BlockValue::from("1.000"))
+            );
         }
 
         #[test]
         fn a_row_with_no_target_company_produces_nothing() {
             let blks = vec![table_row(0, 0, "Nothing here"), table_row(0, 1, "1.000")];
-            assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+            assert!(
+                simple_investments(1)
+                    .call(&blks, &targets(&["Acme Corp"]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -1963,22 +2334,42 @@ mod tests {
                 table_row(0, 2, "12,5"),
                 table_row(0, 3, "42"),
             ];
-            let filter =
-                TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, DashAsZero::empty())
-                    .unwrap();
+            let filter = TextFilterInvestmentsStandard::new(
+                1,
+                Some(3),
+                Some(2),
+                None,
+                None,
+                true,
+                DashAsZero::empty(),
+            )
+            .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
 
-            assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::from("12,5")));
-            assert_eq!(out[0].metadata.get("quantity"), Some(&BlockValue::from("42")));
+            assert_eq!(
+                out[0].metadata.get("% net assets"),
+                Some(&BlockValue::from("12,5"))
+            );
+            assert_eq!(
+                out[0].metadata.get("quantity"),
+                Some(&BlockValue::from("42"))
+            );
         }
 
         #[test]
         fn an_optional_field_that_is_not_there_stays_null_instead_of_failing() {
             let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             // `% net assets` points at column 5, which does not exist.
-            let filter =
-                TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
-                    .unwrap();
+            let filter = TextFilterInvestmentsStandard::new(
+                1,
+                None,
+                Some(5),
+                None,
+                None,
+                true,
+                DashAsZero::empty(),
+            )
+            .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::Null));
         }
@@ -1987,23 +2378,37 @@ mod tests {
         fn a_market_value_that_is_not_there_drops_the_whole_row() {
             let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
             // Unlike the optional fields, a missing market value makes the row be skipped.
-            assert!(simple_investments(9).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+            assert!(
+                simple_investments(9)
+                    .call(&blks, &targets(&["Acme Corp"]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn the_manco_metadata_of_the_anchor_is_carried_over() {
             let mut anchor = table_row(0, 0, "Acme Corp");
-            anchor.metadata.insert("manco".to_string(), BlockValue::from("Acme SGR"));
+            anchor
+                .metadata
+                .insert("manco".to_string(), BlockValue::from("Acme SGR"));
             let blks = vec![anchor, table_row(0, 1, "1.000")];
 
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out[0].metadata.get("manco"), Some(&BlockValue::from("Acme SGR")));
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
+            assert_eq!(
+                out[0].metadata.get("manco"),
+                Some(&BlockValue::from("Acme SGR"))
+            );
         }
 
         #[test]
         fn an_anchor_without_manco_gets_a_null_one() {
             let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
             assert_eq!(out[0].metadata.get("manco"), Some(&BlockValue::Null));
         }
 
@@ -2016,8 +2421,13 @@ mod tests {
                 table_row(1, 0, "wrapped"),
                 table_row(1, 1, "ignored too"),
             ];
-            let out = simple_investments(2).call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("wrapped")));
+            let out = simple_investments(2)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
+            assert_eq!(
+                out[0].metadata.get("market value"),
+                Some(&BlockValue::from("wrapped"))
+            );
         }
 
         #[test]
@@ -2027,11 +2437,21 @@ mod tests {
                 table_row(0, 1, "1.000"),
                 table_row(1, 0, "next row"),
             ];
-            let filter =
-                TextFilterInvestmentsStandard::new(2, None, None, None, None, false, DashAsZero::empty())
-                    .unwrap();
+            let filter = TextFilterInvestmentsStandard::new(
+                2,
+                None,
+                None,
+                None,
+                None,
+                false,
+                DashAsZero::empty(),
+            )
+            .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("next row")));
+            assert_eq!(
+                out[0].metadata.get("market value"),
+                Some(&BlockValue::from("next row"))
+            );
         }
     }
 
@@ -2060,12 +2480,14 @@ mod tests {
                 if field.name() == "message" {
                     self.message = format!("{value:?}");
                 } else {
-                    self.fields.push((field.name().to_string(), format!("{value:?}")));
+                    self.fields
+                        .push((field.name().to_string(), format!("{value:?}")));
                 }
             }
 
             fn record_str(&mut self, field: &Field, value: &str) {
-                self.fields.push((field.name().to_string(), value.to_string()));
+                self.fields
+                    .push((field.name().to_string(), value.to_string()));
             }
         }
 
@@ -2076,7 +2498,10 @@ mod tests {
 
         impl<S: tracing::Subscriber> Layer<S> for CapturingLayer {
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
-                let mut record = Record { level: event.metadata().level().to_string(), ..Record::default() };
+                let mut record = Record {
+                    level: event.metadata().level().to_string(),
+                    ..Record::default()
+                };
                 event.record(&mut record);
                 self.records.lock().unwrap().push(record);
             }
@@ -2089,17 +2514,25 @@ mod tests {
             let subscriber = Registry::default().with(layer.clone());
             tracing::subscriber::with_default(subscriber, f);
             let records = layer.records.lock().unwrap();
-            records.iter().filter(|r| r.message.contains(needle)).cloned().collect()
+            records
+                .iter()
+                .filter(|r| r.message.contains(needle))
+                .cloned()
+                .collect()
         }
 
         pub(super) fn field_of<'a>(record: &'a Record, name: &str) -> Option<&'a str> {
-            record.fields.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str())
+            record
+                .fields
+                .iter()
+                .find(|(key, _)| key == name)
+                .map(|(_, value)| value.as_str())
         }
     }
 
     mod investments_anchor_logging {
-        use super::*;
         use super::tracing_capture::{Record, field_of, records_matching};
+        use super::*;
         use pretty_assertions::assert_eq;
 
         fn anchor_records(f: impl FnOnce()) -> Vec<Record> {
@@ -2144,7 +2577,10 @@ mod tests {
             });
 
             assert_eq!(records.len(), 1, "{records:?}");
-            assert_eq!(field_of(&records[0], "coord_ref_1"), Some("Acme Corp Reg Shs"));
+            assert_eq!(
+                field_of(&records[0], "coord_ref_1"),
+                Some("Acme Corp Reg Shs")
+            );
             assert_eq!(field_of(&records[0], "coord_ref_2"), Some("Acme Corp"));
         }
 
@@ -2159,11 +2595,19 @@ mod tests {
                 table_row(1, 0, "Acme Corp"),
                 table_row(1, 1, "1.000"),
             ];
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
 
             assert_eq!(out.len(), 1, "{out:?}");
-            assert_eq!(out[0].metadata.get("table row"), Some(&BlockValue::from(1i64)));
-            assert_eq!(out[0].metadata.get("table col"), Some(&BlockValue::from(0i64)));
+            assert_eq!(
+                out[0].metadata.get("table row"),
+                Some(&BlockValue::from(1i64))
+            );
+            assert_eq!(
+                out[0].metadata.get("table col"),
+                Some(&BlockValue::from(0i64))
+            );
         }
 
         /// The skipped-row warning is the one event of this function that *does* reach the
@@ -2234,8 +2678,8 @@ mod tests {
     /// expects is a page tabularised wrongly, while the same offset landing on an empty cell of a
     /// normal grid is a description that wrapped onto a second line. The two need opposite fixes.
     mod investments_missing_field_diagnostics {
-        use super::*;
         use super::tracing_capture::{Record, field_of, records_matching};
+        use super::*;
 
         mod field_probe_rendering {
             use super::*;
@@ -2243,34 +2687,65 @@ mod tests {
 
             #[test]
             fn a_grid_probe_names_the_cell_one_based_and_the_grid_width() {
-                let probe = FieldProbe::Grid { offset: 4, row: 16, col: 5, n_cols: 6 };
-                assert_eq!(probe.to_string(), "4 cells past the anchor, row 17 col 6 of a 6-column grid");
+                let probe = FieldProbe::Grid {
+                    offset: 4,
+                    row: 16,
+                    col: 5,
+                    n_cols: 6,
+                };
+                assert_eq!(
+                    probe.to_string(),
+                    "4 cells past the anchor, row 17 col 6 of a 6-column grid"
+                );
             }
 
             /// Offset zero *is* the anchor, and "0 cells past the anchor" is not a sentence.
             #[test]
             fn the_anchor_probe_drops_the_distance_clause() {
-                let probe = FieldProbe::Grid { offset: 0, row: 16, col: 0, n_cols: 6 };
+                let probe = FieldProbe::Grid {
+                    offset: 0,
+                    row: 16,
+                    col: 0,
+                    n_cols: 6,
+                };
                 assert_eq!(probe.to_string(), "row 17 col 1 of a 6-column grid");
             }
 
             #[test]
             fn a_flat_probe_names_the_block_position_one_based() {
-                let probe = FieldProbe::Flat { offset: 2, index: 41 };
+                let probe = FieldProbe::Flat {
+                    offset: 2,
+                    index: 41,
+                };
                 assert_eq!(probe.to_string(), "2 blocks past the anchor, block 42");
             }
 
             #[test]
             fn the_flat_anchor_probe_also_drops_the_distance_clause() {
-                assert_eq!(FieldProbe::Flat { offset: 0, index: 0 }.to_string(), "block 1");
+                assert_eq!(
+                    FieldProbe::Flat {
+                        offset: 0,
+                        index: 0
+                    }
+                    .to_string(),
+                    "block 1"
+                );
             }
 
             /// A negative offset is how `quantity: -1` and `acquisition currency: -2` are written in
             /// a format's configuration, so it has to read as well as a positive one.
             #[test]
             fn a_negative_offset_is_rendered_as_written() {
-                let probe = FieldProbe::Grid { offset: -1, row: 3, col: 0, n_cols: 4 };
-                assert_eq!(probe.to_string(), "-1 cells past the anchor, row 4 col 1 of a 4-column grid");
+                let probe = FieldProbe::Grid {
+                    offset: -1,
+                    row: 3,
+                    col: 0,
+                    n_cols: 4,
+                };
+                assert_eq!(
+                    probe.to_string(),
+                    "-1 cells past the anchor, row 4 col 1 of a 4-column grid"
+                );
             }
         }
 
@@ -2334,7 +2809,9 @@ mod tests {
 
                 assert_eq!(records.len(), 1, "{records:?}");
                 assert!(
-                    records[0].message.contains("1 cells past the anchor, row 1 col 2 of a 2-column grid"),
+                    records[0]
+                        .message
+                        .contains("1 cells past the anchor, row 1 col 2 of a 2-column grid"),
                     "{:?}",
                     records[0].message
                 );
@@ -2343,16 +2820,25 @@ mod tests {
             #[test]
             fn a_flat_mode_miss_reports_a_block_position_instead_of_a_cell() {
                 let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
-                let filter =
-                    TextFilterInvestmentsStandard::new(9, None, None, None, None, false, DashAsZero::empty())
-                        .unwrap();
+                let filter = TextFilterInvestmentsStandard::new(
+                    9,
+                    None,
+                    None,
+                    None,
+                    None,
+                    false,
+                    DashAsZero::empty(),
+                )
+                .unwrap();
                 let records = skip_records(|| {
                     let _ = filter.call(&blks, &targets(&["Acme Corp"]));
                 });
 
                 assert_eq!(records.len(), 1, "{records:?}");
                 assert!(
-                    records[0].message.contains("9 blocks past the anchor, block 10"),
+                    records[0]
+                        .message
+                        .contains("9 blocks past the anchor, block 10"),
                     "{:?}",
                     records[0].message
                 );
@@ -2366,9 +2852,16 @@ mod tests {
             #[test]
             fn the_field_stays_null_and_the_row_survives() {
                 let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
-                let filter =
-                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
-                        .unwrap();
+                let filter = TextFilterInvestmentsStandard::new(
+                    1,
+                    None,
+                    Some(5),
+                    None,
+                    None,
+                    true,
+                    DashAsZero::empty(),
+                )
+                .unwrap();
                 let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
                 assert_eq!(out.len(), 1);
                 assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::Null));
@@ -2379,9 +2872,16 @@ mod tests {
             #[test]
             fn a_debug_event_says_which_field_and_where_it_looked() {
                 let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
-                let filter =
-                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, DashAsZero::empty())
-                        .unwrap();
+                let filter = TextFilterInvestmentsStandard::new(
+                    1,
+                    None,
+                    Some(5),
+                    None,
+                    None,
+                    true,
+                    DashAsZero::empty(),
+                )
+                .unwrap();
                 let records = records_matching(
                     || {
                         let _ = filter.call(&blks, &targets(&["Acme Corp"]));
@@ -2404,9 +2904,16 @@ mod tests {
                     table_row(0, 1, "1.000"),
                     table_row(0, 2, "12,5"),
                 ];
-                let filter =
-                    TextFilterInvestmentsStandard::new(1, None, Some(2), None, None, true, DashAsZero::empty())
-                        .unwrap();
+                let filter = TextFilterInvestmentsStandard::new(
+                    1,
+                    None,
+                    Some(2),
+                    None,
+                    None,
+                    true,
+                    DashAsZero::empty(),
+                )
+                .unwrap();
                 let records = records_matching(
                     || {
                         let _ = filter.call(&blks, &targets(&["Acme Corp"]));
@@ -2431,13 +2938,19 @@ mod tests {
                 let mut blks = Vec::new();
                 for row in 0..3 {
                     for col in 0..3 {
-                        let content = if (row, col) == (0, 0) { "Acme Corp".to_string() } else { format!("r{row}c{col}") };
+                        let content = if (row, col) == (0, 0) {
+                            "Acme Corp".to_string()
+                        } else {
+                            format!("r{row}c{col}")
+                        };
                         blks.push(table_row(row, col, &content));
                     }
                 }
 
                 for offset in 1..9 {
-                    let out = simple_investments(offset).call(&blks, &targets(&["Acme Corp"])).unwrap();
+                    let out = simple_investments(offset)
+                        .call(&blks, &targets(&["Acme Corp"]))
+                        .unwrap();
                     // The anchor is (0, 0), so the probe is a plain division of the offset.
                     let (row, col) = (offset / 3, offset % 3);
                     assert_eq!(
@@ -2476,14 +2989,20 @@ mod tests {
         fn a_percentage_after_a_leading_letter_makes_it_a_bond() {
             let blk = instrument_of("Acme Corp 3,5 % 2030");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
-            assert_eq!(blk.metadata.get("interest rate"), Some(&BlockValue::from("3,5 %")));
+            assert_eq!(
+                blk.metadata.get("interest rate"),
+                Some(&BlockValue::from("3,5 %"))
+            );
         }
 
         #[test]
         fn a_date_makes_it_a_bond_even_without_an_interest_rate() {
             let blk = instrument_of("Acme Corp mat 28/03/2025");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
-            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
+            assert_eq!(
+                blk.metadata.get("maturity"),
+                Some(&BlockValue::from("28/03/2025"))
+            );
         }
 
         #[test]
@@ -2493,8 +3012,14 @@ mod tests {
             // had no interest rate at all until this stopped demanding a leading letter.
             let blk = instrument_of("1,300,000.00 ITALY BTPS 3.4% 23-28/03/2025");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
-            assert_eq!(blk.metadata.get("interest rate"), Some(&BlockValue::from("3.4%")));
-            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
+            assert_eq!(
+                blk.metadata.get("interest rate"),
+                Some(&BlockValue::from("3.4%"))
+            );
+            assert_eq!(
+                blk.metadata.get("maturity"),
+                Some(&BlockValue::from("28/03/2025"))
+            );
         }
 
         #[test]
@@ -2508,7 +3033,10 @@ mod tests {
                 !blk.metadata.contains_key("interest rate"),
                 "no spurious 'interest rate' must be produced"
             );
-            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("31/12/2060")));
+            assert_eq!(
+                blk.metadata.get("maturity"),
+                Some(&BlockValue::from("31/12/2060"))
+            );
         }
 
         #[test]
@@ -2517,13 +3045,19 @@ mod tests {
             // written last — which is where this form usually sits — was lost.
             let blk = instrument_of("ENELIM 1 09/24");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
-            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("09/24")));
+            assert_eq!(
+                blk.metadata.get("maturity"),
+                Some(&BlockValue::from("09/24"))
+            );
         }
 
         #[test]
         fn a_month_and_year_inside_the_line_is_still_a_maturity() {
             let blk = instrument_of("ENELIM 1 09/24 EUR");
-            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("09/24")));
+            assert_eq!(
+                blk.metadata.get("maturity"),
+                Some(&BlockValue::from("09/24"))
+            );
         }
 
         #[test]
@@ -2531,7 +3065,10 @@ mod tests {
             // The tables are tried in order, and the longer forms come first: `"28/03/2025"` is a
             // date, and `"28/03"` read out of it would be a different one.
             let blk = instrument_of("Acme Corp mat 28/03/2025");
-            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
+            assert_eq!(
+                blk.metadata.get("maturity"),
+                Some(&BlockValue::from("28/03/2025"))
+            );
         }
 
         #[test]
@@ -2562,7 +3099,10 @@ mod tests {
 
             #[test]
             fn a_two_digit_coupon_ending_in_zero_is_not_read_as_zero() {
-                assert_eq!(rate_of("PETROLEOS MEXICANOS PEMEX 10.00% 07/02/2033"), "10.00%");
+                assert_eq!(
+                    rate_of("PETROLEOS MEXICANOS PEMEX 10.00% 07/02/2033"),
+                    "10.00%"
+                );
             }
 
             #[test]
@@ -2584,7 +3124,10 @@ mod tests {
 
             #[test]
             fn a_single_digit_coupon_is_unchanged_by_the_lazy_prefix() {
-                assert_eq!(rate_of("VEOLIA ENVIRONNEMENT SA 'EMTN' 5.625% 09.06.26"), "5.625%");
+                assert_eq!(
+                    rate_of("VEOLIA ENVIRONNEMENT SA 'EMTN' 5.625% 09.06.26"),
+                    "5.625%"
+                );
             }
 
             #[test]
@@ -2596,20 +3139,29 @@ mod tests {
             fn a_two_digit_coupon_after_a_leading_digit_keeps_both_digits() {
                 // The lazy prefix has to survive the anchor's removal: the leftmost match must
                 // still begin at the coupon's first digit and not inside it.
-                assert_eq!(rate_of("1,300,000.00 TULLOW OIL PLC 10.25% 15/05/2026"), "10.25%");
+                assert_eq!(
+                    rate_of("1,300,000.00 TULLOW OIL PLC 10.25% 15/05/2026"),
+                    "10.25%"
+                );
             }
 
             #[test]
             fn a_zero_coupon_after_a_leading_digit_is_read_as_zero() {
                 // KAIROS-EN23 p36. A nil coupon written in the report used to come out as a null,
                 // which is a different statement: `null` says the report did not say.
-                assert_eq!(rate_of("500,000.00 ENEL FIN INTL NV 0% 21-28/05/2026"), "0%");
+                assert_eq!(
+                    rate_of("500,000.00 ENEL FIN INTL NV 0% 21-28/05/2026"),
+                    "0%"
+                );
             }
 
             #[test]
             fn the_quantity_is_not_mistaken_for_the_coupon() {
                 // The lazy prefix stops at the **first** `%`, and the quantity carries none.
-                assert_eq!(rate_of("800,000.00 ENEL FIN INTL NV 3.375% 24-23/07/2028"), "3.375%");
+                assert_eq!(
+                    rate_of("800,000.00 ENEL FIN INTL NV 3.375% 24-23/07/2028"),
+                    "3.375%"
+                );
             }
         }
     }
@@ -2632,15 +3184,25 @@ mod tests {
                 table_row(1, 0, "Corp"),
                 table_row(0, 1, "1.000"),
             ];
-            assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+            assert!(
+                simple_investments(1)
+                    .call(&blks, &targets(&["Acme Corp"]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn a_cell_already_joined_upstream_matches_on_its_own() {
             let blks = vec![table_row(0, 0, "Acme Corp"), table_row(0, 1, "1.000")];
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
             assert_eq!(out.len(), 1);
-            assert_eq!(out[0].metadata.get("company match"), Some(&BlockValue::from("Acme Corp")));
+            assert_eq!(
+                out[0].metadata.get("company match"),
+                Some(&BlockValue::from("Acme Corp"))
+            );
         }
 
         #[test]
@@ -2650,7 +3212,12 @@ mod tests {
                 table_row(0, 1, "Corp"),
                 table_row(0, 2, "1.000"),
             ];
-            assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+            assert!(
+                simple_investments(1)
+                    .call(&blks, &targets(&["Acme Corp"]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
     }
 
@@ -2674,24 +3241,36 @@ mod tests {
         fn the_fund_name_becomes_its_own_text_block_before_the_rows() {
             let mut blks = vec![fund_block("Alpha Fund")];
             blks.extend(rows());
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
 
             assert_eq!(out.len(), 2);
             assert_eq!(out[0].type_block, BlockType::FUND);
-            assert_eq!(out[1].metadata.get("fund"), Some(&BlockValue::from("Alpha Fund")));
+            assert_eq!(
+                out[1].metadata.get("fund"),
+                Some(&BlockValue::from("Alpha Fund"))
+            );
         }
 
         #[test]
         fn the_declared_currency_is_stamped_on_every_row() {
             let mut blks = vec![currency_block("amounts in EUR")];
             blks.extend(rows());
-            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
-            assert_eq!(out[0].metadata.get("currency"), Some(&BlockValue::from(Currency::EUR)));
+            let out = simple_investments(1)
+                .call(&blks, &targets(&["Acme Corp"]))
+                .unwrap();
+            assert_eq!(
+                out[0].metadata.get("currency"),
+                Some(&BlockValue::from(Currency::EUR))
+            );
         }
 
         #[test]
         fn a_page_without_fund_or_currency_leaves_both_null() {
-            let out = simple_investments(1).call(&rows(), &targets(&["Acme Corp"])).unwrap();
+            let out = simple_investments(1)
+                .call(&rows(), &targets(&["Acme Corp"]))
+                .unwrap();
             assert_eq!(out[0].metadata.get("fund"), Some(&BlockValue::Null));
             assert_eq!(out[0].metadata.get("currency"), Some(&BlockValue::Null));
         }
@@ -2717,7 +3296,9 @@ mod tests {
         #[test]
         fn an_unreadable_currency_fails_the_page_rather_than_the_document() {
             let blks = vec![currency_block("no currency at all")];
-            let err = simple_investments(1).call(&blks, &targets(&["Acme"])).unwrap_err();
+            let err = simple_investments(1)
+                .call(&blks, &targets(&["Acme"]))
+                .unwrap_err();
             assert!(matches!(err, StandardFuncsError::PageParseFail { .. }));
             assert!(err.into_pipe_error("p").is_page_failure());
         }
@@ -2729,19 +3310,32 @@ mod tests {
             let mut blks = vec![fund_block("Alpha Fund")];
             blks.extend(rows());
             assert!(
-                simple_investments(1).call(&blks, &targets(&["Nobody"])).unwrap().is_empty()
+                simple_investments(1)
+                    .call(&blks, &targets(&["Nobody"]))
+                    .unwrap()
+                    .is_empty()
             );
         }
 
         #[test]
         fn a_page_with_no_blocks_at_all_produces_nothing() {
-            assert!(simple_investments(1).call(&[], &targets(&["Acme"])).unwrap().is_empty());
+            assert!(
+                simple_investments(1)
+                    .call(&[], &targets(&["Acme"]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn a_page_with_only_a_fund_name_produces_nothing() {
             let blks = vec![fund_block("Alpha Fund")];
-            assert!(simple_investments(1).call(&blks, &targets(&["Acme"])).unwrap().is_empty());
+            assert!(
+                simple_investments(1)
+                    .call(&blks, &targets(&["Acme"]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
     }
 
@@ -2781,13 +3375,19 @@ mod tests {
         #[test]
         fn without_a_cut_the_mark_stays_where_the_report_wrote_it() {
             let pipe = simple_investments(1);
-            assert_eq!(fund_name_of(&pipe, "Alpha Fund*"), BlockValue::from("Alpha Fund*"));
+            assert_eq!(
+                fund_name_of(&pipe, "Alpha Fund*"),
+                BlockValue::from("Alpha Fund*")
+            );
         }
 
         #[test]
         fn the_declared_mark_goes_from_the_name() {
             let pipe = marks("*");
-            assert_eq!(fund_name_of(&pipe, "Alpha Fund*"), BlockValue::from("Alpha Fund"));
+            assert_eq!(
+                fund_name_of(&pipe, "Alpha Fund*"),
+                BlockValue::from("Alpha Fund")
+            );
         }
 
         /// Il blocco del fondo e i metadati delle righe portano **lo stesso** nome: se divergessero,
@@ -2795,7 +3395,9 @@ mod tests {
         #[test]
         fn the_fund_block_and_the_rows_agree_on_the_stripped_name() {
             let pipe = marks("*");
-            let out = pipe.call(&page("Alpha Fund*"), &targets(&["Acme Corp"])).unwrap();
+            let out = pipe
+                .call(&page("Alpha Fund*"), &targets(&["Acme Corp"]))
+                .unwrap();
 
             assert_eq!(out[0].type_block, BlockType::FUND);
             assert_eq!(out[0].content, BlockValue::from("Alpha Fund"));
@@ -2806,20 +3408,32 @@ mod tests {
         #[test]
         fn a_mark_separated_by_a_space_goes_too() {
             let pipe = marks("*");
-            assert_eq!(fund_name_of(&pipe, "Alpha Fund *"), BlockValue::from("Alpha Fund"));
+            assert_eq!(
+                fund_name_of(&pipe, "Alpha Fund *"),
+                BlockValue::from("Alpha Fund")
+            );
         }
 
         #[test]
         fn several_marks_can_be_declared_together() {
             let pipe = marks("*\u{b9}");
-            assert_eq!(fund_name_of(&pipe, "Alpha Fund\u{b9}"), BlockValue::from("Alpha Fund"));
-            assert_eq!(fund_name_of(&pipe, "Alpha Fund**"), BlockValue::from("Alpha Fund"));
+            assert_eq!(
+                fund_name_of(&pipe, "Alpha Fund\u{b9}"),
+                BlockValue::from("Alpha Fund")
+            );
+            assert_eq!(
+                fund_name_of(&pipe, "Alpha Fund**"),
+                BlockValue::from("Alpha Fund")
+            );
         }
 
         #[test]
         fn a_name_that_carries_no_mark_is_left_exactly_as_it_is() {
             let pipe = marks("*");
-            assert_eq!(fund_name_of(&pipe, "Alpha Fund"), BlockValue::from("Alpha Fund"));
+            assert_eq!(
+                fund_name_of(&pipe, "Alpha Fund"),
+                BlockValue::from("Alpha Fund")
+            );
         }
 
         /// Il richiamo si toglie dalla **coda**, non dovunque: `A*B Fund` e' un nome, non un nome
@@ -2827,7 +3441,10 @@ mod tests {
         #[test]
         fn a_mark_in_the_middle_of_the_name_is_not_a_footnote() {
             let pipe = marks("*");
-            assert_eq!(fund_name_of(&pipe, "A*B Fund"), BlockValue::from("A*B Fund"));
+            assert_eq!(
+                fund_name_of(&pipe, "A*B Fund"),
+                BlockValue::from("A*B Fund")
+            );
         }
 
         /// Il contenuto di un blocco e' un `BlockValue`, non per forza una stringa. Se non lo e',
@@ -2835,7 +3452,11 @@ mod tests {
         #[test]
         fn a_fund_block_whose_content_is_not_text_passes_through_untouched() {
             let pipe = marks("*");
-            let mut blks = vec![PdfBlock::new(BlockType::FUND_NAME, BTreeMap::new(), BlockValue::Int(7))];
+            let mut blks = vec![PdfBlock::new(
+                BlockType::FUND_NAME,
+                BTreeMap::new(),
+                BlockValue::Int(7),
+            )];
             blks.extend(page("ignored").into_iter().skip(1));
 
             let out = pipe.call(&blks, &targets(&["Acme Corp"])).unwrap();
@@ -2880,7 +3501,10 @@ mod tests {
 
         #[test]
         fn the_pipe_name_identifies_it_in_errors() {
-            assert_eq!(simple_investments(1).name(), "TextFilterInvestmentsStandard");
+            assert_eq!(
+                simple_investments(1).name(),
+                "TextFilterInvestmentsStandard"
+            );
         }
 
         #[test]
@@ -2897,15 +3521,21 @@ mod tests {
             // A direct consequence of the `FilterData` semantics: outside the first step this pipe
             // has no companies to match against.
             let previous = Vec::new();
-            let out =
-                simple_investments(1).filter(&rows(), &FilterData::Previous(&previous)).unwrap();
+            let out = simple_investments(1)
+                .filter(&rows(), &FilterData::Previous(&previous))
+                .unwrap();
             assert!(out.is_empty());
         }
 
         #[test]
         fn an_unreadable_currency_becomes_a_non_fatal_page_failure() {
-            let blks = vec![PdfBlock::bare(BlockType::CURRENCY_STATEMENT, "nothing here")];
-            let err = simple_investments(1).filter(&blks, &FilterData::EMPTY).unwrap_err();
+            let blks = vec![PdfBlock::bare(
+                BlockType::CURRENCY_STATEMENT,
+                "nothing here",
+            )];
+            let err = simple_investments(1)
+                .filter(&blks, &FilterData::EMPTY)
+                .unwrap_err();
             assert!(err.is_page_failure());
             assert_eq!(err.pipe(), "TextFilterInvestmentsStandard");
         }
@@ -2921,7 +3551,6 @@ mod tests {
             assert!(!err.is_page_failure());
         }
     }
-
 
     mod text_filter_sfdr_sign {
         use super::*;
@@ -2964,7 +3593,11 @@ mod tests {
             )
         }
 
-        fn filter(strings: Vec<String>, patterns: Vec<String>, demand: bool) -> TextFilterSfdrSignStandard {
+        fn filter(
+            strings: Vec<String>,
+            patterns: Vec<String>,
+            demand: bool,
+        ) -> TextFilterSfdrSignStandard {
             TextFilterSfdrSignStandard::new(None, strings, patterns, demand).unwrap()
         }
 
@@ -2979,7 +3612,13 @@ mod tests {
             #[test]
             fn an_invalid_regex_prefix_is_rejected_at_construction() {
                 assert!(
-                    TextFilterSfdrSignStandard::new(None, vec![], vec!["(unterminated".to_string()], true).is_err()
+                    TextFilterSfdrSignStandard::new(
+                        None,
+                        vec![],
+                        vec!["(unterminated".to_string()],
+                        true
+                    )
+                    .is_err()
                 );
             }
         }
@@ -2989,28 +3628,47 @@ mod tests {
 
             #[test]
             fn the_affirmative_box_is_article_9() {
-                let out = filter(vec![], vec![], false).call(&page("affirmative", "Acme Fund"), &FilterData::EMPTY).unwrap();
-                assert_eq!(out[0].metadata.get("article"), Some(&BlockValue::from(SfdrArticle::Art9)));
+                let out = filter(vec![], vec![], false)
+                    .call(&page("affirmative", "Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
+                assert_eq!(
+                    out[0].metadata.get("article"),
+                    Some(&BlockValue::from(SfdrArticle::Art9))
+                );
             }
 
             #[test]
             fn the_negative_box_is_article_8() {
-                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
-                assert_eq!(out[0].metadata.get("article"), Some(&BlockValue::from(SfdrArticle::Art8)));
+                let out = filter(vec![], vec![], false)
+                    .call(&page("negative", "Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
+                assert_eq!(
+                    out[0].metadata.get("article"),
+                    Some(&BlockValue::from(SfdrArticle::Art8))
+                );
             }
 
             #[test]
             fn article_6_is_never_written_because_a_tick_never_says_it() {
                 // The pipe it replaces answered article 6 whenever it recognised neither fragment.
                 // A tick has two sides and neither of them is "no declaration", so the case is gone.
-                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
-                assert_ne!(out[0].metadata.get("article"), Some(&BlockValue::from(SfdrArticle::Art6)));
+                let out = filter(vec![], vec![], false)
+                    .call(&page("negative", "Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
+                assert_ne!(
+                    out[0].metadata.get("article"),
+                    Some(&BlockValue::from(SfdrArticle::Art6))
+                );
             }
 
             #[test]
             fn a_block_whose_answer_is_not_one_of_the_two_is_an_error() {
                 let blks = vec![tick("maybe", None), fund_line("Acme Fund")];
-                assert!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).is_err());
+                assert!(
+                    filter(vec![], vec![], false)
+                        .call(&blks, &FilterData::EMPTY)
+                        .is_err()
+                );
             }
 
             #[test]
@@ -3018,7 +3676,12 @@ mod tests {
                 // The extractor already said why in its own warning; failing again here would
                 // report one defect twice and take the page down with it.
                 let blks = vec![fund_line("Acme Fund")];
-                assert!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().is_empty());
+                assert!(
+                    filter(vec![], vec![], false)
+                        .call(&blks, &FilterData::EMPTY)
+                        .unwrap()
+                        .is_empty()
+                );
             }
         }
 
@@ -3031,33 +3694,63 @@ mod tests {
 
             #[test]
             fn a_title_that_agrees_is_silent() {
-                let blks = with_title("negative", "Periodic disclosure ... referred to in Article 8, paragraphs 1");
-                let out = filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap();
+                let blks = with_title(
+                    "negative",
+                    "Periodic disclosure ... referred to in Article 8, paragraphs 1",
+                );
+                let out = filter(vec![], vec![], false)
+                    .call(&blks, &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out.len(), 1);
             }
 
             #[test]
             fn a_title_that_disagrees_writes_no_row() {
-                let blks = with_title("affirmative", "Periodic disclosure ... referred to in Article 8");
-                let out = filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap();
+                let blks = with_title(
+                    "affirmative",
+                    "Periodic disclosure ... referred to in Article 8",
+                );
+                let out = filter(vec![], vec![], false)
+                    .call(&blks, &FilterData::EMPTY)
+                    .unwrap();
                 assert!(out.is_empty());
             }
 
             #[test]
             fn the_italian_wording_is_understood_too() {
-                let blks = with_title("negative", "Modello di informativa periodica ... di cui all'articolo 8, paragrafi");
-                assert_eq!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().len(), 1);
+                let blks = with_title(
+                    "negative",
+                    "Modello di informativa periodica ... di cui all'articolo 8, paragrafi",
+                );
+                assert_eq!(
+                    filter(vec![], vec![], false)
+                        .call(&blks, &FilterData::EMPTY)
+                        .unwrap()
+                        .len(),
+                    1
+                );
             }
 
             #[test]
             fn a_title_that_names_no_article_leaves_the_tick_alone() {
-                let blks = with_title("affirmative", "Informativa periodica sulla promozione di caratteristiche");
-                assert_eq!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().len(), 1);
+                let blks = with_title(
+                    "affirmative",
+                    "Informativa periodica sulla promozione di caratteristiche",
+                );
+                assert_eq!(
+                    filter(vec![], vec![], false)
+                        .call(&blks, &FilterData::EMPTY)
+                        .unwrap()
+                        .len(),
+                    1
+                );
             }
 
             #[test]
             fn no_title_block_at_all_leaves_the_tick_alone() {
-                let out = filter(vec![], vec![], false).call(&page("affirmative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                let out = filter(vec![], vec![], false)
+                    .call(&page("affirmative", "Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out.len(), 1);
             }
         }
@@ -3067,14 +3760,21 @@ mod tests {
 
             #[test]
             fn the_content_is_the_fund_the_other_pipe_read() {
-                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                let out = filter(vec![], vec![], false)
+                    .call(&page("negative", "Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
             }
 
             #[test]
             fn a_page_with_no_fund_block_writes_no_row() {
                 let blks = vec![tick("negative", None)];
-                assert!(filter(vec![], vec![], false).call(&blks, &FilterData::EMPTY).unwrap().is_empty());
+                assert!(
+                    filter(vec![], vec![], false)
+                        .call(&blks, &FilterData::EMPTY)
+                        .unwrap()
+                        .is_empty()
+                );
             }
 
             #[test]
@@ -3102,7 +3802,10 @@ mod tests {
                     false,
                 )
                 .unwrap();
-                let blks = vec![tick("negative", None), PdfBlock::bare(BlockType::new("PRODUCT_NAME"), "Acme Fund")];
+                let blks = vec![
+                    tick("negative", None),
+                    PdfBlock::bare(BlockType::new("PRODUCT_NAME"), "Acme Fund"),
+                ];
                 let out = named.call(&blks, &FilterData::EMPTY).unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
             }
@@ -3118,7 +3821,10 @@ mod tests {
             #[test]
             fn a_regex_prefix_is_stripped_too() {
                 let out = filter(vec![], vec!["^Prefix \\d+: ".to_string()], false)
-                    .call(&page("negative", "Prefix 42: Acme Fund"), &FilterData::EMPTY)
+                    .call(
+                        &page("negative", "Prefix 42: Acme Fund"),
+                        &FilterData::EMPTY,
+                    )
                     .unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
             }
@@ -3131,9 +3837,13 @@ mod tests {
                 // `"Extra Bar"`, on which the anchored pattern `"^Extra Foo "` no longer finds
                 // anything. The two orders give different results, which is what shows the literal
                 // really is applied first.
-                let out = filter(vec!["Foo ".to_string()], vec!["^Extra Foo ".to_string()], false)
-                    .call(&page("negative", "Extra Foo Bar"), &FilterData::EMPTY)
-                    .unwrap();
+                let out = filter(
+                    vec!["Foo ".to_string()],
+                    vec!["^Extra Foo ".to_string()],
+                    false,
+                )
+                .call(&page("negative", "Extra Foo Bar"), &FilterData::EMPTY)
+                .unwrap();
                 assert_eq!(out[0].content.as_str(), Some("Extra Bar"));
             }
         }
@@ -3145,7 +3855,10 @@ mod tests {
             fn a_fund_present_among_resolved_investments_matches() {
                 let previous = vec![investment_fund("Acme Fund")];
                 let out = filter(vec![], vec![], true)
-                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .call(
+                        &page("negative", "Acme Fund"),
+                        &FilterData::Previous(&previous),
+                    )
                     .unwrap();
                 assert_eq!(out.len(), 1);
             }
@@ -3154,7 +3867,10 @@ mod tests {
             fn a_fund_not_present_produces_nothing_when_match_is_demanded() {
                 let previous = vec![investment_fund("Someone Else Fund")];
                 let out = filter(vec![], vec![], true)
-                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .call(
+                        &page("negative", "Acme Fund"),
+                        &FilterData::Previous(&previous),
+                    )
                     .unwrap();
                 assert!(out.is_empty());
             }
@@ -3163,7 +3879,10 @@ mod tests {
             fn no_match_is_demanded_when_the_flag_is_false() {
                 let previous: Vec<Extracted> = vec![];
                 let out = filter(vec![], vec![], false)
-                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .call(
+                        &page("negative", "Acme Fund"),
+                        &FilterData::Previous(&previous),
+                    )
                     .unwrap();
                 assert_eq!(out.len(), 1);
             }
@@ -3182,7 +3901,10 @@ mod tests {
                 );
                 let previous = vec![pending_equity];
                 let out = filter(vec![], vec![], true)
-                    .call(&page("negative", "Acme Fund"), &FilterData::Previous(&previous))
+                    .call(
+                        &page("negative", "Acme Fund"),
+                        &FilterData::Previous(&previous),
+                    )
                     .unwrap();
                 assert!(out.is_empty());
             }
@@ -3193,18 +3915,28 @@ mod tests {
 
             #[test]
             fn the_pipe_name_identifies_it_in_errors() {
-                assert_eq!(filter(vec![], vec![], false).name(), "TextFilterSfdrSignStandard");
+                assert_eq!(
+                    filter(vec![], vec![], false).name(),
+                    "TextFilterSfdrSignStandard"
+                );
             }
 
             #[test]
             fn the_result_is_typed_as_sfdr_article() {
-                let out = filter(vec![], vec![], false).call(&page("negative", "Acme Fund"), &FilterData::EMPTY).unwrap();
+                let out = filter(vec![], vec![], false)
+                    .call(&page("negative", "Acme Fund"), &FilterData::EMPTY)
+                    .unwrap();
                 assert_eq!(out[0].type_block, BlockType::SFDR_ARTICLE);
             }
 
             #[test]
             fn a_page_with_no_blocks_at_all_produces_nothing() {
-                assert!(filter(vec![], vec![], false).filter(&[], &FilterData::EMPTY).unwrap().is_empty());
+                assert!(
+                    filter(vec![], vec![], false)
+                        .filter(&[], &FilterData::EMPTY)
+                        .unwrap()
+                        .is_empty()
+                );
             }
         }
     }
@@ -3220,9 +3952,15 @@ mod tests {
         #[test]
         fn builds_the_same_block_as_the_standard_txt_blk_helper() {
             let block = manco_block("Acme AM");
-            let previous = vec![Extracted::Fund(Fund::new("Alpha Fund")), Extracted::Fund(Fund::new("Beta Fund"))];
+            let previous = vec![
+                Extracted::Fund(Fund::new("Alpha Fund")),
+                Extracted::Fund(Fund::new("Beta Fund")),
+            ];
             let via_filter = TextFilterManagmentCompanyStandard
-                .call(std::slice::from_ref(&block), &FilterData::Previous(&previous))
+                .call(
+                    std::slice::from_ref(&block),
+                    &FilterData::Previous(&previous),
+                )
                 .unwrap();
 
             // The expected set has to be derived from the same funds as `previous`, not from
@@ -3242,7 +3980,9 @@ mod tests {
             let blks = vec![PdfBlock::bare(BlockType::TABLE_BODY, "irrelevant")];
             assert!(matches!(
                 TextFilterManagmentCompanyStandard.call(&blks, &FilterData::Previous(&previous)),
-                Err(StandardFuncsError::ExpectedBlockTypeMissing { block_type: "management company" })
+                Err(StandardFuncsError::ExpectedBlockTypeMissing {
+                    block_type: "management company"
+                })
             ));
         }
 
@@ -3251,7 +3991,9 @@ mod tests {
             let previous: Vec<Extracted> = vec![];
             assert!(matches!(
                 TextFilterManagmentCompanyStandard.call(&[], &FilterData::Previous(&previous)),
-                Err(StandardFuncsError::ExpectedBlockTypeMissing { block_type: "management company" })
+                Err(StandardFuncsError::ExpectedBlockTypeMissing {
+                    block_type: "management company"
+                })
             ));
         }
 
@@ -3259,20 +4001,30 @@ mod tests {
         fn the_first_management_company_block_is_used_when_several_are_present() {
             let previous: Vec<Extracted> = vec![];
             let blks = vec![manco_block("First"), manco_block("Second")];
-            let out =
-                TextFilterManagmentCompanyStandard.call(&blks, &FilterData::Previous(&previous)).unwrap();
+            let out = TextFilterManagmentCompanyStandard
+                .call(&blks, &FilterData::Previous(&previous))
+                .unwrap();
             assert_eq!(out[0].content.as_str(), Some("First"));
         }
 
         #[test]
         fn an_unresolved_fund_does_not_contribute_to_managed_funds() {
             let previous = vec![Extracted::Fund(
-                Fund::from_value(&BlockValue::Promise(crate::core::promise::Promise::new("id"))).unwrap(),
+                Fund::from_value(&BlockValue::Promise(crate::core::promise::Promise::new(
+                    "id",
+                )))
+                .unwrap(),
             )];
             let block = manco_block("Acme AM");
-            let out =
-                TextFilterManagmentCompanyStandard.call(&[block], &FilterData::Previous(&previous)).unwrap();
-            let managed_funds = out[0].metadata.get("managed_funds").unwrap().as_set().unwrap();
+            let out = TextFilterManagmentCompanyStandard
+                .call(&[block], &FilterData::Previous(&previous))
+                .unwrap();
+            let managed_funds = out[0]
+                .metadata
+                .get("managed_funds")
+                .unwrap()
+                .as_set()
+                .unwrap();
             assert!(managed_funds.is_empty());
         }
 
@@ -3281,12 +4033,17 @@ mod tests {
 
             #[test]
             fn the_pipe_name_identifies_it_in_errors() {
-                assert_eq!(TextFilterManagmentCompanyStandard.name(), "TextFilterManagmentCompanyStandard");
+                assert_eq!(
+                    TextFilterManagmentCompanyStandard.name(),
+                    "TextFilterManagmentCompanyStandard"
+                );
             }
 
             #[test]
             fn a_missing_management_company_block_is_a_fatal_error_not_a_page_failure() {
-                let err = TextFilterManagmentCompanyStandard.filter(&[], &FilterData::EMPTY).unwrap_err();
+                let err = TextFilterManagmentCompanyStandard
+                    .filter(&[], &FilterData::EMPTY)
+                    .unwrap_err();
                 assert!(!err.is_page_failure());
             }
         }
@@ -3320,17 +4077,22 @@ mod tests {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund*", "EUR", None)];
 
-                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+                let kept = filter
+                    .call(&blocks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
 
                 assert!(kept.is_empty(), "the asterisk makes it a different fund");
             }
 
             #[test]
             fn the_same_fund_is_recognised_once_the_mark_is_cut() {
-                let filter = TextFilterAssetsStandard::new(None, vec![r"\s*[*]*\s*$".to_string()]).unwrap();
+                let filter =
+                    TextFilterAssetsStandard::new(None, vec![r"\s*[*]*\s*$".to_string()]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund*", "EUR", None)];
 
-                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+                let kept = filter
+                    .call(&blocks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
 
                 assert_eq!(kept.len(), 1);
                 assert_eq!(kept[0].metadata["fund"], BlockValue::from("Alpha Fund"));
@@ -3340,10 +4102,13 @@ mod tests {
             /// su ANIMA-EN23 p63, dove l'asterisco è perfino una riga a sé.
             #[test]
             fn a_mark_separated_by_a_space_goes_too() {
-                let filter = TextFilterAssetsStandard::new(None, vec![r"\s*[*†]*\s*$".to_string()]).unwrap();
+                let filter =
+                    TextFilterAssetsStandard::new(None, vec![r"\s*[*†]*\s*$".to_string()]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund *", "EUR", None)];
 
-                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+                let kept = filter
+                    .call(&blocks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
 
                 assert_eq!(kept.len(), 1);
                 assert_eq!(kept[0].metadata["fund"], BlockValue::from("Alpha Fund"));
@@ -3351,10 +4116,13 @@ mod tests {
 
             #[test]
             fn a_name_that_carries_no_mark_is_left_exactly_as_it_is() {
-                let filter = TextFilterAssetsStandard::new(None, vec![r"\s*[*]*\s*$".to_string()]).unwrap();
+                let filter =
+                    TextFilterAssetsStandard::new(None, vec![r"\s*[*]*\s*$".to_string()]).unwrap();
                 let blocks = vec![asset_block("Alpha Fund", "EUR", None)];
 
-                let kept = filter.call(&blocks, &FilterData::Previous(&known_funds())).unwrap();
+                let kept = filter
+                    .call(&blocks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
 
                 assert_eq!(kept[0].metadata["fund"], BlockValue::from("Alpha Fund"));
             }
@@ -3370,7 +4138,9 @@ mod tests {
 
             #[test]
             fn a_date_regex_with_exactly_one_capturing_group_is_accepted() {
-                assert!(TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).is_ok());
+                assert!(
+                    TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).is_ok()
+                );
             }
 
             #[test]
@@ -3380,12 +4150,16 @@ mod tests {
 
             #[test]
             fn a_date_regex_with_more_than_one_capturing_group_is_rejected() {
-                assert!(TextFilterAssetsStandard::new(Some(r"(\d{2})/(\d{2})/\d{4}"), vec![]).is_err());
+                assert!(
+                    TextFilterAssetsStandard::new(Some(r"(\d{2})/(\d{2})/\d{4}"), vec![]).is_err()
+                );
             }
 
             #[test]
             fn an_invalid_removal_pattern_is_rejected() {
-                assert!(TextFilterAssetsStandard::new(None, vec!["(unterminated".to_string()]).is_err());
+                assert!(
+                    TextFilterAssetsStandard::new(None, vec!["(unterminated".to_string()]).is_err()
+                );
             }
         }
 
@@ -3396,7 +4170,9 @@ mod tests {
             fn a_fund_present_among_resolved_funds_produces_a_block() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "EUR", None)];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
                 assert_eq!(out.len(), 1);
             }
 
@@ -3404,26 +4180,38 @@ mod tests {
             fn a_fund_not_present_produces_nothing_for_that_block_not_an_error() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Nobody's Fund", "EUR", None)];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
                 assert!(out.is_empty());
             }
 
             #[test]
             fn other_blocks_still_produce_output_when_one_fund_does_not_match() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
-                let blks =
-                    vec![asset_block("Nobody's Fund", "EUR", None), asset_block("Alpha Fund", "EUR", None)];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                let blks = vec![
+                    asset_block("Nobody's Fund", "EUR", None),
+                    asset_block("Alpha Fund", "EUR", None),
+                ];
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
                 assert_eq!(out.len(), 1);
             }
 
             #[test]
             fn remove_from_fund_regexes_are_applied_before_the_match() {
-                let filter = TextFilterAssetsStandard::new(None, vec!["^Prefix ".to_string()]).unwrap();
+                let filter =
+                    TextFilterAssetsStandard::new(None, vec!["^Prefix ".to_string()]).unwrap();
                 let blks = vec![asset_block("Prefix Alpha Fund", "EUR", None)];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
                 assert_eq!(out.len(), 1);
-                assert_eq!(out[0].metadata.get("fund"), Some(&BlockValue::from("Alpha Fund")));
+                assert_eq!(
+                    out[0].metadata.get("fund"),
+                    Some(&BlockValue::from("Alpha Fund"))
+                );
             }
         }
 
@@ -3432,17 +4220,26 @@ mod tests {
 
             #[test]
             fn the_date_regex_extracts_its_single_capturing_group() {
-                let filter = TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).unwrap();
+                let filter =
+                    TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "EUR", Some("As of 31/12/2024"))];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
-                assert_eq!(out[0].metadata.get("date"), Some(&BlockValue::from("31/12/2024")));
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
+                assert_eq!(
+                    out[0].metadata.get("date"),
+                    Some(&BlockValue::from("31/12/2024"))
+                );
             }
 
             #[test]
             fn a_date_that_does_not_match_the_configured_pattern_is_an_error() {
-                let filter = TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).unwrap();
+                let filter =
+                    TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "EUR", Some("no date here"))];
-                let err = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap_err();
+                let err = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap_err();
                 assert!(matches!(err, StandardFuncsError::DateRegexMismatch { .. }));
             }
 
@@ -3450,23 +4247,37 @@ mod tests {
             fn without_a_configured_date_regex_the_date_field_is_left_untouched() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "EUR", Some("As of 31/12/2024"))];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
-                assert_eq!(out[0].metadata.get("date"), Some(&BlockValue::from("As of 31/12/2024")));
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
+                assert_eq!(
+                    out[0].metadata.get("date"),
+                    Some(&BlockValue::from("As of 31/12/2024"))
+                );
             }
 
             #[test]
             fn the_currency_is_extracted_from_free_text_and_typed() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "Reported in EUR", None)];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
-                assert_eq!(out[0].metadata.get("currency"), Some(&BlockValue::from(Currency::EUR)));
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
+                assert_eq!(
+                    out[0].metadata.get("currency"),
+                    Some(&BlockValue::from(Currency::EUR))
+                );
             }
 
             #[test]
             fn an_unreadable_currency_is_an_error() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "no currency here", None)];
-                assert!(filter.call(&blks, &FilterData::Previous(&known_funds())).is_err());
+                assert!(
+                    filter
+                        .call(&blks, &FilterData::Previous(&known_funds()))
+                        .is_err()
+                );
             }
         }
 
@@ -3477,7 +4288,9 @@ mod tests {
             fn the_result_is_a_relevant_block_with_empty_content() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "EUR", None)];
-                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                let out = filter
+                    .call(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap();
                 assert_eq!(out[0].type_block, BlockType::RELEVANT_BLOCK);
                 assert_eq!(out[0].content.as_str(), Some(""));
             }
@@ -3487,7 +4300,11 @@ mod tests {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let metadata = BTreeMap::from([("currency".to_string(), BlockValue::from("EUR"))]);
                 let blk = PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, "");
-                assert!(filter.call(&[blk], &FilterData::Previous(&known_funds())).is_err());
+                assert!(
+                    filter
+                        .call(&[blk], &FilterData::Previous(&known_funds()))
+                        .is_err()
+                );
             }
         }
 
@@ -3504,7 +4321,9 @@ mod tests {
             fn an_unreadable_currency_is_a_fatal_error_through_the_trait_too() {
                 let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
                 let blks = vec![asset_block("Alpha Fund", "no currency here", None)];
-                let err = filter.filter(&blks, &FilterData::Previous(&known_funds())).unwrap_err();
+                let err = filter
+                    .filter(&blks, &FilterData::Previous(&known_funds()))
+                    .unwrap_err();
                 assert!(!err.is_page_failure());
             }
         }

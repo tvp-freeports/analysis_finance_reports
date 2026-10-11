@@ -70,7 +70,11 @@ impl LazyDocument {
             let opened = open_document(&fitz, path);
             drain_pdf_reader_warnings(&fitz);
             let (document, page_count) = opened?;
-            Ok(Self { document, page_count, auto_rotate })
+            Ok(Self {
+                document,
+                page_count,
+                auto_rotate,
+            })
         })
     }
 
@@ -88,7 +92,9 @@ impl LazyDocument {
     ///
     /// [`DocumentError::Page`] if the page exists but cannot be converted.
     pub fn page(&self, number: NonZeroI32) -> Result<Option<Page>, DocumentError> {
-        let Some(index) = resolve_page_number(number, self.page_count) else { return Ok(None) };
+        let Some(index) = resolve_page_number(number, self.page_count) else {
+            return Ok(None);
+        };
         Python::attach(|py| {
             let page = convert_page(self.document.bind(py), index, self.auto_rotate);
             if let Ok(fitz) = PyModule::import(py, "fitz") {
@@ -117,8 +123,13 @@ impl Drop for LazyDocument {
 
 /// The part of [`LazyDocument::open`] that can fail after PyMuPDF is imported, kept apart so the
 /// warnings are drained on every outcome.
-fn open_document(fitz: &Bound<'_, PyModule>, path: &Path) -> Result<(Py<PyAny>, usize), DocumentError> {
-    let document = fitz.call_method1("open", (path.to_string_lossy().to_string(),)).map_err(|e| open_error(path, e))?;
+fn open_document(
+    fitz: &Bound<'_, PyModule>,
+    path: &Path,
+) -> Result<(Py<PyAny>, usize), DocumentError> {
+    let document = fitz
+        .call_method1("open", (path.to_string_lossy().to_string(),))
+        .map_err(|e| open_error(path, e))?;
     let page_count = document.len().map_err(|e| open_error(path, e))?;
     Ok((document.unbind(), page_count))
 }
@@ -146,7 +157,11 @@ mod tests {
             #[test]
             fn are_one_based_throughout_the_document() {
                 for (number, expected) in [(1, 0), (2, 1), (3, 2), (4, 3)] {
-                    assert_eq!(resolve_page_number(n(number), 4), Some(expected), "page {number} of 4");
+                    assert_eq!(
+                        resolve_page_number(n(number), 4),
+                        Some(expected),
+                        "page {number} of 4"
+                    );
                 }
             }
 
@@ -177,7 +192,11 @@ mod tests {
             #[test]
             fn count_from_the_end_throughout_the_document() {
                 for (number, expected) in [(-1, 3), (-2, 2), (-3, 1), (-4, 0)] {
-                    assert_eq!(resolve_page_number(n(number), 4), Some(expected), "page {number} of 4");
+                    assert_eq!(
+                        resolve_page_number(n(number), 4),
+                        Some(expected),
+                        "page {number} of 4"
+                    );
                 }
             }
 
@@ -225,7 +244,11 @@ mod tests {
             #[test]
             fn a_document_with_no_pages_has_none_of_them() {
                 for number in [1, 2, -1, -2, i32::MAX, i32::MIN] {
-                    assert_eq!(resolve_page_number(n(number), 0), None, "page {number} of 0");
+                    assert_eq!(
+                        resolve_page_number(n(number), 0),
+                        None,
+                        "page {number} of 0"
+                    );
                 }
             }
 
@@ -234,8 +257,14 @@ mod tests {
                 let huge = usize::try_from(i64::from(i32::MAX) + 10).expect("a 64-bit usize");
                 assert_eq!(resolve_page_number(n(1), huge), Some(0));
                 assert_eq!(resolve_page_number(n(-1), huge), Some(huge - 1));
-                assert_eq!(resolve_page_number(n(i32::MAX), huge), Some(usize::try_from(i32::MAX).unwrap() - 1));
-                assert_eq!(resolve_page_number(n(i32::MIN), huge), Some(huge - usize::try_from(i32::MIN.unsigned_abs()).unwrap()));
+                assert_eq!(
+                    resolve_page_number(n(i32::MAX), huge),
+                    Some(usize::try_from(i32::MAX).unwrap() - 1)
+                );
+                assert_eq!(
+                    resolve_page_number(n(i32::MIN), huge),
+                    Some(huge - usize::try_from(i32::MIN.unsigned_abs()).unwrap())
+                );
             }
         }
 
@@ -246,7 +275,10 @@ mod tests {
             const ORDER: [i32; 5] = [1, 3, 5, 2, -2];
 
             fn resolve_all(page_count: usize) -> Vec<Option<usize>> {
-                ORDER.iter().map(|&number| resolve_page_number(n(number), page_count)).collect()
+                ORDER
+                    .iter()
+                    .map(|&number| resolve_page_number(n(number), page_count))
+                    .collect()
             }
 
             #[test]
@@ -261,12 +293,18 @@ mod tests {
 
             #[test]
             fn on_four_pages_only_the_fifth_is_missing() {
-                assert_eq!(resolve_all(4), vec![Some(0), Some(2), None, Some(1), Some(2)]);
+                assert_eq!(
+                    resolve_all(4),
+                    vec![Some(0), Some(2), None, Some(1), Some(2)]
+                );
             }
 
             #[test]
             fn on_ten_pages_every_page_exists() {
-                assert_eq!(resolve_all(10), vec![Some(0), Some(2), Some(4), Some(1), Some(8)]);
+                assert_eq!(
+                    resolve_all(10),
+                    vec![Some(0), Some(2), Some(4), Some(1), Some(8)]
+                );
             }
         }
     }
@@ -307,11 +345,17 @@ mod tests {
             Python::attach(|py| {
                 let globals = PyDict::new(py);
                 globals.set_item("fitz", fitz(py)).unwrap();
-                globals.set_item("path", path.to_str().expect("temp path must be valid utf-8")).unwrap();
+                globals
+                    .set_item(
+                        "path",
+                        path.to_str().expect("temp path must be valid utf-8"),
+                    )
+                    .unwrap();
                 for (name, value) in extra {
                     globals.set_item(*name, *value).unwrap();
                 }
-                py.run(code, Some(&globals), None).expect("the fixture-building snippet must run");
+                py.run(code, Some(&globals), None)
+                    .expect("the fixture-building snippet must run");
             });
         }
 
@@ -366,7 +410,10 @@ doc.close()
             let healthy = plain_pdf(dir, 3);
             let path = dir.path().join("broken-xref.pdf");
             let bytes = std::fs::read(&healthy).unwrap();
-            let at = bytes.windows(9).rposition(|w| w == b"startxref").expect("a saved pdf has a startxref");
+            let at = bytes
+                .windows(9)
+                .rposition(|w| w == b"startxref")
+                .expect("a saved pdf has a startxref");
             let mut broken = bytes[..at].to_vec();
             broken.extend_from_slice(b"startxref\n999999\n%%EOF\n");
             std::fs::write(&path, broken).unwrap();
@@ -409,21 +456,37 @@ doc.close()
 
         /// Everything a [`PdfLine`](crate::formats_utils::pdf_extract::pdf_line::PdfLine) holds, in
         /// comparable form: the type itself does not derive `PartialEq`.
-        fn line_facts(page: &Page) -> Vec<(String, f32, String, crate::commons::geometry::Rectangle)> {
+        fn line_facts(
+            page: &Page,
+        ) -> Vec<(String, f32, String, crate::commons::geometry::Rectangle)> {
             page.lines
                 .iter()
-                .map(|line| (line.font().inner().to_string(), *line.font_size(), line.text().clone(), *line.bbox()))
+                .map(|line| {
+                    (
+                        line.font().inner().to_string(),
+                        *line.font_size(),
+                        line.text().clone(),
+                        *line.bbox(),
+                    )
+                })
                 .collect()
         }
 
         fn texts(page: &Page) -> Vec<String> {
-            page.lines.iter().map(|line| line.text().trim().to_string()).collect()
+            page.lines
+                .iter()
+                .map(|line| line.text().trim().to_string())
+                .collect()
         }
 
         fn assert_is_page(page: &Page, number: u32) {
             assert_eq!(page.number, number, "the page's own number");
             let expected = format!("pagina {number}");
-            assert!(texts(page).contains(&expected), "expected a line `{expected}` on page {number}, got {:?}", texts(page));
+            assert!(
+                texts(page).contains(&expected),
+                "expected a line `{expected}` on page {number}, got {:?}",
+                texts(page)
+            );
         }
 
         fn temp_dir() -> tempfile::TempDir {
@@ -437,7 +500,8 @@ doc.close()
             fn reports_the_page_count() {
                 let dir = temp_dir();
                 for page_count in [1, 2, 4, 10] {
-                    let document = LazyDocument::open(&plain_pdf(&dir, page_count), true).expect("a freshly built pdf opens");
+                    let document = LazyDocument::open(&plain_pdf(&dir, page_count), true)
+                        .expect("a freshly built pdf opens");
                     assert_eq!(document.page_count(), usize::try_from(page_count).unwrap());
                 }
             }
@@ -446,7 +510,9 @@ doc.close()
             fn a_missing_file_is_an_open_error_naming_the_path() {
                 let path = Path::new("/nonexistent/path/does-not-exist.pdf");
                 match LazyDocument::open(path, true) {
-                    Err(DocumentError::Open { path: reported, .. }) => assert_eq!(reported, path.display().to_string()),
+                    Err(DocumentError::Open { path: reported, .. }) => {
+                        assert_eq!(reported, path.display().to_string())
+                    }
                     Err(other) => panic!("expected DocumentError::Open, got {other:?}"),
                     Ok(_) => panic!("expected DocumentError::Open, got a document"),
                 }
@@ -458,14 +524,20 @@ doc.close()
                 let path = dir.path().join("garbage.pdf");
                 std::fs::write(&path, "this is not a pdf").unwrap();
                 let opened = LazyDocument::open(&path, true);
-                assert!(matches!(opened, Err(DocumentError::Open { .. })), "expected DocumentError::Open");
+                assert!(
+                    matches!(opened, Err(DocumentError::Open { .. })),
+                    "expected DocumentError::Open"
+                );
             }
 
             #[test]
             fn a_directory_is_an_open_error() {
                 let dir = temp_dir();
                 let opened = LazyDocument::open(dir.path(), true);
-                assert!(matches!(opened, Err(DocumentError::Open { .. })), "expected DocumentError::Open");
+                assert!(
+                    matches!(opened, Err(DocumentError::Open { .. })),
+                    "expected DocumentError::Open"
+                );
             }
 
             /// The file is opened once and kept open: once opened, the document no longer needs
@@ -494,7 +566,10 @@ doc.close()
                 let dir = temp_dir();
                 let document = LazyDocument::open(&plain_pdf(&dir, 4), true).unwrap();
                 for number in 1..=4 {
-                    let page = document.page(n(number)).unwrap().unwrap_or_else(|| panic!("page {number} of 4 exists"));
+                    let page = document
+                        .page(n(number))
+                        .unwrap()
+                        .unwrap_or_else(|| panic!("page {number} of 4 exists"));
                     assert_is_page(&page, u32::try_from(number).unwrap());
                 }
             }
@@ -504,7 +579,10 @@ doc.close()
                 let dir = temp_dir();
                 let document = LazyDocument::open(&plain_pdf(&dir, 4), true).unwrap();
                 for (number, real) in [(-1, 4), (-2, 3), (-3, 2), (-4, 1)] {
-                    let page = document.page(n(number)).unwrap().unwrap_or_else(|| panic!("page {number} of 4 exists"));
+                    let page = document
+                        .page(n(number))
+                        .unwrap()
+                        .unwrap_or_else(|| panic!("page {number} of 4 exists"));
                     assert_is_page(&page, real);
                 }
             }
@@ -560,7 +638,10 @@ doc.close()
                 let once = document.page(n(2)).unwrap().unwrap();
                 let twice = document.page(n(-2)).unwrap().unwrap();
                 assert_is_page(&once, 2);
-                assert_eq!((once.number, once.size, line_facts(&once)), (twice.number, twice.size, line_facts(&twice)));
+                assert_eq!(
+                    (once.number, once.size, line_facts(&once)),
+                    (twice.number, twice.size, line_facts(&twice))
+                );
             }
         }
 
@@ -577,11 +658,14 @@ doc.close()
                 ORDER
                     .iter()
                     .map(|&number| {
-                        document.page(n(number)).unwrap_or_else(|e| panic!("page {number} of {page_count}: {e}")).map(|page| {
-                            // The page's text, not only its number, says it is the right page.
-                            assert_is_page(&page, page.number);
-                            page.number
-                        })
+                        document
+                            .page(n(number))
+                            .unwrap_or_else(|e| panic!("page {number} of {page_count}: {e}"))
+                            .map(|page| {
+                                // The page's text, not only its number, says it is the right page.
+                                assert_is_page(&page, page.number);
+                                page.number
+                            })
                     })
                     .collect()
             }
@@ -593,17 +677,26 @@ doc.close()
 
             #[test]
             fn on_two_pages() {
-                assert_eq!(pages_returned(2), vec![Some(1), None, None, Some(2), Some(1)]);
+                assert_eq!(
+                    pages_returned(2),
+                    vec![Some(1), None, None, Some(2), Some(1)]
+                );
             }
 
             #[test]
             fn on_four_pages() {
-                assert_eq!(pages_returned(4), vec![Some(1), Some(3), None, Some(2), Some(3)]);
+                assert_eq!(
+                    pages_returned(4),
+                    vec![Some(1), Some(3), None, Some(2), Some(3)]
+                );
             }
 
             #[test]
             fn on_ten_pages() {
-                assert_eq!(pages_returned(10), vec![Some(1), Some(3), Some(5), Some(2), Some(9)]);
+                assert_eq!(
+                    pages_returned(10),
+                    vec![Some(1), Some(3), Some(5), Some(2), Some(9)]
+                );
             }
         }
 
@@ -614,13 +707,29 @@ doc.close()
             fn assert_same_page(lazy: &Page, full: &Page) {
                 assert_eq!(lazy.number, full.number, "number");
                 assert_eq!(lazy.size, full.size, "size of page {}", full.number);
-                assert_eq!(line_facts(lazy), line_facts(full), "lines of page {}", full.number);
+                assert_eq!(
+                    line_facts(lazy),
+                    line_facts(full),
+                    "lines of page {}",
+                    full.number
+                );
                 assert_eq!(lazy.images, full.images, "images of page {}", full.number);
-                assert_eq!(lazy.drawings, full.drawings, "drawings of page {}", full.number);
+                assert_eq!(
+                    lazy.drawings, full.drawings,
+                    "drawings of page {}",
+                    full.number
+                );
                 Python::attach(|py| {
                     let lazy_raw = lazy.raw().expect("the lazy page keeps its dict").bind(py);
-                    let full_raw = full.raw().expect("the fully loaded page keeps its dict").bind(py);
-                    assert!(lazy_raw.eq(full_raw).unwrap(), "pymupdf dict of page {}", full.number);
+                    let full_raw = full
+                        .raw()
+                        .expect("the fully loaded page keeps its dict")
+                        .bind(py);
+                    assert!(
+                        lazy_raw.eq(full_raw).unwrap(),
+                        "pymupdf dict of page {}",
+                        full.number
+                    );
                 });
             }
 
@@ -630,9 +739,21 @@ doc.close()
                 let full = load_document_pages(&path, auto_rotate).expect("the full load succeeds");
                 // The comparison would prove nothing on pages with nothing to compare.
                 for page in &full {
-                    assert!(!page.lines.is_empty(), "the fixture's page {} has lines", page.number);
-                    assert!(!page.images.is_empty(), "the fixture's page {} has an image", page.number);
-                    assert!(!page.drawings.is_empty(), "the fixture's page {} has a drawing", page.number);
+                    assert!(
+                        !page.lines.is_empty(),
+                        "the fixture's page {} has lines",
+                        page.number
+                    );
+                    assert!(
+                        !page.images.is_empty(),
+                        "the fixture's page {} has an image",
+                        page.number
+                    );
+                    assert!(
+                        !page.drawings.is_empty(),
+                        "the fixture's page {} has a drawing",
+                        page.number
+                    );
                 }
 
                 let document = LazyDocument::open(&path, auto_rotate).unwrap();
@@ -669,9 +790,21 @@ doc.close()
                     "the fixture's page 3 must be sensitive to auto_rotate, or this test proves nothing"
                 );
 
-                let rotated = LazyDocument::open(&path, true).unwrap().page(n(3)).unwrap().unwrap();
-                let unrotated = LazyDocument::open(&path, false).unwrap().page(n(3)).unwrap().unwrap();
-                assert_ne!(line_facts(&rotated), line_facts(&unrotated), "the fixture's page 3 must be sensitive to auto_rotate");
+                let rotated = LazyDocument::open(&path, true)
+                    .unwrap()
+                    .page(n(3))
+                    .unwrap()
+                    .unwrap();
+                let unrotated = LazyDocument::open(&path, false)
+                    .unwrap()
+                    .page(n(3))
+                    .unwrap()
+                    .unwrap();
+                assert_ne!(
+                    line_facts(&rotated),
+                    line_facts(&unrotated),
+                    "the fixture's page 3 must be sensitive to auto_rotate"
+                );
             }
         }
 
@@ -703,31 +836,49 @@ doc.close()
                     body();
                     return;
                 }
-                let module = module_path!().split_once("::").expect("a module path inside the crate").1;
+                let module = module_path!()
+                    .split_once("::")
+                    .expect("a module path inside the crate")
+                    .1;
                 let test = format!("{module}::{name}");
-                let output = std::process::Command::new(std::env::current_exe().expect("the test binary's own path"))
-                    .args([test.as_str(), "--exact", "--test-threads=1", "--nocapture"])
-                    .env(ISOLATED, "1")
-                    .output()
-                    .expect("the test binary can be respawned");
+                let output = std::process::Command::new(
+                    std::env::current_exe().expect("the test binary's own path"),
+                )
+                .args([test.as_str(), "--exact", "--test-threads=1", "--nocapture"])
+                .env(ISOLATED, "1")
+                .output()
+                .expect("the test binary can be respawned");
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                assert!(output.status.success(), "`{test}` failed in its own process ({}):\n{stdout}\n{stderr}", output.status);
-                assert!(stdout.contains("1 passed"), "`{test}` did not run exactly once in its own process:\n{stdout}\n{stderr}");
+                assert!(
+                    output.status.success(),
+                    "`{test}` failed in its own process ({}):\n{stdout}\n{stderr}",
+                    output.status
+                );
+                assert!(
+                    stdout.contains("1 passed"),
+                    "`{test}` did not run exactly once in its own process:\n{stdout}\n{stderr}"
+                );
             }
 
             /// Guards against a vacuous pass: the fixture must really make MuPDF complain.
             fn assert_provokes_warnings(path: &Path, page_index: Option<i64>) {
                 take_mupdf_warnings();
                 Python::attach(|py| {
-                    let doc = fitz(py).call_method1("open", (path.to_str().unwrap(),)).unwrap();
+                    let doc = fitz(py)
+                        .call_method1("open", (path.to_str().unwrap(),))
+                        .unwrap();
                     if let Some(index) = page_index {
                         let page = doc.call_method1("load_page", (index,)).unwrap();
                         page.call_method1("get_text", ("dict",)).unwrap();
                     }
                     doc.call_method0("close").unwrap();
                 });
-                assert!(!take_mupdf_warnings().is_empty(), "the fixture {} must make MuPDF complain", path.display());
+                assert!(
+                    !take_mupdf_warnings().is_empty(),
+                    "the fixture {} must make MuPDF complain",
+                    path.display()
+                );
             }
 
             #[test]
@@ -737,8 +888,13 @@ doc.close()
                     let path = broken_xref_pdf(&dir);
                     assert_provokes_warnings(&path, None);
 
-                    let document = LazyDocument::open(&path, true).expect("MuPDF repairs the xref and opens the document");
-                    assert_eq!(take_mupdf_warnings(), "", "opening must drain what MuPDF said while opening");
+                    let document = LazyDocument::open(&path, true)
+                        .expect("MuPDF repairs the xref and opens the document");
+                    assert_eq!(
+                        take_mupdf_warnings(),
+                        "",
+                        "opening must drain what MuPDF said while opening"
+                    );
                     assert_eq!(document.page_count(), 3);
                 });
             }
@@ -752,9 +908,15 @@ doc.close()
 
                     let document = LazyDocument::open(&path, true).unwrap();
                     take_mupdf_warnings();
-                    let page = document.page(n(2)).expect("a corrupt content stream is a warning, not an error");
+                    let page = document
+                        .page(n(2))
+                        .expect("a corrupt content stream is a warning, not an error");
                     assert!(page.is_some(), "page 2 exists");
-                    assert_eq!(take_mupdf_warnings(), "", "converting a page must drain what MuPDF said about it");
+                    assert_eq!(
+                        take_mupdf_warnings(),
+                        "",
+                        "converting a page must drain what MuPDF said about it"
+                    );
                 });
             }
 
@@ -767,7 +929,11 @@ doc.close()
                     assert_provokes_warnings_on_failed_open(&path);
 
                     assert!(LazyDocument::open(&path, true).is_err());
-                    assert_eq!(take_mupdf_warnings(), "", "a failed open must drain what MuPDF said while failing");
+                    assert_eq!(
+                        take_mupdf_warnings(),
+                        "",
+                        "a failed open must drain what MuPDF said while failing"
+                    );
                 });
             }
 
@@ -775,9 +941,18 @@ doc.close()
             fn assert_provokes_warnings_on_failed_open(path: &Path) {
                 take_mupdf_warnings();
                 Python::attach(|py| {
-                    assert!(fitz(py).call_method1("open", (path.to_str().unwrap(),)).is_err(), "the fixture must fail to open");
+                    assert!(
+                        fitz(py)
+                            .call_method1("open", (path.to_str().unwrap(),))
+                            .is_err(),
+                        "the fixture must fail to open"
+                    );
                 });
-                assert!(!take_mupdf_warnings().is_empty(), "the fixture {} must make MuPDF complain", path.display());
+                assert!(
+                    !take_mupdf_warnings().is_empty(),
+                    "the fixture {} must make MuPDF complain",
+                    path.display()
+                );
             }
 
             #[test]
@@ -792,7 +967,11 @@ doc.close()
                             document.page(n(number)).unwrap();
                         }
                     }
-                    assert_eq!(take_mupdf_warnings(), "", "nothing may be left in the buffer once the document is gone");
+                    assert_eq!(
+                        take_mupdf_warnings(),
+                        "",
+                        "nothing may be left in the buffer once the document is gone"
+                    );
                 });
             }
         }

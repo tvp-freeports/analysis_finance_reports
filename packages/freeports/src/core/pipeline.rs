@@ -92,11 +92,7 @@ impl Pipeline {
     }
 
     /// Extract, filter, deserialize: the whole chain over one page.
-    pub fn apply(
-        &self,
-        page: &Page,
-        data: &FilterData<'_>,
-    ) -> Result<Vec<Extracted>, PipeError> {
+    pub fn apply(&self, page: &Page, data: &FilterData<'_>) -> Result<Vec<Extracted>, PipeError> {
         // Where the `Activity` vocabulary is orchestrated: the three segments — opened inside
         // `Segment::apply` — and the `pipe[<name>]` of each nest below this span.
         let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
@@ -112,9 +108,17 @@ impl Pipeline {
     /// A single author-written pipe is enough to answer `false`: the segments run in a chain, so
     /// the GIL taken by one of them serialises the page's whole chain anyway.
     pub fn scales_with_threads(&self) -> bool {
-        self.pdf_extract.iter().all(|pipe| pipe.scales_with_threads())
-            && self.text_filter.iter().all(|pipe| pipe.scales_with_threads())
-            && self.deserialize.iter().all(|pipe| pipe.scales_with_threads())
+        self.pdf_extract
+            .iter()
+            .all(|pipe| pipe.scales_with_threads())
+            && self
+                .text_filter
+                .iter()
+                .all(|pipe| pipe.scales_with_threads())
+            && self
+                .deserialize
+                .iter()
+                .all(|pipe| pipe.scales_with_threads())
     }
 
     /// The first segment alone — the per-segment API the format development tooling drives.
@@ -182,8 +186,12 @@ mod tests {
     fn classifying_pipeline(name: &str, class: Option<&str>) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-        pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-        pipeline.deserialize.push(ConstantClassifier::pipe("classify", class));
+        pipeline
+            .text_filter
+            .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+        pipeline
+            .deserialize
+            .push(ConstantClassifier::pipe("classify", class));
         pipeline
     }
 
@@ -244,7 +252,9 @@ mod tests {
         #[test]
         fn the_three_segments_run_in_order_and_feed_each_other() {
             let pipeline = classifying_pipeline("p", Some("investments"));
-            let out = pipeline.apply(&page_with(&["a", "b"]), &FilterData::EMPTY).unwrap();
+            let out = pipeline
+                .apply(&page_with(&["a", "b"]), &FilterData::EMPTY)
+                .unwrap();
             // Two lines -> two pdf blocks -> two text blocks -> two classifications.
             assert_eq!(
                 out,
@@ -264,7 +274,12 @@ mod tests {
             pipeline
                 .text_filter
                 .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            assert!(pipeline.apply(&page_with(&["a"]), &FilterData::EMPTY).unwrap().is_empty());
+            assert!(
+                pipeline
+                    .apply(&page_with(&["a"]), &FilterData::EMPTY)
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -273,7 +288,9 @@ mod tests {
             pipeline.pdf_extract = PdfExtractSegment::new();
             pipeline.pdf_extract.push(FailingExtract::fatal("boom"));
 
-            let err = pipeline.apply(&page_with(&["a"]), &FilterData::EMPTY).unwrap_err();
+            let err = pipeline
+                .apply(&page_with(&["a"]), &FilterData::EMPTY)
+                .unwrap_err();
             assert_eq!(err.pipe(), "boom");
         }
 
@@ -282,11 +299,17 @@ mod tests {
             let filter = RecordingFilter::new("filter");
             let mut pipeline = Pipeline::new("p");
             pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-            pipeline.text_filter.push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
-            pipeline.deserialize.push(ConstantClassifier::pipe("classify", None));
+            pipeline
+                .text_filter
+                .push(Arc::clone(&filter) as Arc<dyn TextFilterPipe>);
+            pipeline
+                .deserialize
+                .push(ConstantClassifier::pipe("classify", None));
 
             let previous = vec![Extracted::PageClass(None), Extracted::PageClass(None)];
-            pipeline.apply(&page_with(&["a"]), &FilterData::Previous(&previous)).unwrap();
+            pipeline
+                .apply(&page_with(&["a"]), &FilterData::Previous(&previous))
+                .unwrap();
             assert_eq!(filter.seen(), vec![(0, 2)]);
         }
     }
@@ -299,16 +322,16 @@ mod tests {
         fn apply_pdf_extract_stops_after_the_first_segment() {
             let pipeline = classifying_pipeline("p", Some("x"));
             let blocks = pipeline.apply_pdf_extract(&page_with(&["a", "b"])).unwrap();
-            let contents: Vec<&str> =
-                blocks.iter().map(|b| b.content.as_str().unwrap()).collect();
+            let contents: Vec<&str> = blocks.iter().map(|b| b.content.as_str().unwrap()).collect();
             assert_eq!(contents, vec!["a", "b"]);
         }
 
         #[test]
         fn apply_text_filter_stops_after_the_second_segment() {
             let pipeline = classifying_pipeline("p", Some("x"));
-            let blocks =
-                pipeline.apply_text_filter(&page_with(&["a", "b"]), &FilterData::EMPTY).unwrap();
+            let blocks = pipeline
+                .apply_text_filter(&page_with(&["a", "b"]), &FilterData::EMPTY)
+                .unwrap();
             assert_eq!(blocks.len(), 2);
             assert_eq!(blocks[0].type_block, BlockType::PAGE_CLASS);
         }
@@ -356,7 +379,9 @@ mod tests {
             semistructured
                 .text_filter
                 .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            semistructured.deserialize.push(ConstantClassifier::pipe("classify", None));
+            semistructured
+                .deserialize
+                .push(ConstantClassifier::pipe("classify", None));
 
             assert!(!structured.is_complete());
             assert!(!semistructured.is_complete());
@@ -377,8 +402,12 @@ mod tests {
         fn complete_pipeline() -> Pipeline {
             let mut pipeline = Pipeline::new("p");
             pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
-            pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            pipeline.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+            pipeline
+                .text_filter
+                .push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            pipeline
+                .deserialize
+                .push(ConstantClassifier::pipe("classify", Some("a")));
             pipeline
         }
 

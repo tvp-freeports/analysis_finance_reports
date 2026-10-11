@@ -65,7 +65,9 @@ pub trait AtomOperations: Sized + Clone {
             One(a) => Two(a, (*other).clone()),
             Two(a, b) => Three(a, b, (*other).clone()),
             Three(a, b, c) => Four(a, b, c, (*other).clone()),
-            _ => unreachable!("Default implementation of union doesn't support that set subtraction"),
+            _ => {
+                unreachable!("Default implementation of union doesn't support that set subtraction")
+            }
         }
     }
 }
@@ -458,7 +460,10 @@ mod tests {
             match res.len() {
                 2 => {
                     let mut it = res.into_iter();
-                    Two(BTreeSet::from([it.next().unwrap()]), BTreeSet::from([it.next().unwrap()]))
+                    Two(
+                        BTreeSet::from([it.next().unwrap()]),
+                        BTreeSet::from([it.next().unwrap()]),
+                    )
                 }
                 3 => {
                     let mut it = res.into_iter();
@@ -530,11 +535,14 @@ mod tests {
     /// the one operation in this module allowed to split into more than one atom.
     mod atom_operations {
         use super::*;
-        use pretty_assertions::assert_eq;
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
+        use pretty_assertions::assert_eq;
 
-        fn assert_same_shape(res: AtomOperationRes<TestAtom>, expected: AtomOperationRes<TestAtom>) {
+        fn assert_same_shape(
+            res: AtomOperationRes<TestAtom>,
+            expected: AtomOperationRes<TestAtom>,
+        ) {
             match (res, expected) {
                 (EmptySet, EmptySet) | (Lhs, Lhs) | (Rhs, Rhs) | (Both, Both) => (),
                 (Compound(One(ra)), Compound(One(ea))) => assert_eq!(ra, ea),
@@ -570,7 +578,11 @@ mod tests {
                 "overlapping produces the lhs remainder plus the whole rhs"
             )]
             #[test_case(TestAtom::new([1,2,3]), TestAtom::new([5,6]), Both; "disjoint keeps both")]
-            fn matches_set_relation(a: TestAtom, b: TestAtom, expected: AtomOperationRes<TestAtom>) {
+            fn matches_set_relation(
+                a: TestAtom,
+                b: TestAtom,
+                expected: AtomOperationRes<TestAtom>,
+            ) {
                 assert_same_shape(a.union(&b), expected);
             }
         }
@@ -608,7 +620,11 @@ mod tests {
                 Compound(One(TestAtom::new([2,3,4,5,6])));
                 "overlapping with a 5-element intersection falls back to one atom"
             )]
-            fn matches_set_relation(a: TestAtom, b: TestAtom, expected: AtomOperationRes<TestAtom>) {
+            fn matches_set_relation(
+                a: TestAtom,
+                b: TestAtom,
+                expected: AtomOperationRes<TestAtom>,
+            ) {
                 assert_same_shape(a.intersect(&b), expected);
             }
         }
@@ -630,7 +646,11 @@ mod tests {
                 "overlapping keeps the remainder"
             )]
             #[test_case(TestAtom::new([1,2,3]), TestAtom::new([5,6]), Lhs; "disjoint keeps lhs unchanged")]
-            fn matches_set_relation(a: TestAtom, b: TestAtom, expected: AtomOperationRes<TestAtom>) {
+            fn matches_set_relation(
+                a: TestAtom,
+                b: TestAtom,
+                expected: AtomOperationRes<TestAtom>,
+            ) {
                 assert_same_shape(a.subtract(&b), expected);
             }
         }
@@ -642,8 +662,8 @@ mod tests {
     /// reachable from tests in this same file.
     mod atom_set_merge {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(
             DisjointAtomsSet(HashSet::from([TestAtom::new([1,2,3,4]), TestAtom::new([40,50,60])])),
@@ -664,7 +684,11 @@ mod tests {
             ]));
             "keeps only the overlap with each existing atom (Compound(One) per atom)"
         )]
-        fn atom_intersection_keeps_only_the_overlap(set: TestSet, atm: TestAtom, expected: TestSet) {
+        fn atom_intersection_keeps_only_the_overlap(
+            set: TestSet,
+            atm: TestAtom,
+            expected: TestSet,
+        ) {
             assert_eq!(set.atom_intersection(atm).0, expected.0);
         }
 
@@ -687,7 +711,12 @@ mod tests {
             let four = DisjointAtomsSet(HashSet::from([TestAtom::new([1, 2, 3, 4, 5])]));
             assert_eq!(
                 four.atom_intersection(TestAtom::new([2, 3, 4, 5, 6])).0,
-                HashSet::from([TestAtom::new([2]), TestAtom::new([3]), TestAtom::new([4]), TestAtom::new([5])])
+                HashSet::from([
+                    TestAtom::new([2]),
+                    TestAtom::new([3]),
+                    TestAtom::new([4]),
+                    TestAtom::new([5])
+                ])
             );
         }
 
@@ -697,7 +726,11 @@ mod tests {
             DisjointAtomsSet(HashSet::from([TestAtom::new([3,4,5,6,7,8]), TestAtom::new([14,20]), TestAtom::new([30,50])]));
             "removes the incoming atom from whatever it overlaps"
         )]
-        fn atom_subtraction_removes_the_incoming_atom(set: TestSet, atm: TestAtom, expected: TestSet) {
+        fn atom_subtraction_removes_the_incoming_atom(
+            set: TestSet,
+            atm: TestAtom,
+            expected: TestSet,
+        ) {
             assert_eq!(set.atom_subtraction(atm).0, expected.0);
         }
 
@@ -754,10 +787,15 @@ mod tests {
                     match value {
                         One(a) => Self::One(SplittingAtom(a)),
                         Two(a, b) => Self::Two(SplittingAtom(a), SplittingAtom(b)),
-                        Three(a, b, c) => Self::Three(SplittingAtom(a), SplittingAtom(b), SplittingAtom(c)),
-                        Four(a, b, c, d) => {
-                            Self::Four(SplittingAtom(a), SplittingAtom(b), SplittingAtom(c), SplittingAtom(d))
+                        Three(a, b, c) => {
+                            Self::Three(SplittingAtom(a), SplittingAtom(b), SplittingAtom(c))
                         }
+                        Four(a, b, c, d) => Self::Four(
+                            SplittingAtom(a),
+                            SplittingAtom(b),
+                            SplittingAtom(c),
+                            SplittingAtom(d),
+                        ),
                     }
                 }
             }
@@ -772,7 +810,10 @@ mod tests {
                     let res: BTreeSet<u32> = self.0.difference(&other.0).copied().collect();
                     let mut it = res.into_iter();
                     match it.len() {
-                        2 => Res::Two(BTreeSet::from([it.next().unwrap()]), BTreeSet::from([it.next().unwrap()])),
+                        2 => Res::Two(
+                            BTreeSet::from([it.next().unwrap()]),
+                            BTreeSet::from([it.next().unwrap()]),
+                        ),
                         3 => Res::Three(
                             BTreeSet::from([it.next().unwrap()]),
                             BTreeSet::from([it.next().unwrap()]),
@@ -801,7 +842,9 @@ mod tests {
                 // `subtract_subset` — a plain "other ⊆ self" would hit `subtract_subset`
                 // instead, which stays single-atom in this mock.
 
-                let set = DisjointAtomsSet(HashSet::from([SplittingAtom::new([1, 2, 3, 4, 5, 6, 7, 8])]));
+                let set = DisjointAtomsSet(HashSet::from([SplittingAtom::new([
+                    1, 2, 3, 4, 5, 6, 7, 8,
+                ])]));
                 // self \ other = {1,2,3,4,5,6,7,8} \ {5,6,7,8,9,10} = {1,2,3,4}: 4 elements ->
                 // Four.
                 let res = set.atom_subtraction(SplittingAtom::new([5, 6, 7, 8, 9, 10]));
@@ -820,13 +863,20 @@ mod tests {
                 let res = set.atom_subtraction(SplittingAtom::new([4, 5, 6]));
                 assert_eq!(
                     res.0,
-                    HashSet::from([SplittingAtom::new([1]), SplittingAtom::new([2]), SplittingAtom::new([3])])
+                    HashSet::from([
+                        SplittingAtom::new([1]),
+                        SplittingAtom::new([2]),
+                        SplittingAtom::new([3])
+                    ])
                 );
 
                 let set = DisjointAtomsSet(HashSet::from([SplittingAtom::new([1, 2, 3, 4])]));
                 // self \ other = {1,2,3,4} \ {3,4,5} = {1,2}: 2 elements -> Two.
                 let res = set.atom_subtraction(SplittingAtom::new([3, 4, 5]));
-                assert_eq!(res.0, HashSet::from([SplittingAtom::new([1]), SplittingAtom::new([2])]));
+                assert_eq!(
+                    res.0,
+                    HashSet::from([SplittingAtom::new([1]), SplittingAtom::new([2])])
+                );
             }
         }
     }
@@ -835,8 +885,8 @@ mod tests {
     /// `/`), exhaustive over every whole-set `SetRelation`.
     mod set_algebra {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(
             DisjointAtomsSet(HashSet::from([TestAtom::new([2,9,10]), TestAtom::new([13,14])])),
@@ -948,15 +998,18 @@ mod tests {
             let d = TestSet::new([1, 2]);
             let e = TestSet::new([1, 20]);
             let f = a & (b / c) | e;
-            assert_eq!(f.0, HashSet::from([TestAtom::new([1, 20]), TestAtom::new([2, 4])]));
+            assert_eq!(
+                f.0,
+                HashSet::from([TestAtom::new([1, 20]), TestAtom::new([2, 4])])
+            );
             let _ = d; // kept only to mirror the reference's variable naming; unused on purpose
         }
     }
 
     mod containment {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(TestSet::new([4,5,70]), 70, true; "leaf hit")]
         #[test_case(TestSet::new([4,5,70]), 71, false; "leaf miss")]
@@ -974,8 +1027,8 @@ mod tests {
 
     mod set_relation {
         use super::*;
-        use test_case::test_case;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test_case(
             DisjointAtomsSet(HashSet::from([TestAtom::new([3,4,5]), TestAtom::new([7,8,9])])),

@@ -26,7 +26,9 @@ impl RepoBuilder {
     /// Un repo con un solo formato, `A-EN24`, e due pipeline: quella senza nome, che classifica le
     /// pagine, e `investments`, che ne estrae la tabella.
     fn minimal() -> Self {
-        let builder = Self { dir: tempfile::TempDir::new().expect("temp dir") };
+        let builder = Self {
+            dir: tempfile::TempDir::new().expect("temp dir"),
+        };
         builder
             .write("metadata/formats.csv", "Name,Locale,Year,Country,Version\nA,EN,24,,\n")
             .write("metadata/url_mapping.csv", "Format name,Url\n")
@@ -82,7 +84,12 @@ fn holdings_page(number: u32) -> Page {
         vec![
             PdfLine::new("ArialBold", 10.0, "Holdings", (0.0, 0.0, 60.0, 10.0)),
             PdfLine::new("ArialBold", 10.0, "Alpha Fund", (0.0, 12.0, 60.0, 22.0)),
-            PdfLine::new("ArialItalic", 10.0, "Amounts in EUR", (0.0, 24.0, 60.0, 32.0)),
+            PdfLine::new(
+                "ArialItalic",
+                10.0,
+                "Amounts in EUR",
+                (0.0, 24.0, 60.0, 32.0),
+            ),
             PdfLine::new("Arial", 10.0, "Acme Corp", (0.0, 40.0, 40.0, 50.0)),
             PdfLine::new("Arial", 10.0, "1.000", (50.0, 40.0, 90.0, 50.0)),
         ],
@@ -92,7 +99,17 @@ fn holdings_page(number: u32) -> Page {
 
 /// Una pagina che il classificatore non riconosce.
 fn other_page(number: u32) -> Page {
-    Page::new(number, (300.0, 300.0), vec![PdfLine::new("Arial", 10.0, "nothing here", (0.0, 0.0, 60.0, 10.0))], Vec::new())
+    Page::new(
+        number,
+        (300.0, 300.0),
+        vec![PdfLine::new(
+            "Arial",
+            10.0,
+            "nothing here",
+            (0.0, 0.0, 60.0, 10.0),
+        )],
+        Vec::new(),
+    )
 }
 
 mod a_minimal_repository {
@@ -147,7 +164,8 @@ pipelines = {"investments": _Pipeline(None, None, extra_deserialize)}
     fn an_authored_segment_is_added_to_the_structured_pipeline_of_the_same_name() {
         let repo = RepoBuilder::minimal();
         repo.write("content/algorithms/unstructured/a_en24.py", AUTHOR_MODULE);
-        let pipelines = freeports::formats_repo::load_pipelines(repo.path(), "A-EN24", false).unwrap();
+        let pipelines =
+            freeports::formats_repo::load_pipelines(repo.path(), "A-EN24", false).unwrap();
         let investments = &pipelines[&freeports::core::pipeline::PipelineName::new("investments")];
         // Due deserializer structured + uno d'autore.
         assert_eq!(investments.deserialize.len(), 3);
@@ -171,7 +189,8 @@ pipelines = {"investments": _Pipeline(None, None, extra_deserialize)}
             "content/algorithms/semistructured/args/pdf_extract.yaml",
             "A-EN24(investments):\n  body_set:\n    font: Arial\n  subfund_set:\n    font: ArialBold\n  currency: EUR\n",
         );
-        let pipelines = freeports::formats_repo::load_pipelines(repo.path(), "A-EN24", false).unwrap();
+        let pipelines =
+            freeports::formats_repo::load_pipelines(repo.path(), "A-EN24", false).unwrap();
         let investments = &pipelines[&freeports::core::pipeline::PipelineName::new("investments")];
         // Tre pipe structured + tre semistructured.
         assert_eq!(investments.pdf_extract.len(), 6);
@@ -231,7 +250,10 @@ mod configuration_errors {
         let LoadError::IncompletePipeline { pipeline, missing } = err else {
             panic!("expected IncompletePipeline, got {err}")
         };
-        assert_eq!((pipeline.as_str(), missing.as_str()), ("investments", "deserialize"));
+        assert_eq!(
+            (pipeline.as_str(), missing.as_str()),
+            ("investments", "deserialize")
+        );
     }
 
     #[test]
@@ -293,7 +315,10 @@ mod configuration_errors {
             "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero\n\
              A-EN24,,,,,,,MARKET_VALUE | PERC_NET_ASSETS\n",
         );
-        assert!(repo.load().is_ok(), "a repository declaring the column must load");
+        assert!(
+            repo.load().is_ok(),
+            "a repository declaring the column must load"
+        );
     }
 
     #[test]
@@ -323,7 +348,10 @@ mod configuration_errors {
             "ID,pdf_extract,text_filter,deserialize\n\
              A-EN24,,FALSE,\n",
         );
-        assert!(repo.load().is_err(), "a disabled text_filter may not carry the column");
+        assert!(
+            repo.load().is_err(),
+            "a disabled text_filter may not carry the column"
+        );
     }
 
     #[test]
@@ -349,7 +377,11 @@ mod configuration_errors {
     #[test]
     fn a_missing_semistructured_args_file_is_reported_even_if_unused() {
         let repo = RepoBuilder::minimal();
-        fs::remove_file(repo.path().join("content/algorithms/semistructured/args/deserialize.yaml")).unwrap();
+        fs::remove_file(
+            repo.path()
+                .join("content/algorithms/semistructured/args/deserialize.yaml"),
+        )
+        .unwrap();
         let err = repo.load().unwrap_err();
         assert!(matches!(err, LoadError::Semistructured(_)), "{err}");
     }
@@ -357,7 +389,10 @@ mod configuration_errors {
     #[test]
     fn an_author_module_that_does_not_import_is_reported_with_its_path() {
         let repo = RepoBuilder::minimal();
-        repo.write("content/algorithms/unstructured/a_en24.py", "raise RuntimeError('boom')\n");
+        repo.write(
+            "content/algorithms/unstructured/a_en24.py",
+            "raise RuntimeError('boom')\n",
+        );
         let err = repo.load().unwrap_err();
         assert!(matches!(err, LoadError::Unstructured(_)), "{err}");
         assert!(err.to_string().contains("boom"), "{err}");
@@ -374,8 +409,11 @@ mod partial_loading {
             "content/algorithms/structured/investments/partial_pipes.csv",
             "ID,pdf_extract,text_filter,deserialize\nA-EN24,TRUE,TRUE,FALSE\n",
         );
-        let pipelines = freeports::formats_repo::load_pipelines(repo.path(), "A-EN24", true).unwrap();
-        assert!(!pipelines[&freeports::core::pipeline::PipelineName::new("investments")].is_complete());
+        let pipelines =
+            freeports::formats_repo::load_pipelines(repo.path(), "A-EN24", true).unwrap();
+        assert!(
+            !pipelines[&freeports::core::pipeline::PipelineName::new("investments")].is_complete()
+        );
     }
 
     #[test]
@@ -395,17 +433,32 @@ mod format_detection {
     #[test]
     fn a_url_is_matched_against_the_declared_formats() {
         let repo = RepoBuilder::minimal();
-        repo.write("metadata/url_mapping.csv", "Format name,Url\nA-EN24,https://a.example/\n");
+        repo.write(
+            "metadata/url_mapping.csv",
+            "Format name,Url\nA-EN24,https://a.example/\n",
+        );
         let known = freeports::formats_repo::metadata::get_formats(repo.path()).unwrap();
-        let found = freeports::formats_repo::metadata::url_to_format(repo.path(), &known, "https://a.example/r.pdf").unwrap();
-        assert_eq!(found.as_deref(), Some("A-EN24"));
+        let found = freeports::formats_repo::metadata::url_to_format(
+            repo.path(),
+            &known,
+            "https://a.example/r.pdf",
+        )
+        .unwrap();
+        assert_eq!(
+            found.map(|pattern| pattern.to_string()).as_deref(),
+            Some("A-EN24")
+        );
     }
 
     #[test]
     fn an_unknown_url_matches_no_format() {
         let repo = RepoBuilder::minimal();
         let known = freeports::formats_repo::metadata::get_formats(repo.path()).unwrap();
-        assert_eq!(freeports::formats_repo::metadata::url_to_format(repo.path(), &known, "https://x/").unwrap(), None);
+        assert_eq!(
+            freeports::formats_repo::metadata::url_to_format(repo.path(), &known, "https://x/")
+                .unwrap(),
+            None
+        );
     }
 }
 
@@ -421,7 +474,7 @@ mod the_author_s_log {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::{Layer, Registry};
 
-    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+    use freeports::core::tracing_setup::{CsvLogLayer, csv_event_filter};
 
     /// Un `text_filter` d'autore che scrive nel registro mentre interpreta la pagina.
     ///
@@ -483,13 +536,20 @@ pipelines = {"investments": _Pipeline(None, filter_blocks, None)}
 
     #[test]
     fn what_an_algorithm_writes_reaches_the_log_file() {
-        let messages: Vec<String> = rows_of_a_run().into_iter().map(|row| row[8].clone()).collect();
+        let messages: Vec<String> = rows_of_a_run()
+            .into_iter()
+            .map(|row| row[8].clone())
+            .collect();
         assert!(
-            messages.iter().any(|m| m == "la terza colonna non ha intestazione"),
+            messages
+                .iter()
+                .any(|m| m == "la terza colonna non ha intestazione"),
             "the free-text warning is missing, found {messages:?}"
         );
         assert!(
-            messages.iter().any(|m| m == "currency was not read: imposed as \"EUR\" - constant of the format"),
+            messages
+                .iter()
+                .any(|m| m == "currency was not read: imposed as \"EUR\" - constant of the format"),
             "the imposed-value warning is missing, found {messages:?}"
         );
     }
@@ -503,7 +563,11 @@ pipelines = {"investments": _Pipeline(None, filter_blocks, None)}
             .expect("the warning the author wrote");
         assert_eq!(row[0], "A fund report", "Report");
         assert_eq!(row[1], "7", "Page");
-        assert!(row[2].contains("page[7]"), "Activity says where it happened, found {:?}", row[2]);
+        assert!(
+            row[2].contains("page[7]"),
+            "Activity says where it happened, found {:?}",
+            row[2]
+        );
         assert_eq!(row[5], "col 3", "First coord");
     }
 
@@ -518,14 +582,22 @@ pipelines = {"investments": _Pipeline(None, filter_blocks, None)}
         // Non una stringa esatta: l'annidamento degli span è del motore, e questo test riguarda il
         // fatto che il tubo d'autore ci compaia, non la forma del percorso.
         assert!(activity.contains("text_filter"), "found {activity:?}");
-        assert!(activity.contains("pipeline[investments]"), "found {activity:?}");
+        assert!(
+            activity.contains("pipeline[investments]"),
+            "found {activity:?}"
+        );
     }
 
     #[test]
     fn a_debug_written_by_an_algorithm_does_not_reach_the_log_file() {
-        let messages: Vec<String> = rows_of_a_run().into_iter().map(|row| row[8].clone()).collect();
+        let messages: Vec<String> = rows_of_a_run()
+            .into_iter()
+            .map(|row| row[8].clone())
+            .collect();
         assert!(
-            !messages.iter().any(|m| m.contains("questo non deve arrivare")),
+            !messages
+                .iter()
+                .any(|m| m.contains("questo non deve arrivare")),
             "the file's threshold is warn, found {messages:?}"
         );
     }
@@ -543,7 +615,7 @@ mod the_labelled_value_pipe {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::{Layer, Registry};
 
-    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+    use freeports::core::tracing_setup::{CsvLogLayer, csv_event_filter};
 
     /// Due tubi `A1` sulla stessa pagina: uno legge il valore **sotto** l'etichetta, l'altro quello
     /// **a destra**. Il `text_filter` d'autore riscrive nel registro ciò che ha ricevuto, che è il
@@ -670,7 +742,10 @@ pipelines = {"investments": _Pipeline(
 )}
 "#;
         let messages = messages_of_a_run(ON_LINE);
-        assert!(messages.iter().any(|m| m == "A1 read Amounts in EUR"), "found {messages:?}");
+        assert!(
+            messages.iter().any(|m| m == "A1 read Amounts in EUR"),
+            "found {messages:?}"
+        );
     }
 
     /// Le due maniere di dire dove finisce la sezione sono alternative, e chiederle insieme è un
@@ -691,7 +766,10 @@ pipelines = {"investments": PdfExtractLabelledValueStandard(
 "#;
         let repo = RepoBuilder::minimal();
         repo.write("content/algorithms/unstructured/a_en24.py", BOTH);
-        assert!(repo.load().is_err(), "a pipe asked for two stops should not load");
+        assert!(
+            repo.load().is_err(),
+            "a pipe asked for two stops should not load"
+        );
     }
 }
 
@@ -705,7 +783,7 @@ mod the_section_pipe {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::{Layer, Registry};
 
-    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+    use freeports::core::tracing_setup::{CsvLogLayer, csv_event_filter};
 
     /// Un modulo d'autore con un solo tubo `A2`, costruito con gli argomenti dati.
     fn module_with(arguments: &str) -> String {
@@ -744,7 +822,10 @@ pipelines = {{"investments": _Pipeline(
             "content/algorithms/structured/investments/args.csv",
             "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n",
         );
-        repo.write("content/algorithms/unstructured/a_en24.py", &module_with(arguments));
+        repo.write(
+            "content/algorithms/unstructured/a_en24.py",
+            &module_with(arguments),
+        );
         let algorithm = repo.load().expect("the repository loads");
         let document = Document::new("A fund report", "A-EN24", vec![holdings_page(7)]);
 
@@ -790,7 +871,9 @@ pipelines = {{"investments": _Pipeline(
 
     #[test]
     fn a_family_given_as_a_selection_closes_the_section() {
-        let messages = messages_of(&format!(r#"{HEADING}, family=PdfLineSelection.text("^Acme")"#));
+        let messages = messages_of(&format!(
+            r#"{HEADING}, family=PdfLineSelection.text("^Acme")"#
+        ));
         assert_eq!(messages, vec!["A2 read Amounts in EUR[]".to_string()]);
     }
 
@@ -805,20 +888,33 @@ pipelines = {{"investments": _Pipeline(
     #[test]
     fn the_heading_comes_along_when_asked_for() {
         let messages = messages_of(&format!("{HEADING}, include_heading=True"));
-        assert_eq!(messages.first().map(String::as_str), Some("A2 read Alpha Fund[]"));
+        assert_eq!(
+            messages.first().map(String::as_str),
+            Some("A2 read Alpha Fund[]")
+        );
     }
 
     #[test]
     fn the_body_narrows_the_section_to_the_lines_that_count() {
-        let messages = messages_of(&format!(r#"{HEADING}, body=PdfLineSelection.font("arial")"#));
-        assert_eq!(messages, vec!["A2 read Acme Corp[]".to_string(), "A2 read 1.000[]".to_string()]);
+        let messages = messages_of(&format!(
+            r#"{HEADING}, body=PdfLineSelection.font("arial")"#
+        ));
+        assert_eq!(
+            messages,
+            vec![
+                "A2 read Acme Corp[]".to_string(),
+                "A2 read 1.000[]".to_string()
+            ]
+        );
     }
 
     #[test]
     fn rows_puts_the_table_coordinates_in_the_metadata() {
         let messages = messages_of(&format!("{HEADING}, rows=True"));
         assert!(
-            messages.iter().all(|m| m.contains("table-row") && m.contains("table-col")),
+            messages
+                .iter()
+                .all(|m| m.contains("table-row") && m.contains("table-col")),
             "found {messages:?}"
         );
     }
@@ -826,8 +922,14 @@ pipelines = {{"investments": _Pipeline(
     #[test]
     fn rows_refuses_something_that_is_neither_true_nor_a_table_config() {
         let repo = RepoBuilder::minimal();
-        repo.write("content/algorithms/unstructured/a_en24.py", &module_with(&format!(r#"{HEADING}, rows="yes""#)));
-        assert!(repo.load().is_err(), "a pipe given a nonsense `rows` should not load");
+        repo.write(
+            "content/algorithms/unstructured/a_en24.py",
+            &module_with(&format!(r#"{HEADING}, rows="yes""#)),
+        );
+        assert!(
+            repo.load().is_err(),
+            "a pipe given a nonsense `rows` should not load"
+        );
     }
 }
 
@@ -846,9 +948,19 @@ fn assets_page(number: u32) -> Page {
             PdfLine::new("ArialItalic", 10.0, "in EUR", (0.0, 24.0, 40.0, 32.0)),
             PdfLine::new("ArialBold", 10.0, "Total assets", (0.0, 40.0, 60.0, 50.0)),
             PdfLine::new("Arial", 10.0, "1.500", (100.0, 40.0, 140.0, 50.0)),
-            PdfLine::new("ArialBold", 10.0, "Total liabilities", (0.0, 60.0, 60.0, 70.0)),
+            PdfLine::new(
+                "ArialBold",
+                10.0,
+                "Total liabilities",
+                (0.0, 60.0, 60.0, 70.0),
+            ),
             PdfLine::new("Arial", 10.0, "500", (100.0, 60.0, 140.0, 70.0)),
-            PdfLine::new("ArialBold", 10.0, "Total net assets", (0.0, 80.0, 60.0, 90.0)),
+            PdfLine::new(
+                "ArialBold",
+                10.0,
+                "Total net assets",
+                (0.0, 80.0, 60.0, 90.0),
+            ),
             PdfLine::new("Arial", 10.0, "1.000", (100.0, 95.0, 140.0, 105.0)),
         ],
         Vec::new(),
@@ -866,7 +978,7 @@ mod the_assets_pipe {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::{Layer, Registry};
 
-    use freeports::core::tracing_setup::{csv_event_filter, CsvLogLayer};
+    use freeports::core::tracing_setup::{CsvLogLayer, csv_event_filter};
 
     /// Un modulo d'autore con un solo tubo `A4`, costruito con gli argomenti dati.
     fn module_with(arguments: &str) -> String {
@@ -905,7 +1017,10 @@ pipelines = {{"investments": _Pipeline(
             "content/algorithms/structured/investments/args.csv",
             "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n",
         );
-        repo.write("content/algorithms/unstructured/a_en24.py", &module_with(arguments));
+        repo.write(
+            "content/algorithms/unstructured/a_en24.py",
+            &module_with(arguments),
+        );
         repo
     }
 
@@ -970,11 +1085,15 @@ pipelines = {{"investments": _Pipeline(
     /// **dice**, nominando la colonna, invece di lasciare la riga sparire.
     #[test]
     fn a_column_whose_window_reaches_nothing_says_which_one_it_is() {
-        let messages =
-            messages_of(&format!(r#"{HEADS} net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$")),"#));
+        let messages = messages_of(&format!(
+            r#"{HEADS} net_assets=AssetsColumn(PdfLineSelection.text("^Total net assets$")),"#
+        ));
 
         assert_eq!(messages.len(), 1, "{messages:?}");
-        assert!(messages[0].contains(r#"assets column "net_assets" has 0 entries"#), "{messages:?}");
+        assert!(
+            messages[0].contains(r#"assets column "net_assets" has 0 entries"#),
+            "{messages:?}"
+        );
     }
 
     /// Una colonna è un tipo, non tre parole chiave: passarle una selezione nuda è un errore di
@@ -986,7 +1105,10 @@ pipelines = {{"investments": _Pipeline(
         ));
         let error = repo.load().expect_err("a bare selection is not a column");
 
-        assert!(format!("{error}").contains("net_assets must be an AssetsColumn"), "{error}");
+        assert!(
+            format!("{error}").contains("net_assets must be an AssetsColumn"),
+            "{error}"
+        );
     }
 
     /// I candidati della data passano il confine come lista, e l'ordine è quello della lista —
@@ -1025,8 +1147,16 @@ pipelines = {{"investments": _Pipeline(
             date=PdfLineSelection.text("^nowhere on this page$"),"#
         ));
 
-        assert!(messages.iter().any(|m| m.contains("the date of this statement is declared")), "{messages:?}");
-        assert!(messages.iter().any(|m| m.contains("('date', None)")), "{messages:?}");
+        assert!(
+            messages
+                .iter()
+                .any(|m| m.contains("the date of this statement is declared")),
+            "{messages:?}"
+        );
+        assert!(
+            messages.iter().any(|m| m.contains("('date', None)")),
+            "{messages:?}"
+        );
     }
 
     /// Le due parole chiave dell'appaiamento si nominano dal formato, e su una pagina a un comparto

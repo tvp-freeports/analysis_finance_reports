@@ -92,11 +92,18 @@ pub enum WriteFilesError {
 }
 
 fn io_err(action: &'static str, path: &Path, source: std::io::Error) -> WriteFilesError {
-    WriteFilesError::Io { action, path: path.display().to_string(), source }
+    WriteFilesError::Io {
+        action,
+        path: path.display().to_string(),
+        source,
+    }
 }
 
 fn csv_err(path: &Path, source: csv::Error) -> WriteFilesError {
-    WriteFilesError::Csv { path: path.display().to_string(), source }
+    WriteFilesError::Csv {
+        path: path.display().to_string(),
+        source,
+    }
 }
 
 /// Writes `rows` as CSV, with the header **always present** — even for zero rows, unlike the
@@ -105,12 +112,18 @@ fn csv_err(path: &Path, source: csv::Error) -> WriteFilesError {
 ///
 /// Opens the write span: this is the common primitive for every output CSV, and so the right place
 /// to nest it under the span the caller already opened.
-fn write_csv_table<T: Serialize>(path: &Path, header: &[&str], rows: &[T]) -> Result<(), WriteFilesError> {
+fn write_csv_table<T: Serialize>(
+    path: &Path,
+    header: &[&str],
+    rows: &[T],
+) -> Result<(), WriteFilesError> {
     let span = tracing::info_span!("write", file = %path.display());
     let _guard = span.enter();
 
-    let mut wtr =
-        csv::WriterBuilder::new().has_headers(false).from_path(path).map_err(|e| csv_err(path, e))?;
+    let mut wtr = csv::WriterBuilder::new()
+        .has_headers(false)
+        .from_path(path)
+        .map_err(|e| csv_err(path, e))?;
     wtr.write_record(header).map_err(|e| csv_err(path, e))?;
     for row in rows {
         wtr.serialize(row).map_err(|e| csv_err(path, e))?;
@@ -312,7 +325,12 @@ struct AssetsManagerCsvRow {
 
 impl From<&AssetsManagerRow> for AssetsManagerCsvRow {
     fn from(r: &AssetsManagerRow) -> Self {
-        Self { id: r.id, report: r.report.clone(), report_page: r.report_page, name: r.name.clone() }
+        Self {
+            id: r.id,
+            report: r.report.clone(),
+            report_page: r.report_page,
+            name: r.name.clone(),
+        }
     }
 }
 
@@ -326,7 +344,10 @@ struct InvestmentsManagerCsvRow {
 
 impl From<&InvestmentsManagerRow> for InvestmentsManagerCsvRow {
     fn from(r: &InvestmentsManagerRow) -> Self {
-        Self { investment_manager_id: r.investment_manager_id, fund_id: r.fund_id }
+        Self {
+            investment_manager_id: r.investment_manager_id,
+            fund_id: r.fund_id,
+        }
     }
 }
 
@@ -363,14 +384,31 @@ impl From<&FundChangeNameRow> for FundChangeNameCsvRow {
 }
 
 const INVESTMENTS_HEADER: [&str; 13] = [
-    "ID", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
-    "Nominal/Quantity", "Market value", "Currency", "% net assets", "Fund ID", "Acquisition cost",
+    "ID",
+    "Report",
+    "Report page",
+    "Triggering text",
+    "Investee",
+    "Financial instrument",
+    "Nominal/Quantity",
+    "Market value",
+    "Currency",
+    "% net assets",
+    "Fund ID",
+    "Acquisition cost",
     "Acquisition currency",
 ];
 
 const FUNDS_ASSETS_HEADER: [&str; 9] = [
-    "ID", "Report", "Report page", "Fund ID", "Date", "Total assets", "Total liabilities",
-    "Total net assets", "Currency",
+    "ID",
+    "Report",
+    "Report page",
+    "Fund ID",
+    "Date",
+    "Total assets",
+    "Total liabilities",
+    "Total net assets",
+    "Currency",
 ];
 
 fn write_investments_csv(path: &Path, rows: &[InvestmentRow]) -> Result<(), WriteFilesError> {
@@ -397,66 +435,115 @@ fn split_by_report<'a, T>(rows: &'a [T], report: impl Fn(&T) -> &str) -> Vec<(St
     order
         .into_iter()
         .map(|key| {
-            let rows = groups.remove(&key).expect("key was just inserted into `groups` above, in the same loop");
+            let rows = groups
+                .remove(&key)
+                .expect("key was just inserted into `groups` above, in the same loop");
             (key, rows)
         })
         .collect()
 }
 
-fn write_investments_csv_separate(out_dir: &Path, rows: &[InvestmentRow]) -> Result<(), WriteFilesError> {
+fn write_investments_csv_separate(
+    out_dir: &Path,
+    rows: &[InvestmentRow],
+) -> Result<(), WriteFilesError> {
     let groups = split_by_report(rows, |r| r.report.as_str());
-    tracing::debug!(groups = groups.len(), "splitting investments by report for separate_out");
+    tracing::debug!(
+        groups = groups.len(),
+        "splitting investments by report for separate_out"
+    );
     for (report, group) in groups {
         let path = out_dir.join(format!("investments__{report}.csv"));
-        let csv_rows: Vec<InvestmentCsvRow> = group.into_iter().map(InvestmentCsvRow::from).collect();
+        let csv_rows: Vec<InvestmentCsvRow> =
+            group.into_iter().map(InvestmentCsvRow::from).collect();
         write_csv_table(&path, &INVESTMENTS_HEADER, &csv_rows)?;
     }
     Ok(())
 }
 
-fn write_funds_assets_csv_separate(out_dir: &Path, rows: &[FundAssetsRow]) -> Result<(), WriteFilesError> {
+fn write_funds_assets_csv_separate(
+    out_dir: &Path,
+    rows: &[FundAssetsRow],
+) -> Result<(), WriteFilesError> {
     let groups = split_by_report(rows, |r| r.report.as_str());
-    tracing::debug!(groups = groups.len(), "splitting funds_assets by report for separate_out");
+    tracing::debug!(
+        groups = groups.len(),
+        "splitting funds_assets by report for separate_out"
+    );
     for (report, group) in groups {
         let path = out_dir.join(format!("funds_assets__{report}.csv"));
-        let csv_rows: Vec<FundAssetsCsvRow> = group.into_iter().map(FundAssetsCsvRow::from).collect();
+        let csv_rows: Vec<FundAssetsCsvRow> =
+            group.into_iter().map(FundAssetsCsvRow::from).collect();
         write_csv_table(&path, &FUNDS_ASSETS_HEADER, &csv_rows)?;
     }
     Ok(())
 }
 
 fn write_funds_csv(path: &Path, rows: &[FundRow]) -> Result<(), WriteFilesError> {
-    let header = ["ID", "Report", "Report page", "Name", "Managment company ID"];
+    let header = [
+        "ID",
+        "Report",
+        "Report page",
+        "Name",
+        "Managment company ID",
+    ];
     let rows: Vec<FundCsvRow> = rows.iter().map(FundCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
-fn write_funds_sfdr_classification_csv(path: &Path, rows: &[FundSfdrClassificationRow]) -> Result<(), WriteFilesError> {
+fn write_funds_sfdr_classification_csv(
+    path: &Path,
+    rows: &[FundSfdrClassificationRow],
+) -> Result<(), WriteFilesError> {
     let header = ["Fund ID", "SFDR classification", "Report page", "Report"];
-    let rows: Vec<FundSfdrClassificationCsvRow> = rows.iter().map(FundSfdrClassificationCsvRow::from).collect();
+    let rows: Vec<FundSfdrClassificationCsvRow> = rows
+        .iter()
+        .map(FundSfdrClassificationCsvRow::from)
+        .collect();
     write_csv_table(path, &header, &rows)
 }
 
-fn write_funds_esg_indicators_csv(path: &Path, rows: &[FundEsgIndicatorRow]) -> Result<(), WriteFilesError> {
+fn write_funds_esg_indicators_csv(
+    path: &Path,
+    rows: &[FundEsgIndicatorRow],
+) -> Result<(), WriteFilesError> {
     let header = ["Fund ID", "Indicator", "Value", "Report page", "Report"];
     let rows: Vec<FundEsgIndicatorCsvRow> = rows.iter().map(FundEsgIndicatorCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
-fn write_assets_managers_csv(path: &Path, rows: &[AssetsManagerRow]) -> Result<(), WriteFilesError> {
+fn write_assets_managers_csv(
+    path: &Path,
+    rows: &[AssetsManagerRow],
+) -> Result<(), WriteFilesError> {
     let header = ["ID", "Report", "Report page", "Name"];
     let rows: Vec<AssetsManagerCsvRow> = rows.iter().map(AssetsManagerCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
-fn write_investments_managers_csv(path: &Path, rows: &[InvestmentsManagerRow]) -> Result<(), WriteFilesError> {
+fn write_investments_managers_csv(
+    path: &Path,
+    rows: &[InvestmentsManagerRow],
+) -> Result<(), WriteFilesError> {
     let header = ["Investment manager ID", "Fund ID"];
-    let rows: Vec<InvestmentsManagerCsvRow> = rows.iter().map(InvestmentsManagerCsvRow::from).collect();
+    let rows: Vec<InvestmentsManagerCsvRow> =
+        rows.iter().map(InvestmentsManagerCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
-fn write_funds_change_name_csv(path: &Path, rows: &[FundChangeNameRow]) -> Result<(), WriteFilesError> {
-    let header = ["ID", "Report", "Report page", "Fund ID", "From", "Type of event", "Old name"];
+fn write_funds_change_name_csv(
+    path: &Path,
+    rows: &[FundChangeNameRow],
+) -> Result<(), WriteFilesError> {
+    let header = [
+        "ID",
+        "Report",
+        "Report page",
+        "Fund ID",
+        "From",
+        "Type of event",
+        "Old name",
+    ];
     let rows: Vec<FundChangeNameCsvRow> = rows.iter().map(FundChangeNameCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
@@ -471,7 +558,10 @@ fn write_funds_change_name_csv(path: &Path, rows: &[FundChangeNameRow]) -> Resul
 ///
 /// The rest of the document is a map of maps of two scalars, so writing it by hand gives up
 /// nothing: no field can contain a character needing quoting or a nested structure.
-fn write_additional_infos_yaml(path: &Path, infos: &BTreeMap<u32, BondAdditionalInfoRow>) -> Result<(), WriteFilesError> {
+fn write_additional_infos_yaml(
+    path: &Path,
+    infos: &BTreeMap<u32, BondAdditionalInfoRow>,
+) -> Result<(), WriteFilesError> {
     let span = tracing::info_span!("write", file = %path.display());
     let _guard = span.enter();
 
@@ -497,7 +587,11 @@ fn write_additional_infos_yaml(path: &Path, infos: &BTreeMap<u32, BondAdditional
     Ok(())
 }
 
-fn write_regular(tables: &TransformedTables, out_dir: &Path, separate_out: bool) -> Result<(), WriteFilesError> {
+fn write_regular(
+    tables: &TransformedTables,
+    out_dir: &Path,
+    separate_out: bool,
+) -> Result<(), WriteFilesError> {
     std::fs::create_dir_all(out_dir).map_err(|e| io_err("create directory", out_dir, e))?;
 
     if separate_out {
@@ -512,14 +606,26 @@ fn write_regular(tables: &TransformedTables, out_dir: &Path, separate_out: bool)
         &out_dir.join("funds_sfdr_classification.csv"),
         &tables.funds_sfdr_classification,
     )?;
-    write_funds_esg_indicators_csv(&out_dir.join("funds_esg_indicators.csv"), &tables.funds_esg_indicators)?;
-    write_assets_managers_csv(&out_dir.join("assets_managers.csv"), &tables.assets_managers)?;
+    write_funds_esg_indicators_csv(
+        &out_dir.join("funds_esg_indicators.csv"),
+        &tables.funds_esg_indicators,
+    )?;
+    write_assets_managers_csv(
+        &out_dir.join("assets_managers.csv"),
+        &tables.assets_managers,
+    )?;
     write_investments_managers_csv(
         &out_dir.join("investments_managers_to_funds.csv"),
         &tables.investments_managers,
     )?;
-    write_funds_change_name_csv(&out_dir.join("funds_change_name.csv"), &tables.funds_change_name)?;
-    write_additional_infos_yaml(&out_dir.join("investments_add_infos.yaml"), &tables.additional_infos)?;
+    write_funds_change_name_csv(
+        &out_dir.join("funds_change_name.csv"),
+        &tables.funds_change_name,
+    )?;
+    write_additional_infos_yaml(
+        &out_dir.join("investments_add_infos.yaml"),
+        &tables.additional_infos,
+    )?;
 
     Ok(())
 }
@@ -562,9 +668,21 @@ struct InvestmentSingleFileCsvRow {
 /// table, in one CSV. Only `investments` is written.
 fn write_single_file(tables: &TransformedTables, out_path: &Path) -> Result<(), WriteFilesError> {
     let header = [
-        "ID", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
-        "Nominal/Quantity", "Market value", "Currency", "% net assets", "Fund ID", "Acquisition cost",
-        "Acquisition currency", "Maturity", "Interest rate",
+        "ID",
+        "Report",
+        "Report page",
+        "Triggering text",
+        "Investee",
+        "Financial instrument",
+        "Nominal/Quantity",
+        "Market value",
+        "Currency",
+        "% net assets",
+        "Fund ID",
+        "Acquisition cost",
+        "Acquisition currency",
+        "Maturity",
+        "Interest rate",
     ];
     let rows: Vec<InvestmentSingleFileCsvRow> = tables
         .investments
@@ -629,7 +747,9 @@ fn compress_single_file(path: &Path) -> Result<(), WriteFilesError> {
     let output = File::create(&archive_path).map_err(|e| io_err("create", &archive_path, e))?;
     let mut encoder = flate2::write::GzEncoder::new(output, flate2::Compression::default());
     std::io::copy(&mut input, &mut encoder).map_err(|e| io_err("gzip", path, e))?;
-    encoder.finish().map_err(|e| io_err("finish gzip", path, e))?;
+    encoder
+        .finish()
+        .map_err(|e| io_err("finish gzip", path, e))?;
     tracing::info!("file written");
     Ok(())
 }
@@ -645,7 +765,9 @@ fn compress_directory(dir: &Path) -> Result<(), WriteFilesError> {
     let output = File::create(&archive_path).map_err(|e| io_err("create", &archive_path, e))?;
     let encoder = flate2::write::GzEncoder::new(output, flate2::Compression::default());
     let mut builder = tar::Builder::new(encoder);
-    builder.append_dir_all(dir_name, dir).map_err(|e| io_err("tar", dir, e))?;
+    builder
+        .append_dir_all(dir_name, dir)
+        .map_err(|e| io_err("tar", dir, e))?;
     builder
         .into_inner()
         .and_then(|mut e| e.flush())
@@ -709,7 +831,8 @@ mod tests {
     }
 
     fn read(dir: &Path, name: &str) -> String {
-        std::fs::read_to_string(dir.join(name)).unwrap_or_else(|e| panic!("cannot read {name}: {e}"))
+        std::fs::read_to_string(dir.join(name))
+            .unwrap_or_else(|e| panic!("cannot read {name}: {e}"))
     }
 
     mod regular_profile_basics {
@@ -719,7 +842,13 @@ mod tests {
         fn creates_the_output_directory_and_every_expected_file() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             for name in [
                 "investments.csv",
@@ -740,7 +869,13 @@ mod tests {
         fn an_empty_table_still_produces_a_header_only_csv() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert_eq!(
                 read(&out, "investments.csv"),
                 "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency\n"
@@ -763,20 +898,48 @@ mod tests {
             let mut tables = empty_tables();
             tables.investments = vec![
                 InvestmentRow::new(
-                    1, 3, "Report A".into(), "Acme".into(), "Acme Corp".into(), FinancialInstrument::EQUITY,
-                    None, 1000.0, Currency::EUR, None, 1, None, None,
+                    1,
+                    3,
+                    "Report A".into(),
+                    "Acme".into(),
+                    "Acme Corp".into(),
+                    FinancialInstrument::EQUITY,
+                    None,
+                    1000.0,
+                    Currency::EUR,
+                    None,
+                    1,
+                    None,
+                    None,
                 )
                 .unwrap(),
                 InvestmentRow::new(
-                    2, 4, "Report A".into(), "Bond Co".into(), "Bond Corp".into(), FinancialInstrument::BOND,
-                    Some(10.0), 2000.5, Currency::USD, Some(0.25), 2, Some(50.0), Some(Currency::GBP),
+                    2,
+                    4,
+                    "Report A".into(),
+                    "Bond Co".into(),
+                    "Bond Corp".into(),
+                    FinancialInstrument::BOND,
+                    Some(10.0),
+                    2000.5,
+                    Currency::USD,
+                    Some(0.25),
+                    2,
+                    Some(50.0),
+                    Some(Currency::GBP),
                 )
                 .unwrap(),
             ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency\n\
                  1,Report A,3,Acme,Acme Corp,EQUITY,,1000.0,EUR,,1,,\n\
@@ -792,13 +955,26 @@ mod tests {
         fn writes_both_a_directly_seen_fund_and_an_indirectly_seen_one() {
             let mut tables = empty_tables();
             tables.funds = vec![
-                FundRow::new(1, "ALPHA FUND".into(), Some(2), Some(3), Some("Report A".into())).unwrap(),
+                FundRow::new(
+                    1,
+                    "ALPHA FUND".into(),
+                    Some(2),
+                    Some(3),
+                    Some("Report A".into()),
+                )
+                .unwrap(),
                 FundRow::new(2, "BETA FUND".into(), None, None, None).unwrap(),
             ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "ID,Report,Report page,Name,Managment company ID\n\
                  1,Report A,3,ALPHA FUND,2\n\
@@ -821,7 +997,13 @@ mod tests {
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "Fund ID,SFDR classification,Report page,Report\n\
                  1,Art. 6,1,R\n\
@@ -837,12 +1019,20 @@ mod tests {
         #[test]
         fn writes_indicator_rows_byte_for_byte() {
             let mut tables = empty_tables();
-            tables.funds_esg_indicators =
-                vec![FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 5, "R".into()).unwrap()];
+            tables.funds_esg_indicators = vec![
+                FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 5, "R".into())
+                    .unwrap(),
+            ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "Fund ID,Indicator,Value,Report page,Report\n1,GHG intensity,12.3,5,R\n";
             assert_eq!(read(&out, "funds_esg_indicators.csv"), expected);
@@ -855,11 +1045,18 @@ mod tests {
         #[test]
         fn writes_manager_rows_byte_for_byte() {
             let mut tables = empty_tables();
-            tables.assets_managers = vec![AssetsManagerRow::new(1, 2, "R".into(), "Acme AM".into()).unwrap()];
+            tables.assets_managers =
+                vec![AssetsManagerRow::new(1, 2, "R".into(), "Acme AM".into()).unwrap()];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "ID,Report,Report page,Name\n1,R,2,Acme AM\n";
             assert_eq!(read(&out, "assets_managers.csv"), expected);
@@ -872,11 +1069,20 @@ mod tests {
         #[test]
         fn writes_the_two_fk_columns_only() {
             let mut tables = empty_tables();
-            tables.investments_managers = vec![InvestmentsManagerRow::new(1, 2).unwrap(), InvestmentsManagerRow::new(1, 3).unwrap()];
+            tables.investments_managers = vec![
+                InvestmentsManagerRow::new(1, 2).unwrap(),
+                InvestmentsManagerRow::new(1, 3).unwrap(),
+            ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "Investment manager ID,Fund ID\n1,2\n1,3\n";
             assert_eq!(read(&out, "investments_managers_to_funds.csv"), expected);
@@ -891,12 +1097,22 @@ mod tests {
             let mut tables = empty_tables();
             tables.funds_change_name = vec![
                 FundChangeNameRow::new(
-                    1, 1, "R".into(), 1, Date::new(2024, 1, 1).unwrap(), ChangeNameEventType::Renaming,
+                    1,
+                    1,
+                    "R".into(),
+                    1,
+                    Date::new(2024, 1, 1).unwrap(),
+                    ChangeNameEventType::Renaming,
                     "Old Name".into(),
                 )
                 .unwrap(),
                 FundChangeNameRow::new(
-                    2, 2, "R".into(), 2, Date::new(2024, 2, 2).unwrap(), ChangeNameEventType::Merging,
+                    2,
+                    2,
+                    "R".into(),
+                    2,
+                    Date::new(2024, 2, 2).unwrap(),
+                    ChangeNameEventType::Merging,
                     "Other Old Name".into(),
                 )
                 .unwrap(),
@@ -904,7 +1120,13 @@ mod tests {
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "ID,Report,Report page,Fund ID,From,Type of event,Old name\n\
                  1,R,1,1,2024-01-01,RENAMING,Old Name\n\
@@ -921,15 +1143,30 @@ mod tests {
             let mut tables = empty_tables();
             tables.funds_assets = vec![
                 FundAssetsRow::new(
-                    1, 1, "R".into(), 1, Some(Date::new(2024, 12, 31).unwrap()), 100.0, 40.0, 60.0, Currency::EUR,
+                    1,
+                    1,
+                    "R".into(),
+                    1,
+                    Some(Date::new(2024, 12, 31).unwrap()),
+                    100.0,
+                    40.0,
+                    60.0,
+                    Currency::EUR,
                 )
                 .unwrap(),
-                FundAssetsRow::new(2, 2, "R".into(), 2, None, 200.0, 80.0, 120.0, Currency::USD).unwrap(),
+                FundAssetsRow::new(2, 2, "R".into(), 2, None, 200.0, 80.0, 120.0, Currency::USD)
+                    .unwrap(),
             ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let expected = "ID,Report,Report page,Fund ID,Date,Total assets,Total liabilities,Total net assets,Currency\n\
                  1,R,1,1,2024-12-31,100.0,40.0,60.0,EUR\n\
@@ -945,7 +1182,13 @@ mod tests {
         fn an_empty_map_is_the_empty_yaml_mapping() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert_eq!(read(&out, "investments_add_infos.yaml"), "{}\n");
         }
 
@@ -954,24 +1197,43 @@ mod tests {
             let mut tables = empty_tables();
             tables.additional_infos.insert(
                 1,
-                BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035)).unwrap(),
+                BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035))
+                    .unwrap(),
             );
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
-            assert_eq!(read(&out, "investments_add_infos.yaml"), "1:\n  maturity: '2028-03-30'\n  interest_rate: 0.035\n");
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
+            assert_eq!(
+                read(&out, "investments_add_infos.yaml"),
+                "1:\n  maturity: '2028-03-30'\n  interest_rate: 0.035\n"
+            );
         }
 
         #[test]
         fn several_entries_keep_ascending_id_order_with_absent_fields_as_null() {
             let mut tables = empty_tables();
-            tables.additional_infos.insert(2, BondAdditionalInfoRow::new(None, None).unwrap());
             tables
                 .additional_infos
-                .insert(1, BondAdditionalInfoRow::new(Some(Date::new(2030, 6, 15).unwrap()), None).unwrap());
+                .insert(2, BondAdditionalInfoRow::new(None, None).unwrap());
+            tables.additional_infos.insert(
+                1,
+                BondAdditionalInfoRow::new(Some(Date::new(2030, 6, 15).unwrap()), None).unwrap(),
+            );
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert_eq!(
                 read(&out, "investments_add_infos.yaml"),
                 "1:\n  maturity: '2030-06-15'\n  interest_rate: null\n2:\n  maturity: null\n  interest_rate: null\n"
@@ -983,8 +1245,19 @@ mod tests {
     /// thirteen positional arguments per row.
     fn investment(id: i64, report: &str) -> InvestmentRow {
         InvestmentRow::new(
-            id, 1, report.to_string(), "Trigger".into(), "Investee".into(), FinancialInstrument::EQUITY,
-            None, 1000.0, Currency::EUR, None, 1, None, None,
+            id,
+            1,
+            report.to_string(),
+            "Trigger".into(),
+            "Investee".into(),
+            FinancialInstrument::EQUITY,
+            None,
+            1000.0,
+            Currency::EUR,
+            None,
+            1,
+            None,
+            None,
         )
         .unwrap()
     }
@@ -999,7 +1272,13 @@ mod tests {
             tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert!(out.is_file());
         }
 
@@ -1007,13 +1286,21 @@ mod tests {
         fn appends_maturity_and_interest_rate_columns_from_additional_infos() {
             let mut tables = empty_tables();
             tables.investments = vec![investment(1, "R")];
-            tables
-                .additional_infos
-                .insert(1, BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035)).unwrap());
+            tables.additional_infos.insert(
+                1,
+                BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035))
+                    .unwrap(),
+            );
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             let content = std::fs::read_to_string(&out).unwrap();
             let header = content.lines().next().unwrap();
@@ -1022,7 +1309,10 @@ mod tests {
                 "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency,Maturity,Interest rate"
             );
             let row = content.lines().nth(1).unwrap();
-            assert!(row.ends_with("2028-03-30,0.035"), "expected Maturity/Interest rate at the end, got: {row}");
+            assert!(
+                row.ends_with("2028-03-30,0.035"),
+                "expected Maturity/Interest rate at the end, got: {row}"
+            );
         }
 
         #[test]
@@ -1031,10 +1321,19 @@ mod tests {
             tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags::default(),
+            )
+            .unwrap();
             let content = std::fs::read_to_string(&out).unwrap();
             let row = content.lines().nth(1).unwrap();
-            assert!(row.ends_with(",,"), "expected two trailing empty cells, got: {row}");
+            assert!(
+                row.ends_with(",,"),
+                "expected two trailing empty cells, got: {row}"
+            );
         }
 
         #[test]
@@ -1044,7 +1343,13 @@ mod tests {
             tables.funds = vec![FundRow::new(1, "ALPHA FUND".into(), None, None, None).unwrap()];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert!(!dir.path().join("funds.csv").exists());
             assert!(!dir.path().join("investments_add_infos.yaml").exists());
         }
@@ -1053,7 +1358,13 @@ mod tests {
         fn an_empty_investments_table_still_writes_a_header_only_file() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&empty_tables(), &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags::default(),
+            )
+            .unwrap();
             let content = std::fs::read_to_string(&out).unwrap();
             assert_eq!(content.lines().count(), 1, "header only, no data rows");
         }
@@ -1067,11 +1378,19 @@ mod tests {
         fn creates_an_investments_subdirectory_with_table_csv_and_dicts_yaml() {
             let mut tables = empty_tables();
             tables.investments = vec![investment(1, "R")];
-            tables.additional_infos.insert(1, BondAdditionalInfoRow::new(None, Some(0.05)).unwrap());
+            tables
+                .additional_infos
+                .insert(1, BondAdditionalInfoRow::new(None, Some(0.05)).unwrap());
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Structured,
+                OutFlags::default(),
+            )
+            .unwrap();
 
             assert!(out.join("investments").join("table.csv").is_file());
             assert!(out.join("investments").join("dicts.yaml").is_file());
@@ -1083,8 +1402,15 @@ mod tests {
             tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
-            let content = std::fs::read_to_string(out.join("investments").join("table.csv")).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Structured,
+                OutFlags::default(),
+            )
+            .unwrap();
+            let content =
+                std::fs::read_to_string(out.join("investments").join("table.csv")).unwrap();
             let header = content.lines().next().unwrap();
             assert_eq!(
                 header,
@@ -1095,12 +1421,26 @@ mod tests {
         #[test]
         fn dicts_yaml_uses_the_same_format_as_investments_add_infos_yaml() {
             let mut tables = empty_tables();
-            tables.additional_infos.insert(1, BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035)).unwrap());
+            tables.additional_infos.insert(
+                1,
+                BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035))
+                    .unwrap(),
+            );
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
-            let content = std::fs::read_to_string(out.join("investments").join("dicts.yaml")).unwrap();
-            assert_eq!(content, "1:\n  maturity: '2028-03-30'\n  interest_rate: 0.035\n");
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Structured,
+                OutFlags::default(),
+            )
+            .unwrap();
+            let content =
+                std::fs::read_to_string(out.join("investments").join("dicts.yaml")).unwrap();
+            assert_eq!(
+                content,
+                "1:\n  maturity: '2028-03-30'\n  interest_rate: 0.035\n"
+            );
         }
 
         #[test]
@@ -1109,7 +1449,13 @@ mod tests {
             tables.funds = vec![FundRow::new(1, "ALPHA FUND".into(), None, None, None).unwrap()];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Structured,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert!(!out.join("funds.csv").exists());
         }
     }
@@ -1131,18 +1477,38 @@ mod tests {
         fn regular_profile_compressed_produces_a_sibling_tar_gz() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Regular,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
             assert!(dir.path().join("out.tar.gz").is_file());
         }
 
         #[test]
-        fn regular_profile_compressed_removes_the_uncompressed_directory_when_it_did_not_preexist() {
+        fn regular_profile_compressed_removes_the_uncompressed_directory_when_it_did_not_preexist()
+        {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out"); // does not exist yet
-            write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
-            assert!(!out.exists(), "the uncompressed directory must be removed since it did not preexist");
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Regular,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
+            assert!(
+                !out.exists(),
+                "the uncompressed directory must be removed since it did not preexist"
+            );
             assert!(dir.path().join("out.tar.gz").is_file());
         }
 
@@ -1151,8 +1517,16 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             std::fs::create_dir_all(&out).unwrap(); // preexists before write_files runs
-            write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Regular,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
             assert!(out.exists(), "a directory that preexisted must be kept");
             assert!(dir.path().join("out.tar.gz").is_file());
         }
@@ -1161,8 +1535,16 @@ mod tests {
         fn structured_profile_compressed_also_produces_a_sibling_tar_gz() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&empty_tables(), &out, OutStructureMode::Structured, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::Structured,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
             assert!(dir.path().join("out.tar.gz").is_file());
         }
 
@@ -1170,8 +1552,16 @@ mod tests {
         fn single_file_profile_compressed_produces_a_sibling_gz_not_tar_gz() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&empty_tables(), &out, OutStructureMode::SingleFile, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
             assert!(dir.path().join("out.csv.gz").is_file());
             assert!(!dir.path().join("out.csv.tar.gz").exists());
         }
@@ -1180,8 +1570,16 @@ mod tests {
         fn single_file_profile_compressed_removes_the_uncompressed_file_when_it_did_not_preexist() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&empty_tables(), &out, OutStructureMode::SingleFile, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &empty_tables(),
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
             assert!(!out.exists());
         }
 
@@ -1191,8 +1589,16 @@ mod tests {
             tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
-            write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::SingleFile,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
             let content = String::from_utf8(gunzip(&dir.path().join("out.csv.gz"))).unwrap();
             assert!(content.starts_with("ID,Report,"));
             assert!(content.contains(",R,"));
@@ -1204,14 +1610,24 @@ mod tests {
             tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags { compressed: true, ..OutFlags::default() })
-                .unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags {
+                    compressed: true,
+                    ..OutFlags::default()
+                },
+            )
+            .unwrap();
 
             let archive_bytes = gunzip(&dir.path().join("out.tar.gz"));
             let mut archive = tar::Archive::new(&archive_bytes[..]);
             let extract_to = tempfile::tempdir().unwrap();
             archive.unpack(extract_to.path()).unwrap();
-            let content = std::fs::read_to_string(extract_to.path().join("out").join("investments.csv")).unwrap();
+            let content =
+                std::fs::read_to_string(extract_to.path().join("out").join("investments.csv"))
+                    .unwrap();
             assert!(content.contains(",R,"));
         }
     }
@@ -1230,7 +1646,13 @@ mod tests {
             tables.investments = vec![investment(1, "Report A"), investment(2, "Report B")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
+            write_files(
+                &tables,
+                &out,
+                OutStructureMode::Regular,
+                OutFlags::default(),
+            )
+            .unwrap();
             assert!(out.join("investments.csv").is_file());
             let content = std::fs::read_to_string(out.join("investments.csv")).unwrap();
             assert_eq!(content.lines().count(), 3, "header + two merged rows");
@@ -1242,10 +1664,16 @@ mod tests {
             tables.investments = vec![investment(1, "Report A"), investment(2, "Report B")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            let flags = OutFlags { separate_out: true, ..OutFlags::default() };
+            let flags = OutFlags {
+                separate_out: true,
+                ..OutFlags::default()
+            };
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
-            assert!(!out.join("investments.csv").exists(), "the merged file must not be produced");
+            assert!(
+                !out.join("investments.csv").exists(),
+                "the merged file must not be produced"
+            );
             assert!(out.join("investments__Report A.csv").is_file());
             assert!(out.join("investments__Report B.csv").is_file());
         }
@@ -1256,12 +1684,19 @@ mod tests {
             tables.investments = vec![investment(1, "Report A"), investment(2, "Report B")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            let flags = OutFlags { separate_out: true, ..OutFlags::default() };
+            let flags = OutFlags {
+                separate_out: true,
+                ..OutFlags::default()
+            };
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
             let content_a = std::fs::read_to_string(out.join("investments__Report A.csv")).unwrap();
             assert!(content_a.starts_with("ID,Report,Report page"));
-            assert_eq!(content_a.lines().count(), 2, "header + exactly one row for Report A");
+            assert_eq!(
+                content_a.lines().count(),
+                2,
+                "header + exactly one row for Report A"
+            );
             assert!(content_a.contains(",Report A,"));
             assert!(!content_a.contains(",Report B,"));
         }
@@ -1270,12 +1705,37 @@ mod tests {
         fn separate_out_also_splits_funds_assets() {
             let mut tables = empty_tables();
             tables.funds_assets = vec![
-                FundAssetsRow::new(1, 1, "Report A".into(), 1, None, 100.0, 40.0, 60.0, Currency::EUR).unwrap(),
-                FundAssetsRow::new(2, 2, "Report B".into(), 2, None, 100.0, 40.0, 60.0, Currency::EUR).unwrap(),
+                FundAssetsRow::new(
+                    1,
+                    1,
+                    "Report A".into(),
+                    1,
+                    None,
+                    100.0,
+                    40.0,
+                    60.0,
+                    Currency::EUR,
+                )
+                .unwrap(),
+                FundAssetsRow::new(
+                    2,
+                    2,
+                    "Report B".into(),
+                    2,
+                    None,
+                    100.0,
+                    40.0,
+                    60.0,
+                    Currency::EUR,
+                )
+                .unwrap(),
             ];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            let flags = OutFlags { separate_out: true, ..OutFlags::default() };
+            let flags = OutFlags {
+                separate_out: true,
+                ..OutFlags::default()
+            };
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
             assert!(!out.join("funds_assets.csv").exists());
@@ -1291,24 +1751,51 @@ mod tests {
             // judgment-call note).
             let mut tables = empty_tables();
             tables.funds = vec![
-                FundRow::new(1, "ALPHA FUND".into(), None, Some(1), Some("Report A".into())).unwrap(),
-                FundRow::new(2, "BETA FUND".into(), None, Some(2), Some("Report B".into())).unwrap(),
+                FundRow::new(
+                    1,
+                    "ALPHA FUND".into(),
+                    None,
+                    Some(1),
+                    Some("Report A".into()),
+                )
+                .unwrap(),
+                FundRow::new(
+                    2,
+                    "BETA FUND".into(),
+                    None,
+                    Some(2),
+                    Some("Report B".into()),
+                )
+                .unwrap(),
             ];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            let flags = OutFlags { separate_out: true, ..OutFlags::default() };
+            let flags = OutFlags {
+                separate_out: true,
+                ..OutFlags::default()
+            };
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
-            assert!(out.join("funds.csv").is_file(), "funds.csv must remain a single merged file");
+            assert!(
+                out.join("funds.csv").is_file(),
+                "funds.csv must remain a single merged file"
+            );
             let content = std::fs::read_to_string(out.join("funds.csv")).unwrap();
-            assert_eq!(content.lines().count(), 3, "header + both funds merged together");
+            assert_eq!(
+                content.lines().count(),
+                3,
+                "header + both funds merged together"
+            );
         }
 
         #[test]
         fn an_empty_investments_table_with_separate_out_produces_no_split_files_at_all() {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
-            let flags = OutFlags { separate_out: true, ..OutFlags::default() };
+            let flags = OutFlags {
+                separate_out: true,
+                ..OutFlags::default()
+            };
             write_files(&empty_tables(), &out, OutStructureMode::Regular, flags).unwrap();
             assert!(!out.join("investments.csv").exists());
             let split_files: Vec<_> = std::fs::read_dir(&out)
@@ -1316,7 +1803,10 @@ mod tests {
                 .filter_map(|e| e.ok())
                 .filter(|e| e.file_name().to_string_lossy().starts_with("investments__"))
                 .collect();
-            assert!(split_files.is_empty(), "no reports at all -> nothing to split");
+            assert!(
+                split_files.is_empty(),
+                "no reports at all -> nothing to split"
+            );
         }
     }
 }

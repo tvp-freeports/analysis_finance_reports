@@ -12,11 +12,12 @@
 //!
 //! Neither source is required: a repository with neither has a classifier that classifies nothing.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::core::doc_classify::DocumentClassifier;
 
 use super::doc_classify_py::{self, DocClassifyPyError};
+use super::doc_classify_validate::{self, DocClassifyValidationError};
 use super::doc_classify_yaml::{self, DocClassifyYamlError};
 use super::metadata::{MetadataError, get_formats};
 
@@ -30,17 +31,32 @@ pub enum DocClassifyLoadError {
     Python(#[from] DocClassifyPyError),
     #[error(transparent)]
     Yaml(#[from] DocClassifyYamlError),
+    /// The YAML read, and broke §5 against `formats.csv` (phase 9): every issue, in file order,
+    /// with the file they are in.
+    #[error("{}: {source}", path.display())]
+    Validation {
+        path: PathBuf,
+        #[source]
+        source: DocClassifyValidationError,
+    },
 }
 
 /// The document classifier of the repository at `formats_repo_dir`: its formats in `formats.csv`
 /// order, its Python entries, its YAML entries.
 ///
 /// Both sources are loaded whatever the other holds: the precedence is an order at run time, and a
-/// broken YAML beside a Python that happens to decide every document is still broken.
+/// broken YAML beside a Python that happens to decide every document is still broken. The YAML is
+/// then validated against both ([`doc_classify_validate::validate`]), before any document is seen.
 pub fn load(formats_repo_dir: &Path) -> Result<DocumentClassifier, DocClassifyLoadError> {
     let formats = get_formats(formats_repo_dir)?;
     let python = doc_classify_py::load(formats_repo_dir)?;
     let yaml = doc_classify_yaml::load(formats_repo_dir)?;
+    doc_classify_validate::validate(&formats, &python, &yaml).map_err(|source| {
+        DocClassifyLoadError::Validation {
+            path: doc_classify_yaml::yaml_path(formats_repo_dir),
+            source,
+        }
+    })?;
     tracing::debug!(
         format_count = formats.len(),
         python_entry_count = python.len(),
@@ -108,7 +124,11 @@ def recognises(line, pattern):
             let dir = TempDir::new().expect("temp dir");
             fs::create_dir_all(dir.path().join(METADATA_DIR)).expect("metadata dir");
             fs::create_dir_all(dir.path().join(TEMPLATES_DIR)).expect("templates dir");
-            fs::write(dir.path().join(METADATA_DIR).join("formats.csv"), FORMATS_CSV).expect("formats.csv");
+            fs::write(
+                dir.path().join(METADATA_DIR).join("formats.csv"),
+                FORMATS_CSV,
+            )
+            .expect("formats.csv");
             Repo { dir }
         }
 
@@ -118,7 +138,11 @@ def recognises(line, pattern):
 
         /// The single-file Python module, with the prelude and `body`.
         fn python(self, body: &str) -> Self {
-            fs::write(self.metadata().join("document_classify.py"), format!("{PRELUDE}\n{body}\n")).unwrap();
+            fs::write(
+                self.metadata().join("document_classify.py"),
+                format!("{PRELUDE}\n{body}\n"),
+            )
+            .unwrap();
             self
         }
 
@@ -126,7 +150,11 @@ def recognises(line, pattern):
         fn python_package(self, body: &str) -> Self {
             let package = self.metadata().join("document_classify");
             fs::create_dir_all(&package).unwrap();
-            fs::write(package.join("__init__.py"), "from .rules import document_classifier\n").unwrap();
+            fs::write(
+                package.join("__init__.py"),
+                "from .rules import document_classifier\n",
+            )
+            .unwrap();
             fs::write(package.join("rules.py"), format!("{PRELUDE}\n{body}\n")).unwrap();
             self
         }
@@ -156,7 +184,7 @@ def recognises(line, pattern):
         }
     }
 
-/// [`DocumentClassifier::classify`] under the engine tests' `SERIAL` lock (see it in
+    /// [`DocumentClassifier::classify`] under the engine tests' `SERIAL` lock (see it in
     /// `core::doc_classify`'s tests: the process-wide `tracing` race it closes). Never taken while
     /// attached to Python.
     trait ClassifySerialized {
@@ -171,7 +199,9 @@ def recognises(line, pattern):
             &self,
             source: &dyn crate::core::doc_classify::PageSource,
         ) -> Result<DocClassification, DocClassifyError> {
-            let _guard = crate::core::doc_classify::tests::SERIAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            let _guard = crate::core::doc_classify::tests::SERIAL
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             self.classify(source)
         }
     }
@@ -215,30 +245,45 @@ def recognises(line, pattern):
         fn a_repository_with_neither_source_classifies_nothing_and_reads_no_page() {
             let repo = Repo::new();
             let document = FakeDocument::new(&[&["Amundi Funds"]]);
-            assert_eq!(repo.classifier().classify_serialized(&document).unwrap(), DocClassification::Unclassified);
+            assert_eq!(
+                repo.classifier().classify_serialized(&document).unwrap(),
+                DocClassification::Unclassified
+            );
             assert!(document.requests().is_empty(), "{:?}", document.requests());
         }
 
         #[test]
         fn the_yaml_alone_classifies() {
             let repo = Repo::new().yaml("1:\n  AMUNDI-EN24: {text: '^Amundi Funds$'}\n");
-            let outcome = repo.classifier().classify_serialized(&FakeDocument::new(&[&["Amundi Funds"]])).unwrap();
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Amundi Funds"]]))
+                .unwrap();
             assert_eq!(complete_format(&outcome), &p("AMUNDI-EN24"));
             assert!(by_yaml(&outcome));
         }
 
         #[test]
         fn the_python_alone_classifies() {
-            let repo = Repo::new().python("document_classifier = [(1, recognises('Amundi Funds', 'AMUNDI-EN24'))]");
-            let outcome = repo.classifier().classify_serialized(&FakeDocument::new(&[&["Amundi Funds"]])).unwrap();
+            let repo = Repo::new()
+                .python("document_classifier = [(1, recognises('Amundi Funds', 'AMUNDI-EN24'))]");
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Amundi Funds"]]))
+                .unwrap();
             assert_eq!(complete_format(&outcome), &p("AMUNDI-EN24"));
             assert!(by_python(&outcome));
         }
 
         #[test]
         fn the_python_package_alone_classifies() {
-            let repo = Repo::new().python_package("document_classifier = [(-1, recognises('Eurizon Fund', 'EURIZON-EN23'))]");
-            let outcome = repo.classifier().classify_serialized(&FakeDocument::new(&[&["cover"], &["Eurizon Fund"]])).unwrap();
+            let repo = Repo::new().python_package(
+                "document_classifier = [(-1, recognises('Eurizon Fund', 'EURIZON-EN23'))]",
+            );
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["cover"], &["Eurizon Fund"]]))
+                .unwrap();
             assert_eq!(complete_format(&outcome), &p("EURIZON-EN23"));
         }
 
@@ -246,10 +291,20 @@ def recognises(line, pattern):
         #[test]
         fn the_candidates_of_a_partial_are_the_formats_of_formats_csv_in_file_order() {
             let repo = Repo::new().yaml("1:\n  MEDIOLANUM: {text: '^Mediolanum$'}\n");
-            match repo.classifier().classify_serialized(&FakeDocument::new(&[&["Mediolanum"]])).unwrap() {
-                DocClassification::Partial { pattern, candidates } => {
+            match repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Mediolanum"]]))
+                .unwrap()
+            {
+                DocClassification::Partial {
+                    pattern,
+                    candidates,
+                } => {
                     assert_eq!(pattern, p("MEDIOLANUM"));
-                    assert_eq!(candidates, vec!["MEDIOLANUM-EN23", "MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"]);
+                    assert_eq!(
+                        candidates,
+                        vec!["MEDIOLANUM-EN23", "MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"]
+                    );
                 }
                 other => panic!("expected a partial, got {other:?}"),
             }
@@ -258,9 +313,16 @@ def recognises(line, pattern):
         /// The Python's runtime check (§6) runs against the formats of `formats.csv`.
         #[test]
         fn a_python_outcome_is_checked_against_formats_csv() {
-            let repo = Repo::new().python("document_classifier = [(1, recognises('x', 'FIDEURAM-IT21'))]");
-            let err = repo.classifier().classify_serialized(&FakeDocument::new(&[&["x"]])).unwrap_err();
-            assert!(matches!(err, DocClassifyError::UnknownFormat { entry: 0, .. }), "{err:?}");
+            let repo =
+                Repo::new().python("document_classifier = [(1, recognises('x', 'FIDEURAM-IT21'))]");
+            let err = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["x"]]))
+                .unwrap_err();
+            assert!(
+                matches!(err, DocClassifyError::UnknownFormat { entry: 0, .. }),
+                "{err:?}"
+            );
         }
     }
 
@@ -272,14 +334,23 @@ def recognises(line, pattern):
         fn a_missing_formats_csv_is_a_metadata_error() {
             let repo = Repo::new();
             fs::remove_file(repo.metadata().join("formats.csv")).unwrap();
-            assert!(matches!(repo.load_err(), DocClassifyLoadError::Metadata(MetadataError::MissingCsv(_))));
+            assert!(matches!(
+                repo.load_err(),
+                DocClassifyLoadError::Metadata(MetadataError::MissingCsv(_))
+            ));
         }
 
         #[test]
         fn a_broken_python_module_is_a_python_error_naming_its_file() {
             let repo = Repo::new().raw_python("raise RuntimeError('broken classifier')\n");
             let err = repo.load_err();
-            assert!(matches!(err, DocClassifyLoadError::Python(DocClassifyPyError::ModuleLoad { .. })), "{err:?}");
+            assert!(
+                matches!(
+                    err,
+                    DocClassifyLoadError::Python(DocClassifyPyError::ModuleLoad { .. })
+                ),
+                "{err:?}"
+            );
             let message = err.to_string();
             assert!(message.contains("broken classifier"), "{message}");
             assert!(message.contains("document_classify.py"), "{message}");
@@ -287,14 +358,22 @@ def recognises(line, pattern):
 
         #[test]
         fn both_python_layouts_present_is_a_python_error() {
-            let repo = Repo::new().python_package("document_classifier = []").raw_python("document_classifier = []\n");
-            assert!(matches!(repo.load_err(), DocClassifyLoadError::Python(DocClassifyPyError::TwoLayouts { .. })));
+            let repo = Repo::new()
+                .python_package("document_classifier = []")
+                .raw_python("document_classifier = []\n");
+            assert!(matches!(
+                repo.load_err(),
+                DocClassifyLoadError::Python(DocClassifyPyError::TwoLayouts { .. })
+            ));
         }
 
         #[test]
         fn a_module_without_the_variable_is_a_python_error() {
             let repo = Repo::new().raw_python("x = 1\n");
-            assert!(matches!(repo.load_err(), DocClassifyLoadError::Python(DocClassifyPyError::MissingClassifier { .. })));
+            assert!(matches!(
+                repo.load_err(),
+                DocClassifyLoadError::Python(DocClassifyPyError::MissingClassifier { .. })
+            ));
         }
 
         #[test]
@@ -340,7 +419,10 @@ def recognises(line, pattern):
             let repo = Repo::new()
                 .python("document_classifier = [(1, recognises('Amundi Funds', 'AMUNDI-EN24'))]")
                 .yaml("1:\n  EURIZON-EN23: {text: '^Amundi Funds$'}\n");
-            let outcome = repo.classifier().classify_serialized(&FakeDocument::new(&[&["Amundi Funds"]])).unwrap();
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Amundi Funds"]]))
+                .unwrap();
             assert_eq!(complete_format(&outcome), &p("AMUNDI-EN24"));
             assert!(by_python(&outcome));
         }
@@ -377,7 +459,11 @@ def recognises(line, pattern):
             let repo = Repo::new()
                 .python("document_classifier = [(1, recognises('Mediolanum', 'MEDIOLANUM'))]")
                 .yaml("1:\n  EURIZON-EN23: {text: '^Mediolanum$'}\n");
-            match repo.classifier().classify_serialized(&FakeDocument::new(&[&["Mediolanum"]])).unwrap() {
+            match repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Mediolanum"]]))
+                .unwrap()
+            {
                 DocClassification::Partial { pattern, .. } => assert_eq!(pattern, p("MEDIOLANUM")),
                 other => panic!("expected the Python's partial to survive, got {other:?}"),
             }
@@ -401,9 +487,168 @@ def recognises(line, pattern):
                 .python("document_classifier = [(1, recognises('x', '-IT24'))]")
                 .yaml("2:\n  EURIZON-EN23: {text: '^Eurizon Fund$'}\n");
             let document = FakeDocument::new(&[&["x"], &["Eurizon Fund"]]);
-            let err = repo.classifier().classify_serialized(&document).unwrap_err();
-            assert!(matches!(err, DocClassifyError::Pipe { entry: 0, .. }), "{err:?}");
+            let err = repo
+                .classifier()
+                .classify_serialized(&document)
+                .unwrap_err();
+            assert!(
+                matches!(err, DocClassifyError::Pipe { entry: 0, .. }),
+                "{err:?}"
+            );
             assert_eq!(document.requests(), vec![1]);
+        }
+    }
+
+    /// The load-time validation of §5 (phase 9) runs inside the assembly: it is the one place
+    /// where `formats.csv`, the Python and the YAML are all known.
+    mod validation_at_load {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        use crate::formats_repo::doc_classify_validate::ValidationRule;
+
+        fn validation_error(repo: &Repo) -> (PathBuf, DocClassifyValidationError) {
+            match repo.load_err() {
+                DocClassifyLoadError::Validation { path, source } => (path, source),
+                other => panic!("expected a validation error, got {other:?}"),
+            }
+        }
+
+        /// The block below the prefix `MEDIOLANUM-IT24.*` has its root found by nothing in the
+        /// YAML.
+        const ROOT_NEVER_FOUND: &str = "1:\n  MEDIOLANUM-IT24.*:\n    A: {text: '^Best Brands$'}\n";
+
+        #[test]
+        fn a_name_not_in_formats_csv_fails_the_load_naming_the_file_and_the_name() {
+            let repo = Repo::new().yaml("1:\n  FIDEURAM-IT21: {text: x}\n");
+            let (path, source) = validation_error(&repo);
+            assert!(
+                path.ends_with("metadata/document_classify.yaml"),
+                "{}",
+                path.display()
+            );
+            assert_eq!(source.issues.len(), 1);
+            assert_eq!(
+                source.issues[0].kind,
+                ValidationRule::UnknownFormat {
+                    format: p("FIDEURAM-IT21")
+                }
+            );
+            let message = repo.load_err().to_string();
+            assert!(message.contains("document_classify.yaml"), "{message}");
+            assert!(message.contains("FIDEURAM-IT21"), "{message}");
+        }
+
+        #[test]
+        fn a_template_no_entity_completes_fails_the_load() {
+            let repo = Repo::new().yaml("1:\n  MEDIOLANUM: {text: m}\n  \"*-DE23\": {text: d}\n");
+            let (_, source) = validation_error(&repo);
+            assert_eq!(
+                source
+                    .issues
+                    .iter()
+                    .map(|issue| issue.kind.clone())
+                    .collect::<Vec<_>>(),
+                vec![ValidationRule::TemplateMatchesNoFormat {
+                    template: "*-DE23".parse().unwrap()
+                }]
+            );
+        }
+
+        #[test]
+        fn an_unreachable_step_fails_the_load() {
+            let repo = Repo::new().yaml(ROOT_NEVER_FOUND);
+            let (_, source) = validation_error(&repo);
+            assert_eq!(
+                source
+                    .issues
+                    .iter()
+                    .map(|issue| issue.kind.clone())
+                    .collect::<Vec<_>>(),
+                vec![ValidationRule::Unreachable]
+            );
+        }
+
+        /// With a Python the root can come from it (§5, §6): the same YAML loads, and the
+        /// Python's partial is what reaches the block.
+        #[test]
+        fn beside_a_python_the_same_yaml_loads_and_the_python_finds_the_root() {
+            let repo = Repo::new()
+                .python(
+                    "document_classifier = [(1, recognises('Mediolanum', 'MEDIOLANUM-IT24.*'))]",
+                )
+                .yaml(ROOT_NEVER_FOUND);
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Mediolanum", "Best Brands"]]))
+                .unwrap();
+            assert_eq!(complete_format(&outcome), &p("MEDIOLANUM-IT24.A"));
+            assert!(by_yaml(&outcome));
+        }
+
+        /// A `document_classifier` with no entries accumulates nothing: the checks hold.
+        #[test]
+        fn a_python_without_entries_is_no_python() {
+            let repo = Repo::new()
+                .raw_python("document_classifier = []\n")
+                .yaml(ROOT_NEVER_FOUND);
+            let (_, source) = validation_error(&repo);
+            assert_eq!(source.issues.len(), 1, "{source}");
+        }
+
+        #[test]
+        fn a_name_not_in_formats_csv_fails_the_load_beside_a_python_too() {
+            let repo = Repo::new()
+                .python("document_classifier = [(1, recognises('x', 'AMUNDI-EN24'))]")
+                .yaml("1:\n  FIDEURAM-IT21: {text: x}\n");
+            let (_, source) = validation_error(&repo);
+            assert_eq!(
+                source.issues[0].kind,
+                ValidationRule::UnknownFormat {
+                    format: p("FIDEURAM-IT21")
+                }
+            );
+        }
+
+        /// A defect of form is the YAML loader's error, found before any validation: page `0`
+        /// (phase 7, `doc_classify_yaml::tests::pages`) beside a name that does not exist.
+        #[test]
+        fn a_defect_of_form_is_still_a_yaml_error() {
+            let repo = Repo::new().yaml("0:\n  GHOST-EN24: {text: x}\n");
+            assert!(matches!(repo.load_err(), DocClassifyLoadError::Yaml(_)));
+        }
+
+        /// The user's rule (§5, 2026-10-11), end to end: `*-EN23` is completed by EURIZON and
+        /// MEDIOLANUM, so it loads; for `A = AMUNDI` the repository has no `AMUNDI-EN23`, the
+        /// `*` does not start, and the outcome is the partial — no error at load time nor at run
+        /// time. (The engine alone: `core::doc_classify::tests::templates::a_complete_instance_the_repository_lacks_is_skipped`.)
+        #[test]
+        fn a_template_the_accumulated_partial_cannot_complete_loads_and_leaves_the_partial() {
+            let repo = Repo::new().yaml(
+                "1:\n  AMUNDI: {text: '^Amundi$'}\n  \"*-EN23\": {text: '^Annual Report 2023$'}\n",
+            );
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Amundi", "Annual Report 2023"]]))
+                .unwrap();
+            assert_eq!(
+                outcome,
+                DocClassification::Partial {
+                    pattern: p("AMUNDI"),
+                    candidates: vec!["AMUNDI-EN24".to_string()]
+                }
+            );
+        }
+
+        /// The same YAML, for an entity that has the format: the `*` starts.
+        #[test]
+        fn the_same_template_completes_an_entity_that_has_the_format() {
+            let repo = Repo::new().yaml("1:\n  MEDIOLANUM: {text: '^Mediolanum$'}\n  \"*-EN23\": {text: '^Annual Report 2023$'}\n");
+            let outcome = repo
+                .classifier()
+                .classify_serialized(&FakeDocument::new(&[&["Mediolanum", "Annual Report 2023"]]))
+                .unwrap();
+            assert_eq!(complete_format(&outcome), &p("MEDIOLANUM-EN23"));
         }
     }
 }

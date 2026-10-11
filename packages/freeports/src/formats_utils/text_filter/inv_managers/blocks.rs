@@ -11,9 +11,9 @@ use crate::core::match_fund::MatchFund;
 
 use super::assignment::{Assignment, Manco};
 use crate::formats_utils::text_filter::standard_txt_blk_builders::{
-    standard_fund_txt_blk, standard_fund_txt_blk_from_content,
-    standard_investmet_manager_txt_blk, standard_investmet_manager_txt_blk_from_content,
-    standard_management_company_txt_blk, standard_management_company_txt_blk_from_content,
+    standard_fund_txt_blk, standard_fund_txt_blk_from_content, standard_investmet_manager_txt_blk,
+    standard_investmet_manager_txt_blk_from_content, standard_management_company_txt_blk,
+    standard_management_company_txt_blk_from_content,
 };
 
 /// The managers' blocks, plus one for every sub-fund the job had not yet seen.
@@ -35,7 +35,12 @@ pub fn text_blocks(assignment: &Assignment) -> Vec<TextBlock> {
         .collect();
     // In name order, and not the one the set gives back: output identifiers are assigned in the
     // order the rows arrive, and a frozen fixture has to see the same order on every run.
-    blocks.extend(assignment.new_funds.iter().map(|fund| fund_block(fund, assignment)));
+    blocks.extend(
+        assignment
+            .new_funds
+            .iter()
+            .map(|fund| fund_block(fund, assignment)),
+    );
     blocks
 }
 
@@ -74,9 +79,7 @@ mod tests {
     use super::*;
     use crate::core::classes::BlockType;
     use crate::core::classes::value::BlockValue;
-    use crate::formats_utils::text_filter::inv_managers::assignment::{
-        Declared, assign, fund_set,
-    };
+    use crate::formats_utils::text_filter::inv_managers::assignment::{Declared, assign, fund_set};
 
     fn three() -> BTreeSet<MatchFund> {
         fund_set(["Alpha Fund", "Beta Fund", "Gamma Fund"])
@@ -85,9 +88,10 @@ mod tests {
     /// The names the block declares as managed, as written.
     fn managed(block: &TextBlock) -> Vec<String> {
         match block.metadata.get("managed_funds") {
-            Some(BlockValue::Set(names)) => {
-                names.iter().filter_map(|v| v.as_str().map(str::to_string)).collect()
-            }
+            Some(BlockValue::Set(names)) => names
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect(),
             _ => Vec::new(),
         }
     }
@@ -167,7 +171,10 @@ mod tests {
                 vec![Declared::from_block(block).with_funds(["Alpha Fund", "Delta Fund"])];
             let assignment = assign(declared, &three(), None, &BTreeSet::new(), false);
             let got = text_blocks(&assignment);
-            let kept = got[1].pdf_block.as_ref().expect("the new fund keeps a page");
+            let kept = got[1]
+                .pdf_block
+                .as_ref()
+                .expect("the new fund keeps a page");
             assert_eq!(kept.type_block, BlockType::from("MANAGER".to_string()));
             assert_eq!(kept.content.as_str(), Some("Delta Fund"));
         }
@@ -185,13 +192,14 @@ mod tests {
         fn they_come_out_in_name_order_and_not_the_sets_own() {
             // Output identifiers are handed out in the order the rows arrive, so a frozen fixture
             // needs the same order on every run.
-            let declared = vec![
-                Declared::new("Acme AM").with_funds(["Zeta Fund", "Delta Fund", "Alpha Fund"]),
-            ];
+            let declared = vec![Declared::new("Acme AM").with_funds([
+                "Zeta Fund",
+                "Delta Fund",
+                "Alpha Fund",
+            ])];
             let assignment = assign(declared, &three(), None, &BTreeSet::new(), false);
             let got = text_blocks(&assignment);
-            let new_ones: Vec<String> =
-                got.iter().skip(1).map(content).collect();
+            let new_ones: Vec<String> = got.iter().skip(1).map(content).collect();
             assert_eq!(new_ones, ["Delta Fund", "Zeta Fund"]);
         }
     }

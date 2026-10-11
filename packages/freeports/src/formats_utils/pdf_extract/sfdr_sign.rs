@@ -327,9 +327,11 @@ impl PdfExtractSfdrSignStandard {
             })?;
         let question_bottom = question.bbox().as_tuple().3;
 
-        let row = self.row(&self.args.labels, lines, question_bottom).ok_or_else(|| {
-            PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "SFDR answer labels".to_string() }
-        })?;
+        let row = self
+            .row(&self.args.labels, lines, question_bottom)
+            .ok_or_else(|| PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound {
+                name: "SFDR answer labels".to_string(),
+            })?;
 
         let (answer, kind, answered_by) = match self.answer(page, &row) {
             Some((answer, kind)) => (answer, kind, SfdrAnsweredBy::Question),
@@ -370,7 +372,10 @@ impl PdfExtractSfdrSignStandard {
         let mut metadata = BTreeMap::from([
             ("answer".to_string(), BlockValue::from(answer.as_str())),
             ("sign".to_string(), BlockValue::from(kind.as_str())),
-            ("answered_by".to_string(), BlockValue::from(answered_by.as_str())),
+            (
+                "answered_by".to_string(),
+                BlockValue::from(answered_by.as_str()),
+            ),
         ]);
         if let Some(title) = &self.args.title {
             // Above the question, so that what is checked is the annex's own title and not a line
@@ -380,8 +385,16 @@ impl PdfExtractSfdrSignStandard {
                 metadata.insert("title".to_string(), BlockValue::from(line.text().as_str()));
             }
         }
-        tracing::debug!(sign = kind.as_str(), answer = answer.as_str(), "SFDR tick found");
-        Ok(vec![PdfBlock::new(BlockType::SFDR_ARTICLE, metadata, BlockValue::from(""))])
+        tracing::debug!(
+            sign = kind.as_str(),
+            answer = answer.as_str(),
+            "SFDR tick found"
+        );
+        Ok(vec![PdfBlock::new(
+            BlockType::SFDR_ARTICLE,
+            metadata,
+            BlockValue::from(""),
+        )])
     }
 
     /// The topmost line the selection takes, optionally restricted to the band between `floor` and
@@ -399,10 +412,15 @@ impl PdfExtractSfdrSignStandard {
             .filter(|line| set.contains(*line))
             .filter(|line| {
                 let top = line.bbox().as_tuple().1;
-                floor.is_none_or(|floor| top >= floor) && ceiling.is_none_or(|ceiling| top < ceiling)
+                floor.is_none_or(|floor| top >= floor)
+                    && ceiling.is_none_or(|ceiling| top < ceiling)
             })
             .min_by(|a, b| {
-                a.bbox().as_tuple().1.partial_cmp(&b.bbox().as_tuple().1).unwrap_or(std::cmp::Ordering::Equal)
+                a.bbox()
+                    .as_tuple()
+                    .1
+                    .partial_cmp(&b.bbox().as_tuple().1)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
     }
 
@@ -448,11 +466,18 @@ impl PdfExtractSfdrSignStandard {
                 found.entry(candidate.kind).or_default().push(candidate);
             }
         }
-        found.entry(SfdrSignKind::Image).or_default().extend(self.image_candidates(&page.images, row));
-        found.entry(SfdrSignKind::VectorPath).or_default().extend(self.drawing_candidates(&page.drawings, row));
+        found
+            .entry(SfdrSignKind::Image)
+            .or_default()
+            .extend(self.image_candidates(&page.images, row));
+        found
+            .entry(SfdrSignKind::VectorPath)
+            .or_default()
+            .extend(self.drawing_candidates(&page.drawings, row));
 
         for kind in &self.args.signs {
-            let Some(candidates) = found.get(kind).filter(|candidates| !candidates.is_empty()) else {
+            let Some(candidates) = found.get(kind).filter(|candidates| !candidates.is_empty())
+            else {
                 continue;
             };
             if let Some(answer) = self.assign(candidates, row) {
@@ -465,7 +490,9 @@ impl PdfExtractSfdrSignStandard {
     /// The side the candidates fall on, or nothing when they contradict each other.
     fn assign(&self, candidates: &[Candidate], row: &AnswerRow) -> Option<SfdrAnswer> {
         let affirmative = candidates.iter().any(|candidate| candidate.x0 < row.middle);
-        let negative = candidates.iter().any(|candidate| candidate.x0 >= row.middle);
+        let negative = candidates
+            .iter()
+            .any(|candidate| candidate.x0 >= row.middle);
         match (affirmative, negative) {
             (true, false) => Some(SfdrAnswer::Affirmative),
             (false, true) => Some(SfdrAnswer::Negative),
@@ -527,7 +554,9 @@ impl PdfExtractSfdrSignStandard {
         let lightest = candidates.iter().map(|image| image.data.len()).min();
         match (candidates.len(), heaviest, lightest) {
             (0, _, _) => Vec::new(),
-            (_, Some(heaviest), Some(lightest)) if heaviest == lightest && candidates.len() > 1 => Vec::new(),
+            (_, Some(heaviest), Some(lightest)) if heaviest == lightest && candidates.len() > 1 => {
+                Vec::new()
+            }
             (_, Some(heaviest), _) => candidates
                 .iter()
                 .filter(|image| image.data.len() == heaviest)
@@ -538,7 +567,10 @@ impl PdfExtractSfdrSignStandard {
     }
 
     fn image_candidate(bbox: &Rectangle) -> Candidate {
-        Candidate { x0: bbox.as_tuple().0, kind: SfdrSignKind::Image }
+        Candidate {
+            x0: bbox.as_tuple().0,
+            kind: SfdrSignKind::Image,
+        }
     }
 
     /// A tick drawn as a vector path: dark, small, and made of several segments.
@@ -560,7 +592,10 @@ impl PdfExtractSfdrSignStandard {
             })
             .map(|drawing| {
                 let x0 = drawing.bbox.as_tuple().0;
-                Candidate { x0, kind: SfdrSignKind::VectorPath }
+                Candidate {
+                    x0,
+                    kind: SfdrSignKind::VectorPath,
+                }
             })
             .collect()
     }
@@ -572,7 +607,8 @@ impl PdfExtractPipe for PdfExtractSfdrSignStandard {
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        self.call(page).map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
+        self.call(page)
+            .map_err(|e| e.into_pipe_error(PdfExtractPipe::name(self)))
     }
 }
 
@@ -587,7 +623,12 @@ mod tests {
     }
 
     fn line(text: &str, x0: f32, y0: f32) -> PdfLine {
-        PdfLine::new("Arial", 10.0, text, (x0, y0, x0 + 10.0 * text.chars().count() as f32, y0 + 10.0))
+        PdfLine::new(
+            "Arial",
+            10.0,
+            text,
+            (x0, y0, x0 + 10.0 * text.chars().count() as f32, y0 + 10.0),
+        )
     }
 
     fn glyph(font: &str, text: &str, x0: f32, y0: f32) -> PdfLine {
@@ -603,14 +644,22 @@ mod tests {
     }
 
     fn drawing(x0: f32, y0: f32, fill: Option<(f32, f32, f32)>, items: usize) -> PageDrawing {
-        PageDrawing { bbox: Rectangle::new(x0, y0, x0 + 9.0, y0 + 9.0), fill, items }
+        PageDrawing {
+            bbox: Rectangle::new(x0, y0, x0 + 9.0, y0 + 9.0),
+            fill,
+            items,
+        }
     }
 
     /// The skeleton every test starts from: the question at the top, `Yes` at `x=100` and `No` at
     /// `x=300` twenty points below it, and the row of follow-up options twenty points below that.
     fn skeleton() -> Vec<PdfLine> {
         vec![
-            line("Did this financial product have a sustainable investment objective?", 100.0, 0.0),
+            line(
+                "Did this financial product have a sustainable investment objective?",
+                100.0,
+                0.0,
+            ),
             line("Yes", 100.0, 20.0),
             line("No", 300.0, 20.0),
             line("It made sustainable investments", 100.0, 50.0),
@@ -619,7 +668,10 @@ mod tests {
     }
 
     fn args() -> SfdrSignArgs {
-        SfdrSignArgs::new(text_sel("sustainable investment objective"), (text_sel("^Yes"), text_sel("^No")))
+        SfdrSignArgs::new(
+            text_sel("sustainable investment objective"),
+            (text_sel("^Yes"), text_sel("^No")),
+        )
     }
 
     fn with_fallback(args: SfdrSignArgs) -> SfdrSignArgs {
@@ -638,7 +690,12 @@ mod tests {
     }
 
     fn metadata(block: &PdfBlock, key: &str) -> String {
-        block.metadata.get(key).and_then(BlockValue::as_str).unwrap_or_default().to_string()
+        block
+            .metadata
+            .get(key)
+            .and_then(BlockValue::as_str)
+            .unwrap_or_default()
+            .to_string()
     }
 
     mod the_five_recognizers {
@@ -660,7 +717,11 @@ mod tests {
             // then has to be written as a suffix — `Yes$` and not `^Yes` — which is the one thing a
             // format author must notice about this layout.
             let lines = vec![
-                line("Did this financial product have a sustainable investment objective?", 100.0, 0.0),
+                line(
+                    "Did this financial product have a sustainable investment objective?",
+                    100.0,
+                    0.0,
+                ),
                 line("X Yes", 100.0, 20.0),
                 line("No", 300.0, 20.0),
             ];
@@ -723,7 +784,12 @@ mod tests {
 
         #[test]
         fn a_dark_many_segmented_path_is_the_tick() {
-            let page = page(skeleton()).with_drawings(vec![drawing(280.0, 21.0, Some((0.0, 0.0, 0.0)), 12)]);
+            let page = page(skeleton()).with_drawings(vec![drawing(
+                280.0,
+                21.0,
+                Some((0.0, 0.0, 0.0)),
+                12,
+            )]);
             let blocks = read(args(), &page);
             assert_eq!(metadata(&blocks[0], "answer"), "negative");
             assert_eq!(metadata(&blocks[0], "sign"), "vector-path");
@@ -731,13 +797,23 @@ mod tests {
 
         #[test]
         fn a_white_path_is_the_empty_box_next_to_it() {
-            let page = page(skeleton()).with_drawings(vec![drawing(280.0, 21.0, Some((1.0, 1.0, 1.0)), 12)]);
+            let page = page(skeleton()).with_drawings(vec![drawing(
+                280.0,
+                21.0,
+                Some((1.0, 1.0, 1.0)),
+                12,
+            )]);
             assert!(read(args(), &page).is_empty());
         }
 
         #[test]
         fn a_dark_path_of_one_command_is_a_rule_not_a_tick() {
-            let page = page(skeleton()).with_drawings(vec![drawing(280.0, 21.0, Some((0.0, 0.0, 0.0)), 1)]);
+            let page = page(skeleton()).with_drawings(vec![drawing(
+                280.0,
+                21.0,
+                Some((0.0, 0.0, 0.0)),
+                1,
+            )]);
             assert!(read(args(), &page).is_empty());
         }
     }
@@ -774,7 +850,10 @@ mod tests {
             let mut lines = skeleton();
             lines.push(glyph("MSGothic", "\u{2610}", 80.0, 21.0));
             lines.push(glyph("Wingdings", "\u{F0FE}", 280.0, 21.0));
-            assert_eq!(metadata(&read(args(), &page(lines))[0], "answer"), "negative");
+            assert_eq!(
+                metadata(&read(args(), &page(lines))[0], "answer"),
+                "negative"
+            );
         }
 
         #[test]
@@ -792,7 +871,10 @@ mod tests {
         fn a_mark_behind_the_symbol_font_s_own_space_is_still_the_mark() {
             let mut lines = skeleton();
             lines.push(glyph("Wingdings", "\u{F020}\u{F0FD}", 280.0, 21.0));
-            assert_eq!(metadata(&read(args(), &page(lines))[0], "answer"), "negative");
+            assert_eq!(
+                metadata(&read(args(), &page(lines))[0], "answer"),
+                "negative"
+            );
         }
 
         /// And the guard that the space was there for still holds: a word beginning with an `x` is
@@ -814,20 +896,29 @@ mod tests {
         fn the_wingdings_cross_is_a_tick() {
             let mut lines = skeleton();
             lines.push(glyph("Wingdings", "\u{F0FD}", 280.0, 21.0));
-            assert_eq!(metadata(&read(args(), &page(lines))[0], "answer"), "negative");
+            assert_eq!(
+                metadata(&read(args(), &page(lines))[0], "answer"),
+                "negative"
+            );
         }
 
         #[test]
         fn a_format_can_add_a_tick_the_table_does_not_know() {
             let mut lines = skeleton();
             lines.push(glyph("NewSymbol", "\u{2756}", 280.0, 21.0));
-            let plain = SfdrSignArgs { marks: SfdrMarks::default(), ..args() };
+            let plain = SfdrSignArgs {
+                marks: SfdrMarks::default(),
+                ..args()
+            };
             assert!(read(plain, &page(lines.clone())).is_empty());
             let extended = SfdrSignArgs {
                 marks: SfdrMarks::default().extended(['\u{2756}'], [], []),
                 ..args()
             };
-            assert_eq!(metadata(&read(extended, &page(lines))[0], "answer"), "negative");
+            assert_eq!(
+                metadata(&read(extended, &page(lines))[0], "answer"),
+                "negative"
+            );
         }
 
         #[test]
@@ -842,7 +933,10 @@ mod tests {
                 ),
                 ..args()
             };
-            assert_eq!(metadata(&read(extended, &page(lines))[0], "answer"), "negative");
+            assert_eq!(
+                metadata(&read(extended, &page(lines))[0], "answer"),
+                "negative"
+            );
         }
     }
 
@@ -862,7 +956,10 @@ mod tests {
             // heights.
             let mut lines = skeleton();
             lines.push(line("X", 270.0, 21.0));
-            assert_eq!(metadata(&read(args(), &page(lines))[0], "answer"), "negative");
+            assert_eq!(
+                metadata(&read(args(), &page(lines))[0], "answer"),
+                "negative"
+            );
         }
 
         #[test]
@@ -895,23 +992,39 @@ mod tests {
         fn a_pair_of_selections_may_be_a_union_of_two_languages() {
             // One AMUNDI report writes `Yes`/`No` on a hundred disclosures and `X Oui`/`Non` on two.
             let labels = (
-                OptionallyRelative::Absolute(PdfLineSet::select_text("^Yes") | PdfLineSet::select_text("Oui$")),
-                OptionallyRelative::Absolute(PdfLineSet::select_text("^No") | PdfLineSet::select_text("^Non")),
+                OptionallyRelative::Absolute(
+                    PdfLineSet::select_text("^Yes") | PdfLineSet::select_text("Oui$"),
+                ),
+                OptionallyRelative::Absolute(
+                    PdfLineSet::select_text("^No") | PdfLineSet::select_text("^Non"),
+                ),
             );
             let lines = vec![
-                line("Did this financial product have a sustainable investment objective?", 100.0, 0.0),
+                line(
+                    "Did this financial product have a sustainable investment objective?",
+                    100.0,
+                    0.0,
+                ),
                 line("X Oui", 100.0, 20.0),
                 line("Non", 300.0, 20.0),
             ];
             let args = SfdrSignArgs::new(text_sel("sustainable investment objective"), labels);
-            assert_eq!(metadata(&read(args, &page(lines))[0], "answer"), "affirmative");
+            assert_eq!(
+                metadata(&read(args, &page(lines))[0], "answer"),
+                "affirmative"
+            );
         }
 
         #[test]
         fn a_page_without_the_question_fails_the_page() {
             let page = page(vec![line("Yes", 100.0, 20.0), line("No", 300.0, 20.0)]);
-            let error = PdfExtractSfdrSignStandard::new(args()).call(&page).unwrap_err();
-            assert!(matches!(error, PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { .. }));
+            let error = PdfExtractSfdrSignStandard::new(args())
+                .call(&page)
+                .unwrap_err();
+            assert!(matches!(
+                error,
+                PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { .. }
+            ));
         }
 
         #[test]
@@ -941,7 +1054,10 @@ mod tests {
         fn the_option_on_the_left_means_the_same_as_the_affirmative_box() {
             let mut lines = skeleton();
             lines.push(line("X", 80.0, 51.0));
-            assert_eq!(metadata(&read(with_fallback(args()), &page(lines))[0], "answer"), "affirmative");
+            assert_eq!(
+                metadata(&read(with_fallback(args()), &page(lines))[0], "answer"),
+                "affirmative"
+            );
         }
 
         #[test]
@@ -961,7 +1077,11 @@ mod tests {
         #[test]
         fn finds_a_second_row_that_begins_inside_the_first_question_s_band() {
             let lines = vec![
-                line("Did this financial product have a sustainable investment objective?", 204.6, 250.3),
+                line(
+                    "Did this financial product have a sustainable investment objective?",
+                    204.6,
+                    250.3,
+                ),
                 line("Yes", 282.0, 270.0),
                 line("No", 455.1, 270.0),
                 line("It made sustainable investments", 217.7, 288.7),
@@ -979,7 +1099,11 @@ mod tests {
         #[test]
         fn a_row_level_with_the_labels_is_not_a_second_row() {
             let lines = vec![
-                line("Did this financial product have a sustainable investment objective?", 204.6, 250.3),
+                line(
+                    "Did this financial product have a sustainable investment objective?",
+                    204.6,
+                    250.3,
+                ),
                 line("Yes", 282.0, 270.0),
                 line("No", 455.1, 270.0),
                 line("It made sustainable investments", 217.7, 277.0),
@@ -1008,9 +1132,19 @@ mod tests {
         #[test]
         fn the_title_line_is_carried_down_untouched() {
             let mut lines = skeleton();
-            lines.insert(0, line("Template periodic disclosure ... referred to in Article 8", 100.0, -20.0));
+            lines.insert(
+                0,
+                line(
+                    "Template periodic disclosure ... referred to in Article 8",
+                    100.0,
+                    -20.0,
+                ),
+            );
             lines.push(line("X", 280.0, 21.0));
-            let args = SfdrSignArgs { title: Some(text_sel("referred to in Article")), ..args() };
+            let args = SfdrSignArgs {
+                title: Some(text_sel("referred to in Article")),
+                ..args()
+            };
             let blocks = read(args, &page(lines));
             assert!(metadata(&blocks[0], "title").contains("Article 8"));
         }
@@ -1020,9 +1154,16 @@ mod tests {
             // The body of a disclosure names its own article more than once; only what stands above
             // the first question is the annex's title.
             let mut lines = skeleton();
-            lines.push(line("... as set out in Article 9 of the Regulation", 100.0, 80.0));
+            lines.push(line(
+                "... as set out in Article 9 of the Regulation",
+                100.0,
+                80.0,
+            ));
             lines.push(line("X", 280.0, 21.0));
-            let args = SfdrSignArgs { title: Some(text_sel("Article")), ..args() };
+            let args = SfdrSignArgs {
+                title: Some(text_sel("Article")),
+                ..args()
+            };
             assert!(!read(args, &page(lines))[0].metadata.contains_key("title"));
         }
 
@@ -1046,7 +1187,11 @@ mod tests {
         fn the_pipe_never_names_an_article() {
             let mut lines = skeleton();
             lines.push(line("X", 280.0, 21.0));
-            assert!(!read(args(), &page(lines))[0].metadata.contains_key("article"));
+            assert!(
+                !read(args(), &page(lines))[0]
+                    .metadata
+                    .contains_key("article")
+            );
         }
     }
 
@@ -1057,7 +1202,10 @@ mod tests {
         fn a_format_may_switch_one_off() {
             let mut lines = skeleton();
             lines.push(line("X", 280.0, 21.0));
-            let only_images = SfdrSignArgs { signs: vec![SfdrSignKind::Image], ..args() };
+            let only_images = SfdrSignArgs {
+                signs: vec![SfdrSignKind::Image],
+                ..args()
+            };
             assert!(read(only_images, &page(lines)).is_empty());
         }
 
@@ -1075,7 +1223,10 @@ mod tests {
 
         #[test]
         fn the_pipe_name_identifies_it_in_errors() {
-            assert_eq!(PdfExtractPipe::name(&PdfExtractSfdrSignStandard::new(args())), "PdfExtractSfdrSignStandard");
+            assert_eq!(
+                PdfExtractPipe::name(&PdfExtractSfdrSignStandard::new(args())),
+                "PdfExtractSfdrSignStandard"
+            );
         }
     }
 }

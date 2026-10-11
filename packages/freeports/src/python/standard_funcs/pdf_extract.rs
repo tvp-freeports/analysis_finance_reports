@@ -3,18 +3,12 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use pyo3::prelude::*;
-use pyo3::exceptions::PyValueError;
 use crate::formats_utils::pdf_extract::position::SplittingDirection;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 
 use crate::core::classes::BlockType;
 use crate::formats_repo::format_pattern::{FormatPattern, FormatPatternError};
-use crate::formats_utils::pdf_extract::standard_funcs::{
-    AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
-    PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractDocClassifyStandard,
-    PdfExtractInvestmentsStandard, PdfExtractPageClassifyStandard, pdf_extract_currency_standard,
-    pdf_extract_fund_standard, pdf_extract_managment_company_standard,
-};
 use crate::formats_utils::pdf_extract::labelled_value::{
     LabelledValueArgs, LabelledValueWindow, PdfExtractLabelledValueStandard,
 };
@@ -22,34 +16,50 @@ use crate::formats_utils::pdf_extract::pdf_line::Font;
 use crate::formats_utils::pdf_extract::section::{
     PdfExtractSectionStandard, SectionArgs, SectionEmit, SectionEnd,
 };
+use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::formats_utils::pdf_extract::sfdr_sign::{
     PdfExtractSfdrSignStandard, SfdrMarks, SfdrSignArgs, SfdrSignKind,
 };
-use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
+use crate::formats_utils::pdf_extract::standard_funcs::{
+    AssetsColumn, AssetsPairing, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage,
+    InvestmentsStandardArgs, PdfExtractAssetsStandard, PdfExtractCurrencyConstant,
+    PdfExtractDocClassifyStandard, PdfExtractInvestmentsStandard, PdfExtractPageClassifyStandard,
+    pdf_extract_currency_standard, pdf_extract_fund_standard,
+    pdf_extract_managment_company_standard,
+};
 
-use crate::python::consts::PyCurrency;
-use crate::python::pipes::PyPdfExtractPipe;
+use crate::core::tracing_setup::log_error;
 use crate::formats_utils::pdf_extract::standard_funcs::TableSettings;
 use crate::formats_utils::pdf_extract::tabularizer::TableCoordinatesConfig;
 use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
+use crate::python::consts::PyCurrency;
+use crate::python::pipes::PyPdfExtractPipe;
 use crate::python::utils::pdf_extract::{
-    PyCollapseAlgorithm, PyLabelledValueTake, PyLabelledValueWhere, PyPdfLineSelection, PyTableConfig,
-    PyTablePosAlgorithm, PyTablePosMeasureUnit,
+    PyCollapseAlgorithm, PyLabelledValueTake, PyLabelledValueWhere, PyPdfLineSelection,
+    PyTableConfig, PyTablePosAlgorithm, PyTablePosMeasureUnit,
 };
-use crate::core::tracing_setup::log_error;
 
 /// A native selection from a Python object, with a message naming the argument.
 fn selection_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<PdfLineSelection> {
-    object.extract::<PyRef<'_, PyPdfLineSelection>>().map(|selection| selection.selection()).map_err(|_| {
-        // A format wiring mistake, not a per-value failure: logged before the error only lives
-        // as a Python exception (rule 1 of L2), same reasoning as `python::input`.
-        tracing::error!(argument = name, "expected a PdfLineSelection, got something else");
-        PyValueError::new_err(format!("{name} must be a PdfLineSelection"))
-    })
+    object
+        .extract::<PyRef<'_, PyPdfLineSelection>>()
+        .map(|selection| selection.selection())
+        .map_err(|_| {
+            // A format wiring mistake, not a per-value failure: logged before the error only lives
+            // as a Python exception (rule 1 of L2), same reasoning as `python::input`.
+            tracing::error!(
+                argument = name,
+                "expected a PdfLineSelection, got something else"
+            );
+            PyValueError::new_err(format!("{name} must be a PdfLineSelection"))
+        })
 }
 
 /// As [`selection_of`], for an optional argument.
-fn optional_selection_of(name: &str, object: Option<&Bound<'_, PyAny>>) -> PyResult<Option<PdfLineSelection>> {
+fn optional_selection_of(
+    name: &str,
+    object: Option<&Bound<'_, PyAny>>,
+) -> PyResult<Option<PdfLineSelection>> {
     match object {
         None => Ok(None),
         Some(object) if object.is_none() => Ok(None),
@@ -66,8 +76,13 @@ fn selections_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLineS
     object
         .try_iter()
         .map_err(|_| {
-            tracing::error!(argument = name, "expected a PdfLineSelection or an iterable of them");
-            PyValueError::new_err(format!("{name} must be a PdfLineSelection or an iterable of them"))
+            tracing::error!(
+                argument = name,
+                "expected a PdfLineSelection or an iterable of them"
+            );
+            PyValueError::new_err(format!(
+                "{name} must be a PdfLineSelection or an iterable of them"
+            ))
         })?
         .map(|item| selection_of(name, &item?))
         .collect()
@@ -114,7 +129,10 @@ pub fn py_extract_text_pdf_block_or_fail_page(
 }
 
 /// The pipe gathering every selected line when `join` says so, and untouched otherwise.
-fn joining(pipe: ExtractTextPdfBlockOrFailPage, join: Option<String>) -> ExtractTextPdfBlockOrFailPage {
+fn joining(
+    pipe: ExtractTextPdfBlockOrFailPage,
+    join: Option<String>,
+) -> ExtractTextPdfBlockOrFailPage {
     match join {
         None => pipe,
         Some(separator) => pipe.joining(separator),
@@ -146,8 +164,12 @@ pub fn py_pdf_extract_fund_standard(
 /// The pipe extracting the currency statement.
 #[pyfunction]
 #[pyo3(name = "PdfExtractCurrencyStandard")]
-pub fn py_pdf_extract_currency_standard(selection: &Bound<'_, PyAny>) -> PyResult<PyPdfExtractPipe> {
-    Ok(PyPdfExtractPipe::new(Arc::new(pdf_extract_currency_standard(selection_of("selection", selection)?))))
+pub fn py_pdf_extract_currency_standard(
+    selection: &Bound<'_, PyAny>,
+) -> PyResult<PyPdfExtractPipe> {
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        pdf_extract_currency_standard(selection_of("selection", selection)?),
+    )))
 }
 
 /// `PdfExtractLabelledValueStandard(label, block_type, name, *, …)` — *un'etichetta dichiara un
@@ -196,7 +218,9 @@ pub fn py_pdf_extract_labelled_value_standard(
         // Two ways of saying where the section ends, and no way to honour both: a wiring mistake
         // worth refusing loudly rather than resolving by precedence.
         tracing::error!("stop and stop_at_label_family were both given");
-        return Err(PyValueError::new_err("stop and stop_at_label_family are alternatives, not a pair"));
+        return Err(PyValueError::new_err(
+            "stop and stop_at_label_family are alternatives, not a pair",
+        ));
     }
 
     let args = LabelledValueArgs {
@@ -221,7 +245,9 @@ pub fn py_pdf_extract_labelled_value_standard(
         },
         take: take.map(|t| t.native()).unwrap_or_default(),
     };
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractLabelledValueStandard::new(args))))
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        PdfExtractLabelledValueStandard::new(args),
+    )))
 }
 
 /// `PdfExtractSectionStandard(heading, block_type, name, *, family=None, bottom=None, body=None,
@@ -273,12 +299,16 @@ pub fn py_pdf_extract_section_standard(
         include_heading,
         emit: section_emit_of(rows, entry_gap)?,
     };
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractSectionStandard::new(args))))
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        PdfExtractSectionStandard::new(args),
+    )))
 }
 
 /// The extra floor: a selection, or a bare ordinate as `fineco_en23_ir/inv_managers.py` writes it.
 fn section_bottom_of(bottom: Option<&Bound<'_, PyAny>>) -> PyResult<Option<SectionEnd>> {
-    let Some(object) = bottom else { return Ok(None) };
+    let Some(object) = bottom else {
+        return Ok(None);
+    };
     if object.is_none() {
         return Ok(None);
     }
@@ -292,21 +322,33 @@ fn section_bottom_of(bottom: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Secti
 /// declare them. `entry_gap`: the vertical distance that separates two entries, for the sections
 /// whose typography says nothing. The two are alternatives, because a block carries one shape of
 /// metadata or the other.
-fn section_emit_of(rows: Option<&Bound<'_, PyAny>>, entry_gap: Option<f32>) -> PyResult<SectionEmit> {
+fn section_emit_of(
+    rows: Option<&Bound<'_, PyAny>>,
+    entry_gap: Option<f32>,
+) -> PyResult<SectionEmit> {
     if let Some(gap) = entry_gap {
         if rows.is_some_and(|object| !object.is_none()) {
-            tracing::error!(arguments = "rows, entry_gap", "a section emits table coordinates or entry numbers, not both");
+            tracing::error!(
+                arguments = "rows, entry_gap",
+                "a section emits table coordinates or entry numbers, not both"
+            );
             return Err(PyValueError::new_err("rows and entry_gap are alternatives"));
         }
         // Written this way and not `!(gap > 0.0)`: a NaN compares false against everything, so the
         // negation of a comparison is the one form that silently lets it through.
         if gap <= 0.0 || gap.is_nan() {
-            tracing::error!(argument = "entry_gap", gap, "the gap between two entries is a positive distance");
+            tracing::error!(
+                argument = "entry_gap",
+                gap,
+                "the gap between two entries is a positive distance"
+            );
             return Err(PyValueError::new_err("entry_gap must be positive"));
         }
         return Ok(SectionEmit::Entries { gap });
     }
-    let Some(object) = rows else { return Ok(SectionEmit::Lines) };
+    let Some(object) = rows else {
+        return Ok(SectionEmit::Lines);
+    };
     if object.is_none() {
         return Ok(SectionEmit::Lines);
     }
@@ -332,10 +374,12 @@ fn section_emit_of(rows: Option<&Bound<'_, PyAny>>, entry_gap: Option<f32>) -> P
 /// `PdfExtractManagmentCompanyStandard(selection)` — la società di gestione.
 #[pyfunction]
 #[pyo3(name = "PdfExtractManagmentCompanyStandard")]
-pub fn py_pdf_extract_managment_company_standard(selection: &Bound<'_, PyAny>) -> PyResult<PyPdfExtractPipe> {
-    Ok(PyPdfExtractPipe::new(Arc::new(pdf_extract_managment_company_standard(selection_of(
-        "selection", selection,
-    )?))))
+pub fn py_pdf_extract_managment_company_standard(
+    selection: &Bound<'_, PyAny>,
+) -> PyResult<PyPdfExtractPipe> {
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        pdf_extract_managment_company_standard(selection_of("selection", selection)?),
+    )))
 }
 
 /// The page classifier: classifies the page if **every** header selection finds something.
@@ -347,7 +391,9 @@ pub fn py_pdf_extract_page_classify_standard(
     page_type: String,
 ) -> PyResult<PyPdfExtractPipe> {
     let header_sets = selections_of("header_sets", header_sets)?;
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractPageClassifyStandard::new(header_sets, page_type))))
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        PdfExtractPageClassifyStandard::new(header_sets, page_type),
+    )))
 }
 
 /// The document classifier: the page says the document is of `pattern` if **every** selection
@@ -362,10 +408,15 @@ pub fn py_pdf_extract_doc_classify_standard(
 ) -> PyResult<PyPdfExtractPipe> {
     let selections = selections_of("selections", selections)?;
     let pattern: FormatPattern = pattern.parse().map_err(|e: FormatPatternError| {
-        tracing::error!(error = log_error(&e), "PdfExtractDocClassifyStandard construction failed: {e}");
+        tracing::error!(
+            error = log_error(&e),
+            "PdfExtractDocClassifyStandard construction failed: {e}"
+        );
         PyValueError::new_err(e.to_string())
     })?;
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractDocClassifyStandard::new(selections, pattern))))
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        PdfExtractDocClassifyStandard::new(selections, pattern),
+    )))
 }
 
 /// A currency known in advance, without looking at the page at all.
@@ -376,11 +427,19 @@ pub fn py_pdf_extract_currency_constant(currency: PyRef<'_, PyCurrency>) -> PyPd
 }
 
 /// A pair of selections out of a two-element Python sequence.
-fn label_pair(name: &str, object: &Bound<'_, PyAny>) -> PyResult<(PdfLineSelection, PdfLineSelection)> {
+fn label_pair(
+    name: &str,
+    object: &Bound<'_, PyAny>,
+) -> PyResult<(PdfLineSelection, PdfLineSelection)> {
     let pair = selections_of(name, object)?;
     let [affirmative, negative] = <[PdfLineSelection; 2]>::try_from(pair).map_err(|got| {
-        tracing::error!("{name} must be a pair of selections, affirmative first; got {}", got.len());
-        PyValueError::new_err(format!("{name} must be a pair of selections, affirmative first"))
+        tracing::error!(
+            "{name} must be a pair of selections, affirmative first; got {}",
+            got.len()
+        );
+        PyValueError::new_err(format!(
+            "{name} must be a pair of selections, affirmative first"
+        ))
     })?;
     Ok((affirmative, negative))
 }
@@ -401,7 +460,9 @@ fn chars_of(name: &str, object: Option<&Bound<'_, PyAny>>) -> PyResult<Vec<char>
             (Some(character), None) => characters.push(character),
             _ => {
                 tracing::error!("{name} takes single characters, not {text:?}");
-                return Err(PyValueError::new_err(format!("{name} takes single characters, not {text:?}")));
+                return Err(PyValueError::new_err(format!(
+                    "{name} takes single characters, not {text:?}"
+                )));
             }
         }
     }
@@ -452,10 +513,11 @@ pub fn py_pdf_extract_sfdr_sign_standard(
                     .into_iter()
                     .find(|kind| kind.as_str() == name)
                     .ok_or_else(|| {
-                        let known =
-                            SfdrSignKind::ALL.map(SfdrSignKind::as_str).join(", ");
+                        let known = SfdrSignKind::ALL.map(SfdrSignKind::as_str).join(", ");
                         tracing::error!("unknown sign recognizer {name:?}; the five are {known}");
-                        PyValueError::new_err(format!("unknown sign recognizer {name:?}; the five are {known}"))
+                        PyValueError::new_err(format!(
+                            "unknown sign recognizer {name:?}; the five are {known}"
+                        ))
                     })
             })
             .collect::<PyResult<Vec<_>>>()?,
@@ -463,7 +525,12 @@ pub fn py_pdf_extract_sfdr_sign_standard(
     let by_font = marks_by_font
         .unwrap_or_default()
         .into_iter()
-        .map(|(font, characters)| (Font::new(&font).inner().to_string(), characters.chars().collect()))
+        .map(|(font, characters)| {
+            (
+                Font::new(&font).inner().to_string(),
+                characters.chars().collect(),
+            )
+        })
         .collect::<Vec<_>>();
 
     let args = SfdrSignArgs {
@@ -481,7 +548,9 @@ pub fn py_pdf_extract_sfdr_sign_standard(
         ),
         signs,
     };
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractSfdrSignStandard::new(args))))
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        PdfExtractSfdrSignStandard::new(args),
+    )))
 }
 
 /// The pipe for the investments table.
@@ -534,10 +603,21 @@ pub fn py_pdf_extract_investments_standard(
     let args = InvestmentsStandardArgs {
         body_set: selection_of("body_set", body_set)?,
         deselection_list,
-        table: table_settings(table_cfg, algorithm_flags, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse, collapse_direction)?,
+        table: table_settings(
+            table_cfg,
+            algorithm_flags,
+            collapse_alg,
+            col_tolerance,
+            row_tolerance,
+            tolerance_mu,
+            collapse,
+            collapse_direction,
+        )?,
         company_index: company_index.map(|index| index as usize),
     };
-    Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractInvestmentsStandard::new(args))))
+    Ok(PyPdfExtractPipe::new(Arc::new(
+        PdfExtractInvestmentsStandard::new(args),
+    )))
 }
 
 /// The table settings of a standard pipe, from the same six keywords `get_table_coordinates`
@@ -566,7 +646,9 @@ fn table_settings(
     Ok(TableSettings {
         table_config: table_cfg.map(|c| c.native().clone()),
         algorithm_flags: flags_of(algorithm_flags)?,
-        collapse_algorithm: collapse_alg.map(|c| c.native()).unwrap_or(CollapseAlgorithm::Geometry),
+        collapse_algorithm: collapse_alg
+            .map(|c| c.native())
+            .unwrap_or(CollapseAlgorithm::Geometry),
         col_tolerance: col_tolerance as f32,
         row_tolerance: row_tolerance as f32,
         tolerance_unit: tolerance_mu.map(|u| u.native()).unwrap_or_default(),
@@ -608,11 +690,20 @@ impl PyAssetsColumn {
 impl PyAssetsColumn {
     #[new]
     #[pyo3(signature = (anchor, vec=(1.2, 0.0), mult=(100.0, 1.3)))]
-    fn new(anchor: &Bound<'_, PyAny>, vec: (f64, f64), mult: (f64, f64)) -> PyResult<PyAssetsColumn> {
-        let selection = anchor.extract::<PyRef<'_, PyPdfLineSelection>>().map_err(|_| {
-            tracing::error!(argument = "anchor", "expected a PdfLineSelection, got something else");
-            PyValueError::new_err("anchor must be a PdfLineSelection")
-        })?;
+    fn new(
+        anchor: &Bound<'_, PyAny>,
+        vec: (f64, f64),
+        mult: (f64, f64),
+    ) -> PyResult<PyAssetsColumn> {
+        let selection = anchor
+            .extract::<PyRef<'_, PyPdfLineSelection>>()
+            .map_err(|_| {
+                tracing::error!(
+                    argument = "anchor",
+                    "expected a PdfLineSelection, got something else"
+                );
+                PyValueError::new_err("anchor must be a PdfLineSelection")
+            })?;
         Ok(PyAssetsColumn {
             column: AssetsColumn {
                 anchor: selection.selection(),
@@ -660,10 +751,16 @@ impl PyAssetsColumn {
 
 /// A native assets column from a Python object, with a message naming the argument.
 fn column_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<AssetsColumn> {
-    object.extract::<PyRef<'_, PyAssetsColumn>>().map(|column| column.native()).map_err(|_| {
-        tracing::error!(argument = name, "expected an AssetsColumn, got something else");
-        PyValueError::new_err(format!("{name} must be an AssetsColumn"))
-    })
+    object
+        .extract::<PyRef<'_, PyAssetsColumn>>()
+        .map(|column| column.native())
+        .map_err(|_| {
+            tracing::error!(
+                argument = name,
+                "expected an AssetsColumn, got something else"
+            );
+            PyValueError::new_err(format!("{name} must be an AssetsColumn"))
+        })
 }
 
 /// The pipe for the fund-assets blocks.
@@ -732,7 +829,11 @@ pub fn py_pdf_extract_assets_standard(
         },
         table_condition,
         skip_column,
-        pairing: if pair_by_abscissa { AssetsPairing::ByAbscissa } else { AssetsPairing::ByIndex },
+        pairing: if pair_by_abscissa {
+            AssetsPairing::ByAbscissa
+        } else {
+            AssetsPairing::ByIndex
+        },
         drop: optional_selection_of("drop", drop)?,
         drop_funds: optional_selection_of("drop_funds", drop_funds)?,
         // `algorithm_flags` left out keeps this pipe's own two flags, not `TableSettings`'
@@ -743,11 +844,23 @@ pub fn py_pdf_extract_assets_standard(
                 None => TableSettings::assets_funds().algorithm_flags,
                 Some(_) => flags_of(algorithm_flags)?,
             },
-            ..table_settings(table_cfg, None, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse, None)?
+            ..table_settings(
+                table_cfg,
+                None,
+                collapse_alg,
+                col_tolerance,
+                row_tolerance,
+                tolerance_mu,
+                collapse,
+                None,
+            )?
         },
     };
     let pipe = PdfExtractAssetsStandard::build(args).map_err(|e| {
-        tracing::error!(error = log_error(&e), "PdfExtractAssetsStandard construction failed: {e}");
+        tracing::error!(
+            error = log_error(&e),
+            "PdfExtractAssetsStandard construction failed: {e}"
+        );
         PyValueError::new_err(e.to_string())
     })?;
     Ok(PyPdfExtractPipe::new(Arc::new(pipe)))

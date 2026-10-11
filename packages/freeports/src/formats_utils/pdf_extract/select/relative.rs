@@ -58,8 +58,18 @@ impl RelativeSelectPdfLineSet {
     pub fn select_area_of(target: PdfLineSelection) -> Self {
         Self::Area(RelativeArea::from_selection(target))
     }
-    pub fn area_from_movewindow(target: PdfLineSelection, vec: (f32, f32), width_mult: f32, height_mult: f32) -> Self {
-        Self::Area(RelativeArea::from_movewindow(target, vec, width_mult, height_mult))
+    pub fn area_from_movewindow(
+        target: PdfLineSelection,
+        vec: (f32, f32),
+        width_mult: f32,
+        height_mult: f32,
+    ) -> Self {
+        Self::Area(RelativeArea::from_movewindow(
+            target,
+            vec,
+            width_mult,
+            height_mult,
+        ))
     }
     pub fn area_from_bounds(
         x0: OptRel<f32, PdfLineSelection>,
@@ -87,7 +97,11 @@ type LeafType = OptRel<SelectPdfLineSet, RelativeSelectPdfLineSet>;
 
 pub enum NodeRelativePdfLineSet {
     Leaf(LeafType),
-    Branch(Box<NodeRelativePdfLineSet>, SetOps, Box<NodeRelativePdfLineSet>),
+    Branch(
+        Box<NodeRelativePdfLineSet>,
+        SetOps,
+        Box<NodeRelativePdfLineSet>,
+    ),
 }
 
 impl Clone for NodeRelativePdfLineSet {
@@ -134,19 +148,31 @@ impl RelativeInfo<PdfLineSet> for RelativePdfLineSet {
 impl BitOr<Self> for RelativePdfLineSet {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self(NodeRelativePdfLineSet::Branch(Box::new(self.0), SetOps::Union, Box::new(rhs.0)))
+        Self(NodeRelativePdfLineSet::Branch(
+            Box::new(self.0),
+            SetOps::Union,
+            Box::new(rhs.0),
+        ))
     }
 }
 impl BitAnd<Self> for RelativePdfLineSet {
     type Output = Self;
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self(NodeRelativePdfLineSet::Branch(Box::new(self.0), SetOps::Inter, Box::new(rhs.0)))
+        Self(NodeRelativePdfLineSet::Branch(
+            Box::new(self.0),
+            SetOps::Inter,
+            Box::new(rhs.0),
+        ))
     }
 }
 impl Div<Self> for RelativePdfLineSet {
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        Self(NodeRelativePdfLineSet::Branch(Box::new(self.0), SetOps::Sub, Box::new(rhs.0)))
+        Self(NodeRelativePdfLineSet::Branch(
+            Box::new(self.0),
+            SetOps::Sub,
+            Box::new(rhs.0),
+        ))
     }
 }
 
@@ -232,7 +258,12 @@ impl PdfLineSelection {
 #[derive(Clone)]
 pub enum RelativeArea {
     Select(Box<PdfLineSelection>),
-    MoveWindow { target: Box<PdfLineSelection>, vec: (f32, f32), width_mult: f32, height_mult: f32 },
+    MoveWindow {
+        target: Box<PdfLineSelection>,
+        vec: (f32, f32),
+        width_mult: f32,
+        height_mult: f32,
+    },
     Bounds {
         x0: OptRel<f32, Box<PdfLineSelection>>,
         y0: OptRel<f32, Box<PdfLineSelection>>,
@@ -275,7 +306,9 @@ impl RelativeInfo<FontSet> for RelativeFontSet {
         let line_set = r.contextualize(lines);
         let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
         if matched.is_empty() {
-            tracing::trace!("RelativeFontSet: target selection matched no line, resolved to an empty set");
+            tracing::trace!(
+                "RelativeFontSet: target selection matched no line, resolved to an empty set"
+            );
         }
         matched
             .into_iter()
@@ -291,7 +324,9 @@ impl RelativeInfo<TextSet> for RelativeTextSet {
         let line_set = r.contextualize(lines);
         let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
         if matched.is_empty() {
-            tracing::trace!("RelativeTextSet: target selection matched no line, resolved to an empty set");
+            tracing::trace!(
+                "RelativeTextSet: target selection matched no line, resolved to an empty set"
+            );
         }
         matched
             .into_iter()
@@ -307,7 +342,9 @@ impl RelativeInfo<FontSizeInterval> for RelativeFontSizeInterval {
         let line_set = r.contextualize(lines);
         let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
         if matched.is_empty() {
-            tracing::trace!("RelativeFontSizeInterval: target selection matched no line, resolved to an empty set");
+            tracing::trace!(
+                "RelativeFontSizeInterval: target selection matched no line, resolved to an empty set"
+            );
         }
         matched
             .into_iter()
@@ -345,7 +382,11 @@ impl RelativeInfo<FontSizeInterval> for RelativeFontSizeInterval {
 /// wanted a block does not find one and fails as a page failure, which costs this page and no more.
 /// This event is what that failure cannot say — that the window itself was impossible, and with
 /// which numbers.
-fn degenerate_is_empty(built: Result<Area, RectangleBuildError>, variant: &str, sides: (f32, f32, f32, f32)) -> Option<Area> {
+fn degenerate_is_empty(
+    built: Result<Area, RectangleBuildError>,
+    variant: &str,
+    sides: (f32, f32, f32, f32),
+) -> Option<Area> {
     match built {
         Ok(area) => Some(area),
         Err(error) => {
@@ -367,8 +408,18 @@ impl RelativeArea {
     fn from_selection(select: PdfLineSelection) -> Self {
         Self::Select(Box::new(select))
     }
-    fn from_movewindow(target: PdfLineSelection, vec: (f32, f32), width_mult: f32, height_mult: f32) -> Self {
-        Self::MoveWindow { target: Box::new(target), vec, width_mult, height_mult }
+    fn from_movewindow(
+        target: PdfLineSelection,
+        vec: (f32, f32),
+        width_mult: f32,
+        height_mult: f32,
+    ) -> Self {
+        Self::MoveWindow {
+            target: Box::new(target),
+            vec,
+            width_mult,
+            height_mult,
+        }
     }
     fn from_bounds(
         x0: OptRel<f32, PdfLineSelection>,
@@ -383,14 +434,31 @@ impl RelativeArea {
                 Relative(select) => Relative(Box::new(select)),
             }
         }
-        Self::Bounds { x0: map_bound(x0), y0: map_bound(y0), x1: map_bound(x1), y1: map_bound(y1) }
+        Self::Bounds {
+            x0: map_bound(x0),
+            y0: map_bound(y0),
+            x1: map_bound(x1),
+            y1: map_bound(y1),
+        }
     }
-    fn contextualize_movewindow(lines: &[PdfLine], target: PdfLineSelection, vec: (f32, f32), width_mult: f32, height_mult: f32) -> Area {
+    fn contextualize_movewindow(
+        lines: &[PdfLine],
+        target: PdfLineSelection,
+        vec: (f32, f32),
+        width_mult: f32,
+        height_mult: f32,
+    ) -> Area {
         let line_set = target.contextualize(lines);
         let (x, y) = vec;
-        let anchor = lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next();
+        let anchor = lines
+            .iter()
+            .filter(|l| line_set.contains(l))
+            .map(|l| l.bbox().as_tuple())
+            .next();
         if anchor.is_none() {
-            tracing::trace!("RelativeArea::MoveWindow: target selection matched no line, resolved to an empty area");
+            tracing::trace!(
+                "RelativeArea::MoveWindow: target selection matched no line, resolved to an empty area"
+            );
         }
         anchor
             .and_then(|(x0, y0, x1, y1)| {
@@ -401,9 +469,19 @@ impl RelativeArea {
                 // degenerate box makes it collapse or invert. Same answer as an anchor that matched
                 // nothing, below: a degenerate window selects nothing.
                 degenerate_is_empty(
-                    Area::build(x0 + x * w, y0 + y * h, x0 + (width_mult + x) * w, y0 + (height_mult + y) * h),
+                    Area::build(
+                        x0 + x * w,
+                        y0 + y * h,
+                        x0 + (width_mult + x) * w,
+                        y0 + (height_mult + y) * h,
+                    ),
                     "MoveWindow",
-                    (x0 + x * w, y0 + y * h, x0 + (width_mult + x) * w, y0 + (height_mult + y) * h),
+                    (
+                        x0 + x * w,
+                        y0 + y * h,
+                        x0 + (width_mult + x) * w,
+                        y0 + (height_mult + y) * h,
+                    ),
                 )
             })
             .unwrap_or(Area::empty())
@@ -419,10 +497,18 @@ impl RelativeArea {
             OptionallyRelative::Absolute(x) => x,
             OptionallyRelative::Relative(rls) => {
                 let line_set = rls.contextualize(lines);
-                match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
+                match lines
+                    .iter()
+                    .filter(|l| line_set.contains(l))
+                    .map(|l| l.bbox().as_tuple())
+                    .next()
+                {
                     Some((_, _, x1, _)) => x1,
                     None => {
-                        tracing::trace!(side = "x0", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        tracing::trace!(
+                            side = "x0",
+                            "RelativeArea::Bounds: side selection matched no line, using fallback bound"
+                        );
                         0.0
                     }
                 }
@@ -432,10 +518,18 @@ impl RelativeArea {
             OptionallyRelative::Absolute(x) => x,
             OptionallyRelative::Relative(rls) => {
                 let line_set = rls.contextualize(lines);
-                match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
+                match lines
+                    .iter()
+                    .filter(|l| line_set.contains(l))
+                    .map(|l| l.bbox().as_tuple())
+                    .next()
+                {
                     Some((x0, _, _, _)) => x0,
                     None => {
-                        tracing::trace!(side = "x1", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        tracing::trace!(
+                            side = "x1",
+                            "RelativeArea::Bounds: side selection matched no line, using fallback bound"
+                        );
                         10e+6
                     }
                 }
@@ -445,10 +539,18 @@ impl RelativeArea {
             OptionallyRelative::Absolute(y) => y,
             OptionallyRelative::Relative(rls) => {
                 let line_set = rls.contextualize(lines);
-                match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
+                match lines
+                    .iter()
+                    .filter(|l| line_set.contains(l))
+                    .map(|l| l.bbox().as_tuple())
+                    .next()
+                {
                     Some((_, _, _, y1)) => y1,
                     None => {
-                        tracing::trace!(side = "y0", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        tracing::trace!(
+                            side = "y0",
+                            "RelativeArea::Bounds: side selection matched no line, using fallback bound"
+                        );
                         0.0
                     }
                 }
@@ -458,10 +560,18 @@ impl RelativeArea {
             OptionallyRelative::Absolute(y) => y,
             OptionallyRelative::Relative(rls) => {
                 let line_set = rls.contextualize(lines);
-                match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
+                match lines
+                    .iter()
+                    .filter(|l| line_set.contains(l))
+                    .map(|l| l.bbox().as_tuple())
+                    .next()
+                {
                     Some((_, y0, _, _)) => y0,
                     None => {
-                        tracing::trace!(side = "y1", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        tracing::trace!(
+                            side = "y1",
+                            "RelativeArea::Bounds: side selection matched no line, using fallback bound"
+                        );
                         10e+6
                     }
                 }
@@ -475,16 +585,26 @@ impl RelativeArea {
         //
         // The `0.0` / `10e+6` fallbacks above make it likelier rather than rarer, by mixing a real
         // coordinate with an invented extreme.
-        degenerate_is_empty(Area::build(left, up, right, bottom), "Bounds", (left, up, right, bottom))
-            .unwrap_or(Area::empty())
+        degenerate_is_empty(
+            Area::build(left, up, right, bottom),
+            "Bounds",
+            (left, up, right, bottom),
+        )
+        .unwrap_or(Area::empty())
     }
     fn contextualize_selection(lines: &[PdfLine], set: PdfLineSelection) -> Area {
         let line_set = set.contextualize(lines);
         let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
         if matched.is_empty() {
-            tracing::trace!("RelativeArea::Select: target selection matched no line, resolved to an empty area");
+            tracing::trace!(
+                "RelativeArea::Select: target selection matched no line, resolved to an empty area"
+            );
         }
-        matched.into_iter().map(|l| Area::from_atom(*l.bbox())).reduce(|a, b| a | b).unwrap_or(Area::empty())
+        matched
+            .into_iter()
+            .map(|l| Area::from_atom(*l.bbox()))
+            .reduce(|a, b| a | b)
+            .unwrap_or(Area::empty())
     }
 }
 
@@ -492,7 +612,12 @@ impl RelativeInfo<Area> for RelativeArea {
     fn contextualize(self, lines: &[PdfLine]) -> Area {
         match self {
             Self::Select(r) => Self::contextualize_selection(lines, *r),
-            Self::MoveWindow { target, vec, width_mult, height_mult } => Self::contextualize_movewindow(lines, *target, vec, width_mult, height_mult),
+            Self::MoveWindow {
+                target,
+                vec,
+                width_mult,
+                height_mult,
+            } => Self::contextualize_movewindow(lines, *target, vec, width_mult, height_mult),
             Self::Bounds { x0, y0, x1, y1 } => Self::contextualize_bounds(lines, x0, y0, x1, y1),
         }
     }
@@ -600,7 +725,10 @@ mod tests {
             FontSizeInterval::empty();
             "no matching line yields an empty font size interval"
         )]
-        fn matches_expected_fontsizeinterval(rfs: RelativeFontSizeInterval, expected: FontSizeInterval) {
+        fn matches_expected_fontsizeinterval(
+            rfs: RelativeFontSizeInterval,
+            expected: FontSizeInterval,
+        ) {
             let fs = rfs.contextualize(&LINES);
             assert_eq!(fs.atoms(), expected.atoms());
         }
@@ -749,14 +877,21 @@ mod tests {
         static CROSSED: LazyLock<Vec<PdfLine>> = LazyLock::new(|| {
             vec![
                 PdfLine::new("Arial", 10.0, "RIGHT ANCHOR", (300.0, 50.0, 372.94, 60.0)),
-                PdfLine::new("Arial", 10.0, "LEFT ANCHOR", (545.528_26, 50.0, 600.0, 60.0)),
+                PdfLine::new(
+                    "Arial",
+                    10.0,
+                    "LEFT ANCHOR",
+                    (545.528_26, 50.0, 600.0, 60.0),
+                ),
                 PdfLine::new("Arial", 10.0, "ABOVE", (10.0, 10.0, 100.0, 20.0)),
                 PdfLine::new("Arial", 10.0, "BELOW", (10.0, 80.0, 100.0, 90.0)),
             ]
         });
 
         fn anchored_at(text: &str) -> OptRel<f32, PdfLineSelection> {
-            Relative(PdfLineSelection::from_text(Absolute(TextSet::new(&format!("^{text}$")))))
+            Relative(PdfLineSelection::from_text(Absolute(TextSet::new(
+                &format!("^{text}$"),
+            ))))
         }
 
         /// The reproduction of the panic of `PLAN-run-completes-and-panic-containment.md` §1: left
@@ -772,7 +907,10 @@ mod tests {
                 Absolute(100.0),
             )
             .contextualize(&CROSSED);
-            assert!(area.atoms().is_empty(), "a window with no inside selects nothing, found {area:?}");
+            assert!(
+                area.atoms().is_empty(),
+                "a window with no inside selects nothing, found {area:?}"
+            );
         }
 
         /// The same defect on the other axis: the top side taken from a line *below* the one the
@@ -786,22 +924,35 @@ mod tests {
                 anchored_at("ABOVE"),
             )
             .contextualize(&CROSSED);
-            assert!(area.atoms().is_empty(), "a window with no inside selects nothing, found {area:?}");
+            assert!(
+                area.atoms().is_empty(),
+                "a window with no inside selects nothing, found {area:?}"
+            );
         }
 
         /// Not only inversion: a window of exactly zero width is degenerate too, and bounds are
         /// strict. Both sides anchored to the same line give it.
         #[test]
         fn bounds_collapsing_onto_a_single_x_is_empty() {
-            let lines = vec![PdfLine::new("Arial", 10.0, "ANCHOR", (100.0, 10.0, 100.0 + 1.0, 20.0))];
+            let lines = vec![PdfLine::new(
+                "Arial",
+                10.0,
+                "ANCHOR",
+                (100.0, 10.0, 100.0 + 1.0, 20.0),
+            )];
             let area = RelativeArea::from_bounds(
                 Absolute(101.0),
                 Absolute(0.0),
-                Relative(PdfLineSelection::from_text(Absolute(TextSet::new("^ANCHOR$")))),
+                Relative(PdfLineSelection::from_text(Absolute(TextSet::new(
+                    "^ANCHOR$",
+                )))),
                 Absolute(100.0),
             )
             .contextualize(&lines);
-            assert!(area.atoms().is_empty(), "a zero-width window selects nothing, found {area:?}");
+            assert!(
+                area.atoms().is_empty(),
+                "a zero-width window selects nothing, found {area:?}"
+            );
         }
 
         /// `MoveWindow` scales the anchor's box by two multipliers written in the format. A
@@ -816,7 +967,10 @@ mod tests {
                 1.0,
             )
             .contextualize(&CROSSED);
-            assert!(area.atoms().is_empty(), "an inverted window selects nothing, found {area:?}");
+            assert!(
+                area.atoms().is_empty(),
+                "an inverted window selects nothing, found {area:?}"
+            );
         }
 
         #[test]
@@ -828,7 +982,10 @@ mod tests {
                 0.0,
             )
             .contextualize(&CROSSED);
-            assert!(area.atoms().is_empty(), "a zero-height window selects nothing, found {area:?}");
+            assert!(
+                area.atoms().is_empty(),
+                "a zero-height window selects nothing, found {area:?}"
+            );
         }
 
         /// A degenerate window must cost only itself: the anchors of a *sound* window on the same
@@ -842,7 +999,10 @@ mod tests {
                 Absolute(100.0),
             )
             .contextualize(&CROSSED);
-            assert_eq!(area.atoms(), Area::new(372.94, 0.0, 545.528_26, 100.0).atoms());
+            assert_eq!(
+                area.atoms(),
+                Area::new(372.94, 0.0, 545.528_26, 100.0).atoms()
+            );
         }
 
         /// The font-size counterpart. The window around a matched line's size is `size ± 1e-4`, and
@@ -856,11 +1016,14 @@ mod tests {
                 PdfLine::new("Arial", 10_000.0, "absurd", (10.0, 10.0, 20.0, 20.0)),
                 PdfLine::new("Arial", 10.0, "visible", (10.0, 30.0, 20.0, 40.0)),
             ];
-            let interval = RelativeFontSizeInterval::Select(Box::new(PdfLineSelection::from_font(Absolute(
-                FontSet::new("Arial"),
-            ))))
+            let interval = RelativeFontSizeInterval::Select(Box::new(PdfLineSelection::from_font(
+                Absolute(FontSet::new("Arial")),
+            )))
             .contextualize(&lines);
-            assert_eq!(interval.atoms(), FontSizeInterval::new(10.0 - 1e-4, 10.0 + 1e-4).atoms());
+            assert_eq!(
+                interval.atoms(),
+                FontSizeInterval::new(10.0 - 1e-4, 10.0 + 1e-4).atoms()
+            );
         }
     }
 

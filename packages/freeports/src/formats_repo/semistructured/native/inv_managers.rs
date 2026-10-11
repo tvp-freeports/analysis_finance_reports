@@ -201,7 +201,11 @@ pub enum InvManagersError {
     #[error(transparent)]
     Reading(#[from] ReadingError),
     #[error("'{field}' is {given:?}: it is one of {expected}")]
-    UnknownChoice { field: &'static str, given: String, expected: &'static str },
+    UnknownChoice {
+        field: &'static str,
+        given: String,
+        expected: &'static str,
+    },
 }
 
 fn choice<T: Copy>(
@@ -211,7 +215,9 @@ fn choice<T: Copy>(
     table: &[(&str, T)],
     default: T,
 ) -> Result<T, InvManagersError> {
-    let Some(given) = given.as_deref() else { return Ok(default) };
+    let Some(given) = given.as_deref() else {
+        return Ok(default);
+    };
     table
         .iter()
         .find(|(name, _)| *name == given)
@@ -226,15 +232,19 @@ fn choice<T: Copy>(
 impl InputReader {
     fn build(&self) -> Result<Reader, InvManagersError> {
         Ok(match self {
-            InputReader::Named { separators, note_marks: marks, group_key, wrapped, retired } => {
-                Reader::Named {
-                    separators: separators.clone(),
-                    note_marks: note_marks(marks),
-                    group_key: group_key.clone().unwrap_or_else(|| "group".to_string()),
-                    wrapped: compile_all("wrapped", wrapped)?,
-                    retired: compile_all("retired", retired)?,
-                }
-            }
+            InputReader::Named {
+                separators,
+                note_marks: marks,
+                group_key,
+                wrapped,
+                retired,
+            } => Reader::Named {
+                separators: separators.clone(),
+                note_marks: note_marks(marks),
+                group_key: group_key.clone().unwrap_or_else(|| "group".to_string()),
+                wrapped: compile_all("wrapped", wrapped)?,
+                retired: compile_all("retired", retired)?,
+            },
             InputReader::Adjacent {
                 spec,
                 r#where,
@@ -285,15 +295,19 @@ impl InputReader {
                 group_key: group_key.clone().unwrap_or_else(|| "group".to_string()),
                 note_marks: note_marks(marks),
             },
-            InputReader::Table { fund_col, manager_col, row_key, col_key, note_marks: marks } => {
-                Reader::Table {
-                    fund_col: *fund_col,
-                    manager_col: manager_col.unwrap_or(1),
-                    row_key: row_key.clone().unwrap_or_else(|| "table-row".to_string()),
-                    col_key: col_key.clone().unwrap_or_else(|| "table-col".to_string()),
-                    note_marks: note_marks(marks),
-                }
-            }
+            InputReader::Table {
+                fund_col,
+                manager_col,
+                row_key,
+                col_key,
+                note_marks: marks,
+            } => Reader::Table {
+                fund_col: *fund_col,
+                manager_col: manager_col.unwrap_or(1),
+                row_key: row_key.clone().unwrap_or_else(|| "table-row".to_string()),
+                col_key: col_key.clone().unwrap_or_else(|| "table-col".to_string()),
+                note_marks: note_marks(marks),
+            },
         })
     }
 }
@@ -362,7 +376,10 @@ pub fn text_filter(input: &InputInvManagers) -> Result<TextFilterInvManagers, In
         "funds",
         &input.funds,
         "'investments' or 'funds'",
-        &[("investments", FundSource::Investments), ("funds", FundSource::Funds)],
+        &[
+            ("investments", FundSource::Investments),
+            ("funds", FundSource::Funds),
+        ],
         FundSource::Investments,
     )?;
     filter.manco = manco;
@@ -399,7 +416,10 @@ mod tests {
     fn rejected(yaml: &str) -> String {
         let input: InputInvManagers =
             serde_yaml::from_str(yaml).unwrap_or_else(|e| panic!("the YAML does not parse: {e}"));
-        text_filter(&input).err().expect("this configuration is wrong").to_string()
+        text_filter(&input)
+            .err()
+            .expect("this configuration is wrong")
+            .to_string()
     }
 
     mod the_defaults {
@@ -435,7 +455,10 @@ mod tests {
             let got = built(
                 "read:\n  - kind: adjacent\n    spec:\n      parenthetical:\n        markers: [\"in respect of \"]\n",
             );
-            let Reader::Adjacent { spec, where_, take, .. } = &got.readers[0] else {
+            let Reader::Adjacent {
+                spec, where_, take, ..
+            } = &got.readers[0]
+            else {
                 panic!("not an Adjacent: {:?}", got.readers[0])
             };
             assert!(matches!(spec, Spec::Parenthetical(_)));
@@ -448,7 +471,14 @@ mod tests {
             let got = built(
                 "read:\n  - kind: adjacent\n    spec:\n      listing:\n        umbrella: \"BPER International SICAV\"\n    where: above\n    take: first\n    strip: [\",.*$\"]\n",
             );
-            let Reader::Adjacent { spec, where_, take, strip, .. } = &got.readers[0] else {
+            let Reader::Adjacent {
+                spec,
+                where_,
+                take,
+                strip,
+                ..
+            } = &got.readers[0]
+            else {
                 panic!("not an Adjacent")
             };
             assert!(matches!(spec, Spec::Listing(_)));
@@ -462,7 +492,12 @@ mod tests {
             let got = built(
                 "read:\n  - kind: connector_line\n    after: \"The Management Company delegated to \"\n",
             );
-            let Reader::ConnectorLine { connector, after, fund_separators, .. } = &got.readers[0]
+            let Reader::ConnectorLine {
+                connector,
+                after,
+                fund_separators,
+                ..
+            } = &got.readers[0]
             else {
                 panic!("not a ConnectorLine")
             };
@@ -474,7 +509,13 @@ mod tests {
         #[test]
         fn a_table_says_only_which_columns_matter() {
             let got = built("read:\n  - kind: table\n    fund_col: 0\n    manager_col: 2\n");
-            let Reader::Table { fund_col, manager_col, row_key, .. } = &got.readers[0] else {
+            let Reader::Table {
+                fund_col,
+                manager_col,
+                row_key,
+                ..
+            } = &got.readers[0]
+            else {
                 panic!("not a Table")
             };
             assert_eq!((*fund_col, *manager_col), (0, 2));
@@ -494,7 +535,10 @@ mod tests {
         #[test]
         fn a_format_names_its_own() {
             let got = built("read_block_type: INV_MAN\n");
-            assert_eq!(got.read_block_type, Some(BlockType::from("INV_MAN".to_string())));
+            assert_eq!(
+                got.read_block_type,
+                Some(BlockType::from("INV_MAN".to_string()))
+            );
         }
 
         #[test]
@@ -506,13 +550,19 @@ mod tests {
         #[test]
         fn the_management_companys_type_defaults_to_the_standard_one() {
             let got = built("manco: blocks\n");
-            assert_eq!(got.manco, MancoSource::Blocks(BlockType::MANAGEMENT_COMPANY));
+            assert_eq!(
+                got.manco,
+                MancoSource::Blocks(BlockType::MANAGEMENT_COMPANY)
+            );
         }
 
         #[test]
         fn and_can_be_the_formats_own_too() {
             let got = built("manco: blocks\nmanco_block_type: MANCO\n");
-            assert_eq!(got.manco, MancoSource::Blocks(BlockType::from("MANCO".to_string())));
+            assert_eq!(
+                got.manco,
+                MancoSource::Blocks(BlockType::from("MANCO".to_string()))
+            );
         }
     }
 
@@ -529,7 +579,10 @@ mod tests {
         #[test]
         fn an_unknown_management_company_source_does_too() {
             let message = rejected("manco: page\n");
-            assert!(message.contains("'none', 'blocks' or 'previous_result'"), "{message}");
+            assert!(
+                message.contains("'none', 'blocks' or 'previous_result'"),
+                "{message}"
+            );
         }
 
         #[test]
@@ -551,7 +604,10 @@ mod tests {
         #[test]
         fn a_specification_naming_neither_shape_is_refused() {
             let message = rejected("read:\n  - kind: adjacent\n    spec: {}\n");
-            assert!(message.contains("'parenthetical' or 'listing'"), "{message}");
+            assert!(
+                message.contains("'parenthetical' or 'listing'"),
+                "{message}"
+            );
         }
 
         #[test]
@@ -571,9 +627,10 @@ mod tests {
 
         #[test]
         fn an_unknown_field_of_a_reader_is_a_mistake_and_not_a_silence() {
-            let error =
-                serde_yaml::from_str::<InputInvManagers>("read:\n  - kind: named\n    separatos: []\n")
-                    .expect_err("an unknown field is refused");
+            let error = serde_yaml::from_str::<InputInvManagers>(
+                "read:\n  - kind: named\n    separatos: []\n",
+            )
+            .expect_err("an unknown field is refused");
             assert!(error.to_string().contains("separatos"), "{error}");
         }
 

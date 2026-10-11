@@ -80,7 +80,9 @@ use serde::de::Error as _;
 
 use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
 use crate::cli::parallelism_config::Workers;
-use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
+use crate::cli::partial_config::{
+    PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports,
+};
 use crate::core::tracing_setup::Verbosity;
 use crate::core::tracing_setup::log_error;
 use crate::output::routines::write::OutStructureMode;
@@ -88,21 +90,40 @@ use crate::output::routines::write::OutStructureMode;
 #[derive(Debug, thiserror::Error)]
 pub enum FileConfigError {
     #[error("cannot read {}: {source}", path.display())]
-    Io { path: PathBuf, #[source] source: std::io::Error },
+    Io {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
     #[error("cannot parse YAML {}: {source}", path.display())]
-    Yaml { path: PathBuf, #[source] source: serde_yaml::Error },
+    Yaml {
+        path: PathBuf,
+        #[source]
+        source: serde_yaml::Error,
+    },
     #[error("{}: unknown configuration key {key:?}", path.display())]
     UnknownKey { path: PathBuf, key: String },
     #[error("{}: invalid document specifier {value:?}: {source}", path.display())]
-    InvalidReportSpecifier { path: PathBuf, value: String, source: DocumentSpecError },
+    InvalidReportSpecifier {
+        path: PathBuf,
+        value: String,
+        source: DocumentSpecError,
+    },
     #[error("{}: {source}", path.display())]
-    ReportsConflict { path: PathBuf, source: SourceReportsConflict },
+    ReportsConflict {
+        path: PathBuf,
+        source: SourceReportsConflict,
+    },
     #[error("{}: invalid verbosity {value:?}, expected one of: silent, erroronly, warn, info, debug, trace", path.display())]
     InvalidVerbosity { path: PathBuf, value: String },
     #[error("{}: invalid out_profile {value:?}, expected one of: regular, single_file, structured", path.display())]
     InvalidOutProfile { path: PathBuf, value: String },
     #[error("{}: invalid value for '{key}': {value:?}", path.display())]
-    InvalidValue { path: PathBuf, key: &'static str, value: String },
+    InvalidValue {
+        path: PathBuf,
+        key: &'static str,
+        value: String,
+    },
 }
 
 /// The `dev` section: what `freeports-dev` reads from the configuration file.
@@ -209,7 +230,9 @@ pub(crate) fn local_config_in(dir: &Path) -> Option<PathBuf> {
     };
     for pattern in &patterns {
         for path in &entries {
-            let Some(name) = path.file_name().and_then(|n| n.to_str()) else { continue };
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
             if pattern.is_match(name) && path.is_file() {
                 return Some(path.clone());
             }
@@ -239,7 +262,10 @@ pub(crate) fn system_config() -> Option<PathBuf> {
         Ok(value) if !value.is_empty() => value.split(':').map(PathBuf::from).collect(),
         _ => vec![PathBuf::from("/etc/xdg")],
     };
-    for dir in xdg_dirs.iter().chain(std::iter::once(&PathBuf::from("/etc"))) {
+    for dir in xdg_dirs
+        .iter()
+        .chain(std::iter::once(&PathBuf::from("/etc")))
+    {
         for name in CONFIG_FILE_NAMES {
             let candidate = dir.join(name);
             if candidate.is_file() {
@@ -272,11 +298,16 @@ pub fn find_config() -> Option<PathBuf> {
     let cwd = match std::env::current_dir() {
         Ok(cwd) => cwd,
         Err(e) => {
-            tracing::warn!(error = log_error(&e), "cannot read the current directory, skipping the cwd configuration-file tier: {e}");
+            tracing::warn!(
+                error = log_error(&e),
+                "cannot read the current directory, skipping the cwd configuration-file tier: {e}"
+            );
             return None;
         }
     };
-    let found = local_config_in(&cwd).or_else(|| user_config_in(dirs::config_local_dir().as_deref())).or_else(system_config);
+    let found = local_config_in(&cwd)
+        .or_else(|| user_config_in(dirs::config_local_dir().as_deref()))
+        .or_else(system_config);
     match &found {
         Some(path) => tracing::debug!(path = %path.display(), "found a configuration file"),
         None => tracing::debug!("no configuration file found in the cwd/user/system tiers"),
@@ -292,7 +323,10 @@ fn parse_verbosity(path: &Path, value: &str) -> Result<Verbosity, FileConfigErro
         "info" => Ok(Verbosity::Info),
         "debug" => Ok(Verbosity::Debug),
         "trace" => Ok(Verbosity::Trace),
-        _ => Err(FileConfigError::InvalidVerbosity { path: path.to_path_buf(), value: value.to_string() }),
+        _ => Err(FileConfigError::InvalidVerbosity {
+            path: path.to_path_buf(),
+            value: value.to_string(),
+        }),
     }
 }
 
@@ -302,15 +336,26 @@ fn parse_out_profile(path: &Path, value: &str) -> Result<OutStructureMode, FileC
         "regular" => Ok(OutStructureMode::Regular),
         "single_file" => Ok(OutStructureMode::SingleFile),
         "structured" => Ok(OutStructureMode::Structured),
-        _ => Err(FileConfigError::InvalidOutProfile { path: path.to_path_buf(), value: value.to_string() }),
+        _ => Err(FileConfigError::InvalidOutProfile {
+            path: path.to_path_buf(),
+            value: value.to_string(),
+        }),
     }
 }
 
-fn value_as_string(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<String, FileConfigError> {
+fn value_as_string(
+    path: &Path,
+    key: &'static str,
+    value: &serde_yaml::Value,
+) -> Result<String, FileConfigError> {
     value
         .as_str()
         .map(str::to_string)
-        .ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key,
+            value: format!("{value:?}"),
+        })
 }
 
 /// One parallelism level, written as a positive integer or as the word `auto`.
@@ -318,9 +363,16 @@ fn value_as_string(path: &Path, key: &'static str, value: &serde_yaml::Value) ->
 /// YAML tells the two apart on its own, so there is no need to go through the text when the value
 /// is already an integer — and a quoted number is still accepted, refusing it being a subtlety with
 /// no gain.
-fn value_as_workers(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<Workers, FileConfigError> {
-    let invalid =
-        || FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") };
+fn value_as_workers(
+    path: &Path,
+    key: &'static str,
+    value: &serde_yaml::Value,
+) -> Result<Workers, FileConfigError> {
+    let invalid = || FileConfigError::InvalidValue {
+        path: path.to_path_buf(),
+        key,
+        value: format!("{value:?}"),
+    };
     match value {
         serde_yaml::Value::String(text) => Workers::parse(text).map_err(|_| invalid()),
         _ => match value.as_u64() {
@@ -338,11 +390,13 @@ fn parallelism_section(
     path: &Path,
     value: &serde_yaml::Value,
 ) -> Result<(Option<Workers>, Option<Workers>), FileConfigError> {
-    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
-        path: path.to_path_buf(),
-        key: "parallelism",
-        value: format!("{value:?}"),
-    })?;
+    let mapping = value
+        .as_mapping()
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key: "parallelism",
+            value: format!("{value:?}"),
+        })?;
     let mut jobs = None;
     let mut pages = None;
     for (key, entry) in mapping {
@@ -371,16 +425,20 @@ fn out_flags_section(
     path: &Path,
     value: &serde_yaml::Value,
 ) -> Result<(Option<bool>, Option<bool>), FileConfigError> {
-    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
-        path: path.to_path_buf(),
-        key: "out_flags",
-        value: format!("{value:?}"),
-    })?;
+    let mapping = value
+        .as_mapping()
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key: "out_flags",
+            value: format!("{value:?}"),
+        })?;
     let mut separate_out = None;
     let mut compressed = None;
     for (key, entry) in mapping {
         match key.as_str().unwrap_or_default() {
-            "separate_out" => separate_out = Some(value_as_bool(path, "out_flags.separate_out", entry)?),
+            "separate_out" => {
+                separate_out = Some(value_as_bool(path, "out_flags.separate_out", entry)?)
+            }
             "archive" => compressed = Some(value_as_bool(path, "out_flags.archive", entry)?),
             other => {
                 return Err(FileConfigError::UnknownKey {
@@ -395,25 +453,39 @@ fn out_flags_section(
 
 /// The `dev` section. An unknown sub-key is an error, as everywhere else in this file.
 fn dev_section(path: &Path, value: &serde_yaml::Value) -> Result<DevFileConfig, FileConfigError> {
-    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
-        path: path.to_path_buf(),
-        key: "dev",
-        value: format!("{value:?}"),
-    })?;
+    let mapping = value
+        .as_mapping()
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key: "dev",
+            value: format!("{value:?}"),
+        })?;
     let mut config = DevFileConfig::default();
     for (key, entry) in mapping {
         match key.as_str().unwrap_or_default() {
-            "target_lists" => config.target_lists = Some(value_as_string_list(path, "dev.target_lists", entry)?),
+            "target_lists" => {
+                config.target_lists = Some(value_as_string_list(path, "dev.target_lists", entry)?)
+            }
             "noconfirm" => config.noconfirm = Some(value_as_bool(path, "dev.noconfirm", entry)?),
             "page_type" => config.page_type = Some(value_as_string(path, "dev.page_type", entry)?),
-            "text_width" => config.text_width = Some(value_as_whole_number(path, "dev.text_width", entry)?),
-            "preview_columns" => {
-                config.preview_columns = Some(value_as_whole_number(path, "dev.preview_columns", entry)?)
+            "text_width" => {
+                config.text_width = Some(value_as_whole_number(path, "dev.text_width", entry)?)
             }
-            "max_hits" => config.max_hits = Some(value_as_whole_number(path, "dev.max_hits", entry)?),
-            "probes_dirs" => config.probes_dirs = Some(value_as_string_list(path, "dev.probes_dirs", entry)?),
+            "preview_columns" => {
+                config.preview_columns =
+                    Some(value_as_whole_number(path, "dev.preview_columns", entry)?)
+            }
+            "max_hits" => {
+                config.max_hits = Some(value_as_whole_number(path, "dev.max_hits", entry)?)
+            }
+            "probes_dirs" => {
+                config.probes_dirs = Some(value_as_string_list(path, "dev.probes_dirs", entry)?)
+            }
             other => {
-                return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: format!("dev.{other}") });
+                return Err(FileConfigError::UnknownKey {
+                    path: path.to_path_buf(),
+                    key: format!("dev.{other}"),
+                });
             }
         }
     }
@@ -421,21 +493,31 @@ fn dev_section(path: &Path, value: &serde_yaml::Value) -> Result<DevFileConfig, 
 }
 
 /// The `validate` section. Same discipline as [`dev_section`].
-fn validate_section(path: &Path, value: &serde_yaml::Value) -> Result<ValidateFileConfig, FileConfigError> {
-    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
-        path: path.to_path_buf(),
-        key: "validate",
-        value: format!("{value:?}"),
-    })?;
+fn validate_section(
+    path: &Path,
+    value: &serde_yaml::Value,
+) -> Result<ValidateFileConfig, FileConfigError> {
+    let mapping = value
+        .as_mapping()
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key: "validate",
+            value: format!("{value:?}"),
+        })?;
     let mut config = ValidateFileConfig::default();
     for (key, entry) in mapping {
         match key.as_str().unwrap_or_default() {
             "key_id" => config.key_id = Some(value_as_string(path, "validate.key_id", entry)?),
-            "sources" => config.sources = Some(value_as_string_list(path, "validate.sources", entry)?),
+            "sources" => {
+                config.sources = Some(value_as_string_list(path, "validate.sources", entry)?)
+            }
             "offline" => config.offline = Some(value_as_bool(path, "validate.offline", entry)?),
             "deep" => config.deep = Some(value_as_bool(path, "validate.deep", entry)?),
             other => {
-                return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: format!("validate.{other}") });
+                return Err(FileConfigError::UnknownKey {
+                    path: path.to_path_buf(),
+                    key: format!("validate.{other}"),
+                });
             }
         }
     }
@@ -444,19 +526,48 @@ fn validate_section(path: &Path, value: &serde_yaml::Value) -> Result<ValidateFi
 
 /// A count written as a YAML integer. A negative number is refused rather than wrapped, and a
 /// quoted one is refused too: these keys have no word form, unlike the parallelism levels.
-fn value_as_whole_number(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<u64, FileConfigError> {
-    value.as_u64().ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
+fn value_as_whole_number(
+    path: &Path,
+    key: &'static str,
+    value: &serde_yaml::Value,
+) -> Result<u64, FileConfigError> {
+    value.as_u64().ok_or_else(|| FileConfigError::InvalidValue {
+        path: path.to_path_buf(),
+        key,
+        value: format!("{value:?}"),
+    })
 }
 
-fn value_as_bool(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<bool, FileConfigError> {
-    value.as_bool().ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
+fn value_as_bool(
+    path: &Path,
+    key: &'static str,
+    value: &serde_yaml::Value,
+) -> Result<bool, FileConfigError> {
+    value
+        .as_bool()
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key,
+            value: format!("{value:?}"),
+        })
 }
 
-fn value_as_string_list(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<Vec<String>, FileConfigError> {
+fn value_as_string_list(
+    path: &Path,
+    key: &'static str,
+    value: &serde_yaml::Value,
+) -> Result<Vec<String>, FileConfigError> {
     let items = value
         .as_sequence()
-        .ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })?;
-    items.iter().map(|item| value_as_string(path, key, item)).collect()
+        .ok_or_else(|| FileConfigError::InvalidValue {
+            path: path.to_path_buf(),
+            key,
+            value: format!("{value:?}"),
+        })?;
+    items
+        .iter()
+        .map(|item| value_as_string(path, key, item))
+        .collect()
 }
 
 /// Wraps `load_impl` to log any failure exactly once -- this is the only place every
@@ -491,9 +602,15 @@ fn load_impl(path: Option<&Path>) -> Result<(PartialConfig, ToolingConfig), File
         return Ok((PartialConfig::default(), ToolingConfig::default()));
     };
 
-    let content = std::fs::read_to_string(path).map_err(|source| FileConfigError::Io { path: path.to_path_buf(), source })?;
+    let content = std::fs::read_to_string(path).map_err(|source| FileConfigError::Io {
+        path: path.to_path_buf(),
+        source,
+    })?;
     let value: serde_yaml::Value =
-        serde_yaml::from_str(&content).map_err(|source| FileConfigError::Yaml { path: path.to_path_buf(), source })?;
+        serde_yaml::from_str(&content).map_err(|source| FileConfigError::Yaml {
+            path: path.to_path_buf(),
+            source,
+        })?;
 
     let mapping = match value {
         serde_yaml::Value::Null => return Ok((PartialConfig::default(), ToolingConfig::default())),
@@ -507,8 +624,23 @@ fn load_impl(path: Option<&Path>) -> Result<(PartialConfig, ToolingConfig), File
     };
 
     const KNOWN_KEYS: [&str; 17] = [
-        "verbosity", "out_path", "out_profile", "out_flags", "n_workers", "parallelism", "batch_file", "save_pdf",
-        "url", "pdf", "reports", "format", "target_lists", "formats_repo", "db_path", "dev", "validate",
+        "verbosity",
+        "out_path",
+        "out_profile",
+        "out_flags",
+        "n_workers",
+        "parallelism",
+        "batch_file",
+        "save_pdf",
+        "url",
+        "pdf",
+        "reports",
+        "format",
+        "target_lists",
+        "formats_repo",
+        "db_path",
+        "dev",
+        "validate",
     ];
 
     let mut fields: HashMap<&'static str, serde_yaml::Value> = HashMap::new();
@@ -518,40 +650,106 @@ fn load_impl(path: Option<&Path>) -> Result<(PartialConfig, ToolingConfig), File
             Some(&known) => {
                 fields.insert(known, v);
             }
-            None => return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: key_str }),
+            None => {
+                return Err(FileConfigError::UnknownKey {
+                    path: path.to_path_buf(),
+                    key: key_str,
+                });
+            }
         }
     }
 
-    let verbosity = fields.get("verbosity").map(|v| value_as_string(path, "verbosity", v)).transpose()?;
+    let verbosity = fields
+        .get("verbosity")
+        .map(|v| value_as_string(path, "verbosity", v))
+        .transpose()?;
     let verbosity = verbosity.map(|v| parse_verbosity(path, &v)).transpose()?;
 
-    let out_path = fields.get("out_path").map(|v| value_as_string(path, "out_path", v)).transpose()?.map(PathBuf::from);
-    let out_profile = fields.get("out_profile").map(|v| value_as_string(path, "out_profile", v)).transpose()?;
-    let out_profile = out_profile.map(|v| parse_out_profile(path, &v)).transpose()?;
-    let (separate_out, compressed) =
-        fields.get("out_flags").map(|v| out_flags_section(path, v)).transpose()?.unwrap_or((None, None));
-    let n_workers = fields.get("n_workers").map(|v| value_as_workers(path, "n_workers", v)).transpose()?;
-    let (parallelism_jobs, parallelism_pages) =
-        fields.get("parallelism").map(|v| parallelism_section(path, v)).transpose()?.unwrap_or((None, None));
-    let batch_file =
-        fields.get("batch_file").map(|v| value_as_string(path, "batch_file", v)).transpose()?.map(PathBuf::from);
-    let save_pdf = fields.get("save_pdf").map(|v| value_as_bool(path, "save_pdf", v)).transpose()?;
-    let format = fields.get("format").map(|v| value_as_string(path, "format", v)).transpose()?;
-    let target_lists = fields.get("target_lists").map(|v| value_as_string_list(path, "target_lists", v)).transpose()?;
-    let formats_repo_path =
-        fields.get("formats_repo").map(|v| value_as_string(path, "formats_repo", v)).transpose()?.map(PathBuf::from);
-    let input_db_path = fields.get("db_path").map(|v| value_as_string(path, "db_path", v)).transpose()?.map(PathBuf::from);
+    let out_path = fields
+        .get("out_path")
+        .map(|v| value_as_string(path, "out_path", v))
+        .transpose()?
+        .map(PathBuf::from);
+    let out_profile = fields
+        .get("out_profile")
+        .map(|v| value_as_string(path, "out_profile", v))
+        .transpose()?;
+    let out_profile = out_profile
+        .map(|v| parse_out_profile(path, &v))
+        .transpose()?;
+    let (separate_out, compressed) = fields
+        .get("out_flags")
+        .map(|v| out_flags_section(path, v))
+        .transpose()?
+        .unwrap_or((None, None));
+    let n_workers = fields
+        .get("n_workers")
+        .map(|v| value_as_workers(path, "n_workers", v))
+        .transpose()?;
+    let (parallelism_jobs, parallelism_pages) = fields
+        .get("parallelism")
+        .map(|v| parallelism_section(path, v))
+        .transpose()?
+        .unwrap_or((None, None));
+    let batch_file = fields
+        .get("batch_file")
+        .map(|v| value_as_string(path, "batch_file", v))
+        .transpose()?
+        .map(PathBuf::from);
+    let save_pdf = fields
+        .get("save_pdf")
+        .map(|v| value_as_bool(path, "save_pdf", v))
+        .transpose()?;
+    let format = fields
+        .get("format")
+        .map(|v| value_as_string(path, "format", v))
+        .transpose()?;
+    let target_lists = fields
+        .get("target_lists")
+        .map(|v| value_as_string_list(path, "target_lists", v))
+        .transpose()?;
+    let formats_repo_path = fields
+        .get("formats_repo")
+        .map(|v| value_as_string(path, "formats_repo", v))
+        .transpose()?
+        .map(PathBuf::from);
+    let input_db_path = fields
+        .get("db_path")
+        .map(|v| value_as_string(path, "db_path", v))
+        .transpose()?
+        .map(PathBuf::from);
 
     // The two sections the engine parses but never reads; see the module documentation.
     let tooling = ToolingConfig {
-        dev: fields.get("dev").map(|v| dev_section(path, v)).transpose()?.unwrap_or_default(),
-        validate: fields.get("validate").map(|v| validate_section(path, v)).transpose()?.unwrap_or_default(),
+        dev: fields
+            .get("dev")
+            .map(|v| dev_section(path, v))
+            .transpose()?
+            .unwrap_or_default(),
+        validate: fields
+            .get("validate")
+            .map(|v| validate_section(path, v))
+            .transpose()?
+            .unwrap_or_default(),
     };
 
-    let url = fields.get("url").map(|v| value_as_string(path, "url", v)).transpose()?;
-    let pdf = fields.get("pdf").map(|v| value_as_string(path, "pdf", v)).transpose()?;
-    let singular =
-        if url.is_some() || pdf.is_some() { Some(DocumentSpec { url, path: pdf.map(PathBuf::from), name: None }) } else { None };
+    let url = fields
+        .get("url")
+        .map(|v| value_as_string(path, "url", v))
+        .transpose()?;
+    let pdf = fields
+        .get("pdf")
+        .map(|v| value_as_string(path, "pdf", v))
+        .transpose()?;
+    let singular = if url.is_some() || pdf.is_some() {
+        Some(DocumentSpec {
+            url,
+            path: pdf.map(PathBuf::from),
+            name: None,
+        })
+    } else {
+        None
+    };
 
     let plural = fields
         .get("reports")
@@ -561,38 +759,47 @@ fn load_impl(path: Option<&Path>) -> Result<(PartialConfig, ToolingConfig), File
             specs
                 .iter()
                 .map(|s| {
-                    DocumentSpec::parse(s).map_err(|source| FileConfigError::InvalidReportSpecifier {
-                        path: path.to_path_buf(),
-                        value: s.clone(),
-                        source,
+                    DocumentSpec::parse(s).map_err(|source| {
+                        FileConfigError::InvalidReportSpecifier {
+                            path: path.to_path_buf(),
+                            value: s.clone(),
+                            source,
+                        }
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()
         })
         .transpose()?;
 
-    let reports = resolve_singular_and_plural_reports(singular, plural)
-        .map_err(|source| FileConfigError::ReportsConflict { path: path.to_path_buf(), source })?;
+    let reports = resolve_singular_and_plural_reports(singular, plural).map_err(|source| {
+        FileConfigError::ReportsConflict {
+            path: path.to_path_buf(),
+            source,
+        }
+    })?;
 
     tracing::info!(path = %path.display(), "loaded configuration from file");
-    Ok((PartialConfig {
-        verbosity,
-        reports,
-        target_lists,
-        format,
-        out_path,
-        out_profile,
-        separate_out,
-        compressed,
-        n_workers,
-        parallelism_jobs,
-        parallelism_pages,
-        batch_file,
-        save_pdf,
-        formats_repo_path,
-        input_db_path,
-        config_file: None,
-    }, tooling))
+    Ok((
+        PartialConfig {
+            verbosity,
+            reports,
+            target_lists,
+            format,
+            out_path,
+            out_profile,
+            separate_out,
+            compressed,
+            n_workers,
+            parallelism_jobs,
+            parallelism_pages,
+            batch_file,
+            save_pdf,
+            formats_repo_path,
+            input_db_path,
+            config_file: None,
+        },
+        tooling,
+    ))
 }
 
 #[cfg(test)]
@@ -615,14 +822,20 @@ mod tests {
         fn finds_a_file_matching_the_config_freeports_pattern() {
             let dir = tempfile::tempdir().unwrap();
             write(dir.path(), "config-freeports.yaml", "{}");
-            assert_eq!(local_config_in(dir.path()), Some(dir.path().join("config-freeports.yaml")));
+            assert_eq!(
+                local_config_in(dir.path()),
+                Some(dir.path().join("config-freeports.yaml"))
+            );
         }
 
         #[test]
         fn finds_a_file_matching_the_freeports_config_pattern() {
             let dir = tempfile::tempdir().unwrap();
             write(dir.path(), "freeports-config.yml", "{}");
-            assert_eq!(local_config_in(dir.path()), Some(dir.path().join("freeports-config.yml")));
+            assert_eq!(
+                local_config_in(dir.path()),
+                Some(dir.path().join("freeports-config.yml"))
+            );
         }
 
         #[test]
@@ -660,14 +873,20 @@ mod tests {
         fn finds_freeports_yaml() {
             let dir = tempfile::tempdir().unwrap();
             write(dir.path(), "freeports.yaml", "{}");
-            assert_eq!(user_config_in(Some(dir.path())), Some(dir.path().join("freeports.yaml")));
+            assert_eq!(
+                user_config_in(Some(dir.path())),
+                Some(dir.path().join("freeports.yaml"))
+            );
         }
 
         #[test]
         fn finds_freeports_yml_when_yaml_is_absent() {
             let dir = tempfile::tempdir().unwrap();
             write(dir.path(), "freeports.yml", "{}");
-            assert_eq!(user_config_in(Some(dir.path())), Some(dir.path().join("freeports.yml")));
+            assert_eq!(
+                user_config_in(Some(dir.path())),
+                Some(dir.path().join("freeports.yml"))
+            );
         }
 
         #[test]
@@ -696,11 +915,17 @@ mod tests {
         impl SystemEnvScope {
             fn new() -> Self {
                 let lock = SYSTEM_ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-                let originals = SYSTEM_VARS.iter().map(|&k| (k, std::env::var(k).ok())).collect();
+                let originals = SYSTEM_VARS
+                    .iter()
+                    .map(|&k| (k, std::env::var(k).ok()))
+                    .collect();
                 for &k in SYSTEM_VARS {
                     unsafe { std::env::remove_var(k) };
                 }
-                Self { _lock: lock, originals }
+                Self {
+                    _lock: lock,
+                    originals,
+                }
             }
 
             fn set(&self, key: &str, value: &str) {
@@ -738,9 +963,16 @@ mod tests {
             let empty_dir = tempfile::tempdir().unwrap();
             let real_dir = tempfile::tempdir().unwrap();
             write(real_dir.path(), "freeports.yaml", "{}");
-            let joined = format!("{}:{}", empty_dir.path().display(), real_dir.path().display());
+            let joined = format!(
+                "{}:{}",
+                empty_dir.path().display(),
+                real_dir.path().display()
+            );
             scope.set("XDG_CONFIG_DIRS", &joined);
-            assert_eq!(system_config(), Some(real_dir.path().join("freeports.yaml")));
+            assert_eq!(
+                system_config(),
+                Some(real_dir.path().join("freeports.yaml"))
+            );
         }
 
         #[test]
@@ -760,7 +992,10 @@ mod tests {
             write(system_root.path(), "freeports.yaml", "{}");
             scope.set("PROGRAMDATA", program_data.path().to_str().unwrap());
             scope.set("SystemRoot", system_root.path().to_str().unwrap());
-            assert_eq!(system_config(), Some(system_root.path().join("freeports.yaml")));
+            assert_eq!(
+                system_config(),
+                Some(system_root.path().join("freeports.yaml"))
+            );
         }
 
         #[test]
@@ -803,8 +1038,11 @@ mod tests {
         #[test]
         fn the_parallelism_section_maps_both_levels() {
             let dir = tempfile::tempdir().unwrap();
-            let path =
-                write(dir.path(), "cfg.yaml", "parallelism:\n  jobs: 2\n  pages: auto\n");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "parallelism:\n  jobs: 2\n  pages: auto\n",
+            );
             let config = load(Some(&path)).unwrap();
             assert_eq!(config.parallelism_jobs, Some(Workers::Fixed(2)));
             assert_eq!(config.parallelism_pages, Some(Workers::Auto));
@@ -872,9 +1110,16 @@ mod tests {
         #[test]
         fn target_lists_is_mapped_as_a_list() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", "target_lists:\n  - TEST\n  - OTHER\n");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "target_lists:\n  - TEST\n  - OTHER\n",
+            );
             let config = load(Some(&path)).unwrap();
-            assert_eq!(config.target_lists, Some(vec!["TEST".to_string(), "OTHER".to_string()]));
+            assert_eq!(
+                config.target_lists,
+                Some(vec!["TEST".to_string(), "OTHER".to_string()])
+            );
         }
 
         #[test]
@@ -882,7 +1127,10 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = write(dir.path(), "cfg.yaml", "formats_repo: /opt/formats\n");
             let config = load(Some(&path)).unwrap();
-            assert_eq!(config.formats_repo_path, Some(PathBuf::from("/opt/formats")));
+            assert_eq!(
+                config.formats_repo_path,
+                Some(PathBuf::from("/opt/formats"))
+            );
         }
 
         #[test]
@@ -928,7 +1176,10 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = write(dir.path(), "cfg.yaml", "not_a_real_key: 1\n");
             let result = load(Some(&path));
-            assert!(matches!(result, Err(FileConfigError::UnknownKey { .. })), "got {result:?}");
+            assert!(
+                matches!(result, Err(FileConfigError::UnknownKey { .. })),
+                "got {result:?}"
+            );
         }
 
         #[test]
@@ -951,26 +1202,43 @@ mod tests {
         #[test_case::test_case("STRUCTURED", OutStructureMode::Structured; "case insensitive")]
         fn every_profile_name_is_accepted(value: &str, expected: OutStructureMode) {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", &format!("out_profile: {value}
-"));
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                &format!(
+                    "out_profile: {value}
+"
+                ),
+            );
             assert_eq!(load(Some(&path)).unwrap().out_profile, Some(expected));
         }
 
         #[test]
         fn an_unknown_profile_name_is_a_typed_error_naming_the_alternatives() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", "out_profile: flat
-");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "out_profile: flat
+",
+            );
             let result = load(Some(&path));
-            assert!(matches!(result, Err(FileConfigError::InvalidOutProfile { .. })), "got {result:?}");
+            assert!(
+                matches!(result, Err(FileConfigError::InvalidOutProfile { .. })),
+                "got {result:?}"
+            );
             assert!(result.unwrap_err().to_string().contains("single_file"));
         }
 
         #[test]
         fn a_profile_written_as_a_number_is_a_typed_error_not_a_panic() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", "out_profile: 2
-");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "out_profile: 2
+",
+            );
             let result = std::panic::catch_unwind(|| load(Some(&path)));
             assert!(result.is_ok(), "must not panic");
             assert!(result.unwrap().is_err());
@@ -979,7 +1247,11 @@ mod tests {
         #[test]
         fn the_out_flags_section_maps_both_flags() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  separate_out: true\n  archive: true\n");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "out_flags:\n  separate_out: true\n  archive: true\n",
+            );
             let config = load(Some(&path)).unwrap();
             assert_eq!(config.separate_out, Some(true));
             assert_eq!(config.compressed, Some(true));
@@ -999,7 +1271,11 @@ mod tests {
         #[test]
         fn an_explicit_false_is_recorded_as_some_false_not_as_absence() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  separate_out: false\n");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "out_flags:\n  separate_out: false\n",
+            );
             assert_eq!(load(Some(&path)).unwrap().separate_out, Some(false));
         }
 
@@ -1077,7 +1353,10 @@ mod tests {
                     "dev:\n  target_lists: [TEST, OTHER]\n  noconfirm: true\n  page_type: holdings\n",
                 );
                 let dev = load_tooling(Some(&path)).unwrap().dev;
-                assert_eq!(dev.target_lists, Some(vec!["TEST".to_string(), "OTHER".to_string()]));
+                assert_eq!(
+                    dev.target_lists,
+                    Some(vec!["TEST".to_string(), "OTHER".to_string()])
+                );
                 assert_eq!(dev.noconfirm, Some(true));
                 assert_eq!(dev.page_type, Some("holdings".to_string()));
             }
@@ -1097,7 +1376,10 @@ mod tests {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "dev:\n  tagret_lists: [TEST]\n");
                 let result = load_tooling(Some(&path));
-                assert!(matches!(result, Err(FileConfigError::UnknownKey { .. })), "got {result:?}");
+                assert!(
+                    matches!(result, Err(FileConfigError::UnknownKey { .. })),
+                    "got {result:?}"
+                );
                 assert!(result.unwrap_err().to_string().contains("dev.tagret_lists"));
             }
 
@@ -1105,14 +1387,20 @@ mod tests {
             fn a_non_boolean_noconfirm_is_a_typed_error_not_a_panic() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "dev:\n  noconfirm: sometimes\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
 
             #[test]
             fn a_section_written_as_a_scalar_is_a_typed_error_not_a_panic() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "dev: true\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
 
             mod reading_and_search_keys {
@@ -1147,7 +1435,16 @@ mod tests {
                     let dir = tempfile::tempdir().unwrap();
                     let path = write(dir.path(), "cfg.yaml", "dev:\n  max_hits: many\n");
                     let result = load_tooling(Some(&path));
-                    assert!(matches!(result, Err(FileConfigError::InvalidValue { key: "dev.max_hits", .. })), "got {result:?}");
+                    assert!(
+                        matches!(
+                            result,
+                            Err(FileConfigError::InvalidValue {
+                                key: "dev.max_hits",
+                                ..
+                            })
+                        ),
+                        "got {result:?}"
+                    );
                 }
 
                 #[test]
@@ -1156,7 +1453,10 @@ mod tests {
                     let path = write(dir.path(), "cfg.yaml", "dev:\n  text_width: -1\n");
                     assert!(matches!(
                         load_tooling(Some(&path)),
-                        Err(FileConfigError::InvalidValue { key: "dev.text_width", .. })
+                        Err(FileConfigError::InvalidValue {
+                            key: "dev.text_width",
+                            ..
+                        })
                     ));
                 }
             }
@@ -1167,7 +1467,11 @@ mod tests {
                 #[test]
                 fn the_directories_are_read_in_the_order_written() {
                     let dir = tempfile::tempdir().unwrap();
-                    let path = write(dir.path(), "cfg.yaml", "dev:\n  probes_dirs: [lab/probes, /abs/probes]\n");
+                    let path = write(
+                        dir.path(),
+                        "cfg.yaml",
+                        "dev:\n  probes_dirs: [lab/probes, /abs/probes]\n",
+                    );
                     assert_eq!(
                         load_tooling(Some(&path)).unwrap().dev.probes_dirs,
                         Some(vec!["lab/probes".to_string(), "/abs/probes".to_string()])
@@ -1180,7 +1484,10 @@ mod tests {
                     let path = write(dir.path(), "cfg.yaml", "dev:\n  probes_dirs: lab/probes\n");
                     assert!(matches!(
                         load_tooling(Some(&path)),
-                        Err(FileConfigError::InvalidValue { key: "dev.probes_dirs", .. })
+                        Err(FileConfigError::InvalidValue {
+                            key: "dev.probes_dirs",
+                            ..
+                        })
                     ));
                 }
             }
@@ -1193,7 +1500,10 @@ mod tests {
             fn the_key_id_is_read() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "validate:\n  key_id: DEADBEEF\n");
-                assert_eq!(load_tooling(Some(&path)).unwrap().validate.key_id, Some("DEADBEEF".to_string()));
+                assert_eq!(
+                    load_tooling(Some(&path)).unwrap().validate.key_id,
+                    Some("DEADBEEF".to_string())
+                );
             }
 
             #[test]
@@ -1209,7 +1519,10 @@ mod tests {
             fn an_unquoted_all_digit_key_id_is_a_typed_error_rather_than_a_silent_misread() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "validate:\n  key_id: 12345678\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
             #[test]
             fn the_sources_are_read_as_a_list_in_the_order_written() {
@@ -1223,7 +1536,8 @@ mod tests {
                     load_tooling(Some(&path)).unwrap().validate.sources,
                     Some(vec![
                         "../mine/*.rst".to_string(),
-                        "https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt".to_string(),
+                        "https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt"
+                            .to_string(),
                     ])
                 );
             }
@@ -1234,10 +1548,18 @@ mod tests {
             #[test]
             fn the_written_order_is_preserved_even_when_it_is_not_sorted() {
                 let dir = tempfile::tempdir().unwrap();
-                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: [c/*.rst, a/*.rst, b/*.rst]\n");
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "validate:\n  sources: [c/*.rst, a/*.rst, b/*.rst]\n",
+                );
                 assert_eq!(
                     load_tooling(Some(&path)).unwrap().validate.sources,
-                    Some(vec!["c/*.rst".to_string(), "a/*.rst".to_string(), "b/*.rst".to_string()])
+                    Some(vec![
+                        "c/*.rst".to_string(),
+                        "a/*.rst".to_string(),
+                        "b/*.rst".to_string()
+                    ])
                 );
             }
 
@@ -1247,15 +1569,29 @@ mod tests {
             #[test]
             fn a_scalar_is_a_typed_error_rather_than_a_one_element_list() {
                 let dir = tempfile::tempdir().unwrap();
-                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: ../mine/*.rst\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "validate:\n  sources: ../mine/*.rst\n",
+                );
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
 
             #[test]
             fn a_non_string_entry_is_a_typed_error_not_a_panic() {
                 let dir = tempfile::tempdir().unwrap();
-                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: [../mine/*.rst, 12]\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "validate:\n  sources: [../mine/*.rst, 12]\n",
+                );
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
 
             /// Reported faithfully rather than folded into `None`: "the file names no source" and
@@ -1265,7 +1601,10 @@ mod tests {
             fn an_empty_list_is_read_as_an_empty_list() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: []\n");
-                assert_eq!(load_tooling(Some(&path)).unwrap().validate.sources, Some(vec![]));
+                assert_eq!(
+                    load_tooling(Some(&path)).unwrap().validate.sources,
+                    Some(vec![])
+                );
             }
 
             #[test]
@@ -1284,7 +1623,11 @@ mod tests {
             #[test]
             fn a_key_left_out_stays_unset_rather_than_taking_a_value() {
                 let dir = tempfile::tempdir().unwrap();
-                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: [../mine/*.rst]\n");
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "validate:\n  sources: [../mine/*.rst]\n",
+                );
                 let validate = load_tooling(Some(&path)).unwrap().validate;
                 assert_eq!(validate.key_id, None);
                 assert_eq!(validate.offline, None);
@@ -1307,7 +1650,10 @@ mod tests {
                 let dir = tempfile::tempdir().unwrap();
                 let written = write(dir.path(), "written.yaml", "validate:\n  deep: false\n");
                 let absent = write(dir.path(), "absent.yaml", "validate:\n  key_id: DEADBEEF\n");
-                assert_eq!(load_tooling(Some(&written)).unwrap().validate.deep, Some(false));
+                assert_eq!(
+                    load_tooling(Some(&written)).unwrap().validate.deep,
+                    Some(false)
+                );
                 assert_eq!(load_tooling(Some(&absent)).unwrap().validate.deep, None);
             }
 
@@ -1315,7 +1661,10 @@ mod tests {
             fn a_non_boolean_deep_is_a_typed_error() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "validate:\n  deep: sometimes\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
 
             #[test]
@@ -1323,8 +1672,14 @@ mod tests {
                 let dir = tempfile::tempdir().unwrap();
                 let yes = write(dir.path(), "yes.yaml", "validate:\n  offline: true\n");
                 let no = write(dir.path(), "no.yaml", "validate:\n  offline: false\n");
-                assert_eq!(load_tooling(Some(&yes)).unwrap().validate.offline, Some(true));
-                assert_eq!(load_tooling(Some(&no)).unwrap().validate.offline, Some(false));
+                assert_eq!(
+                    load_tooling(Some(&yes)).unwrap().validate.offline,
+                    Some(true)
+                );
+                assert_eq!(
+                    load_tooling(Some(&no)).unwrap().validate.offline,
+                    Some(false)
+                );
             }
 
             /// `false` and "unset" are different answers: the first overrides nothing above it in
@@ -1344,7 +1699,10 @@ mod tests {
             fn a_non_boolean_offline_is_a_typed_error_not_a_panic() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "validate:\n  offline: sometimes\n");
-                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+                assert!(matches!(
+                    load_tooling(Some(&path)),
+                    Err(FileConfigError::InvalidValue { .. })
+                ));
             }
         }
 
@@ -1369,7 +1727,11 @@ mod tests {
             #[test]
             fn load_both_returns_the_same_halves_the_two_narrow_entry_points_do() {
                 let dir = tempfile::tempdir().unwrap();
-                let path = write(dir.path(), "cfg.yaml", "out_path: /tmp/out\nvalidate:\n  key_id: DEADBEEF\n");
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "out_path: /tmp/out\nvalidate:\n  key_id: DEADBEEF\n",
+                );
                 let (engine, tooling) = load_both(Some(&path)).unwrap();
                 assert_eq!(engine, load(Some(&path)).unwrap());
                 assert_eq!(tooling, load_tooling(Some(&path)).unwrap());
@@ -1397,7 +1759,10 @@ mod tests {
             let path = write(dir.path(), "cfg.yaml", "verbosity: not-a-level\n");
             let result = std::panic::catch_unwind(|| load(Some(&path)));
             assert!(result.is_ok(), "must not panic");
-            assert!(matches!(result.unwrap(), Err(FileConfigError::InvalidVerbosity { .. })));
+            assert!(matches!(
+                result.unwrap(),
+                Err(FileConfigError::InvalidVerbosity { .. })
+            ));
         }
     }
 
@@ -1435,11 +1800,18 @@ mod tests {
         #[test]
         fn url_alone_becomes_a_single_element_reports_list() {
             let dir = tempfile::tempdir().unwrap();
-            let path = write(dir.path(), "cfg.yaml", "url: https://example.com/report.pdf\n");
+            let path = write(
+                dir.path(),
+                "cfg.yaml",
+                "url: https://example.com/report.pdf\n",
+            );
             let config = load(Some(&path)).unwrap();
             let reports = config.reports.unwrap();
             assert_eq!(reports.len(), 1);
-            assert_eq!(reports[0].url.as_deref(), Some("https://example.com/report.pdf"));
+            assert_eq!(
+                reports[0].url.as_deref(),
+                Some("https://example.com/report.pdf")
+            );
         }
 
         #[test]
@@ -1463,7 +1835,10 @@ mod tests {
             let config = load(Some(&path)).unwrap();
             let reports = config.reports.unwrap();
             assert_eq!(reports.len(), 1);
-            assert_eq!(reports[0].url.as_deref(), Some("https://example.com/report.pdf"));
+            assert_eq!(
+                reports[0].url.as_deref(),
+                Some("https://example.com/report.pdf")
+            );
             assert_eq!(reports[0].path, Some(PathBuf::from("/tmp/report.pdf")));
         }
     }
@@ -1480,7 +1855,10 @@ mod tests {
                 "reports:\n  - https://example.com/a.pdf\nurl: https://example.com/b.pdf\n",
             );
             let result = load(Some(&path));
-            assert!(matches!(result, Err(FileConfigError::ReportsConflict { .. })), "got {result:?}");
+            assert!(
+                matches!(result, Err(FileConfigError::ReportsConflict { .. })),
+                "got {result:?}"
+            );
         }
 
         #[test]

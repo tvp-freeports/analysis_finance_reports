@@ -8,8 +8,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 use crate::commons::geometry::Rectangle;
-use crate::core::tracing_setup::log_error;
 use crate::core::page::{PageError, PageImage};
+use crate::core::tracing_setup::log_error;
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,8 +31,14 @@ pub struct PageDictLine {
 /// are ignored.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PageDictBlock {
-    Text { lines: Vec<PageDictLine> },
-    ImageRaster { bbox: (f32, f32, f32, f32), ext: String, data: Vec<u8> },
+    Text {
+        lines: Vec<PageDictLine>,
+    },
+    ImageRaster {
+        bbox: (f32, f32, f32, f32),
+        ext: String,
+        data: Vec<u8>,
+    },
     Other,
 }
 
@@ -76,8 +82,15 @@ pub(crate) fn collapse_spans_from_line(line: &PageDictLine, threshold: f32) -> V
 
     if collapse {
         // `line.spans` is non-empty here, checked above, so the loop ran at least once.
-        let font = last_font.expect("line.spans is non-empty, so the loop above ran at least once").to_string();
-        vec![PageDictSpan { font, size: sum_font_size / line.spans.len() as f32, text, bbox: line.bbox }]
+        let font = last_font
+            .expect("line.spans is non-empty, so the loop above ran at least once")
+            .to_string();
+        vec![PageDictSpan {
+            font,
+            size: sum_font_size / line.spans.len() as f32,
+            text,
+            bbox: line.bbox,
+        }]
     } else {
         res
     }
@@ -85,7 +98,13 @@ pub(crate) fn collapse_spans_from_line(line: &PageDictLine, threshold: f32) -> V
 
 /// Rotates and translates a bounding box, given the cosine and sine of the angle: the minimum and
 /// maximum over the four rotated corners, then the translation.
-pub(crate) fn rotate_bbox(bbox: (f32, f32, f32, f32), cs: f32, sn: f32, new_left: f32, new_top: f32) -> (f32, f32, f32, f32) {
+pub(crate) fn rotate_bbox(
+    bbox: (f32, f32, f32, f32),
+    cs: f32,
+    sn: f32,
+    new_left: f32,
+    new_top: f32,
+) -> (f32, f32, f32, f32) {
     let (x0, y0, x1, y1) = bbox;
     let corners = [(x0, y0), (x0, y1), (x1, y1), (x1, y0)];
     let xs = corners.map(|(x, y)| cs * x + sn * y);
@@ -94,7 +113,12 @@ pub(crate) fn rotate_bbox(bbox: (f32, f32, f32, f32), cs: f32, sn: f32, new_left
     let new_x1 = xs.into_iter().fold(f32::NEG_INFINITY, f32::max);
     let new_y0 = ys.into_iter().fold(f32::INFINITY, f32::min);
     let new_y1 = ys.into_iter().fold(f32::NEG_INFINITY, f32::max);
-    (new_x0 - new_left, new_y0 - new_top, new_x1 - new_left, new_y1 - new_top)
+    (
+        new_x0 - new_left,
+        new_y0 - new_top,
+        new_x1 - new_left,
+        new_y1 - new_top,
+    )
 }
 
 /// Leaves a line unchanged when it is already horizontal; otherwise computes the rotation origin
@@ -107,17 +131,30 @@ pub(crate) fn rotate_line(line: &PageDictLine, width: f32, height: f32) -> PageD
     }
 
     let corners = [(0.0, 0.0), (0.0, height), (width, height), (width, 0.0)];
-    let new_left = corners.iter().map(|&(x, y)| c * x + s * y).fold(f32::INFINITY, f32::min);
-    let new_top = corners.iter().map(|&(x, y)| c * y - s * x).fold(f32::INFINITY, f32::min);
+    let new_left = corners
+        .iter()
+        .map(|&(x, y)| c * x + s * y)
+        .fold(f32::INFINITY, f32::min);
+    let new_top = corners
+        .iter()
+        .map(|&(x, y)| c * y - s * x)
+        .fold(f32::INFINITY, f32::min);
 
     let bbox = rotate_bbox(line.bbox, c, s, new_left, new_top);
     let spans = line
         .spans
         .iter()
-        .map(|span| PageDictSpan { bbox: rotate_bbox(span.bbox, c, s, new_left, new_top), ..span.clone() })
+        .map(|span| PageDictSpan {
+            bbox: rotate_bbox(span.bbox, c, s, new_left, new_top),
+            ..span.clone()
+        })
         .collect();
 
-    PageDictLine { dir: (1.0, 0.0), bbox, spans }
+    PageDictLine {
+        dir: (1.0, 0.0),
+        bbox,
+        spans,
+    }
 }
 
 /// Extracts the text lines, rotates them if asked, collapses their spans, and builds the resulting
@@ -145,7 +182,10 @@ pub fn pdflines_from_pagedict(page: &PageDict, auto_rotate: bool) -> Vec<PdfLine
         .collect();
 
     let lines: Vec<PageDictLine> = if auto_rotate {
-        source_lines.iter().map(|l| rotate_line(l, page.width, page.height)).collect()
+        source_lines
+            .iter()
+            .map(|l| rotate_line(l, page.width, page.height))
+            .collect()
     } else {
         source_lines.into_iter().cloned().collect()
     };
@@ -191,7 +231,11 @@ pub fn pdfimages_from_pagedict(page: &PageDict) -> Vec<PageImage> {
             PageDictBlock::ImageRaster { bbox, ext, data } => {
                 let (x0, y0, x1, y1) = *bbox;
                 match Rectangle::build(x0, y0, x1, y1) {
-                    Ok(bbox) => Some(PageImage { bbox, ext: ext.clone(), data: data.clone() }),
+                    Ok(bbox) => Some(PageImage {
+                        bbox,
+                        ext: ext.clone(),
+                        data: data.clone(),
+                    }),
                     Err(error) => {
                         tracing::warn!(
                             coord_1 = %format!("x {x0}..{x1}"),
@@ -218,72 +262,149 @@ fn line_parse_fail(message: String) -> PageError {
 
 /// Reads `key` from `dict`, mapping both a missing key and a lookup error onto the same error
 /// constructor.
-fn dict_get<'py>(dict: &Bound<'py, PyDict>, key: &str, err: fn(String) -> PageError) -> Result<Bound<'py, PyAny>, PageError> {
+fn dict_get<'py>(
+    dict: &Bound<'py, PyDict>,
+    key: &str,
+    err: fn(String) -> PageError,
+) -> Result<Bound<'py, PyAny>, PageError> {
     dict.get_item(key)
         .map_err(|e| err(format!("could not look up '{key}': {e}")))?
         .ok_or_else(|| err(format!("missing key '{key}'")))
 }
 
-fn extract_f32(value: &Bound<'_, PyAny>, field: &str, err: fn(String) -> PageError) -> Result<f32, PageError> {
-    value.extract::<f64>().map(|v| v as f32).map_err(|_| err(format!("'{field}' is not a number")))
+fn extract_f32(
+    value: &Bound<'_, PyAny>,
+    field: &str,
+    err: fn(String) -> PageError,
+) -> Result<f32, PageError> {
+    value
+        .extract::<f64>()
+        .map(|v| v as f32)
+        .map_err(|_| err(format!("'{field}' is not a number")))
 }
 
-fn extract_string(value: &Bound<'_, PyAny>, field: &str, err: fn(String) -> PageError) -> Result<String, PageError> {
-    value.extract::<String>().map_err(|_| err(format!("'{field}' is not a string")))
+fn extract_string(
+    value: &Bound<'_, PyAny>,
+    field: &str,
+    err: fn(String) -> PageError,
+) -> Result<String, PageError> {
+    value
+        .extract::<String>()
+        .map_err(|_| err(format!("'{field}' is not a string")))
 }
 
-fn extract_bytes(value: &Bound<'_, PyAny>, field: &str, err: fn(String) -> PageError) -> Result<Vec<u8>, PageError> {
-    value.extract::<Vec<u8>>().map_err(|_| err(format!("'{field}' is not bytes")))
+fn extract_bytes(
+    value: &Bound<'_, PyAny>,
+    field: &str,
+    err: fn(String) -> PageError,
+) -> Result<Vec<u8>, PageError> {
+    value
+        .extract::<Vec<u8>>()
+        .map_err(|_| err(format!("'{field}' is not bytes")))
 }
 
-fn extract_pair(dict: &Bound<'_, PyDict>, key: &str, err: fn(String) -> PageError) -> Result<(f32, f32), PageError> {
+fn extract_pair(
+    dict: &Bound<'_, PyDict>,
+    key: &str,
+    err: fn(String) -> PageError,
+) -> Result<(f32, f32), PageError> {
     let value = dict_get(dict, key, err)?;
-    let seq: Vec<f64> = value.extract().map_err(|_| err(format!("'{key}' is not a 2-tuple of numbers")))?;
+    let seq: Vec<f64> = value
+        .extract()
+        .map_err(|_| err(format!("'{key}' is not a 2-tuple of numbers")))?;
     match seq.as_slice() {
         [a, b] => Ok((*a as f32, *b as f32)),
-        _ => Err(err(format!("'{key}' must have exactly 2 numbers, found {}", seq.len()))),
+        _ => Err(err(format!(
+            "'{key}' must have exactly 2 numbers, found {}",
+            seq.len()
+        ))),
     }
 }
 
-fn extract_quad(dict: &Bound<'_, PyDict>, key: &str, err: fn(String) -> PageError) -> Result<(f32, f32, f32, f32), PageError> {
+fn extract_quad(
+    dict: &Bound<'_, PyDict>,
+    key: &str,
+    err: fn(String) -> PageError,
+) -> Result<(f32, f32, f32, f32), PageError> {
     let value = dict_get(dict, key, err)?;
-    let seq: Vec<f64> = value.extract().map_err(|_| err(format!("'{key}' is not a 4-tuple of numbers")))?;
+    let seq: Vec<f64> = value
+        .extract()
+        .map_err(|_| err(format!("'{key}' is not a 4-tuple of numbers")))?;
     match seq.as_slice() {
         [a, b, c, d] => Ok((*a as f32, *b as f32, *c as f32, *d as f32)),
-        _ => Err(err(format!("'{key}' must have exactly 4 numbers, found {}", seq.len()))),
+        _ => Err(err(format!(
+            "'{key}' must have exactly 4 numbers, found {}",
+            seq.len()
+        ))),
     }
 }
 
 fn parse_span(span: &Bound<'_, PyAny>) -> Result<PageDictSpan, PageError> {
-    let span_dict = span.cast::<PyDict>().map_err(|_| line_parse_fail("a span entry is not a dict".to_string()))?;
-    let font = extract_string(&dict_get(span_dict, "font", line_parse_fail)?, "font", line_parse_fail)?;
-    let size = extract_f32(&dict_get(span_dict, "size", line_parse_fail)?, "size", line_parse_fail)?;
-    let text = extract_string(&dict_get(span_dict, "text", line_parse_fail)?, "text", line_parse_fail)?;
+    let span_dict = span
+        .cast::<PyDict>()
+        .map_err(|_| line_parse_fail("a span entry is not a dict".to_string()))?;
+    let font = extract_string(
+        &dict_get(span_dict, "font", line_parse_fail)?,
+        "font",
+        line_parse_fail,
+    )?;
+    let size = extract_f32(
+        &dict_get(span_dict, "size", line_parse_fail)?,
+        "size",
+        line_parse_fail,
+    )?;
+    let text = extract_string(
+        &dict_get(span_dict, "text", line_parse_fail)?,
+        "text",
+        line_parse_fail,
+    )?;
     let bbox = extract_quad(span_dict, "bbox", line_parse_fail)?;
-    Ok(PageDictSpan { font, size, text, bbox })
+    Ok(PageDictSpan {
+        font,
+        size,
+        text,
+        bbox,
+    })
 }
 
 fn parse_line(line: &Bound<'_, PyAny>) -> Result<PageDictLine, PageError> {
-    let line_dict = line.cast::<PyDict>().map_err(|_| line_parse_fail("a line entry is not a dict".to_string()))?;
+    let line_dict = line
+        .cast::<PyDict>()
+        .map_err(|_| line_parse_fail("a line entry is not a dict".to_string()))?;
     let dir = extract_pair(line_dict, "dir", line_parse_fail)?;
     let bbox = extract_quad(line_dict, "bbox", line_parse_fail)?;
     let spans_obj = dict_get(line_dict, "spans", line_parse_fail)?;
-    let spans_list = spans_obj.cast::<PyList>().map_err(|_| line_parse_fail("'spans' is not a list".to_string()))?;
-    let spans = spans_list.iter().map(|s| parse_span(&s)).collect::<Result<Vec<_>, _>>()?;
+    let spans_list = spans_obj
+        .cast::<PyList>()
+        .map_err(|_| line_parse_fail("'spans' is not a list".to_string()))?;
+    let spans = spans_list
+        .iter()
+        .map(|s| parse_span(&s))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(PageDictLine { dir, bbox, spans })
 }
 
 fn parse_block(block: &Bound<'_, PyDict>) -> Result<PageDictBlock, PageError> {
     let type_val = dict_get(block, "type", parse_fail)?;
-    let block_type: i64 = type_val.extract().map_err(|_| parse_fail("'type' is not an integer".to_string()))?;
+    let block_type: i64 = type_val
+        .extract()
+        .map_err(|_| parse_fail("'type' is not an integer".to_string()))?;
     match block_type {
         0 => {
             // A text block with no lines key is not an error: it becomes an empty text block.
-            let lines = match block.get_item("lines").map_err(|e| parse_fail(format!("could not look up 'lines': {e}")))? {
+            let lines = match block
+                .get_item("lines")
+                .map_err(|e| parse_fail(format!("could not look up 'lines': {e}")))?
+            {
                 None => Vec::new(),
                 Some(lines_obj) => {
-                    let lines_list = lines_obj.cast::<PyList>().map_err(|_| parse_fail("'lines' is not a list".to_string()))?;
-                    lines_list.iter().map(|l| parse_line(&l)).collect::<Result<Vec<_>, _>>()?
+                    let lines_list = lines_obj
+                        .cast::<PyList>()
+                        .map_err(|_| parse_fail("'lines' is not a list".to_string()))?;
+                    lines_list
+                        .iter()
+                        .map(|l| parse_line(&l))
+                        .collect::<Result<Vec<_>, _>>()?
                 }
             };
             Ok(PageDictBlock::Text { lines })
@@ -315,15 +436,23 @@ impl PageDict {
         let width = extract_f32(&dict_get(dict, "width", parse_fail)?, "width", parse_fail)?;
         let height = extract_f32(&dict_get(dict, "height", parse_fail)?, "height", parse_fail)?;
         let blocks_obj = dict_get(dict, "blocks", parse_fail)?;
-        let blocks_list = blocks_obj.cast::<PyList>().map_err(|_| parse_fail("'blocks' is not a list".to_string()))?;
+        let blocks_list = blocks_obj
+            .cast::<PyList>()
+            .map_err(|_| parse_fail("'blocks' is not a list".to_string()))?;
         let blocks = blocks_list
             .iter()
             .map(|b| {
-                let block_dict = b.cast::<PyDict>().map_err(|_| parse_fail("a block entry is not a dict".to_string()))?;
+                let block_dict = b
+                    .cast::<PyDict>()
+                    .map_err(|_| parse_fail("a block entry is not a dict".to_string()))?;
                 parse_block(block_dict)
             })
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(PageDict { width, height, blocks })
+        Ok(PageDict {
+            width,
+            height,
+            blocks,
+        })
     }
 }
 
@@ -332,7 +461,12 @@ mod tests {
     use super::*;
 
     fn span(font: &str, size: f32, text: &str, bbox: (f32, f32, f32, f32)) -> PageDictSpan {
-        PageDictSpan { font: font.to_string(), size, text: text.to_string(), bbox }
+        PageDictSpan {
+            font: font.to_string(),
+            size,
+            text: text.to_string(),
+            bbox,
+        }
     }
 
     fn line(dir: (f32, f32), bbox: (f32, f32, f32, f32), spans: Vec<PageDictSpan>) -> PageDictLine {
@@ -354,25 +488,37 @@ mod tests {
         #[test]
         fn rotates_ninety_degrees_with_no_translation() {
             let bbox = (0.0, 0.0, 10.0, 20.0);
-            assert_eq!(rotate_bbox(bbox, 0.0, 1.0, 0.0, 0.0), (0.0, -10.0, 20.0, 0.0));
+            assert_eq!(
+                rotate_bbox(bbox, 0.0, 1.0, 0.0, 0.0),
+                (0.0, -10.0, 20.0, 0.0)
+            );
         }
 
         #[test]
         fn rotates_one_hundred_eighty_degrees_with_no_translation() {
             let bbox = (0.0, 0.0, 10.0, 20.0);
-            assert_eq!(rotate_bbox(bbox, -1.0, 0.0, 0.0, 0.0), (-10.0, -20.0, 0.0, 0.0));
+            assert_eq!(
+                rotate_bbox(bbox, -1.0, 0.0, 0.0, 0.0),
+                (-10.0, -20.0, 0.0, 0.0)
+            );
         }
 
         #[test]
         fn rotates_two_hundred_seventy_degrees_with_no_translation() {
             let bbox = (0.0, 0.0, 10.0, 20.0);
-            assert_eq!(rotate_bbox(bbox, 0.0, -1.0, 0.0, 0.0), (-20.0, 0.0, 0.0, 10.0));
+            assert_eq!(
+                rotate_bbox(bbox, 0.0, -1.0, 0.0, 0.0),
+                (-20.0, 0.0, 0.0, 10.0)
+            );
         }
 
         #[test]
         fn identity_rotation_still_applies_the_translation() {
             let bbox = (0.0, 0.0, 10.0, 20.0);
-            assert_eq!(rotate_bbox(bbox, 1.0, 0.0, 5.0, 3.0), (-5.0, -3.0, 5.0, 17.0));
+            assert_eq!(
+                rotate_bbox(bbox, 1.0, 0.0, 5.0, 3.0),
+                (-5.0, -3.0, 5.0, 17.0)
+            );
         }
     }
 
@@ -422,13 +568,18 @@ mod tests {
 
         #[test]
         fn a_single_span_passes_through_unchanged() {
-            let l = line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), vec![span("Arial", 10.0, "hi", (0.0, 0.0, 10.0, 10.0))]);
+            let l = line(
+                (1.0, 0.0),
+                (0.0, 0.0, 10.0, 10.0),
+                vec![span("Arial", 10.0, "hi", (0.0, 0.0, 10.0, 10.0))],
+            );
             let out = collapse_spans_from_line(&l, 0.1);
             assert_eq!(out, vec![span("Arial", 10.0, "hi", (0.0, 0.0, 10.0, 10.0))]);
         }
 
         #[test]
-        fn collapses_same_font_spans_within_threshold_concatenating_text_averaging_size_and_using_the_lines_own_bbox() {
+        fn collapses_same_font_spans_within_threshold_concatenating_text_averaging_size_and_using_the_lines_own_bbox()
+         {
             // The line's box is deliberately different from every individual span's, to show the
             // result uses the line's box rather than the first or last span's.
             let sizes = [10.0_f32, 10.02, 10.05];
@@ -451,19 +602,33 @@ mod tests {
             }
             let expected_avg = sum / sizes.len() as f32;
 
-            assert_eq!(out, vec![span("Arial", expected_avg, "foobarbaz", (0.0, 0.0, 100.0, 10.0))]);
+            assert_eq!(
+                out,
+                vec![span(
+                    "Arial",
+                    expected_avg,
+                    "foobarbaz",
+                    (0.0, 0.0, 100.0, 10.0)
+                )]
+            );
         }
 
         #[test]
         fn does_not_collapse_spans_with_different_fonts() {
-            let spans = vec![span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)), span("Times", 10.0, "bar", (5.0, 0.0, 10.0, 10.0))];
+            let spans = vec![
+                span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)),
+                span("Times", 10.0, "bar", (5.0, 0.0, 10.0, 10.0)),
+            ];
             let l = line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), spans.clone());
             assert_eq!(collapse_spans_from_line(&l, 0.1), spans);
         }
 
         #[test]
         fn does_not_collapse_when_the_size_difference_exceeds_the_threshold() {
-            let spans = vec![span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)), span("Arial", 10.5, "bar", (5.0, 0.0, 10.0, 10.0))];
+            let spans = vec![
+                span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)),
+                span("Arial", 10.5, "bar", (5.0, 0.0, 10.0, 10.0)),
+            ];
             let l = line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), spans.clone());
             assert_eq!(collapse_spans_from_line(&l, 0.1), spans);
         }
@@ -477,16 +642,25 @@ mod tests {
             let l = line(
                 (1.0, 0.0),
                 (0.0, 0.0, 10.0, 10.0),
-                vec![span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)), span("Arial", 10.5, "bar", (5.0, 0.0, 10.0, 10.0))],
+                vec![
+                    span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)),
+                    span("Arial", 10.5, "bar", (5.0, 0.0, 10.0, 10.0)),
+                ],
             );
             let out = collapse_spans_from_line(&l, threshold);
-            assert_eq!(out, vec![span("Arial", 10.25, "foobar", (0.0, 0.0, 10.0, 10.0))]);
+            assert_eq!(
+                out,
+                vec![span("Arial", 10.25, "foobar", (0.0, 0.0, 10.0, 10.0))]
+            );
         }
 
         #[test]
         fn does_not_collapse_when_the_size_difference_is_just_over_the_threshold() {
             let threshold = 0.5_f32;
-            let spans = vec![span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)), span("Arial", 10.75, "bar", (5.0, 0.0, 10.0, 10.0))];
+            let spans = vec![
+                span("Arial", 10.0, "foo", (0.0, 0.0, 5.0, 10.0)),
+                span("Arial", 10.75, "bar", (5.0, 0.0, 10.0, 10.0)),
+            ];
             let l = line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), spans.clone());
             assert_eq!(collapse_spans_from_line(&l, threshold), spans);
         }
@@ -495,7 +669,10 @@ mod tests {
         #[test]
         fn a_line_with_no_spans_returns_an_empty_vec() {
             let l = line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), vec![]);
-            assert_eq!(collapse_spans_from_line(&l, 0.1), Vec::<PageDictSpan>::new());
+            assert_eq!(
+                collapse_spans_from_line(&l, 0.1),
+                Vec::<PageDictSpan>::new()
+            );
         }
     }
 
@@ -504,7 +681,12 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn accessors(l: &PdfLine) -> (String, f32, String, (f32, f32, f32, f32)) {
-            (l.font().inner().to_string(), *l.font_size(), l.text().clone(), l.bbox().as_tuple())
+            (
+                l.font().inner().to_string(),
+                *l.font_size(),
+                l.text().clone(),
+                l.bbox().as_tuple(),
+            )
         }
 
         #[test]
@@ -512,7 +694,14 @@ mod tests {
             let page = PageDict {
                 width: 100.0,
                 height: 100.0,
-                blocks: vec![PageDictBlock::Other, PageDictBlock::ImageRaster { bbox: (0.0, 0.0, 1.0, 1.0), ext: "png".to_string(), data: vec![] }],
+                blocks: vec![
+                    PageDictBlock::Other,
+                    PageDictBlock::ImageRaster {
+                        bbox: (0.0, 0.0, 1.0, 1.0),
+                        ext: "png".to_string(),
+                        data: vec![],
+                    },
+                ],
             };
             assert!(pdflines_from_pagedict(&page, false).is_empty());
         }
@@ -524,10 +713,18 @@ mod tests {
                 height: 100.0,
                 blocks: vec![
                     PageDictBlock::Text {
-                        lines: vec![line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), vec![span("Arial", 10.0, "first", (0.0, 0.0, 10.0, 10.0))])],
+                        lines: vec![line(
+                            (1.0, 0.0),
+                            (0.0, 0.0, 10.0, 10.0),
+                            vec![span("Arial", 10.0, "first", (0.0, 0.0, 10.0, 10.0))],
+                        )],
                     },
                     PageDictBlock::Text {
-                        lines: vec![line((1.0, 0.0), (0.0, 20.0, 10.0, 30.0), vec![span("Arial", 10.0, "second", (0.0, 20.0, 10.0, 30.0))])],
+                        lines: vec![line(
+                            (1.0, 0.0),
+                            (0.0, 20.0, 10.0, 30.0),
+                            vec![span("Arial", 10.0, "second", (0.0, 20.0, 10.0, 30.0))],
+                        )],
                     },
                 ],
             };
@@ -542,14 +739,26 @@ mod tests {
                 width: 100.0,
                 height: 200.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((0.0, 1.0), (10.0, 10.0, 20.0, 30.0), vec![span("Arial", 10.0, "rotated", (10.0, 10.0, 20.0, 30.0))])],
+                    lines: vec![line(
+                        (0.0, 1.0),
+                        (10.0, 10.0, 20.0, 30.0),
+                        vec![span("Arial", 10.0, "rotated", (10.0, 10.0, 20.0, 30.0))],
+                    )],
                 }],
             };
             let lines = pdflines_from_pagedict(&page, true);
             assert_eq!(lines.len(), 1);
             // The same formula as in the rotation tests, for a box of (10,10,20,30), a quarter turn
             // and a 100x200 page, giving an origin of (0, -100).
-            assert_eq!(accessors(&lines[0]), ("arial".to_string(), 10.0, "rotated".to_string(), (10.0, 80.0, 30.0, 90.0)));
+            assert_eq!(
+                accessors(&lines[0]),
+                (
+                    "arial".to_string(),
+                    10.0,
+                    "rotated".to_string(),
+                    (10.0, 80.0, 30.0, 90.0)
+                )
+            );
         }
 
         #[test]
@@ -558,12 +767,24 @@ mod tests {
                 width: 100.0,
                 height: 200.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((0.0, 1.0), (10.0, 10.0, 20.0, 30.0), vec![span("Arial", 10.0, "not-rotated", (10.0, 10.0, 20.0, 30.0))])],
+                    lines: vec![line(
+                        (0.0, 1.0),
+                        (10.0, 10.0, 20.0, 30.0),
+                        vec![span("Arial", 10.0, "not-rotated", (10.0, 10.0, 20.0, 30.0))],
+                    )],
                 }],
             };
             let lines = pdflines_from_pagedict(&page, false);
             assert_eq!(lines.len(), 1);
-            assert_eq!(accessors(&lines[0]), ("arial".to_string(), 10.0, "not-rotated".to_string(), (10.0, 10.0, 20.0, 30.0)));
+            assert_eq!(
+                accessors(&lines[0]),
+                (
+                    "arial".to_string(),
+                    10.0,
+                    "not-rotated".to_string(),
+                    (10.0, 10.0, 20.0, 30.0)
+                )
+            );
         }
 
         #[test]
@@ -572,7 +793,11 @@ mod tests {
                 width: 100.0,
                 height: 100.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((1.0, 0.0), (10.0, 10.0, 10.0, 30.0), vec![span("Arial", 10.0, "flat", (10.0, 10.0, 10.0, 30.0))])],
+                    lines: vec![line(
+                        (1.0, 0.0),
+                        (10.0, 10.0, 10.0, 30.0),
+                        vec![span("Arial", 10.0, "flat", (10.0, 10.0, 10.0, 30.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&page, false).is_empty());
@@ -584,7 +809,11 @@ mod tests {
                 width: 100.0,
                 height: 100.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((1.0, 0.0), (10.0, 10.0, 30.0, 10.0), vec![span("Arial", 10.0, "flat", (10.0, 10.0, 30.0, 10.0))])],
+                    lines: vec![line(
+                        (1.0, 0.0),
+                        (10.0, 10.0, 30.0, 10.0),
+                        vec![span("Arial", 10.0, "flat", (10.0, 10.0, 30.0, 10.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&page, false).is_empty());
@@ -599,7 +828,11 @@ mod tests {
                 width: 100.0,
                 height: 100.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((1.0, 0.0), (10.0, 10.0, 20.0, 20.0), vec![span("Arial", 0.0, "zero", (10.0, 10.0, 20.0, 20.0))])],
+                    lines: vec![line(
+                        (1.0, 0.0),
+                        (10.0, 10.0, 20.0, 20.0),
+                        vec![span("Arial", 0.0, "zero", (10.0, 10.0, 20.0, 20.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&page, false).is_empty());
@@ -608,7 +841,11 @@ mod tests {
                 width: 100.0,
                 height: 100.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((1.0, 0.0), (10.0, 10.0, 20.0, 20.0), vec![span("Arial", -5.0, "negative", (10.0, 10.0, 20.0, 20.0))])],
+                    lines: vec![line(
+                        (1.0, 0.0),
+                        (10.0, 10.0, 20.0, 20.0),
+                        vec![span("Arial", -5.0, "negative", (10.0, 10.0, 20.0, 20.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&negative, false).is_empty());
@@ -622,7 +859,11 @@ mod tests {
                 width: 100.0,
                 height: 100.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((1.0, 0.0), (30.0, 10.0, 10.0, 20.0), vec![span("Arial", 10.0, "inverted-x", (30.0, 10.0, 10.0, 20.0))])],
+                    lines: vec![line(
+                        (1.0, 0.0),
+                        (30.0, 10.0, 10.0, 20.0),
+                        vec![span("Arial", 10.0, "inverted-x", (30.0, 10.0, 10.0, 20.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&page, false).is_empty());
@@ -631,7 +872,11 @@ mod tests {
                 width: 100.0,
                 height: 100.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((1.0, 0.0), (10.0, 30.0, 20.0, 10.0), vec![span("Arial", 10.0, "inverted-y", (10.0, 30.0, 20.0, 10.0))])],
+                    lines: vec![line(
+                        (1.0, 0.0),
+                        (10.0, 30.0, 20.0, 10.0),
+                        vec![span("Arial", 10.0, "inverted-y", (10.0, 30.0, 20.0, 10.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&inverted_y, false).is_empty());
@@ -641,12 +886,17 @@ mod tests {
         /// an axis a quarter turn swaps with y. The test shows the discard looks at the box
         /// **after** rotation, not at the original one.
         #[test]
-        fn discards_a_line_whose_rotated_bbox_is_degenerate_even_if_the_pre_rotation_bbox_was_degenerate_on_the_other_axis() {
+        fn discards_a_line_whose_rotated_bbox_is_degenerate_even_if_the_pre_rotation_bbox_was_degenerate_on_the_other_axis()
+         {
             let page = PageDict {
                 width: 100.0,
                 height: 200.0,
                 blocks: vec![PageDictBlock::Text {
-                    lines: vec![line((0.0, 1.0), (10.0, 10.0, 10.0, 30.0), vec![span("Arial", 10.0, "flat", (10.0, 10.0, 10.0, 30.0))])],
+                    lines: vec![line(
+                        (0.0, 1.0),
+                        (10.0, 10.0, 10.0, 30.0),
+                        vec![span("Arial", 10.0, "flat", (10.0, 10.0, 10.0, 30.0))],
+                    )],
                 }],
             };
             assert!(pdflines_from_pagedict(&page, true).is_empty());
@@ -665,7 +915,11 @@ mod tests {
                 height: 10.0,
                 blocks: vec![
                     PageDictBlock::Text { lines: vec![] },
-                    PageDictBlock::ImageRaster { bbox: (1.0, 2.0, 3.0, 4.0), ext: "png".to_string(), data: vec![9, 8, 7] },
+                    PageDictBlock::ImageRaster {
+                        bbox: (1.0, 2.0, 3.0, 4.0),
+                        ext: "png".to_string(),
+                        data: vec![9, 8, 7],
+                    },
                     PageDictBlock::Other,
                 ],
             };
@@ -682,8 +936,16 @@ mod tests {
                 width: 10.0,
                 height: 10.0,
                 blocks: vec![
-                    PageDictBlock::ImageRaster { bbox: (0.0, 0.0, 1.0, 1.0), ext: "png".to_string(), data: vec![1] },
-                    PageDictBlock::ImageRaster { bbox: (2.0, 2.0, 3.0, 3.0), ext: "jpeg".to_string(), data: vec![2] },
+                    PageDictBlock::ImageRaster {
+                        bbox: (0.0, 0.0, 1.0, 1.0),
+                        ext: "png".to_string(),
+                        data: vec![1],
+                    },
+                    PageDictBlock::ImageRaster {
+                        bbox: (2.0, 2.0, 3.0, 3.0),
+                        ext: "jpeg".to_string(),
+                        data: vec![2],
+                    },
                 ],
             };
             let images = pdfimages_from_pagedict(&page);
@@ -697,15 +959,30 @@ mod tests {
             let page = PageDict {
                 width: 10.0,
                 height: 10.0,
-                blocks: vec![PageDictBlock::ImageRaster { bbox: (5.0, 6.0, 7.0, 8.0), ext: "jpeg".to_string(), data: vec![1, 2, 3, 4] }],
+                blocks: vec![PageDictBlock::ImageRaster {
+                    bbox: (5.0, 6.0, 7.0, 8.0),
+                    ext: "jpeg".to_string(),
+                    data: vec![1, 2, 3, 4],
+                }],
             };
             let images = pdfimages_from_pagedict(&page);
-            assert_eq!(images[0], PageImage { bbox: Rectangle::new(5.0, 6.0, 7.0, 8.0), ext: "jpeg".to_string(), data: vec![1, 2, 3, 4] });
+            assert_eq!(
+                images[0],
+                PageImage {
+                    bbox: Rectangle::new(5.0, 6.0, 7.0, 8.0),
+                    ext: "jpeg".to_string(),
+                    data: vec![1, 2, 3, 4]
+                }
+            );
         }
 
         #[test]
         fn no_image_blocks_yields_an_empty_vec() {
-            let page = PageDict { width: 10.0, height: 10.0, blocks: vec![PageDictBlock::Text { lines: vec![] }, PageDictBlock::Other] };
+            let page = PageDict {
+                width: 10.0,
+                height: 10.0,
+                blocks: vec![PageDictBlock::Text { lines: vec![] }, PageDictBlock::Other],
+            };
             assert!(pdfimages_from_pagedict(&page).is_empty());
         }
 
@@ -719,9 +996,16 @@ mod tests {
             let page = PageDict {
                 width: 10.0,
                 height: 10.0,
-                blocks: vec![PageDictBlock::ImageRaster { bbox, ext: "png".to_string(), data: vec![1] }],
+                blocks: vec![PageDictBlock::ImageRaster {
+                    bbox,
+                    ext: "png".to_string(),
+                    data: vec![1],
+                }],
             };
-            assert!(pdfimages_from_pagedict(&page).is_empty(), "{bbox:?} is not a rectangle");
+            assert!(
+                pdfimages_from_pagedict(&page).is_empty(),
+                "{bbox:?} is not a rectangle"
+            );
         }
 
         /// And it costs only itself: the sound images of the same page still come out, in order.
@@ -731,13 +1015,28 @@ mod tests {
                 width: 10.0,
                 height: 10.0,
                 blocks: vec![
-                    PageDictBlock::ImageRaster { bbox: (0.0, 0.0, 1.0, 1.0), ext: "png".to_string(), data: vec![1] },
-                    PageDictBlock::ImageRaster { bbox: (9.0, 0.0, 2.0, 1.0), ext: "png".to_string(), data: vec![2] },
-                    PageDictBlock::ImageRaster { bbox: (2.0, 2.0, 3.0, 3.0), ext: "jpeg".to_string(), data: vec![3] },
+                    PageDictBlock::ImageRaster {
+                        bbox: (0.0, 0.0, 1.0, 1.0),
+                        ext: "png".to_string(),
+                        data: vec![1],
+                    },
+                    PageDictBlock::ImageRaster {
+                        bbox: (9.0, 0.0, 2.0, 1.0),
+                        ext: "png".to_string(),
+                        data: vec![2],
+                    },
+                    PageDictBlock::ImageRaster {
+                        bbox: (2.0, 2.0, 3.0, 3.0),
+                        ext: "jpeg".to_string(),
+                        data: vec![3],
+                    },
                 ],
             };
             let images = pdfimages_from_pagedict(&page);
-            assert_eq!(images.iter().map(|i| i.data.clone()).collect::<Vec<_>>(), vec![vec![1], vec![3]]);
+            assert_eq!(
+                images.iter().map(|i| i.data.clone()).collect::<Vec<_>>(),
+                vec![vec![1], vec![3]]
+            );
         }
     }
 }

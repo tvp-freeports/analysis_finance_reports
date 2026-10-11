@@ -124,7 +124,10 @@ pub fn get_table_coordinates_from_lines(
     lines: &[PdfLine],
     config: &TableCoordinatesConfig,
 ) -> Result<Vec<(usize, usize)>, CoordinateExtractionError> {
-    let mut table_config = config.table_config.clone().unwrap_or(TableConfig { cols: None, rows: None });
+    let mut table_config = config.table_config.clone().unwrap_or(TableConfig {
+        cols: None,
+        rows: None,
+    });
 
     let cells: Vec<CellGeometry> = lines
         .iter()
@@ -139,8 +142,11 @@ pub fn get_table_coordinates_from_lines(
 
     let coords = coordinates::get_table_coordinates(&cells, config.algorithm_flags, &table_config)?;
 
-    let collapse_cols: Vec<usize> =
-        config.company_col.into_iter().chain(config.collapse_cols.iter().copied()).collect();
+    let collapse_cols: Vec<usize> = config
+        .company_col
+        .into_iter()
+        .chain(config.collapse_cols.iter().copied())
+        .collect();
     if table_config.cols.is_none()
         && !collapse_cols.is_empty()
         && let Some(max_col) = coords.iter().map(|(_, col)| *col).max()
@@ -200,8 +206,16 @@ pub fn get_table_coordinates_from_lines(
     } else {
         coords
     };
-    let rows = coords.iter().map(|(row, _)| *row).max().map_or(0, |m| m + 1);
-    let cols = coords.iter().map(|(_, col)| *col).max().map_or(0, |m| m + 1);
+    let rows = coords
+        .iter()
+        .map(|(row, _)| *row)
+        .max()
+        .map_or(0, |m| m + 1);
+    let cols = coords
+        .iter()
+        .map(|(_, col)| *col)
+        .max()
+        .map_or(0, |m| m + 1);
     tracing::debug!(rows, cols, cells = coords.len(), "table tabularized");
     Ok(coords)
 }
@@ -256,7 +270,11 @@ mod tests {
         #[test]
         fn a_zero_tolerance_resolves_to_zero_in_every_unit() {
             let l = line("x", (0.0, 0.0, 40.0, 10.0), 12.0);
-            for unit in [TablePosMeasureUnit::Pt, TablePosMeasureUnit::Perc, TablePosMeasureUnit::Em] {
+            for unit in [
+                TablePosMeasureUnit::Pt,
+                TablePosMeasureUnit::Perc,
+                TablePosMeasureUnit::Em,
+            ] {
                 assert_eq!(unit.resolve(0.0, &l), 0.0, "unit {unit:?}");
             }
         }
@@ -270,7 +288,10 @@ mod tests {
             let cfg = TableCoordinatesConfig::default();
             assert!(cfg.table_config.is_none());
             assert!(cfg.algorithm_flags.is_empty());
-            assert!(matches!(cfg.collapse_algorithm, CollapseAlgorithm::Geometry));
+            assert!(matches!(
+                cfg.collapse_algorithm,
+                CollapseAlgorithm::Geometry
+            ));
             assert_eq!(cfg.col_tolerance, 0.0);
             assert_eq!(cfg.row_tolerance, 0.0);
             assert_eq!(cfg.tolerance_unit, TablePosMeasureUnit::Em);
@@ -284,28 +305,40 @@ mod tests {
 
         #[test]
         fn assigns_row_and_column_indexes_to_a_regular_table() {
-            let coords = get_table_coordinates_from_lines(&two_by_two(), &TableCoordinatesConfig::default()).unwrap();
+            let coords =
+                get_table_coordinates_from_lines(&two_by_two(), &TableCoordinatesConfig::default())
+                    .unwrap();
             assert_eq!(coords, vec![(0, 0), (0, 1), (1, 0), (1, 1)]);
         }
 
         #[test]
         fn returns_one_coordinate_pair_per_input_line() {
             let lines = two_by_two();
-            let coords = get_table_coordinates_from_lines(&lines, &TableCoordinatesConfig::default()).unwrap();
+            let coords =
+                get_table_coordinates_from_lines(&lines, &TableCoordinatesConfig::default())
+                    .unwrap();
             assert_eq!(coords.len(), lines.len());
         }
 
         #[test]
         fn accepts_an_empty_list_of_lines() {
-            let coords = get_table_coordinates_from_lines(&[], &TableCoordinatesConfig::default()).unwrap();
+            let coords =
+                get_table_coordinates_from_lines(&[], &TableCoordinatesConfig::default()).unwrap();
             assert!(coords.is_empty());
         }
 
         #[test]
         fn accepts_a_single_line_where_the_reference_would_raise() {
             // A single column must not be a failure case.
-            let cfg = TableCoordinatesConfig { company_col: Some(0), ..Default::default() };
-            let coords = get_table_coordinates_from_lines(&[line("only", (0.0, 0.0, 10.0, 10.0), 10.0)], &cfg).unwrap();
+            let cfg = TableCoordinatesConfig {
+                company_col: Some(0),
+                ..Default::default()
+            };
+            let coords = get_table_coordinates_from_lines(
+                &[line("only", (0.0, 0.0, 10.0, 10.0), 10.0)],
+                &cfg,
+            )
+            .unwrap();
             assert_eq!(coords, vec![(0, 0)]);
         }
 
@@ -313,7 +346,14 @@ mod tests {
         fn an_explicit_table_config_is_forwarded_to_the_positioning_algorithm() {
             let cfg = TableCoordinatesConfig {
                 table_config: Some(TableConfig {
-                    cols: Some(vec![ColumnConfig { limits: None, splitting: None, nullable: None }; 3]),
+                    cols: Some(vec![
+                        ColumnConfig {
+                            limits: None,
+                            splitting: None,
+                            nullable: None
+                        };
+                        3
+                    ]),
                     rows: None,
                 }),
                 ..Default::default()
@@ -321,24 +361,36 @@ mod tests {
             // Three columns declared against two actually present: the error comes from
             // `coordinates`.
             let err = get_table_coordinates_from_lines(&two_by_two(), &cfg).unwrap_err();
-            assert!(matches!(err, CoordinateExtractionError::MismatchColumnNumber(3, 2)));
+            assert!(matches!(
+                err,
+                CoordinateExtractionError::MismatchColumnNumber(3, 2)
+            ));
         }
 
         #[test]
         fn a_row_mismatch_in_the_explicit_config_is_reported_as_such() {
             let cfg = TableCoordinatesConfig {
-                table_config: Some(TableConfig { cols: None, rows: Some(vec![RowConfig { limits: None }; 5]) }),
+                table_config: Some(TableConfig {
+                    cols: None,
+                    rows: Some(vec![RowConfig { limits: None }; 5]),
+                }),
                 ..Default::default()
             };
             let err = get_table_coordinates_from_lines(&two_by_two(), &cfg).unwrap_err();
-            assert!(matches!(err, CoordinateExtractionError::MismatchRowNumber(5, 2)));
+            assert!(matches!(
+                err,
+                CoordinateExtractionError::MismatchRowNumber(5, 2)
+            ));
         }
 
         #[test]
         fn the_algorithm_flags_reach_the_positioning_algorithm() {
             // `BigCellRule` changes which cell acts as the ruler: on a regular table the result is
             // unchanged, but the call must not fail.
-            let cfg = TableCoordinatesConfig { algorithm_flags: TablePosAlgorithm::BigCellRule, ..Default::default() };
+            let cfg = TableCoordinatesConfig {
+                algorithm_flags: TablePosAlgorithm::BigCellRule,
+                ..Default::default()
+            };
             let coords = get_table_coordinates_from_lines(&two_by_two(), &cfg).unwrap();
             assert_eq!(coords.len(), 4);
         }
@@ -350,18 +402,29 @@ mod tests {
         /// Two nearly aligned cells: without tolerance they are two columns, with a large enough
         /// tolerance they become one.
         fn nearly_aligned() -> Vec<PdfLine> {
-            vec![line("a", (0.0, 0.0, 10.0, 10.0), 10.0), line("b", (11.0, 20.0, 21.0, 30.0), 10.0)]
+            vec![
+                line("a", (0.0, 0.0, 10.0, 10.0), 10.0),
+                line("b", (11.0, 20.0, 21.0, 30.0), 10.0),
+            ]
         }
 
         #[test]
         fn no_tolerance_keeps_nearly_aligned_cells_in_distinct_columns() {
-            let coords = get_table_coordinates_from_lines(&nearly_aligned(), &TableCoordinatesConfig::default()).unwrap();
+            let coords = get_table_coordinates_from_lines(
+                &nearly_aligned(),
+                &TableCoordinatesConfig::default(),
+            )
+            .unwrap();
             assert_ne!(coords[0].1, coords[1].1);
         }
 
         #[test]
         fn a_large_pt_tolerance_merges_nearly_aligned_cells_into_one_column() {
-            let cfg = TableCoordinatesConfig { col_tolerance: 20.0, tolerance_unit: TablePosMeasureUnit::Pt, ..Default::default() };
+            let cfg = TableCoordinatesConfig {
+                col_tolerance: 20.0,
+                tolerance_unit: TablePosMeasureUnit::Pt,
+                ..Default::default()
+            };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
         }
@@ -369,7 +432,11 @@ mod tests {
         #[test]
         fn the_same_tolerance_expressed_in_em_depends_on_the_font_size() {
             // 2 em at size 10 is 20 pt: the same effect as the test in points above.
-            let cfg = TableCoordinatesConfig { col_tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Em, ..Default::default() };
+            let cfg = TableCoordinatesConfig {
+                col_tolerance: 2.0,
+                tolerance_unit: TablePosMeasureUnit::Em,
+                ..Default::default()
+            };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
         }
@@ -377,7 +444,11 @@ mod tests {
         #[test]
         fn the_same_tolerance_expressed_in_perc_depends_on_the_line_width() {
             // Twice the width (10 pt) is 20 pt.
-            let cfg = TableCoordinatesConfig { col_tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Perc, ..Default::default() };
+            let cfg = TableCoordinatesConfig {
+                col_tolerance: 2.0,
+                tolerance_unit: TablePosMeasureUnit::Perc,
+                ..Default::default()
+            };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
         }
@@ -398,14 +469,26 @@ mod tests {
 
         #[test]
         fn without_collapse_the_coordinates_are_untouched_by_company_col() {
-            let plain = get_table_coordinates_from_lines(&ragged(), &TableCoordinatesConfig::default()).unwrap();
-            let cfg = TableCoordinatesConfig { company_col: Some(0), ..Default::default() };
-            assert_eq!(get_table_coordinates_from_lines(&ragged(), &cfg).unwrap(), plain);
+            let plain =
+                get_table_coordinates_from_lines(&ragged(), &TableCoordinatesConfig::default())
+                    .unwrap();
+            let cfg = TableCoordinatesConfig {
+                company_col: Some(0),
+                ..Default::default()
+            };
+            assert_eq!(
+                get_table_coordinates_from_lines(&ragged(), &cfg).unwrap(),
+                plain
+            );
         }
 
         #[test]
         fn an_out_of_range_company_col_is_ignored_instead_of_panicking() {
-            let cfg = TableCoordinatesConfig { company_col: Some(99), collapse: true, ..Default::default() };
+            let cfg = TableCoordinatesConfig {
+                company_col: Some(99),
+                collapse: true,
+                ..Default::default()
+            };
             assert!(get_table_coordinates_from_lines(&ragged(), &cfg).is_ok());
         }
 
@@ -424,19 +507,39 @@ mod tests {
             // Without `company_col` every column may split and the extra line collapses; with
             // `company_col: Some(0)` column 1 becomes `Disallow` and stays where it is.
             let lines = ragged_on_the_second_column();
-            let without = TableCoordinatesConfig { collapse: true, ..Default::default() };
-            let with_company = TableCoordinatesConfig { company_col: Some(0), collapse: true, ..Default::default() };
+            let without = TableCoordinatesConfig {
+                collapse: true,
+                ..Default::default()
+            };
+            let with_company = TableCoordinatesConfig {
+                company_col: Some(0),
+                collapse: true,
+                ..Default::default()
+            };
             let collapsed = get_table_coordinates_from_lines(&lines, &without).unwrap();
             let pinned = get_table_coordinates_from_lines(&lines, &with_company).unwrap();
-            assert_eq!(collapsed[2].0, collapsed[0].0, "senza company_col la riga in più collassa");
-            assert_ne!(pinned[2].0, pinned[0].0, "con company_col la colonna 1 non può collassare");
+            assert_eq!(
+                collapsed[2].0, collapsed[0].0,
+                "senza company_col la riga in più collassa"
+            );
+            assert_ne!(
+                pinned[2].0, pinned[0].0,
+                "con company_col la colonna 1 non può collassare"
+            );
         }
 
         #[test]
         fn an_explicit_cols_config_disables_the_company_col_branch() {
             // `table_config.cols` already set: it is not overwritten.
             let explicit = TableConfig {
-                cols: Some(vec![ColumnConfig { limits: None, splitting: Some(SplittingState::Disallow), nullable: None }; 2]),
+                cols: Some(vec![
+                    ColumnConfig {
+                        limits: None,
+                        splitting: Some(SplittingState::Disallow),
+                        nullable: None
+                    };
+                    2
+                ]),
                 rows: None,
             };
             let cfg = TableCoordinatesConfig {
@@ -445,8 +548,11 @@ mod tests {
                 collapse: true,
                 ..Default::default()
             };
-            let cfg_no_company =
-                TableCoordinatesConfig { table_config: Some(explicit), collapse: true, ..Default::default() };
+            let cfg_no_company = TableCoordinatesConfig {
+                table_config: Some(explicit),
+                collapse: true,
+                ..Default::default()
+            };
             assert_eq!(
                 get_table_coordinates_from_lines(&ragged(), &cfg).unwrap(),
                 get_table_coordinates_from_lines(&ragged(), &cfg_no_company).unwrap()
@@ -467,13 +573,22 @@ mod tests {
 
         #[test]
         fn collapse_false_returns_the_raw_coordinates() {
-            let cfg = TableCoordinatesConfig { collapse: false, ..Default::default() };
-            assert_eq!(get_table_coordinates_from_lines(&ragged(), &cfg).unwrap(), vec![(0, 0), (0, 1), (1, 0)]);
+            let cfg = TableCoordinatesConfig {
+                collapse: false,
+                ..Default::default()
+            };
+            assert_eq!(
+                get_table_coordinates_from_lines(&ragged(), &cfg).unwrap(),
+                vec![(0, 0), (0, 1), (1, 0)]
+            );
         }
 
         #[test]
         fn collapse_true_merges_the_incomplete_row_into_the_previous_one() {
-            let cfg = TableCoordinatesConfig { collapse: true, ..Default::default() };
+            let cfg = TableCoordinatesConfig {
+                collapse: true,
+                ..Default::default()
+            };
             let coords = get_table_coordinates_from_lines(&ragged(), &cfg).unwrap();
             assert_eq!(coords[2].0, coords[0].0);
         }
@@ -486,16 +601,31 @@ mod tests {
                 CollapseAlgorithm::GeometryThenPattern,
                 CollapseAlgorithm::PatternThenGeometry,
             ] {
-                let cfg = TableCoordinatesConfig { collapse: true, collapse_algorithm: algorithm, ..Default::default() };
-                assert!(get_table_coordinates_from_lines(&ragged(), &cfg).is_ok(), "algorithm {algorithm:?}");
+                let cfg = TableCoordinatesConfig {
+                    collapse: true,
+                    collapse_algorithm: algorithm,
+                    ..Default::default()
+                };
+                assert!(
+                    get_table_coordinates_from_lines(&ragged(), &cfg).is_ok(),
+                    "algorithm {algorithm:?}"
+                );
             }
         }
 
         #[test]
         fn collapsing_never_changes_how_many_coordinates_come_back() {
             let lines = ragged();
-            let cfg = TableCoordinatesConfig { collapse: true, ..Default::default() };
-            assert_eq!(get_table_coordinates_from_lines(&lines, &cfg).unwrap().len(), lines.len());
+            let cfg = TableCoordinatesConfig {
+                collapse: true,
+                ..Default::default()
+            };
+            assert_eq!(
+                get_table_coordinates_from_lines(&lines, &cfg)
+                    .unwrap()
+                    .len(),
+                lines.len()
+            );
         }
 
         #[test]

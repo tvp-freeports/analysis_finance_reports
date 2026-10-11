@@ -67,8 +67,20 @@ pub struct GroupedLinesArgs {
 }
 
 impl GroupedLinesArgs {
-    pub fn new(selection: PdfLineSelection, block_type: BlockType, name: impl Into<String>, gap: f32) -> Self {
-        Self { selection, block_type, name: name.into(), gap, join: None, take: GroupedTake::All }
+    pub fn new(
+        selection: PdfLineSelection,
+        block_type: BlockType,
+        name: impl Into<String>,
+        gap: f32,
+    ) -> Self {
+        Self {
+            selection,
+            block_type,
+            name: name.into(),
+            gap,
+            join: None,
+            take: GroupedTake::All,
+        }
     }
 }
 
@@ -88,7 +100,11 @@ impl PdfExtractGroupedLinesStandard {
     /// The selected lines, in reading order, with the group each one belongs to.
     fn grouped<'a>(&self, page: &'a Page) -> Vec<(i64, &'a PdfLine)> {
         let set = self.args.selection.clone().contextualize(&page.lines);
-        let mut lines: Vec<&PdfLine> = page.lines.iter().filter(|line| set.contains(line)).collect();
+        let mut lines: Vec<&PdfLine> = page
+            .lines
+            .iter()
+            .filter(|line| set.contains(line))
+            .collect();
         lines.sort_by(|a, b| {
             let (ax0, ay0, ..) = a.bbox().as_tuple();
             let (bx0, by0, ..) = b.bbox().as_tuple();
@@ -140,9 +156,7 @@ impl PdfExtractPipe for PdfExtractGroupedLinesStandard {
         };
         Ok(groups
             .into_iter()
-            .map(|(_, lines)| {
-                PdfBlock::bare(self.args.block_type.clone(), lines.join(separator))
-            })
+            .map(|(_, lines)| PdfBlock::bare(self.args.block_type.clone(), lines.join(separator)))
             .collect())
     }
 }
@@ -180,7 +194,9 @@ mod tests {
     }
 
     fn run(args: GroupedLinesArgs, page: &Page) -> Vec<PdfBlock> {
-        PdfExtractGroupedLinesStandard::new(args).extract(page).expect("the pipe reads the page")
+        PdfExtractGroupedLinesStandard::new(args)
+            .extract(page)
+            .expect("the pipe reads the page")
     }
 
     mod one_block_per_line {
@@ -194,7 +210,11 @@ mod tests {
                 .iter()
                 .map(|b| b.metadata[GROUP_KEY].as_int().expect("a group is a number"))
                 .collect();
-            assert_eq!(groups, [0, 0, 0, 1], "three lines of the first entry, then the second");
+            assert_eq!(
+                groups,
+                [0, 0, 0, 1],
+                "three lines of the first entry, then the second"
+            );
         }
 
         #[test]
@@ -230,7 +250,10 @@ mod tests {
                 Some("Pictet Asset Management (the Investment Manager of the CoRe Series Fund)")
             );
             assert_eq!(blocks[1].content.as_str(), Some("Candriam"));
-            assert!(blocks[0].metadata.is_empty(), "a joined group is one datum, not an entry number");
+            assert!(
+                blocks[0].metadata.is_empty(),
+                "a joined group is one datum, not an entry number"
+            );
         }
 
         #[test]
@@ -238,7 +261,13 @@ mod tests {
             let mut args = args(20.0);
             args.join = Some(String::new());
             let blocks = run(args, &two_entries());
-            assert!(blocks[0].content.as_str().expect("text").starts_with("Pictet Asset Management(the"));
+            assert!(
+                blocks[0]
+                    .content
+                    .as_str()
+                    .expect("text")
+                    .starts_with("Pictet Asset Management(the")
+            );
         }
 
         /// KAIROS-EN23: the first group is the datum and what follows it is prose.
@@ -249,7 +278,10 @@ mod tests {
             args.take = GroupedTake::First;
             let blocks = run(args, &two_entries());
             assert_eq!(blocks.len(), 1);
-            assert_eq!(blocks[0].content.as_str(), Some("Pictet Asset Management (the Investment Manager of the CoRe Series Fund)"));
+            assert_eq!(
+                blocks[0].content.as_str(),
+                Some("Pictet Asset Management (the Investment Manager of the CoRe Series Fund)")
+            );
         }
     }
 
@@ -260,7 +292,12 @@ mod tests {
         /// grouping function refuses an empty list, and the pipe answers with no blocks.
         #[test]
         fn no_selected_line_is_no_block_and_no_error() {
-            let empty = page(vec![PdfLine::new("times", 11.0, "another family", (0.0, 0.0, 10.0, 10.0))]);
+            let empty = page(vec![PdfLine::new(
+                "times",
+                11.0,
+                "another family",
+                (0.0, 0.0, 10.0, 10.0),
+            )]);
             assert!(run(args(20.0), &empty).is_empty());
         }
     }
@@ -274,7 +311,10 @@ mod tests {
         /// in reading order still gets the right groups.
         #[test]
         fn lines_are_sorted_before_they_are_grouped() {
-            let shuffled = page(vec![line("second entry", 180.0), line("first entry", 100.0)]);
+            let shuffled = page(vec![
+                line("second entry", 180.0),
+                line("first entry", 100.0),
+            ]);
             let blocks = run(args(20.0), &shuffled);
             assert_eq!(blocks[0].content.as_str(), Some("first entry"));
             assert_eq!(blocks[0].metadata[GROUP_KEY].as_int(), Some(0));

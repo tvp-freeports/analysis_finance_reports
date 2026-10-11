@@ -79,14 +79,19 @@ impl<'de> Deserialize<'de> for InputSelection {
             type Value = InputSelection;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a line selection: a mapping of criteria, or a compact expression in quotes")
+                formatter.write_str(
+                    "a line selection: a mapping of criteria, or a compact expression in quotes",
+                )
             }
 
             fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
                 Ok(InputSelection::Compact(value.to_string()))
             }
 
-            fn visit_map<M: serde::de::MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
+            fn visit_map<M: serde::de::MapAccess<'de>>(
+                self,
+                map: M,
+            ) -> Result<Self::Value, M::Error> {
                 InputPdfLineSet::deserialize(MapAccessDeserializer::new(map))
                     .map(|spec| InputSelection::Structured(Box::new(spec)))
             }
@@ -102,7 +107,10 @@ impl InputSelection {
         match self {
             InputSelection::Compact(cell) => {
                 if !is_pdfline_selection(cell) {
-                    return Err(SelectionConfigError::NotASelection { field, cell: cell.clone() });
+                    return Err(SelectionConfigError::NotASelection {
+                        field,
+                        cell: cell.clone(),
+                    });
                 }
                 pdfline_selection_from_str(cell)
                     .map_err(|source| SelectionConfigError::Malformed { field, source })
@@ -158,8 +166,16 @@ mod tests {
                 .build("value")
                 .err()
                 .expect("a side written zero is not a side left open");
-            assert!(matches!(error, SelectionConfigError::Malformed { field: "value", .. }), "{error}");
-            selection("'((:370)(:))'").build("value").expect("the same area, with the side left open");
+            assert!(
+                matches!(
+                    error,
+                    SelectionConfigError::Malformed { field: "value", .. }
+                ),
+                "{error}"
+            );
+            selection("'((:370)(:))'")
+                .build("value")
+                .expect("the same area, with the side left open");
         }
 
         #[test]
@@ -168,7 +184,13 @@ mod tests {
                 .build("label")
                 .err()
                 .expect("a bare anchor is a font name, and a font nobody has selects nothing");
-            assert!(matches!(error, SelectionConfigError::NotASelection { field: "label", .. }), "{error}");
+            assert!(
+                matches!(
+                    error,
+                    SelectionConfigError::NotASelection { field: "label", .. }
+                ),
+                "{error}"
+            );
         }
     }
 
@@ -219,7 +241,10 @@ mod tests {
                 .build("body")
                 .err()
                 .expect("an inverted interval is refused rather than swapped");
-            assert!(matches!(error, SelectionConfigError::Malformed { field: "body", .. }), "{error}");
+            assert!(
+                matches!(error, SelectionConfigError::Malformed { field: "body", .. }),
+                "{error}"
+            );
         }
     }
 }

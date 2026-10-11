@@ -44,7 +44,11 @@ pub enum OutputClassError {
     },
     /// A numeric field is outside its admissible domain.
     #[error("field '{field}': {constraint}, got {value}")]
-    OutOfRange { field: &'static str, constraint: FloatConstraint, value: String },
+    OutOfRange {
+        field: &'static str,
+        constraint: FloatConstraint,
+        value: String,
+    },
     /// The accounting equation of [`fund_assets::FundAssets`] does not balance, beyond a small
     /// tolerance.
     ///
@@ -128,17 +132,27 @@ impl FloatConstraint {
             FloatConstraint::UnitIntervalHalfOpen => (0.0..1.0).contains(&value),
         };
         if !ok {
-            return Err(OutputClassError::OutOfRange { field, constraint: self, value: value.to_string() });
+            return Err(OutputClassError::OutOfRange {
+                field,
+                constraint: self,
+                value: value.to_string(),
+            });
         }
         // `coord_ref_2` rather than a free field: it is the `.log.csv` column that says *which*
         // field a row is about, and the enclosing span already carries the page and the company,
         // which is what makes the value findable in the report.
         match self.edge_of(value) {
             Some(Edge::Upper) => {
-                tracing::warn!(coord_ref_2 = field, "{value} sits on the upper edge of the admissible range - kept")
+                tracing::warn!(
+                    coord_ref_2 = field,
+                    "{value} sits on the upper edge of the admissible range - kept"
+                )
             }
             Some(Edge::Lower) => {
-                tracing::debug!(coord_ref_2 = field, "{value} sits on the lower edge of the admissible range - kept")
+                tracing::debug!(
+                    coord_ref_2 = field,
+                    "{value} sits on the lower edge of the admissible range - kept"
+                )
             }
             None => {}
         }
@@ -150,7 +164,11 @@ impl FloatConstraint {
     fn edge_of(self, value: f64) -> Option<Edge> {
         match self {
             FloatConstraint::Positive => None,
-            FloatConstraint::NonNegative | FloatConstraint::UnitIntervalHalfOpen if value == 0.0 => Some(Edge::Lower),
+            FloatConstraint::NonNegative | FloatConstraint::UnitIntervalHalfOpen
+                if value == 0.0 =>
+            {
+                Some(Edge::Lower)
+            }
             FloatConstraint::NonNegative | FloatConstraint::UnitIntervalHalfOpen => None,
             FloatConstraint::UnitIntervalClosed if value == 0.0 => Some(Edge::Lower),
             FloatConstraint::UnitIntervalClosed if value == 1.0 => Some(Edge::Upper),
@@ -171,7 +189,9 @@ pub(crate) fn promised_from_value<T>(
 ) -> Result<Promised<T>, OutputClassError> {
     match value {
         BlockValue::Promise(promise) => Ok(Promised::Pending(promise.clone())),
-        other => extract(other).map(Promised::Resolved).map_err(|source| OutputClassError::Field { field, source }),
+        other => extract(other)
+            .map(Promised::Resolved)
+            .map_err(|source| OutputClassError::Field { field, source }),
     }
 }
 
@@ -188,6 +208,9 @@ pub(crate) fn optional_promised_from_value<T>(
 }
 
 /// The pending promise of a field, if there is one: a helper for the promisable implementations.
-pub(crate) fn pending_of<T>(field: &'static str, value: &Promised<T>) -> Option<(&'static str, Promise)> {
+pub(crate) fn pending_of<T>(
+    field: &'static str,
+    value: &Promised<T>,
+) -> Option<(&'static str, Promise)> {
     value.pending().map(|promise| (field, promise.clone()))
 }

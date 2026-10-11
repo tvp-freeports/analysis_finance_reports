@@ -62,7 +62,10 @@ struct KeepType {
 
 impl KeepType {
     fn pipe(name: &str, wanted: BlockType) -> Arc<dyn TextFilterPipe> {
-        Arc::new(KeepType { name: name.to_string(), wanted })
+        Arc::new(KeepType {
+            name: name.to_string(),
+            wanted,
+        })
     }
 }
 
@@ -104,7 +107,11 @@ impl TextFilterPipe for FirstBlockOnly {
         let first = blocks
             .first()
             .ok_or_else(|| PipeError::extraction("first-block-only", "page has no blocks"))?;
-        Ok(vec![TextBlock::new(BlockType::PAGE_CLASS, BTreeMap::new(), first.clone())])
+        Ok(vec![TextBlock::new(
+            BlockType::PAGE_CLASS,
+            BTreeMap::new(),
+            first.clone(),
+        )])
     }
 }
 
@@ -178,7 +185,10 @@ impl DeserializePipe for ExplodeOnBoom {
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
         let content = block.content.as_str().unwrap_or_default();
         if content.contains("boom") {
-            return Err(PipeError::extraction("explode-on-boom", format!("cannot read `{content}`")));
+            return Err(PipeError::extraction(
+                "explode-on-boom",
+                format!("cannot read `{content}`"),
+            ));
         }
         let mut entries = PromiseEntries::new();
         entries.push("fund_name", block.content.clone());
@@ -201,7 +211,10 @@ impl DeserializePipe for PanicOnBoom {
 
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
         let content = block.content.as_str().unwrap_or_default();
-        assert!(!content.contains("boom"), "left side of a rectangle can't be bigger than right one");
+        assert!(
+            !content.contains("boom"),
+            "left side of a rectangle can't be bigger than right one"
+        );
         let mut entries = PromiseEntries::new();
         entries.push("fund_name", block.content.clone());
         Ok(vec![Extracted::Promises(entries)])
@@ -310,8 +323,14 @@ fn algorithm_with(
             ["investments"].into_iter().collect::<ScheduleStep>(),
         ]),
         BTreeMap::from([
-            (PageClass::new("fund_info"), vec![PipelineName::new("fund_info")]),
-            (PageClass::new("investments"), vec![PipelineName::new("investments")]),
+            (
+                PageClass::new("fund_info"),
+                vec![PipelineName::new("fund_info")],
+            ),
+            (
+                PageClass::new("investments"),
+                vec![PipelineName::new("investments")],
+            ),
         ]),
     )
     .expect("fixture is a consistent configuration")
@@ -339,7 +358,9 @@ mod single_document {
     #[test]
     fn the_whole_engine_runs_from_pages_to_per_page_results() {
         let algorithm = algorithm(KeepType::pipe("keep-rows", BlockType::TABLE_BODY));
-        let outcome = algorithm.apply(&document("report-2023", "Alpha Fund"), &[]).unwrap();
+        let outcome = algorithm
+            .apply(&document("report-2023", "Alpha Fund"), &[])
+            .unwrap();
 
         assert_eq!(outcome.id.as_str(), "report-2023");
         assert_eq!(outcome.format.as_str(), "TESTFMT-EN24");
@@ -355,10 +376,15 @@ mod single_document {
     #[test]
     fn each_page_is_classified_before_being_scheduled() {
         let algorithm = algorithm(KeepType::pipe("keep-rows", BlockType::TABLE_BODY));
-        let classes = algorithm.classify_pages(&document("d", "Alpha Fund")).unwrap();
+        let classes = algorithm
+            .classify_pages(&document("d", "Alpha Fund"))
+            .unwrap();
         assert_eq!(
             classes,
-            vec![Some(PageClass::new("fund_info")), Some(PageClass::new("investments"))]
+            vec![
+                Some(PageClass::new("fund_info")),
+                Some(PageClass::new("investments"))
+            ]
         );
     }
 
@@ -384,7 +410,12 @@ mod single_document {
         let flattened = promises.flatten().unwrap();
         assert_eq!(
             flattened.get("fund_name"),
-            Some(&[BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")][..])
+            Some(
+                &[
+                    BlockValue::from("Alpha Fund"),
+                    BlockValue::from("Acme Corp")
+                ][..]
+            )
         );
         // Promessa normale: vince l'ultima pagina. Promessa multiple: entrambe.
         assert_eq!(
@@ -393,7 +424,10 @@ mod single_document {
         );
         assert_eq!(
             flattened.fulfill(&Promise::new("fund_name[]")).unwrap(),
-            BlockValue::List(vec![BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")])
+            BlockValue::List(vec![
+                BlockValue::from("Alpha Fund"),
+                BlockValue::from("Acme Corp")
+            ])
         );
     }
 
@@ -427,21 +461,31 @@ mod page_containment {
     }
 
     fn exploding_algorithm() -> Algorithm {
-        algorithm_with(KeepType::pipe("keep-rows", BlockType::TABLE_BODY), Arc::new(ExplodeOnBoom))
+        algorithm_with(
+            KeepType::pipe("keep-rows", BlockType::TABLE_BODY),
+            Arc::new(ExplodeOnBoom),
+        )
     }
 
     #[test]
     fn the_pages_that_can_be_read_are_read() {
-        let outcome = exploding_algorithm().apply(&document_with_a_doomed_page(), &[]).unwrap();
+        let outcome = exploding_algorithm()
+            .apply(&document_with_a_doomed_page(), &[])
+            .unwrap();
 
-        let per_page: Vec<(u32, usize)> =
-            outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+        let per_page: Vec<(u32, usize)> = outcome
+            .pages
+            .iter()
+            .map(|p| (p.page, p.results.len()))
+            .collect();
         assert_eq!(per_page, vec![(1, 1), (2, 1), (3, 0)]);
     }
 
     #[test]
     fn what_the_good_pages_promised_still_resolves() {
-        let outcome = exploding_algorithm().apply(&document_with_a_doomed_page(), &[]).unwrap();
+        let outcome = exploding_algorithm()
+            .apply(&document_with_a_doomed_page(), &[])
+            .unwrap();
 
         let mut promises = PromiseMap::new();
         for page in &outcome.pages {
@@ -454,14 +498,22 @@ mod page_containment {
         let flattened = promises.flatten().unwrap();
         assert_eq!(
             flattened.get("fund_name"),
-            Some(&[BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")][..])
+            Some(
+                &[
+                    BlockValue::from("Alpha Fund"),
+                    BlockValue::from("Acme Corp")
+                ][..]
+            )
         );
     }
 
     #[test]
     fn a_broken_page_of_one_document_does_not_touch_the_other_documents() {
         let algorithm = exploding_algorithm();
-        let documents = [document_with_a_doomed_page(), document("clean", "Beta Fund")];
+        let documents = [
+            document_with_a_doomed_page(),
+            document("clean", "Beta Fund"),
+        ];
         let outcomes = algorithm.apply_multidocument(&documents, &[]).unwrap();
 
         assert_eq!(outcomes.len(), 2);
@@ -472,7 +524,10 @@ mod page_containment {
     /// E' la categoria di fallimento che nessun `Result` puo' portare, ed e' quella che faceva
     /// morire l'intera corsa: qui il documento arriva in fondo, e le pagine sane producono.
     fn panicking_algorithm() -> Algorithm {
-        algorithm_with(KeepType::pipe("keep-rows", BlockType::TABLE_BODY), Arc::new(PanicOnBoom))
+        algorithm_with(
+            KeepType::pipe("keep-rows", BlockType::TABLE_BODY),
+            Arc::new(PanicOnBoom),
+        )
     }
 
     #[test]
@@ -481,8 +536,11 @@ mod page_containment {
             .apply(&document_with_a_doomed_page(), &[])
             .expect("un panico di pagina non deve raggiungere il job");
 
-        let per_page: Vec<(u32, usize)> =
-            outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+        let per_page: Vec<(u32, usize)> = outcome
+            .pages
+            .iter()
+            .map(|p| (p.page, p.results.len()))
+            .collect();
         assert_eq!(per_page, vec![(1, 1), (2, 1), (3, 0)]);
     }
 
@@ -490,7 +548,9 @@ mod page_containment {
     /// nemmeno la mappa delle promesse, che e' globale e vive oltre la pagina.
     #[test]
     fn what_the_pages_promised_before_the_panic_still_resolves() {
-        let outcome = panicking_algorithm().apply(&document_with_a_doomed_page(), &[]).unwrap();
+        let outcome = panicking_algorithm()
+            .apply(&document_with_a_doomed_page(), &[])
+            .unwrap();
 
         let mut promises = PromiseMap::new();
         for page in &outcome.pages {
@@ -503,14 +563,24 @@ mod page_containment {
         let flattened = promises.flatten().unwrap();
         assert_eq!(
             flattened.get("fund_name"),
-            Some(&[BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")][..])
+            Some(
+                &[
+                    BlockValue::from("Alpha Fund"),
+                    BlockValue::from("Acme Corp")
+                ][..]
+            )
         );
     }
 
     #[test]
     fn a_panicking_page_of_one_document_does_not_touch_the_other_documents() {
-        let documents = [document_with_a_doomed_page(), document("clean", "Beta Fund")];
-        let outcomes = panicking_algorithm().apply_multidocument(&documents, &[]).unwrap();
+        let documents = [
+            document_with_a_doomed_page(),
+            document("clean", "Beta Fund"),
+        ];
+        let outcomes = panicking_algorithm()
+            .apply_multidocument(&documents, &[])
+            .unwrap();
 
         assert_eq!(outcomes.len(), 2);
         assert!(outcomes[1].pages.iter().all(|p| p.results.len() == 1));
@@ -552,7 +622,10 @@ mod container_valued_promises {
         let acme = BlockValue::List(vec![BlockValue::from("Acme"), BlockValue::from("Corp")]);
 
         let flattened = promises.flatten().unwrap();
-        assert_eq!(flattened.get("fund_words"), Some(&[alpha.clone(), acme.clone()][..]));
+        assert_eq!(
+            flattened.get("fund_words"),
+            Some(&[alpha.clone(), acme.clone()][..])
+        );
 
         // Promessa normale: vince l'ultimo contributo, ed è **la lista**, non il suo ultimo
         // elemento — è esattamente il punto in cui il contenitore veniva confuso col contributo.
@@ -577,12 +650,25 @@ mod container_valued_promises {
         let containers = algorithm_with(filter(), Arc::new(PromiseWordsAsOneList));
         let scalars = algorithm_with(filter(), Arc::new(PromiseFundName));
 
-        let from_containers = collect(&containers.apply(&doc, &[]).unwrap()).flatten().unwrap();
-        let from_scalars = collect(&scalars.apply(&doc, &[]).unwrap()).flatten().unwrap();
+        let from_containers = collect(&containers.apply(&doc, &[]).unwrap())
+            .flatten()
+            .unwrap();
+        let from_scalars = collect(&scalars.apply(&doc, &[]).unwrap())
+            .flatten()
+            .unwrap();
 
-        assert_eq!(from_containers.get("fund_words").map(<[BlockValue]>::len), Some(2));
-        assert_eq!(from_scalars.get("fund_name").map(<[BlockValue]>::len), Some(2));
-        assert_ne!(from_containers.get("fund_words"), from_scalars.get("fund_name"));
+        assert_eq!(
+            from_containers.get("fund_words").map(<[BlockValue]>::len),
+            Some(2)
+        );
+        assert_eq!(
+            from_scalars.get("fund_name").map(<[BlockValue]>::len),
+            Some(2)
+        );
+        assert_ne!(
+            from_containers.get("fund_words"),
+            from_scalars.get("fund_name")
+        );
     }
 }
 
@@ -591,14 +677,19 @@ mod filter_data_across_the_schedule {
 
     #[test]
     fn the_second_step_sees_what_the_first_produced() {
-        let counting = Arc::new(CountingFilter { seen: std::sync::Mutex::new(Vec::new()) });
+        let counting = Arc::new(CountingFilter {
+            seen: std::sync::Mutex::new(Vec::new()),
+        });
         let algorithm = algorithm(Arc::clone(&counting) as Arc<dyn TextFilterPipe>);
 
         algorithm.apply(&document("d", "Alpha Fund"), &[]).unwrap();
 
         // Il filtro sta solo nella pipeline `investments`, che gira al secondo step: vede zero
         // target companies e il risultato prodotto dal primo step.
-        assert_eq!(*counting.seen.lock().expect("test-only mutex"), vec![(0, 1)]);
+        assert_eq!(
+            *counting.seen.lock().expect("test-only mutex"),
+            vec![(0, 1)]
+        );
     }
 }
 
@@ -607,10 +698,15 @@ mod multi_document {
 
     #[test]
     fn two_documents_are_classified_separately_and_scheduled_together() {
-        let counting = Arc::new(CountingFilter { seen: std::sync::Mutex::new(Vec::new()) });
+        let counting = Arc::new(CountingFilter {
+            seen: std::sync::Mutex::new(Vec::new()),
+        });
         let algorithm = algorithm(Arc::clone(&counting) as Arc<dyn TextFilterPipe>);
 
-        let docs = vec![document("first", "Alpha Fund"), document("second", "Beta Fund")];
+        let docs = vec![
+            document("first", "Alpha Fund"),
+            document("second", "Beta Fund"),
+        ];
         let outcomes = algorithm.apply_multidocument(&docs, &[]).unwrap();
 
         let ids: Vec<&str> = outcomes.iter().map(|o| o.id.as_str()).collect();
@@ -619,13 +715,19 @@ mod multi_document {
 
         // Lo schedule lavora sull'unione: al secondo step entrambe le pagine `investments`
         // vedono i due risultati prodotti dal primo step (uno per documento).
-        assert_eq!(*counting.seen.lock().expect("test-only mutex"), vec![(0, 2), (0, 2)]);
+        assert_eq!(
+            *counting.seen.lock().expect("test-only mutex"),
+            vec![(0, 2), (0, 2)]
+        );
     }
 
     #[test]
     fn promises_of_different_documents_land_in_the_same_multimap() {
         let algorithm = algorithm(KeepType::pipe("keep-rows", BlockType::TABLE_BODY));
-        let docs = vec![document("first", "Alpha Fund"), document("second", "Beta Fund")];
+        let docs = vec![
+            document("first", "Alpha Fund"),
+            document("second", "Beta Fund"),
+        ];
         let outcomes = algorithm.apply_multidocument(&docs, &[]).unwrap();
 
         let mut promises = PromiseMap::new();
@@ -654,7 +756,9 @@ mod per_segment_api {
         let blocks = algorithm.apply_pdf_extract(&page, &class).unwrap();
         assert_eq!(blocks.len(), 1);
 
-        let text_blocks = algorithm.apply_text_filter(&page, &class, &FilterData::EMPTY).unwrap();
+        let text_blocks = algorithm
+            .apply_text_filter(&page, &class, &FilterData::EMPTY)
+            .unwrap();
         assert_eq!(text_blocks.len(), 1);
 
         let extracted = algorithm.apply_deserializer(&text_blocks, &class).unwrap();

@@ -35,20 +35,40 @@ pub enum OrchestrationError {
     #[error("missing formats-repository CSV file: {0}")]
     MissingCsv(PathBuf),
     #[error("{path}: malformed row at line {line}: {reason}")]
-    MalformedRow { path: PathBuf, line: usize, reason: String },
+    MalformedRow {
+        path: PathBuf,
+        line: usize,
+        reason: String,
+    },
     #[error("{path}: missing required column '{column}'")]
     MissingColumn { path: PathBuf, column: String },
     #[error("{path}, line {line}: unknown format name: {name}")]
-    UnknownFormatName { path: PathBuf, line: usize, name: String },
+    UnknownFormatName {
+        path: PathBuf,
+        line: usize,
+        name: String,
+    },
     #[error("{path}, line {line}: ID '{id}' does not match the expected ID pattern")]
-    InvalidId { path: PathBuf, line: usize, id: String },
+    InvalidId {
+        path: PathBuf,
+        line: usize,
+        id: String,
+    },
     /// The page-classify overwrite table **requires** a `(pipeline)` group in the id, unlike the
     /// mapping table, which treats an absent one as the unnamed pipeline. The asymmetry is
     /// deliberate and preserved.
     #[error("{path}, line {line}: ID '{id}' declares no pipeline name")]
-    MissingPipelineName { path: PathBuf, line: usize, id: String },
+    MissingPipelineName {
+        path: PathBuf,
+        line: usize,
+        id: String,
+    },
     #[error("{path}, line {line}: invalid 'Filter next iteration' value '{value}'")]
-    InvalidFlag { path: PathBuf, line: usize, value: String },
+    InvalidFlag {
+        path: PathBuf,
+        line: usize,
+        value: String,
+    },
 }
 
 /// A row of the schedule table.
@@ -80,7 +100,10 @@ struct OverwriteRow {
 }
 
 fn csv_path(formats_repo_dir: &Path, file_name: &str) -> PathBuf {
-    formats_repo_dir.join(CONTENT_DIR).join(ORCHESTRATION_DIR).join(file_name)
+    formats_repo_dir
+        .join(CONTENT_DIR)
+        .join(ORCHESTRATION_DIR)
+        .join(file_name)
 }
 
 /// Translates a CSV error, recovering the name of the missing column where there is one.
@@ -89,13 +112,24 @@ fn row_error(path: &Path, line: usize, error: &csv::Error) -> OrchestrationError
     if let Some(rest) = message.split("missing field `").nth(1)
         && let Some(column) = rest.split('`').next()
     {
-        return OrchestrationError::MissingColumn { path: path.to_path_buf(), column: column.to_string() };
+        return OrchestrationError::MissingColumn {
+            path: path.to_path_buf(),
+            column: column.to_string(),
+        };
     }
-    OrchestrationError::MalformedRow { path: path.to_path_buf(), line, reason: message }
+    OrchestrationError::MalformedRow {
+        path: path.to_path_buf(),
+        line,
+        reason: message,
+    }
 }
 
 /// Refuses a header the table does not take: see [`csv_columns`].
-fn check_known_columns(path: &Path, headers: &csv::StringRecord, known: &[&str]) -> Result<(), OrchestrationError> {
+fn check_known_columns(
+    path: &Path,
+    headers: &csv::StringRecord,
+    known: &[&str],
+) -> Result<(), OrchestrationError> {
     match csv_columns::first_unknown(headers.iter(), known) {
         Some(column) => Err(OrchestrationError::MalformedRow {
             path: path.to_path_buf(),
@@ -123,10 +157,18 @@ fn read_rows<T: serde::de::DeserializeOwned>(
     let mut reader = csv::ReaderBuilder::new()
         .flexible(flexible)
         .from_path(&path)
-        .map_err(|e| OrchestrationError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+        .map_err(|e| OrchestrationError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: e.to_string(),
+        })?;
     let headers = reader
         .headers()
-        .map_err(|e| OrchestrationError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+        .map_err(|e| OrchestrationError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: e.to_string(),
+        })?;
     check_known_columns(&path, headers, csv_columns::declared::<T>())?;
     let mut rows = Vec::new();
     for (i, record) in reader.deserialize::<T>().enumerate() {
@@ -137,7 +179,9 @@ fn read_rows<T: serde::de::DeserializeOwned>(
 
 /// Reads the schedule table by column index, tolerating short rows on the trailing column alone.
 /// See [`ScheduleRow`] for why.
-fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleRow>), OrchestrationError> {
+fn read_schedule_rows(
+    formats_repo_dir: &Path,
+) -> Result<(PathBuf, Vec<ScheduleRow>), OrchestrationError> {
     let path = csv_path(formats_repo_dir, "algorithms_schedule.csv");
     if !path.is_file() {
         return Err(OrchestrationError::MissingCsv(path));
@@ -145,19 +189,34 @@ fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleR
     let mut reader = csv::ReaderBuilder::new()
         .flexible(true)
         .from_path(&path)
-        .map_err(|e| OrchestrationError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+        .map_err(|e| OrchestrationError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: e.to_string(),
+        })?;
     let headers = reader
         .headers()
-        .map_err(|e| OrchestrationError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?
+        .map_err(|e| OrchestrationError::MalformedRow {
+            path: path.clone(),
+            line: 0,
+            reason: e.to_string(),
+        })?
         .clone();
     let column = |name: &str| -> Result<usize, OrchestrationError> {
         headers
             .iter()
             .position(|h| h == name)
-            .ok_or_else(|| OrchestrationError::MissingColumn { path: path.clone(), column: name.to_string() })
+            .ok_or_else(|| OrchestrationError::MissingColumn {
+                path: path.clone(),
+                column: name.to_string(),
+            })
     };
     // Read by index rather than through a row type, so the known columns are written out here.
-    check_known_columns(&path, &headers, &["Format name", "Page type", "Filter next iteration"])?;
+    check_known_columns(
+        &path,
+        &headers,
+        &["Format name", "Page type", "Filter next iteration"],
+    )?;
     let format_name_idx = column("Format name")?;
     let page_type_idx = column("Page type")?;
     let filter_idx = column("Filter next iteration")?;
@@ -196,9 +255,11 @@ fn parse_flag(path: &Path, line: usize, raw: &str) -> Result<bool, Orchestration
     match raw.trim().to_ascii_lowercase().as_str() {
         "" | "false" => Ok(false),
         "true" => Ok(true),
-        other => {
-            Err(OrchestrationError::InvalidFlag { path: path.to_path_buf(), line, value: other.to_string() })
-        }
+        other => Err(OrchestrationError::InvalidFlag {
+            path: path.to_path_buf(),
+            line,
+            value: other.to_string(),
+        }),
     }
 }
 
@@ -218,12 +279,22 @@ pub fn get_schedule(
         check_known_format_name(&path, i + 1, &row.format_name, format_names)?;
     }
 
-    let matching: Vec<(usize, &ScheduleRow)> =
-        rows.iter().enumerate().filter(|(_, row)| row.format_name == format_name).collect();
+    let matching: Vec<(usize, &ScheduleRow)> = rows
+        .iter()
+        .enumerate()
+        .filter(|(_, row)| row.format_name == format_name)
+        .collect();
 
     if matching.is_empty() {
-        tracing::debug!("format absent from algorithms_schedule.csv, scheduling every mapped page class in one step");
-        let mapping = get_mapping(formats_repo_dir, format_name, format_names, defined_pipelines)?;
+        tracing::debug!(
+            "format absent from algorithms_schedule.csv, scheduling every mapped page class in one step"
+        );
+        let mapping = get_mapping(
+            formats_repo_dir,
+            format_name,
+            format_names,
+            defined_pipelines,
+        )?;
         let mut step = ScheduleStep::new();
         // Sorted: a schedule whose order changed from run to run would make both the tests and the
         // logs irreproducible.
@@ -239,7 +310,10 @@ pub fn get_schedule(
 
     let mut steps = vec![ScheduleStep::new()];
     for (i, row) in matching {
-        steps.last_mut().expect("lo schedule ha sempre almeno uno step").push(PageClass::new(&row.page_type));
+        steps
+            .last_mut()
+            .expect("lo schedule ha sempre almeno uno step")
+            .push(PageClass::new(&row.page_type));
         if parse_flag(&path, i + 1, &row.filter_next_iteration)? {
             steps.push(ScheduleStep::new());
         }
@@ -259,18 +333,27 @@ pub fn get_pageclassify_pipelines(
     format_name: &str,
     format_names: &[String],
 ) -> Result<HashSet<PipelineName>, OrchestrationError> {
-    let (path, rows): (_, Vec<OverwriteRow>) = read_rows(formats_repo_dir, "pageclassify_overwrite.csv", false)?;
+    let (path, rows): (_, Vec<OverwriteRow>) =
+        read_rows(formats_repo_dir, "pageclassify_overwrite.csv", false)?;
 
     let mut pipelines = HashSet::new();
     let mut found = false;
     for (i, row) in rows.iter().enumerate() {
         let line = i + 1;
         if !id_matches(&row.id, IdFormat::ExpandableNoIndex) {
-            return Err(OrchestrationError::InvalidId { path, line, id: row.id.clone() });
+            return Err(OrchestrationError::InvalidId {
+                path,
+                line,
+                id: row.id.clone(),
+            });
         }
         let row_format = derive_format_name(&row.id);
         let pipeline = derive_pipeline_name(&row.id, None).ok_or_else(|| {
-            OrchestrationError::MissingPipelineName { path: path.clone(), line, id: row.id.clone() }
+            OrchestrationError::MissingPipelineName {
+                path: path.clone(),
+                line,
+                id: row.id.clone(),
+            }
         })?;
         check_known_format_name(&path, line, &row_format, format_names)?;
         if row_format == format_name {
@@ -285,7 +368,10 @@ pub fn get_pageclassify_pipelines(
         );
         return Ok(HashSet::from([PipelineName::new("")]));
     }
-    tracing::debug!(pipeline_count = pipelines.len(), "read page classifying pipelines");
+    tracing::debug!(
+        pipeline_count = pipelines.len(),
+        "read page classifying pipelines"
+    );
     Ok(pipelines)
 }
 
@@ -308,7 +394,11 @@ pub fn get_mapping(
     for (i, row) in rows.iter().enumerate() {
         let line = i + 1;
         if !id_matches(&row.id, IdFormat::ExpandableNoIndex) {
-            return Err(OrchestrationError::InvalidId { path, line, id: row.id.clone() });
+            return Err(OrchestrationError::InvalidId {
+                path,
+                line,
+                id: row.id.clone(),
+            });
         }
         let row_format = derive_format_name(&row.id);
         // Unlike the overwrite table, an id with no `(pipeline)` group here means the unnamed
@@ -317,7 +407,10 @@ pub fn get_mapping(
         check_known_format_name(&path, line, &row_format, format_names)?;
         if row_format == format_name {
             found = true;
-            mapping.entry(PageClass::new(&row.page_type)).or_default().insert(PipelineName::new(pipeline));
+            mapping
+                .entry(PageClass::new(&row.page_type))
+                .or_default()
+                .insert(PipelineName::new(pipeline));
         }
     }
 
@@ -402,7 +495,10 @@ mod tests {
             let schedule = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
             assert_eq!(
                 classes_of(&schedule),
-                vec![vec!["investments".to_string()], vec!["merges".to_string(), "sfdr_classification".to_string()]]
+                vec![
+                    vec!["investments".to_string()],
+                    vec!["merges".to_string(), "sfdr_classification".to_string()]
+                ]
             );
         }
 
@@ -415,7 +511,8 @@ mod tests {
 
         #[test]
         fn a_missing_filter_cell_counts_as_false() {
-            let csv = "Format name,Page type,Filter next iteration\nA-EN24,investments\nA-EN24,merges\n";
+            let csv =
+                "Format name,Page type,Filter next iteration\nA-EN24,investments\nA-EN24,merges\n";
             let d = repo(&[
                 ("algorithms_schedule.csv", csv),
                 ("mapping.csv", MAPPING_CSV),
@@ -429,14 +526,18 @@ mod tests {
         /// rather than ignored: its cells would otherwise say something nobody hears.
         #[test]
         fn an_unknown_column_is_refused_naming_it() {
-            let csv = "Format name,Page type,Filter next iteration,Spread\nA-EN24,investments,,TRUE\n";
+            let csv =
+                "Format name,Page type,Filter next iteration,Spread\nA-EN24,investments,,TRUE\n";
             let d = repo(&[
                 ("algorithms_schedule.csv", csv),
                 ("mapping.csv", MAPPING_CSV),
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let error = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap_err();
-            assert!(error.to_string().contains("unknown column 'Spread'"), "{error}");
+            assert!(
+                error.to_string().contains("unknown column 'Spread'"),
+                "{error}"
+            );
         }
 
         #[test]
@@ -449,7 +550,10 @@ mod tests {
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let schedule = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
-            assert_eq!(classes_of(&schedule), vec![vec!["investments".to_string()], Vec::<String>::new()]);
+            assert_eq!(
+                classes_of(&schedule),
+                vec![vec!["investments".to_string()], Vec::<String>::new()]
+            );
         }
 
         #[test]
@@ -461,7 +565,10 @@ mod tests {
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let schedule = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
-            assert_eq!(classes_of(&schedule), vec![vec!["investments".to_string(), "merges".to_string()]]);
+            assert_eq!(
+                classes_of(&schedule),
+                vec![vec!["investments".to_string(), "merges".to_string()]]
+            );
         }
 
         #[test]
@@ -476,7 +583,11 @@ mod tests {
             let schedule = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
             assert_eq!(
                 classes_of(&schedule),
-                vec![vec!["alpha".to_string(), "mu".to_string(), "zeta".to_string()]]
+                vec![vec![
+                    "alpha".to_string(),
+                    "mu".to_string(),
+                    "zeta".to_string()
+                ]]
             );
         }
 
@@ -489,7 +600,10 @@ mod tests {
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let err = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap_err();
-            assert!(matches!(err, OrchestrationError::UnknownFormatName { line: 1, .. }));
+            assert!(matches!(
+                err,
+                OrchestrationError::UnknownFormatName { line: 1, .. }
+            ));
         }
 
         #[test]
@@ -501,7 +615,9 @@ mod tests {
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let err = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap_err();
-            let OrchestrationError::InvalidFlag { line, value, .. } = err else { panic!("expected InvalidFlag") };
+            let OrchestrationError::InvalidFlag { line, value, .. } = err else {
+                panic!("expected InvalidFlag")
+            };
             assert_eq!((line, value.as_str()), (1, "maybe"));
         }
 
@@ -514,7 +630,9 @@ mod tests {
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let err = get_schedule(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap_err();
-            assert!(matches!(err, OrchestrationError::MissingColumn { column, .. } if column == "Page type"));
+            assert!(
+                matches!(err, OrchestrationError::MissingColumn { column, .. } if column == "Page type")
+            );
         }
 
         #[test]
@@ -547,7 +665,12 @@ mod tests {
         #[test]
         fn the_fallback_is_a_singleton_not_an_empty_set() {
             let d = repo(&[("pageclassify_overwrite.csv", EMPTY_OVERWRITE)]);
-            assert_eq!(get_pageclassify_pipelines(d.path(), "A-EN24", &names()).unwrap().len(), 1);
+            assert_eq!(
+                get_pageclassify_pipelines(d.path(), "A-EN24", &names())
+                    .unwrap()
+                    .len(),
+                1
+            );
         }
 
         #[test]
@@ -556,7 +679,10 @@ mod tests {
             // pipeline.
             let d = repo(&[("pageclassify_overwrite.csv", "ID\nA-EN24\n")]);
             let err = get_pageclassify_pipelines(d.path(), "A-EN24", &names()).unwrap_err();
-            assert!(matches!(err, OrchestrationError::MissingPipelineName { line: 1, .. }));
+            assert!(matches!(
+                err,
+                OrchestrationError::MissingPipelineName { line: 1, .. }
+            ));
         }
 
         #[test]
@@ -568,9 +694,15 @@ mod tests {
 
         #[test]
         fn an_unknown_format_name_is_an_error_even_on_a_row_of_another_format() {
-            let d = repo(&[("pageclassify_overwrite.csv", "ID\nA-EN24(cover)\nGHOST-EN24(x)\n")]);
+            let d = repo(&[(
+                "pageclassify_overwrite.csv",
+                "ID\nA-EN24(cover)\nGHOST-EN24(x)\n",
+            )]);
             let err = get_pageclassify_pipelines(d.path(), "A-EN24", &names()).unwrap_err();
-            assert!(matches!(err, OrchestrationError::UnknownFormatName { line: 2, .. }));
+            assert!(matches!(
+                err,
+                OrchestrationError::UnknownFormatName { line: 2, .. }
+            ));
         }
     }
 
@@ -579,7 +711,10 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         fn dir(mapping: &str) -> TempDir {
-            repo(&[("mapping.csv", mapping), ("pageclassify_overwrite.csv", EMPTY_OVERWRITE)])
+            repo(&[
+                ("mapping.csv", mapping),
+                ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
+            ])
         }
 
         #[test]
@@ -587,7 +722,10 @@ mod tests {
             let d = dir("ID,Page type\nA-EN24(renaming),renaming\nA-EN24(merging),renaming\n");
             let found = get_mapping(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
             assert_eq!(found.len(), 1);
-            assert_eq!(found[&PageClass::new("renaming")], pipelines(&["renaming", "merging"]));
+            assert_eq!(
+                found[&PageClass::new("renaming")],
+                pipelines(&["renaming", "merging"])
+            );
         }
 
         #[test]
@@ -601,14 +739,26 @@ mod tests {
         fn rows_of_other_formats_are_ignored() {
             let d = dir("ID,Page type\nA-EN24(a),alpha\nB-EN24(b),beta\n");
             let found = get_mapping(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap();
-            assert_eq!(found.keys().collect::<Vec<_>>(), vec![&PageClass::new("alpha")]);
+            assert_eq!(
+                found.keys().collect::<Vec<_>>(),
+                vec![&PageClass::new("alpha")]
+            );
         }
 
         #[test]
         fn a_format_absent_from_the_file_maps_each_of_its_pipelines_onto_its_own_name() {
             let d = dir("ID,Page type\nB-EN24(b),beta\n");
-            let found = get_mapping(d.path(), "A-EN24", &names(), &pipelines(&["investments", "merges"])).unwrap();
-            assert_eq!(found[&PageClass::new("investments")], pipelines(&["investments"]));
+            let found = get_mapping(
+                d.path(),
+                "A-EN24",
+                &names(),
+                &pipelines(&["investments", "merges"]),
+            )
+            .unwrap();
+            assert_eq!(
+                found[&PageClass::new("investments")],
+                pipelines(&["investments"])
+            );
             assert_eq!(found[&PageClass::new("merges")], pipelines(&["merges"]));
         }
 
@@ -618,14 +768,27 @@ mod tests {
                 ("mapping.csv", "ID,Page type\nB-EN24(b),beta\n"),
                 ("pageclassify_overwrite.csv", "ID\nA-EN24(cover)\n"),
             ]);
-            let found = get_mapping(d.path(), "A-EN24", &names(), &pipelines(&["cover", "investments"])).unwrap();
-            assert_eq!(found.keys().collect::<Vec<_>>(), vec![&PageClass::new("investments")]);
+            let found = get_mapping(
+                d.path(),
+                "A-EN24",
+                &names(),
+                &pipelines(&["cover", "investments"]),
+            )
+            .unwrap();
+            assert_eq!(
+                found.keys().collect::<Vec<_>>(),
+                vec![&PageClass::new("investments")]
+            );
         }
 
         #[test]
         fn the_fallback_of_a_format_with_no_pipelines_is_empty() {
             let d = dir("ID,Page type\nB-EN24(b),beta\n");
-            assert!(get_mapping(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap().is_empty());
+            assert!(
+                get_mapping(d.path(), "A-EN24", &names(), &pipelines(&[]))
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -645,7 +808,10 @@ mod tests {
         fn an_unknown_format_name_is_an_error() {
             let d = dir("ID,Page type\nGHOST-EN24(a),alpha\n");
             let err = get_mapping(d.path(), "A-EN24", &names(), &pipelines(&[])).unwrap_err();
-            assert!(matches!(err, OrchestrationError::UnknownFormatName { line: 1, .. }));
+            assert!(matches!(
+                err,
+                OrchestrationError::UnknownFormatName { line: 1, .. }
+            ));
         }
     }
 
@@ -667,7 +833,8 @@ mod tests {
                 ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
             ]);
             let known = vec!["ANIMA_SGR-IT24".to_string(), "CARNE-EN23".to_string()];
-            let schedule = get_schedule(d.path(), "ANIMA_SGR-IT24", &known, &pipelines(&[])).unwrap();
+            let schedule =
+                get_schedule(d.path(), "ANIMA_SGR-IT24", &known, &pipelines(&[])).unwrap();
             assert_eq!(
                 classes_of(&schedule),
                 vec![
@@ -684,10 +851,16 @@ mod tests {
                        MEDIOLANUM-ES24.B(investments),investments\n\
                        EURIZON-EN23(renaming),renaming\n\
                        EURIZON-EN23(merging),renaming\n";
-            let d = repo(&[("mapping.csv", csv), ("pageclassify_overwrite.csv", EMPTY_OVERWRITE)]);
+            let d = repo(&[
+                ("mapping.csv", csv),
+                ("pageclassify_overwrite.csv", EMPTY_OVERWRITE),
+            ]);
             let known = vec!["MEDIOLANUM-ES24.B".to_string(), "EURIZON-EN23".to_string()];
             let found = get_mapping(d.path(), "EURIZON-EN23", &known, &pipelines(&[])).unwrap();
-            assert_eq!(found[&PageClass::new("renaming")], pipelines(&["renaming", "merging"]));
+            assert_eq!(
+                found[&PageClass::new("renaming")],
+                pipelines(&["renaming", "merging"])
+            );
         }
     }
 }

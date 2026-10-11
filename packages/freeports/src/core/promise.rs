@@ -88,7 +88,11 @@ impl Promise {
             id.truncate(id.len() - 2);
             multiple = true;
         }
-        Promise { id, strict, multiple }
+        Promise {
+            id,
+            strict,
+            multiple,
+        }
     }
 
     /// The identifier, without the suffixes that turned the flags on.
@@ -111,7 +115,9 @@ impl Promise {
     /// An [`PromiseError::Unresolved`] for this promise, built here so the id clone is not repeated
     /// at every resolution site.
     pub(crate) fn unresolved(&self) -> PromiseError {
-        PromiseError::Unresolved { id: self.id.clone() }
+        PromiseError::Unresolved {
+            id: self.id.clone(),
+        }
     }
 }
 
@@ -215,7 +221,11 @@ mod tests {
         #[test]
         fn with_flags_with_flags_off_matches_new() {
             for raw in ["ref", "ref!", "ref[]", "ref[]!", "ref![]", "", "!", "[]"] {
-                assert_eq!(Promise::with_flags(raw, false, false), Promise::new(raw), "raw {raw:?}");
+                assert_eq!(
+                    Promise::with_flags(raw, false, false),
+                    Promise::new(raw),
+                    "raw {raw:?}"
+                );
             }
         }
     }
@@ -240,7 +250,9 @@ mod tests {
         /// themselves — and initial flags.
         #[test]
         fn canonical_form_reparses_identically() {
-            let ids = ["", "a", "a!", "a[]", "a![]", "a[]!", "!", "[]", "][", "a!!", "a[][]"];
+            let ids = [
+                "", "a", "a!", "a[]", "a![]", "a[]!", "!", "[]", "][", "a!!", "a[][]",
+            ];
             for id in ids {
                 for strict in [false, true] {
                     for multiple in [false, true] {
@@ -276,7 +288,10 @@ mod tests {
 
         #[test]
         fn equal_promises_have_the_same_hash() {
-            assert_eq!(hash_of(&Promise::new("ref[]!")), hash_of(&Promise::with_flags("ref", true, true)));
+            assert_eq!(
+                hash_of(&Promise::new("ref[]!")),
+                hash_of(&Promise::with_flags("ref", true, true))
+            );
         }
 
         #[test]
@@ -328,12 +343,17 @@ mod tests {
         fn unresolved_reports_id_without_suffixes() {
             let err = Promise::new("fund[]!").unresolved();
             assert_eq!(err, PromiseError::Unresolved { id: "fund".into() });
-            assert_eq!(err.to_string(), "promise 'fund' has no value in the resolution map");
+            assert_eq!(
+                err.to_string(),
+                "promise 'fund' has no value in the resolution map"
+            );
         }
 
         #[test]
         fn circular_shows_the_full_chain() {
-            let err = PromiseError::Circular { chain: vec!["a".into(), "b".into(), "a".into()] };
+            let err = PromiseError::Circular {
+                chain: vec!["a".into(), "b".into(), "a".into()],
+            };
             assert_eq!(err.to_string(), "circular promise chain: a -> b -> a");
         }
     }

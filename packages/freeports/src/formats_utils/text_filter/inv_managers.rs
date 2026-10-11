@@ -146,7 +146,9 @@ impl TextFilterInvManagers {
                 data.previous()
                     .iter()
                     .filter_map(|e| {
-                        e.as_equity().map(|eq| &eq.data).or_else(|| e.as_bond().map(|b| &b.data))
+                        e.as_equity()
+                            .map(|eq| &eq.data)
+                            .or_else(|| e.as_bond().map(|b| &b.data))
                     })
                     .filter_map(|inv| inv.fund.resolved())
                     .map(MatchFund::new),
@@ -180,10 +182,16 @@ impl TextFilterInvManagers {
 
         let readable: Vec<&PdfBlock> = match &self.read_block_type {
             None => pdf_blks.iter().collect(),
-            Some(wanted) => pdf_blks.iter().filter(|block| block.type_block == *wanted).collect(),
+            Some(wanted) => pdf_blks
+                .iter()
+                .filter(|block| block.type_block == *wanted)
+                .collect(),
         };
-        let declared: Vec<_> =
-            self.readers.iter().flat_map(|reader| reader.read(&readable)).collect();
+        let declared: Vec<_> = self
+            .readers
+            .iter()
+            .flat_map(|reader| reader.read(&readable))
+            .collect();
         let manco = self.manco_of(pdf_blks, data);
 
         // A page that read nothing and names no company has nothing to assign: see the module
@@ -194,7 +202,11 @@ impl TextFilterInvManagers {
         }
 
         let seen = self.funds_of(data);
-        let taken = if self.already_assigned { assigned_funds(data) } else { BTreeSet::new() };
+        let taken = if self.already_assigned {
+            assigned_funds(data)
+        } else {
+            BTreeSet::new()
+        };
         let funds: BTreeSet<MatchFund> = if self.funds_include_assigned {
             let mut funds = seen;
             funds.extend(taken.iter().cloned());
@@ -211,11 +223,15 @@ impl TextFilterInvManagers {
         });
 
         let mut out = Vec::new();
-        if self.manco_first && let Some(company) = company.as_ref() {
+        if self.manco_first
+            && let Some(company) = company.as_ref()
+        {
             out.push(blocks::management_company_block(&assignment.funds, company));
         }
         out.extend(blocks::text_blocks(&assignment));
-        if !self.manco_first && let Some(company) = company.as_ref() {
+        if !self.manco_first
+            && let Some(company) = company.as_ref()
+        {
             out.push(blocks::management_company_block(&assignment.funds, company));
         }
         out
@@ -227,7 +243,11 @@ impl TextFilterPipe for TextFilterInvManagers {
         "TextFilterInvManagers"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
         Ok(self.call(blocks, data))
     }
 }
@@ -289,7 +309,10 @@ mod tests {
 
     /// `(type, content)` of each block the pipe wrote, in order.
     fn wrote(blocks: &[TextBlock]) -> Vec<(String, String)> {
-        blocks.iter().map(|b| (b.type_block.as_str().to_string(), content(b))).collect()
+        blocks
+            .iter()
+            .map(|b| (b.type_block.as_str().to_string(), content(b)))
+            .collect()
     }
 
     mod where_the_funds_come_from {
@@ -299,7 +322,10 @@ mod tests {
         fn by_default_they_are_the_funds_the_holdings_name() {
             let previous = vec![holding("Alpha Fund"), holding("Beta Fund")];
             let pipe = TextFilterInvManagers::new(vec![Reader::default()]);
-            let got = pipe.call(&[manager_block("Acme AM")], &FilterData::Previous(&previous));
+            let got = pipe.call(
+                &[manager_block("Acme AM")],
+                &FilterData::Previous(&previous),
+            );
             assert_eq!(got.len(), 1);
             assert_eq!(got[0].metadata.len(), 1);
         }
@@ -309,7 +335,10 @@ mod tests {
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
             let mut pipe = TextFilterInvManagers::new(vec![Reader::default()]);
             pipe.funds = FundSource::Funds;
-            let got = pipe.call(&[manager_block("Acme AM")], &FilterData::Previous(&previous));
+            let got = pipe.call(
+                &[manager_block("Acme AM")],
+                &FilterData::Previous(&previous),
+            );
             assert_eq!(got.len(), 1);
         }
 
@@ -318,7 +347,10 @@ mod tests {
             // A format reading the managers before the holdings would see nothing the other way.
             let previous = vec![Extracted::Fund(Fund::new("Alpha Fund"))];
             let pipe = TextFilterInvManagers::new(vec![Reader::default()]);
-            let got = pipe.call(&[manager_block("Acme AM")], &FilterData::Previous(&previous));
+            let got = pipe.call(
+                &[manager_block("Acme AM")],
+                &FilterData::Previous(&previous),
+            );
             // One manager, credited with nothing, because the holdings named no fund.
             assert_eq!(got.len(), 1);
             assert!(got[0].metadata.contains_key("managed_funds"));
@@ -334,13 +366,19 @@ mod tests {
             let blocks = [manco_block("Acme SGR"), manager_block("Delegate AM")];
             let pipe = TextFilterInvManagers::new(vec![Reader::default()]);
             let got = pipe.call(&blocks, &FilterData::Previous(&previous));
-            assert_eq!(wrote(&got), [("INVESTMENTS_MANAGER".to_string(), "Delegate AM".to_string())]);
+            assert_eq!(
+                wrote(&got),
+                [("INVESTMENTS_MANAGER".to_string(), "Delegate AM".to_string())]
+            );
         }
 
         #[test]
         fn a_format_whose_pdf_extract_writes_its_own_types_asks_for_every_block() {
             let previous = vec![holding("Alpha Fund")];
-            let blocks = [PdfBlock::bare(BlockType::from("MANAGER".to_string()), "Delegate AM")];
+            let blocks = [PdfBlock::bare(
+                BlockType::from("MANAGER".to_string()),
+                "Delegate AM",
+            )];
             let mut pipe = TextFilterInvManagers::new(vec![Reader::default()]);
             pipe.read_block_type = None;
             let got = pipe.call(&blocks, &FilterData::Previous(&previous));
@@ -473,7 +511,10 @@ mod tests {
             pipe.emit_manco = EmitManco::WhenPresent;
             pipe.settle = false;
             let got = pipe.call(&blocks, &FilterData::Previous(&previous));
-            assert_eq!(wrote(&got), [("MANAGEMENT_COMPANY".to_string(), "Acme SGR".to_string())]);
+            assert_eq!(
+                wrote(&got),
+                [("MANAGEMENT_COMPANY".to_string(), "Acme SGR".to_string())]
+            );
         }
 
         #[test]
@@ -565,7 +606,10 @@ mod tests {
             let mut pipe = TextFilterInvManagers::new(vec![Reader::default()]);
             pipe.manco = MancoSource::Blocks(BlockType::MANAGEMENT_COMPANY);
             let got = pipe.call(&blocks, &FilterData::Previous(&previous));
-            assert_eq!(wrote(&got), [("INVESTMENTS_MANAGER".to_string(), "Acme SGR".to_string())]);
+            assert_eq!(
+                wrote(&got),
+                [("INVESTMENTS_MANAGER".to_string(), "Acme SGR".to_string())]
+            );
         }
     }
 

@@ -110,6 +110,11 @@ class DocumentInventory:
         return self.has_report and self.has_out
 
     @property
+    def has_classification(self):
+        """Whether the document-classification test is collected: there is a document to classify."""
+        return self.has_report
+
+    @property
     def triple_pages(self):
         """Pages carrying all three fixtures, so that every stage of the pipeline is pinned there."""
         return self.pdf_blks & self.txt_blks & self.results

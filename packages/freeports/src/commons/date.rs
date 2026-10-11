@@ -30,7 +30,12 @@ pub enum DateError {
     #[error("month must be between 1 and 12, found {0}")]
     InvalidMonth(u8),
     #[error("day must be between 1 and {max} for {year:04}-{month:02}, found {day}")]
-    InvalidDay { year: i32, month: u8, day: u8, max: u8 },
+    InvalidDay {
+        year: i32,
+        month: u8,
+        day: u8,
+        max: u8,
+    },
     #[error("invalid date '{0}', expected format YYYY-MM-DD")]
     InvalidFormat(String),
 }
@@ -64,7 +69,12 @@ impl Date {
         }
         let max = days_in_month(year, month);
         if !(1..=max).contains(&day) {
-            return Err(DateError::InvalidDay { year, month, day, max });
+            return Err(DateError::InvalidDay {
+                year,
+                month,
+                day,
+                max,
+            });
         }
         Ok(Self { year, month, day })
     }
@@ -125,9 +135,9 @@ mod tests {
 
     mod construction {
         use super::*;
+        use DateError::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
-        use DateError::*;
 
         #[test]
         fn accepts_an_ordinary_date() {
@@ -160,7 +170,12 @@ mod tests {
 
         #[test_case(-1, 1, 1, YearOutOfRange(-1); "negative year")]
         #[test_case(10000, 1, 1, YearOutOfRange(10000); "year above four digits")]
-        fn rejects_year_outside_four_digit_range(year: i32, month: u8, day: u8, expected: DateError) {
+        fn rejects_year_outside_four_digit_range(
+            year: i32,
+            month: u8,
+            day: u8,
+            expected: DateError,
+        ) {
             assert_eq!(Date::new(year, month, day), Err(expected));
         }
 
@@ -195,9 +210,9 @@ mod tests {
 
     mod parsing {
         use super::*;
+        use DateError::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
-        use DateError::*;
 
         #[test_case("2024-06-15", Date{year: 2024, month: 6, day: 15}; "ordinary date")]
         #[test_case("2024-02-29", Date{year: 2024, month: 2, day: 29}; "leap day")]
@@ -233,7 +248,10 @@ mod tests {
         #[test_case("2024-02-30", InvalidDay{year: 2024, month: 2, day: 30, max: 29}; "well formed but invalid day, leap year")]
         #[test_case("1900-02-29", InvalidDay{year: 1900, month: 2, day: 29, max: 28}; "well formed but invalid day, century non-leap year")]
         #[test_case("2024-04-31", InvalidDay{year: 2024, month: 4, day: 31, max: 30}; "well formed but invalid day, 30-day month")]
-        fn rejects_well_formed_strings_with_impossible_calendar_values(input: &str, expected: DateError) {
+        fn rejects_well_formed_strings_with_impossible_calendar_values(
+            input: &str,
+            expected: DateError,
+        ) {
             assert_eq!(input.parse::<Date>(), Err(expected));
         }
     }
@@ -258,16 +276,18 @@ mod tests {
         fn round_trips_through_format_and_parse(year: i32, month: u8, day: u8) {
             let original = Date::new(year, month, day).expect("test table only has valid dates");
             let formatted = original.to_string();
-            let reparsed: Date = formatted.parse().expect("format() must always produce a parseable string");
+            let reparsed: Date = formatted
+                .parse()
+                .expect("format() must always produce a parseable string");
             assert_eq!(reparsed, original);
         }
     }
 
     mod error_display {
         use super::*;
+        use DateError::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
-        use DateError::*;
 
         #[test_case(
             YearOutOfRange(-3),

@@ -53,27 +53,63 @@ pub enum TableError {
     #[error("missing formats-repository CSV file: {0}")]
     MissingCsv(PathBuf),
     #[error("{path}: malformed row at line {line}: {reason}")]
-    MalformedRow { path: PathBuf, line: usize, reason: String },
+    MalformedRow {
+        path: PathBuf,
+        line: usize,
+        reason: String,
+    },
     #[error("{path}: missing required column '{column}'")]
     MissingColumn { path: PathBuf, column: String },
     #[error("{path}, line {line}: ID '{id}' does not match the expected ID pattern")]
-    InvalidId { path: PathBuf, line: usize, id: String },
+    InvalidId {
+        path: PathBuf,
+        line: usize,
+        id: String,
+    },
     #[error("{path}, line {line}: column '{column}' is not a valid line selection: '{value}'")]
-    InvalidLineSelection { path: PathBuf, line: usize, column: String, value: String },
+    InvalidLineSelection {
+        path: PathBuf,
+        line: usize,
+        column: String,
+        value: String,
+    },
     /// A row of a secondary table has no counterpart in the main table.
     #[error("{path}, line {line}: '{id}' has no matching row in the principal table")]
-    UnmatchedRow { path: PathBuf, line: usize, id: String },
+    UnmatchedRow {
+        path: PathBuf,
+        line: usize,
+        id: String,
+    },
     /// Two rows of an at-most-one-per-pipe table configure the same pipe.
-    #[error("{path}, line {line}: '{id}' is configured twice, but this table allows at most one row per pipe")]
-    DuplicateRow { path: PathBuf, line: usize, id: String },
+    #[error(
+        "{path}, line {line}: '{id}' is configured twice, but this table allows at most one row per pipe"
+    )]
+    DuplicateRow {
+        path: PathBuf,
+        line: usize,
+        id: String,
+    },
     /// A disabled segment carries configuration anyway.
-    #[error("{path}, line {line}: segment '{segment}' is disabled for '{id}' but column '{column}' is not empty")]
-    DisabledSegmentConfigured { path: PathBuf, line: usize, id: String, segment: &'static str, column: &'static str },
+    #[error(
+        "{path}, line {line}: segment '{segment}' is disabled for '{id}' but column '{column}' is not empty"
+    )]
+    DisabledSegmentConfigured {
+        path: PathBuf,
+        line: usize,
+        id: String,
+        segment: &'static str,
+        column: &'static str,
+    },
     /// Two rows configuring the same classification pipe declare different classes.
     #[error("{path}, line {line}: '{id}' is declared as class '{found}' but also as '{first}'")]
-    ConflictingClass { path: PathBuf, line: usize, id: String, first: String, found: String },
+    ConflictingClass {
+        path: PathBuf,
+        line: usize,
+        id: String,
+        first: String,
+        found: String,
+    },
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // Deserializers for the optional cells
@@ -81,11 +117,17 @@ pub enum TableError {
 /// A text cell: empty means absent.
 fn optional_text<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<String>, D::Error> {
     let raw = String::deserialize(deserializer)?;
-    Ok(if raw.trim().is_empty() { None } else { Some(raw) })
+    Ok(if raw.trim().is_empty() {
+        None
+    } else {
+        Some(raw)
+    })
 }
 
 /// A numeric cell: empty means absent, anything else must be a number.
-fn optional_number<'de, D: Deserializer<'de>, T: FromStr>(deserializer: D) -> Result<Option<T>, D::Error>
+fn optional_number<'de, D: Deserializer<'de>, T: FromStr>(
+    deserializer: D,
+) -> Result<Option<T>, D::Error>
 where
     T::Err: std::fmt::Display,
 {
@@ -105,7 +147,9 @@ fn optional_bool<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<bo
         "" => Ok(None),
         "true" => Ok(Some(true)),
         "false" => Ok(Some(false)),
-        other => Err(serde::de::Error::custom(format!("expected TRUE, FALSE or an empty cell, found '{other}'"))),
+        other => Err(serde::de::Error::custom(format!(
+            "expected TRUE, FALSE or an empty cell, found '{other}'"
+        ))),
     }
 }
 
@@ -123,7 +167,9 @@ pub struct ValueWindow {
 }
 
 /// A window cell: empty means absent, anything else must be four numbers.
-fn optional_window<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<ValueWindow>, D::Error> {
+fn optional_window<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<ValueWindow>, D::Error> {
     let raw = String::deserialize(deserializer)?;
     let raw = raw.trim();
     if raw.is_empty() {
@@ -137,7 +183,8 @@ fn optional_window<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<
         )));
     };
     let number = |text: &str| {
-        text.parse::<f32>().map_err(|e| serde::de::Error::custom(format!("'{text}' is not a number: {e}")))
+        text.parse::<f32>()
+            .map_err(|e| serde::de::Error::custom(format!("'{text}' is not a number: {e}")))
     };
     Ok(Some(ValueWindow {
         dx: number(dx)?,
@@ -158,7 +205,6 @@ fn optional_named<'de, D: Deserializer<'de>, T: FromStr<Err = String>>(
     }
     raw.parse::<T>().map(Some).map_err(serde::de::Error::custom)
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // The five tables, as they sit on disk
@@ -202,9 +248,15 @@ pub struct AdditionalArgsRow {
     /// column's value.
     #[serde(rename = "Row tolerance", deserialize_with = "optional_number")]
     pub row_tolerance: Option<f32>,
-    #[serde(rename = "Interpret quantity as float", deserialize_with = "optional_bool")]
+    #[serde(
+        rename = "Interpret quantity as float",
+        deserialize_with = "optional_bool"
+    )]
     pub interpret_quantity_as_float: Option<bool>,
-    #[serde(rename = "Interpret cost and value as int", deserialize_with = "optional_bool")]
+    #[serde(
+        rename = "Interpret cost and value as int",
+        deserialize_with = "optional_bool"
+    )]
     pub interpret_cost_and_value_as_int: Option<bool>,
     #[serde(rename = "Geometrical indexing", deserialize_with = "optional_bool")]
     pub geometrical_indexing: Option<bool>,
@@ -224,7 +276,11 @@ pub struct AdditionalArgsRow {
     /// Which way a broken cell collapses: `down` (the default) puts the pieces on the **first** row
     /// of the run, `up` on the last. It is what `Merge previous` used to choose on the other side of
     /// the pipeline.
-    #[serde(rename = "Collapse direction", default, deserialize_with = "optional_named")]
+    #[serde(
+        rename = "Collapse direction",
+        default,
+        deserialize_with = "optional_named"
+    )]
     pub collapse_direction: Option<CollapseDirectionCell>,
     /// Which of the two collapse algorithms reads the run: `pattern` (the default) takes every run
     /// of consecutive cells of the column, `geometry` only the runs whose rows carry **nothing but
@@ -234,7 +290,11 @@ pub struct AdditionalArgsRow {
     /// collapse and one that would be harmed by it: on MEDIOLANUM-IT24.A a country heading
     /// (`IRLANDA`) sits in the name's column with a full row of values beside it, and `pattern`
     /// glues it to the investment above. `geometry` leaves it alone, because its row is not empty.
-    #[serde(rename = "Collapse algorithm", default, deserialize_with = "optional_named")]
+    #[serde(
+        rename = "Collapse algorithm",
+        default,
+        deserialize_with = "optional_named"
+    )]
     pub collapse_algorithm: Option<CollapseAlgorithmCell>,
     /// A flag expression naming the numeric fields that read the report's dash as zero — text
     /// rather than a bool, like `Algorithm flags` and for the same reason: the cell names a set.
@@ -253,7 +313,11 @@ pub struct AdditionalArgsRow {
     /// the table, this one arrived after formats repositories already existed, and a repository
     /// that does not need it must not have to grow an empty column to keep loading. Where the
     /// column is absent the value is `None`, which is exactly what an empty cell means.
-    #[serde(rename = "Remove from fund", default, deserialize_with = "optional_text")]
+    #[serde(
+        rename = "Remove from fund",
+        default,
+        deserialize_with = "optional_text"
+    )]
     pub remove_from_fund: Option<String>,
     /// The pattern that reads the **quantity out of the name cell**, for a report that prints the
     /// two in one cell: `800,000.00 ENEL FIN INTL NV 3.375% …`.
@@ -261,7 +325,11 @@ pub struct AdditionalArgsRow {
     /// One pattern and not a list, and `Remove from fund` is the same: a regular expression says
     /// *either of these* with `|` of its own, so a second separator here would collide with the
     /// language the cell is written in.
-    #[serde(rename = "Quantity in name", default, deserialize_with = "optional_text")]
+    #[serde(
+        rename = "Quantity in name",
+        default,
+        deserialize_with = "optional_text"
+    )]
     pub quantity_in_name: Option<String>,
 }
 
@@ -315,7 +383,9 @@ impl FromStr for CollapseAlgorithmCell {
         match text.trim().to_ascii_lowercase().as_str() {
             "pattern" => Ok(CollapseAlgorithmCell::Pattern),
             "geometry" => Ok(CollapseAlgorithmCell::Geometry),
-            other => Err(format!("'{other}' is not a collapse algorithm: pattern or geometry")),
+            other => Err(format!(
+                "'{other}' is not a collapse algorithm: pattern or geometry"
+            )),
         }
     }
 }
@@ -365,15 +435,21 @@ pub struct PageClassifyArgsRow {
     pub class: String,
 }
 
-
 fn row_error(path: &Path, line: usize, error: &csv::Error) -> TableError {
     let message = error.to_string();
     if let Some(rest) = message.split("missing field `").nth(1)
         && let Some(column) = rest.split('`').next()
     {
-        return TableError::MissingColumn { path: path.to_path_buf(), column: column.to_string() };
+        return TableError::MissingColumn {
+            path: path.to_path_buf(),
+            column: column.to_string(),
+        };
     }
-    TableError::MalformedRow { path: path.to_path_buf(), line, reason: message }
+    TableError::MalformedRow {
+        path: path.to_path_buf(),
+        line,
+        reason: message,
+    }
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -389,10 +465,16 @@ fn read_table<T: serde::de::DeserializeOwned>(
     if !path.is_file() {
         return Err(TableError::MissingCsv(path));
     }
-    let mut reader = csv::Reader::from_path(&path)
-        .map_err(|e| TableError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
-    let headers =
-        reader.headers().map_err(|e| TableError::MalformedRow { path: path.clone(), line: 0, reason: e.to_string() })?;
+    let mut reader = csv::Reader::from_path(&path).map_err(|e| TableError::MalformedRow {
+        path: path.clone(),
+        line: 0,
+        reason: e.to_string(),
+    })?;
+    let headers = reader.headers().map_err(|e| TableError::MalformedRow {
+        path: path.clone(),
+        line: 0,
+        reason: e.to_string(),
+    })?;
     let known = csv_columns::declared::<T>();
     if let Some(column) = csv_columns::first_unknown(headers.iter(), known) {
         return Err(TableError::MalformedRow {
@@ -417,7 +499,11 @@ fn identify(
 ) -> Result<Vec<ComputedId>, TableError> {
     for (i, id) in ids.iter().enumerate() {
         if !id_matches(id, relation.id_format()) {
-            return Err(TableError::InvalidId { path: path.to_path_buf(), line: i + 1, id: (*id).to_string() });
+            return Err(TableError::InvalidId {
+                path: path.to_path_buf(),
+                line: i + 1,
+                id: (*id).to_string(),
+            });
         }
     }
     Ok(computed_ids(ids, Some(pipeline_default), relation))
@@ -476,15 +562,22 @@ fn index_unique<T>(
     for (i, (id, row)) in ids.into_iter().zip(rows).enumerate() {
         let line = i + 1;
         if !known.contains(&id) {
-            return Err(TableError::UnmatchedRow { path: path.to_path_buf(), line, id: id.to_string() });
+            return Err(TableError::UnmatchedRow {
+                path: path.to_path_buf(),
+                line,
+                id: id.to_string(),
+            });
         }
         if map.insert(id.clone(), row).is_some() {
-            return Err(TableError::DuplicateRow { path: path.to_path_buf(), line, id: id.to_string() });
+            return Err(TableError::DuplicateRow {
+                path: path.to_path_buf(),
+                line,
+                id: id.to_string(),
+            });
         }
     }
     Ok(map)
 }
-
 
 // ----------------------------------------------------------------------------------------------
 // The joined configurations, one per pipe
@@ -504,17 +597,26 @@ pub struct InvestmentsConfig {
 impl InvestmentsConfig {
     /// Whether the extraction segment is to be built. An absent configuration means yes.
     pub fn wants_pdf_extract(&self) -> bool {
-        self.partial_pipes.as_ref().and_then(|p| p.pdf_extract).unwrap_or(true)
+        self.partial_pipes
+            .as_ref()
+            .and_then(|p| p.pdf_extract)
+            .unwrap_or(true)
     }
 
     /// Whether the filtering segment is to be built. See [`Self::wants_pdf_extract`].
     pub fn wants_text_filter(&self) -> bool {
-        self.partial_pipes.as_ref().and_then(|p| p.text_filter).unwrap_or(true)
+        self.partial_pipes
+            .as_ref()
+            .and_then(|p| p.text_filter)
+            .unwrap_or(true)
     }
 
     /// Whether the deserialization segment is to be built. See [`Self::wants_pdf_extract`].
     pub fn wants_deserialize(&self) -> bool {
-        self.partial_pipes.as_ref().and_then(|p| p.deserialize).unwrap_or(true)
+        self.partial_pipes
+            .as_ref()
+            .and_then(|p| p.deserialize)
+            .unwrap_or(true)
     }
 }
 
@@ -564,7 +666,11 @@ pub struct MancoArgsRow {
     pub among: Option<String>,
     /// Whether the same company is also the investment manager of every sub-fund of the document
     /// (`R15`), which is the second deserializer of seven of the measured pipelines.
-    #[serde(rename = "Also investments manager", default, deserialize_with = "optional_bool")]
+    #[serde(
+        rename = "Also investments manager",
+        default,
+        deserialize_with = "optional_bool"
+    )]
     pub also_investments_manager: Option<bool>,
 }
 
@@ -586,7 +692,11 @@ pub struct SfdrArgsRow {
     #[serde(rename = "Product joined", default, deserialize_with = "optional_bool")]
     pub product_joined: Option<bool>,
     /// The word the annex does not write and the holdings do (`R24`). Only with `Product joined`.
-    #[serde(rename = "Product prepend", default, deserialize_with = "optional_text")]
+    #[serde(
+        rename = "Product prepend",
+        default,
+        deserialize_with = "optional_text"
+    )]
     pub product_prepend: Option<String>,
 }
 
@@ -645,7 +755,13 @@ const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
             "Remove from fund",
         ],
     ),
-    ("deserialize", &["Interpret quantity as float", "Interpret cost and value as int"]),
+    (
+        "deserialize",
+        &[
+            "Interpret quantity as float",
+            "Interpret cost and value as int",
+        ],
+    ),
 ];
 
 impl InvestmentsConfig {
@@ -669,9 +785,15 @@ impl InvestmentsConfig {
             "Collapse" => additional.is_some_and(|a| a.collapse.is_some()),
             "Collapse direction" => additional.is_some_and(|a| a.collapse_direction.is_some()),
             "Collapse algorithm" => additional.is_some_and(|a| a.collapse_algorithm.is_some()),
-            "Interpret quantity as float" => additional.is_some_and(|a| a.interpret_quantity_as_float.is_some()),
-            "Interpret cost and value as int" => additional.is_some_and(|a| a.interpret_cost_and_value_as_int.is_some()),
-            "Interpret dash as zero" => additional.is_some_and(|a| a.interpret_dash_as_zero.is_some()),
+            "Interpret quantity as float" => {
+                additional.is_some_and(|a| a.interpret_quantity_as_float.is_some())
+            }
+            "Interpret cost and value as int" => {
+                additional.is_some_and(|a| a.interpret_cost_and_value_as_int.is_some())
+            }
+            "Interpret dash as zero" => {
+                additional.is_some_and(|a| a.interpret_dash_as_zero.is_some())
+            }
             "Remove from fund" => additional.is_some_and(|a| a.remove_from_fund.is_some()),
             other => unreachable!("DISABLED_SEGMENT_COLUMNS names an unknown column {other:?}"),
         }
@@ -679,7 +801,11 @@ impl InvestmentsConfig {
 
     /// Checks that no disabled segment carries configuration.
     fn check_disabled_segments(&self, path: &Path, line: usize) -> Result<(), TableError> {
-        let enabled = [self.wants_pdf_extract(), self.wants_text_filter(), self.wants_deserialize()];
+        let enabled = [
+            self.wants_pdf_extract(),
+            self.wants_text_filter(),
+            self.wants_deserialize(),
+        ];
         for ((segment, columns), enabled) in DISABLED_SEGMENT_COLUMNS.iter().zip(enabled) {
             if enabled {
                 continue;
@@ -705,8 +831,11 @@ impl InvestmentsConfig {
 ///
 /// Reads the four tables, validates every row, and joins them on the `(format, pipeline, index)`
 /// key.
-pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<InvestmentsConfig>, TableError> {
-    let (args_path, args): (_, Vec<InvestmentsArgsRow>) = read_table(formats_repo_dir, "investments/args.csv")?;
+pub fn get_investments_configs(
+    formats_repo_dir: &Path,
+) -> Result<Vec<InvestmentsConfig>, TableError> {
+    let (args_path, args): (_, Vec<InvestmentsArgsRow>) =
+        read_table(formats_repo_dir, "investments/args.csv")?;
     let args_ids = identify(
         &args_path,
         &args.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
@@ -726,8 +855,22 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
     for (i, row) in add_rows.iter().enumerate() {
         let collapse = row.collapse.is_some();
         let condition = "where 'Collapse' names a column";
-        requires(&add_path, i + 1, "Collapse direction", row.collapse_direction.is_some(), condition, collapse)?;
-        requires(&add_path, i + 1, "Collapse algorithm", row.collapse_algorithm.is_some(), condition, collapse)?;
+        requires(
+            &add_path,
+            i + 1,
+            "Collapse direction",
+            row.collapse_direction.is_some(),
+            condition,
+            collapse,
+        )?;
+        requires(
+            &add_path,
+            i + 1,
+            "Collapse algorithm",
+            row.collapse_algorithm.is_some(),
+            condition,
+            collapse,
+        )?;
     }
     let add_ids = identify(
         &add_path,
@@ -741,7 +884,10 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
         read_table(formats_repo_dir, "investments/partial_pipes.csv")?;
     let partial_ids = identify(
         &partial_path,
-        &partial_rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        &partial_rows
+            .iter()
+            .map(|r| r.id.as_str())
+            .collect::<Vec<_>>(),
         INVESTMENTS_PIPELINE,
         FkRelation::OneToMaybe,
     )?;
@@ -759,9 +905,18 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
     for (i, (id, row)) in desel_ids.into_iter().zip(desel_rows).enumerate() {
         let line = i + 1;
         if !known.contains(&id) {
-            return Err(TableError::UnmatchedRow { path: desel_path.clone(), line, id: id.to_string() });
+            return Err(TableError::UnmatchedRow {
+                path: desel_path.clone(),
+                line,
+                id: id.to_string(),
+            });
         }
-        check_line_selection(&desel_path, line, "Deselection set", row.deselection_set.as_ref())?;
+        check_line_selection(
+            &desel_path,
+            line,
+            "Deselection set",
+            row.deselection_set.as_ref(),
+        )?;
         if let Some(set) = row.deselection_set {
             deselections.entry(id).or_default().push(set);
         }
@@ -779,7 +934,10 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
         config.check_disabled_segments(&args_path, i + 1)?;
         configs.push(config);
     }
-    tracing::debug!(config_count = configs.len(), "read investments configuration rows");
+    tracing::debug!(
+        config_count = configs.len(),
+        "read investments configuration rows"
+    );
     Ok(configs)
 }
 
@@ -787,8 +945,14 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
 ///
 /// One row per pipeline, and the table may be absent: see [`get_sfdr_configs`] for the reasoning,
 /// which is the same.
-pub fn get_manco_configs(formats_repo_dir: &Path) -> Result<Vec<(ComputedId, MancoArgsRow)>, TableError> {
-    if !formats_repo_dir.join(STRUCTURED_DIR).join("manco/args.csv").is_file() {
+pub fn get_manco_configs(
+    formats_repo_dir: &Path,
+) -> Result<Vec<(ComputedId, MancoArgsRow)>, TableError> {
+    if !formats_repo_dir
+        .join(STRUCTURED_DIR)
+        .join("manco/args.csv")
+        .is_file()
+    {
         tracing::debug!("no manco table in this repository: no structured management company");
         return Ok(Vec::new());
     }
@@ -822,7 +986,10 @@ pub fn get_manco_configs(formats_repo_dir: &Path) -> Result<Vec<(ComputedId, Man
         )?;
     }
     let configs: Vec<(ComputedId, MancoArgsRow)> = ids.into_iter().zip(rows).collect();
-    tracing::debug!(config_count = configs.len(), "read manco configuration rows");
+    tracing::debug!(
+        config_count = configs.len(),
+        "read manco configuration rows"
+    );
     Ok(configs)
 }
 
@@ -838,7 +1005,11 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
     // in YAML or in Python must not have to grow an empty file to keep loading. The prefix table
     // follows the arguments: a repository that has the one and not the other is declaring prefixes
     // for nothing, which the join below reports.
-    if !formats_repo_dir.join(STRUCTURED_DIR).join("sfdr/args.csv").is_file() {
+    if !formats_repo_dir
+        .join(STRUCTURED_DIR)
+        .join("sfdr/args.csv")
+        .is_file()
+    {
         tracing::debug!("no sfdr table in this repository: no structured annex");
         return Ok(Vec::new());
     }
@@ -861,14 +1032,20 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
     }
     let known: HashSet<ComputedId> = args_ids.iter().cloned().collect();
 
-    let has_prefixes = formats_repo_dir.join(STRUCTURED_DIR).join("sfdr/product_prefixes.csv").is_file();
+    let has_prefixes = formats_repo_dir
+        .join(STRUCTURED_DIR)
+        .join("sfdr/product_prefixes.csv")
+        .is_file();
     let (prefix_path, prefix_rows): (_, Vec<SfdrPrefixRow>) = match has_prefixes {
         true => read_table(formats_repo_dir, "sfdr/product_prefixes.csv")?,
         false => (PathBuf::new(), Vec::new()),
     };
     let prefix_ids = identify(
         &prefix_path,
-        &prefix_rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        &prefix_rows
+            .iter()
+            .map(|r| r.id.as_str())
+            .collect::<Vec<_>>(),
         SFDR_PIPELINE,
         FkRelation::OneToMany,
     )?;
@@ -876,7 +1053,11 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
     for (i, (id, row)) in prefix_ids.into_iter().zip(prefix_rows).enumerate() {
         let line = i + 1;
         if !known.contains(&id) {
-            return Err(TableError::UnmatchedRow { path: prefix_path.clone(), line, id: id.to_string() });
+            return Err(TableError::UnmatchedRow {
+                path: prefix_path.clone(),
+                line,
+                id: id.to_string(),
+            });
         }
         // An empty pattern is a row that strips nothing, which is a cell left empty by mistake.
         if row.pattern.trim().is_empty() {
@@ -892,7 +1073,11 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
     let configs: Vec<SfdrConfig> = args_ids
         .into_iter()
         .zip(args)
-        .map(|(id, args)| SfdrConfig { prefixes: prefixes.remove(&id).unwrap_or_default(), id, args })
+        .map(|(id, args)| SfdrConfig {
+            prefixes: prefixes.remove(&id).unwrap_or_default(),
+            id,
+            args,
+        })
         .collect();
     tracing::debug!(config_count = configs.len(), "read sfdr configuration rows");
     Ok(configs)
@@ -902,11 +1087,19 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
 ///
 /// Several rows sharing an id describe the **same** pipe with several headers to look for, and must
 /// therefore declare the same class; a group that disagrees is an error.
-pub fn get_page_classify_configs(formats_repo_dir: &Path) -> Result<Vec<PageClassifyConfig>, TableError> {
-    let (path, rows): (_, Vec<PageClassifyArgsRow>) = read_table(formats_repo_dir, "page_classify/args.csv")?;
+pub fn get_page_classify_configs(
+    formats_repo_dir: &Path,
+) -> Result<Vec<PageClassifyConfig>, TableError> {
+    let (path, rows): (_, Vec<PageClassifyArgsRow>) =
+        read_table(formats_repo_dir, "page_classify/args.csv")?;
     // The default pipeline here is the **unnamed** one, not `investments`: a page classifier
     // belongs to the format's default pipeline.
-    let ids = identify(&path, &rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), "", FkRelation::OneToMany)?;
+    let ids = identify(
+        &path,
+        &rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        "",
+        FkRelation::OneToMany,
+    )?;
 
     let mut order: Vec<ComputedId> = Vec::new();
     let mut classes: HashMap<ComputedId, String> = HashMap::new();
@@ -938,12 +1131,17 @@ pub fn get_page_classify_configs(formats_repo_dir: &Path) -> Result<Vec<PageClas
     let configs: Vec<PageClassifyConfig> = order
         .into_iter()
         .map(|id| PageClassifyConfig {
-            class: classes.remove(&id).expect("ogni id in `order` è stato inserito in `classes`"),
+            class: classes
+                .remove(&id)
+                .expect("ogni id in `order` è stato inserito in `classes`"),
             header_sets: headers.remove(&id).unwrap_or_default(),
             id,
         })
         .collect();
-    tracing::debug!(config_count = configs.len(), "read page classify configuration rows");
+    tracing::debug!(
+        config_count = configs.len(),
+        "read page classify configuration rows"
+    );
     Ok(configs)
 }
 
@@ -972,11 +1170,23 @@ pub struct FundAssetsArgsRow {
     #[serde(rename = "Net assets")]
     pub net_assets: String,
     /// The window of each amount, `dx, dy, width, height`; absent means the engine's default.
-    #[serde(rename = "Total assets window", default, deserialize_with = "optional_window")]
+    #[serde(
+        rename = "Total assets window",
+        default,
+        deserialize_with = "optional_window"
+    )]
     pub tot_assets_window: Option<ValueWindow>,
-    #[serde(rename = "Total liabilities window", default, deserialize_with = "optional_window")]
+    #[serde(
+        rename = "Total liabilities window",
+        default,
+        deserialize_with = "optional_window"
+    )]
     pub liabilities_window: Option<ValueWindow>,
-    #[serde(rename = "Net assets window", default, deserialize_with = "optional_window")]
+    #[serde(
+        rename = "Net assets window",
+        default,
+        deserialize_with = "optional_window"
+    )]
     pub net_assets_window: Option<ValueWindow>,
     /// The heading of the **number** columns to leave out of the statement.
     #[serde(rename = "Drop set", default, deserialize_with = "optional_text")]
@@ -986,13 +1196,21 @@ pub struct FundAssetsArgsRow {
     #[serde(rename = "Drop fund set", default, deserialize_with = "optional_text")]
     pub drop_fund_set: Option<String>,
     /// Whether the fund columns are grouped by the tabularizer rather than taken one by one.
-    #[serde(rename = "Table condition", default, deserialize_with = "optional_bool")]
+    #[serde(
+        rename = "Table condition",
+        default,
+        deserialize_with = "optional_bool"
+    )]
     pub table_condition: Option<bool>,
     /// How the tabularizer finds the fund columns: the flag expression of the investments table's
     /// column of the same name. Absent means the engine's `BIG_CELL_RULE | USE_RULER_AREA`, which
     /// keeps a wrapped name's last word in its column (MEDIOLANUM-IT24.A); FINECO-EN23@LUX p34 is
     /// set so tight that the big-cell rule fuses three columns, and it writes `USE_RULER_AREA`.
-    #[serde(rename = "Algorithm flags", default, deserialize_with = "optional_text")]
+    #[serde(
+        rename = "Algorithm flags",
+        default,
+        deserialize_with = "optional_text"
+    )]
     pub algorithm_flags: Option<String>,
     /// The expression pulling the date out of the line, with exactly one capturing group.
     #[serde(rename = "Date regex", default, deserialize_with = "optional_text")]
@@ -1000,7 +1218,11 @@ pub struct FundAssetsArgsRow {
     /// One expression to cut out of the fund's name before it becomes its identity. Several cuts go
     /// in one expression, as an alternation, exactly as in the investments table — a footnote mark
     /// at the end of the name (`R16`) among them, `\s*[*]+$`.
-    #[serde(rename = "Remove from fund", default, deserialize_with = "optional_text")]
+    #[serde(
+        rename = "Remove from fund",
+        default,
+        deserialize_with = "optional_text"
+    )]
     pub remove_from_fund: Option<String>,
     /// How an amount is read. See [`super::fund_assets::AmountCast`].
     #[serde(rename = "Amount cast", default, deserialize_with = "optional_named")]
@@ -1022,18 +1244,26 @@ pub struct FundAssetsConfig {
 /// **One row per pipe**, unlike the page-classification table: a statement of net assets is one
 /// thing, and a format that reads two different statements declares two pipelines rather than two
 /// rows of one.
-pub fn get_fund_assets_configs(formats_repo_dir: &Path) -> Result<Vec<FundAssetsConfig>, TableError> {
+pub fn get_fund_assets_configs(
+    formats_repo_dir: &Path,
+) -> Result<Vec<FundAssetsConfig>, TableError> {
     // **An absent file means no rows**, unlike the five tables that came before. Those are part of
     // what a formats repository is, and a missing one is a defect in it; this table arrived after
     // repositories already existed, and a repository whose statements of net assets are all written
     // in Python must not have to grow an empty file to keep loading. It is the same reasoning as the
     // `Remove from fund` column's `serde(default)`, applied to a whole table.
-    let path = formats_repo_dir.join(STRUCTURED_DIR).join("fund_assets/args.csv");
+    let path = formats_repo_dir
+        .join(STRUCTURED_DIR)
+        .join("fund_assets/args.csv");
     if !path.is_file() {
-        tracing::debug!(?path, "no fund assets table in this repository: no structured statement");
+        tracing::debug!(
+            ?path,
+            "no fund assets table in this repository: no structured statement"
+        );
         return Ok(Vec::new());
     }
-    let (path, rows): (_, Vec<FundAssetsArgsRow>) = read_table(formats_repo_dir, "fund_assets/args.csv")?;
+    let (path, rows): (_, Vec<FundAssetsArgsRow>) =
+        read_table(formats_repo_dir, "fund_assets/args.csv")?;
     let ids = identify(
         &path,
         &rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
@@ -1058,17 +1288,52 @@ pub fn get_fund_assets_configs(formats_repo_dir: &Path) -> Result<Vec<FundAssets
         check_line_selection(&path, line, "Drop set", row.drop_set.as_ref())?;
         check_line_selection(&path, line, "Drop fund set", row.drop_fund_set.as_ref())?;
         let tabular = row.table_condition == Some(true);
-        requires(&path, line, "Drop fund set", row.drop_fund_set.is_some(), "with 'Table condition'", tabular)?;
-        requires(&path, line, "Algorithm flags", row.algorithm_flags.is_some(), "with 'Table condition'", tabular)?;
+        requires(
+            &path,
+            line,
+            "Drop fund set",
+            row.drop_fund_set.is_some(),
+            "with 'Table condition'",
+            tabular,
+        )?;
+        requires(
+            &path,
+            line,
+            "Algorithm flags",
+            row.algorithm_flags.is_some(),
+            "with 'Table condition'",
+            tabular,
+        )?;
         let dated = row.date_set.is_some();
-        requires(&path, line, "Date regex", row.date_regex.is_some(), "on a date the 'Date set' reads", dated)?;
-        requires(&path, line, "Date cast", row.date_cast.is_some(), "on a date the 'Date set' reads", dated)?;
+        requires(
+            &path,
+            line,
+            "Date regex",
+            row.date_regex.is_some(),
+            "on a date the 'Date set' reads",
+            dated,
+        )?;
+        requires(
+            &path,
+            line,
+            "Date cast",
+            row.date_cast.is_some(),
+            "on a date the 'Date set' reads",
+            dated,
+        )?;
         if !seen.insert((id.format.clone(), id.pipeline.clone())) {
-            return Err(TableError::DuplicateRow { path: path.clone(), line, id: id.to_string() });
+            return Err(TableError::DuplicateRow {
+                path: path.clone(),
+                line,
+                id: id.to_string(),
+            });
         }
         configs.push(FundAssetsConfig { id, row });
     }
-    tracing::debug!(config_count = configs.len(), "read fund assets configuration rows");
+    tracing::debug!(
+        config_count = configs.len(),
+        "read fund assets configuration rows"
+    );
     Ok(configs)
 }
 
@@ -1078,8 +1343,7 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
-    const ARGS_HEADER: &str =
-        "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
+    const ARGS_HEADER: &str = "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
     const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
@@ -1107,7 +1371,8 @@ mod tests {
         }
 
         fn write(&self, relative: &str, content: &str) -> &Self {
-            fs::write(self.dir.path().join(STRUCTURED_DIR).join(relative), content).expect("write csv");
+            fs::write(self.dir.path().join(STRUCTURED_DIR).join(relative), content)
+                .expect("write csv");
             self
         }
 
@@ -1124,7 +1389,6 @@ mod tests {
             self.dir.path()
         }
     }
-
 
     /// The header of the fund-assets table.
     const ASSETS_HEADER: &str = "ID,Fund set,Currency set,Date set,Total assets,Total liabilities,Net assets,Total assets window,Total liabilities window,Net assets window,Drop set,Drop fund set,Table condition,Date regex,Remove from fund,Amount cast,Date cast\n";
@@ -1143,8 +1407,11 @@ mod tests {
             fs::create_dir_all(&base).expect("sfdr dir");
             fs::write(base.join("args.csv"), format!("{SFDR_HEADER}{args}")).expect("write args");
             if !prefixes.is_empty() {
-                fs::write(base.join("product_prefixes.csv"), format!("{PREFIX_HEADER}{prefixes}"))
-                    .expect("write prefixes");
+                fs::write(
+                    base.join("product_prefixes.csv"),
+                    format!("{PREFIX_HEADER}{prefixes}"),
+                )
+                .expect("write prefixes");
             }
             repo
         }
@@ -1160,7 +1427,10 @@ mod tests {
         fn one_cell_is_a_whole_row() {
             let configs = get_sfdr_configs(repo_with("ANIMA-EN23,ENGLISH,,\n", "").path()).unwrap();
             assert_eq!(configs.len(), 1);
-            assert_eq!(configs[0].id.to_string(), "ANIMA-EN23(sfdr_classification)/0");
+            assert_eq!(
+                configs[0].id.to_string(),
+                "ANIMA-EN23(sfdr_classification)/0"
+            );
             assert_eq!(configs[0].args.language, "ENGLISH");
             assert_eq!(configs[0].args.product_joined, None);
             assert!(configs[0].prefixes.is_empty());
@@ -1171,7 +1441,11 @@ mod tests {
         #[test]
         fn a_second_layout_names_its_own_pipeline() {
             let configs = get_sfdr_configs(
-                repo_with("KAIROS-EN23,ENGLISH,,\nKAIROS-EN23(sfdr_classification_2),ENGLISH,,\n", "").path(),
+                repo_with(
+                    "KAIROS-EN23,ENGLISH,,\nKAIROS-EN23(sfdr_classification_2),ENGLISH,,\n",
+                    "",
+                )
+                .path(),
             )
             .unwrap();
             let names: Vec<String> = configs.iter().map(|c| c.id.pipeline.clone()).collect();
@@ -1185,14 +1459,20 @@ mod tests {
                 "MEDIOLANUM-IT24.A,Nome del prodotto: \nMEDIOLANUM-IT24.A, \\(.*\\)\n",
             );
             let configs = get_sfdr_configs(repo.path()).unwrap();
-            assert_eq!(configs[0].prefixes, ["Nome del prodotto: ", " \\(.*\\)"], "in file order");
+            assert_eq!(
+                configs[0].prefixes,
+                ["Nome del prodotto: ", " \\(.*\\)"],
+                "in file order"
+            );
         }
 
         /// A row with an empty pattern strips nothing, which is a cell left empty by mistake.
         #[test]
         fn a_prefix_row_needs_a_pattern() {
             let repo = repo_with("AMUNDI-EN24,ENGLISH,,\n", "AMUNDI-EN24,\n");
-            let error = get_sfdr_configs(repo.path()).err().expect("an empty pattern");
+            let error = get_sfdr_configs(repo.path())
+                .err()
+                .expect("an empty pattern");
             assert!(error.to_string().contains("needs a 'Pattern'"), "{error}");
         }
 
@@ -1207,16 +1487,28 @@ mod tests {
 
         #[test]
         fn a_prepend_without_a_joined_name_is_refused() {
-            let error = get_sfdr_configs(repo_with("CARNE-EN23,ENGLISH,,SIDERA FUNDS SICAV\n", "").path()).unwrap_err();
-            assert!(error.to_string().contains("'Product prepend' has an effect only"), "{error}");
+            let error =
+                get_sfdr_configs(repo_with("CARNE-EN23,ENGLISH,,SIDERA FUNDS SICAV\n", "").path())
+                    .unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains("'Product prepend' has an effect only"),
+                "{error}"
+            );
         }
 
         #[test]
         fn the_two_optional_cells_are_read() {
-            let configs =
-                get_sfdr_configs(repo_with("CARNE-EN23,ENGLISH,TRUE,SIDERA FUNDS SICAV\n", "").path()).unwrap();
+            let configs = get_sfdr_configs(
+                repo_with("CARNE-EN23,ENGLISH,TRUE,SIDERA FUNDS SICAV\n", "").path(),
+            )
+            .unwrap();
             assert_eq!(configs[0].args.product_joined, Some(true));
-            assert_eq!(configs[0].args.product_prepend.as_deref(), Some("SIDERA FUNDS SICAV"));
+            assert_eq!(
+                configs[0].args.product_prepend.as_deref(),
+                Some("SIDERA FUNDS SICAV")
+            );
         }
 
         #[test]
@@ -1232,7 +1524,8 @@ mod tests {
     mod manco_args {
         use super::*;
 
-        const MANCO_HEADER: &str = "ID,Label set,Where,Take,Reach,Stop set,After,Before,Among,Also investments manager\n";
+        const MANCO_HEADER: &str =
+            "ID,Label set,Where,Take,Reach,Stop set,After,Before,Among,Also investments manager\n";
 
         fn load(row: &str) -> Result<Vec<(ComputedId, MancoArgsRow)>, TableError> {
             let repo = Repo::new();
@@ -1255,7 +1548,12 @@ mod tests {
                 ("A-EN24,arialmt,below,,,,,,most_recent,\n", "Among"),
             ] {
                 let error = load(row).unwrap_err();
-                assert!(error.to_string().contains(&format!("'{column}' has an effect only")), "{column}: {error}");
+                assert!(
+                    error
+                        .to_string()
+                        .contains(&format!("'{column}' has an effect only")),
+                    "{column}: {error}"
+                );
             }
         }
     }
@@ -1322,8 +1620,10 @@ mod tests {
                     self.amount_cast,
                     self.date_cast,
                 ];
-                let quoted: Vec<String> =
-                    cells.iter().map(|cell| format!("\"{}\"", cell.replace('"', "\"\""))).collect();
+                let quoted: Vec<String> = cells
+                    .iter()
+                    .map(|cell| format!("\"{}\"", cell.replace('"', "\"\"")))
+                    .collect();
                 format!("{}\n", quoted.join(","))
             }
         }
@@ -1340,7 +1640,11 @@ mod tests {
         fn a_repository_without_the_table_declares_no_statement() {
             // The table arrived after repositories existed: one whose statements are all written in
             // Python must not have to grow an empty file to keep loading.
-            assert!(get_fund_assets_configs(Repo::new().path()).unwrap().is_empty());
+            assert!(
+                get_fund_assets_configs(Repo::new().path())
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
@@ -1363,15 +1667,22 @@ mod tests {
 
         #[test]
         fn an_explicit_pipeline_in_the_id_is_kept() {
-            let row = Row { id: "A-EN24(fund_assets_begin)", ..Row::minimal() };
+            let row = Row {
+                id: "A-EN24(fund_assets_begin)",
+                ..Row::minimal()
+            };
             let configs = get_fund_assets_configs(repo_with(&[row]).path()).unwrap();
             assert_eq!(configs[0].id.pipeline, "fund_assets_begin");
         }
 
         #[test]
         fn two_rows_of_two_formats_are_two_configs() {
-            let other = Row { id: "B-EN24", ..Row::minimal() };
-            let configs = get_fund_assets_configs(repo_with(&[Row::minimal(), other]).path()).unwrap();
+            let other = Row {
+                id: "B-EN24",
+                ..Row::minimal()
+            };
+            let configs =
+                get_fund_assets_configs(repo_with(&[Row::minimal(), other]).path()).unwrap();
             assert_eq!(configs.len(), 2);
         }
 
@@ -1379,30 +1690,43 @@ mod tests {
         fn one_row_per_pipe_and_not_two() {
             // A statement of net assets is one thing: a format reading two of them declares two
             // pipelines, not two rows of one.
-            let err = get_fund_assets_configs(repo_with(&[Row::minimal(), Row::minimal()]).path()).unwrap_err();
+            let err = get_fund_assets_configs(repo_with(&[Row::minimal(), Row::minimal()]).path())
+                .unwrap_err();
             assert!(matches!(err, TableError::DuplicateRow { .. }), "{err}");
         }
 
         #[test]
         fn a_window_cell_is_four_numbers() {
-            let row = Row { tot_assets_window: "1.2, -0.1, 100, 1.2", ..Row::minimal() };
+            let row = Row {
+                tot_assets_window: "1.2, -0.1, 100, 1.2",
+                ..Row::minimal()
+            };
             let window = get_fund_assets_configs(repo_with(&[row]).path()).unwrap()[0]
                 .row
                 .tot_assets_window
                 .expect("the window cell");
-            assert_eq!((window.dx, window.dy, window.width, window.height), (1.2, -0.1, 100.0, 1.2));
+            assert_eq!(
+                (window.dx, window.dy, window.width, window.height),
+                (1.2, -0.1, 100.0, 1.2)
+            );
         }
 
         #[test]
         fn a_window_cell_of_three_numbers_says_how_many_it_wanted() {
-            let row = Row { liabilities_window: "1.2, -0.1, 100", ..Row::minimal() };
+            let row = Row {
+                liabilities_window: "1.2, -0.1, 100",
+                ..Row::minimal()
+            };
             let err = get_fund_assets_configs(repo_with(&[row]).path()).unwrap_err();
             assert!(err.to_string().contains("four numbers"), "{err}");
         }
 
         #[test]
         fn a_window_cell_that_is_not_numbers_says_which_one() {
-            let row = Row { net_assets_window: "1.2, -0.1, wide, 1.2", ..Row::minimal() };
+            let row = Row {
+                net_assets_window: "1.2, -0.1, wide, 1.2",
+                ..Row::minimal()
+            };
             let err = get_fund_assets_configs(repo_with(&[row]).path()).unwrap_err();
             assert!(err.to_string().contains("wide"), "{err}");
         }
@@ -1422,7 +1746,10 @@ mod tests {
 
         #[test]
         fn a_cast_is_named_from_a_vocabulary_and_a_typo_lists_it() {
-            let row = Row { amount_cast: "flaot", ..Row::minimal() };
+            let row = Row {
+                amount_cast: "flaot",
+                ..Row::minimal()
+            };
             let err = get_fund_assets_configs(repo_with(&[row]).path()).unwrap_err();
             let message = err.to_string();
             for name in ["int", "float", "dash_as_zero", "magnitude"] {
@@ -1439,16 +1766,29 @@ mod tests {
                 "float + magnitude",
                 "int + dash_as_zero + magnitude",
             ] {
-                let row = Row { amount_cast: name, ..Row::minimal() };
-                assert!(get_fund_assets_configs(repo_with(&[row]).path()).is_ok(), "{name}");
+                let row = Row {
+                    amount_cast: name,
+                    ..Row::minimal()
+                };
+                assert!(
+                    get_fund_assets_configs(repo_with(&[row]).path()).is_ok(),
+                    "{name}"
+                );
             }
         }
 
         #[test]
         fn each_date_cast_name_is_read() {
             for name in ["numeric", "en_month", "it_month", "en_month_first"] {
-                let row = Row { date_cast: name, date_set: "ArialMT", ..Row::minimal() };
-                assert!(get_fund_assets_configs(repo_with(&[row]).path()).is_ok(), "{name}");
+                let row = Row {
+                    date_cast: name,
+                    date_set: "ArialMT",
+                    ..Row::minimal()
+                };
+                assert!(
+                    get_fund_assets_configs(repo_with(&[row]).path()).is_ok(),
+                    "{name}"
+                );
             }
         }
 
@@ -1457,14 +1797,41 @@ mod tests {
         #[test]
         fn a_dependent_cell_without_the_cell_it_refines_is_refused() {
             for (column, row) in [
-                ("Drop fund set", Row { drop_fund_set: "ArialMT", ..Row::minimal() }),
-                ("Date regex", Row { date_regex: "([0-9]+)", ..Row::minimal() }),
-                ("Date cast", Row { date_cast: "en_month", ..Row::minimal() }),
+                (
+                    "Drop fund set",
+                    Row {
+                        drop_fund_set: "ArialMT",
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Date regex",
+                    Row {
+                        date_regex: "([0-9]+)",
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Date cast",
+                    Row {
+                        date_cast: "en_month",
+                        ..Row::minimal()
+                    },
+                ),
             ] {
                 let error = get_fund_assets_configs(repo_with(&[row]).path()).unwrap_err();
-                assert!(error.to_string().contains(&format!("'{column}' has an effect only")), "{column}: {error}");
+                assert!(
+                    error
+                        .to_string()
+                        .contains(&format!("'{column}' has an effect only")),
+                    "{column}: {error}"
+                );
             }
-            let with_both = Row { drop_fund_set: "ArialMT", table_condition: "TRUE", ..Row::minimal() };
+            let with_both = Row {
+                drop_fund_set: "ArialMT",
+                table_condition: "TRUE",
+                ..Row::minimal()
+            };
             assert!(get_fund_assets_configs(repo_with(&[with_both]).path()).is_ok());
         }
 
@@ -1477,19 +1844,40 @@ mod tests {
             let load = |row: &str| {
                 let repo = Repo::new();
                 repo.write_fund_assets(&format!("{header}{row}"));
-                (get_fund_assets_configs(repo.path()), crate::formats_repo::structured::fund_assets::get_pipelines(repo.path(), "A-EN24").map(|p| p.len()))
+                (
+                    get_fund_assets_configs(repo.path()),
+                    crate::formats_repo::structured::fund_assets::get_pipelines(
+                        repo.path(),
+                        "A-EN24",
+                    )
+                    .map(|p| p.len()),
+                )
             };
-            let (configs, pipelines) = load("A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,TRUE,USE_RULER_AREA\n");
-            assert_eq!(configs.unwrap()[0].row.algorithm_flags.as_deref(), Some("USE_RULER_AREA"));
+            let (configs, pipelines) = load(
+                "A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,TRUE,USE_RULER_AREA\n",
+            );
+            assert_eq!(
+                configs.unwrap()[0].row.algorithm_flags.as_deref(),
+                Some("USE_RULER_AREA")
+            );
             assert_eq!(pipelines.unwrap(), 1);
 
-            let (_, pipelines) = load("A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,TRUE,USE_RULER_ARE\n");
+            let (_, pipelines) = load(
+                "A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,TRUE,USE_RULER_ARE\n",
+            );
             let error = pipelines.unwrap_err();
             assert!(error.to_string().contains("USE_RULER_ARE"), "{error}");
 
-            let (configs, _) = load("A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,,USE_RULER_AREA\n");
+            let (configs, _) = load(
+                "A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,,USE_RULER_AREA\n",
+            );
             let error = configs.unwrap_err();
-            assert!(error.to_string().contains("'Algorithm flags' has an effect only"), "{error}");
+            assert!(
+                error
+                    .to_string()
+                    .contains("'Algorithm flags' has an effect only"),
+                "{error}"
+            );
         }
 
         /// The three columns that belonged to pairing by position are gone: the table pairs by
@@ -1498,7 +1886,9 @@ mod tests {
         fn the_columns_of_pairing_by_position_are_refused() {
             for column in ["Pair by abscissa", "Value step", "Values in one line"] {
                 let repo = Repo::new();
-                repo.write_fund_assets(&format!("ID,Fund set,Total assets,Total liabilities,Net assets,{column}\n"));
+                repo.write_fund_assets(&format!(
+                    "ID,Fund set,Total assets,Total liabilities,Net assets,{column}\n"
+                ));
                 let error = get_fund_assets_configs(repo.path()).unwrap_err();
                 assert!(error.to_string().contains(column), "{column}: {error}");
             }
@@ -1508,14 +1898,62 @@ mod tests {
         fn every_selection_cell_is_validated_and_the_error_names_the_column() {
             let broken = "???";
             for (column, row) in [
-                ("Fund set", Row { fund_set: broken, ..Row::minimal() }),
-                ("Currency set", Row { currency_set: broken, ..Row::minimal() }),
-                ("Date set", Row { date_set: broken, ..Row::minimal() }),
-                ("Total assets", Row { tot_assets: broken, ..Row::minimal() }),
-                ("Total liabilities", Row { liabilities: broken, ..Row::minimal() }),
-                ("Net assets", Row { net_assets: broken, ..Row::minimal() }),
-                ("Drop set", Row { drop_set: broken, ..Row::minimal() }),
-                ("Drop fund set", Row { drop_fund_set: broken, ..Row::minimal() }),
+                (
+                    "Fund set",
+                    Row {
+                        fund_set: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Currency set",
+                    Row {
+                        currency_set: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Date set",
+                    Row {
+                        date_set: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Total assets",
+                    Row {
+                        tot_assets: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Total liabilities",
+                    Row {
+                        liabilities: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Net assets",
+                    Row {
+                        net_assets: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Drop set",
+                    Row {
+                        drop_set: broken,
+                        ..Row::minimal()
+                    },
+                ),
+                (
+                    "Drop fund set",
+                    Row {
+                        drop_fund_set: broken,
+                        ..Row::minimal()
+                    },
+                ),
             ] {
                 let err = get_fund_assets_configs(repo_with(&[row]).path()).unwrap_err();
                 assert!(err.to_string().contains(column), "{column}: {err}");
@@ -1530,13 +1968,21 @@ mod tests {
                 fund_set: r#"((:1000000)(:<frutiger-black "STATEMENT OF NET ASSETS AS AT">))"#,
                 ..Row::minimal()
             };
-            assert_eq!(get_fund_assets_configs(repo_with(&[row]).path()).unwrap().len(), 1);
+            assert_eq!(
+                get_fund_assets_configs(repo_with(&[row]).path())
+                    .unwrap()
+                    .len(),
+                1
+            );
         }
 
         #[test]
         fn the_boolean_cells_accept_the_spreadsheet_spelling() {
             for (cell, expected) in [("TRUE", Some(true)), ("false", Some(false)), ("", None)] {
-                let row = Row { table_condition: cell, ..Row::minimal() };
+                let row = Row {
+                    table_condition: cell,
+                    ..Row::minimal()
+                };
                 let read = &get_fund_assets_configs(repo_with(&[row]).path()).unwrap()[0].row;
                 assert_eq!(read.table_condition, expected, "{cell:?}");
             }
@@ -1557,21 +2003,33 @@ mod tests {
             let configs = get_investments_configs(repo.path()).unwrap();
             assert_eq!(
                 configs.iter().map(|c| c.id.to_string()).collect::<Vec<_>>(),
-                vec!["A-EN24(investments)/0".to_string(), "B-EN24(investments)/0".to_string()]
+                vec![
+                    "A-EN24(investments)/0".to_string(),
+                    "B-EN24(investments)/0".to_string()
+                ]
             );
         }
 
         #[test]
         fn the_default_pipeline_of_this_table_is_investments() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            assert_eq!(get_investments_configs(repo.path()).unwrap()[0].id.pipeline, "investments");
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"),
+            );
+            assert_eq!(
+                get_investments_configs(repo.path()).unwrap()[0].id.pipeline,
+                "investments"
+            );
         }
 
         #[test]
         fn two_rows_of_the_same_format_are_two_pipes_of_the_same_pipeline() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\nA-EN24,,,,2,,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\nA-EN24,,,,2,,,,\n"),
+            );
             let configs = get_investments_configs(repo.path()).unwrap();
             assert_eq!(configs[0].id.index, 0);
             assert_eq!(configs[1].id.index, 1);
@@ -1580,7 +2038,10 @@ mod tests {
         #[test]
         fn an_empty_numeric_cell_becomes_none() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"),
+            );
             let config = &get_investments_configs(repo.path()).unwrap()[0];
             assert_eq!(config.args.market_value, Some(1));
             assert_eq!(config.args.quantity, None);
@@ -1589,30 +2050,53 @@ mod tests {
         #[test]
         fn a_negative_column_position_is_accepted() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,-1,2,,\n"));
-            assert_eq!(get_investments_configs(repo.path()).unwrap()[0].args.quantity, Some(-1));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,1,-1,2,,\n"),
+            );
+            assert_eq!(
+                get_investments_configs(repo.path()).unwrap()[0]
+                    .args
+                    .quantity,
+                Some(-1)
+            );
         }
 
         #[test]
         fn a_non_numeric_cell_reports_its_line() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\nB-EN24,,,,x,,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\nB-EN24,,,,x,,,,\n"),
+            );
             let err = get_investments_configs(repo.path()).unwrap_err();
-            assert!(matches!(err, TableError::MalformedRow { line: 2, .. }), "{err}");
+            assert!(
+                matches!(err, TableError::MalformedRow { line: 2, .. }),
+                "{err}"
+            );
         }
 
         #[test]
         fn an_id_carrying_an_index_is_rejected_by_this_table() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24(investments)/0,,,,1,,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24(investments)/0,,,,1,,,,\n"),
+            );
             let err = get_investments_configs(repo.path()).unwrap_err();
-            assert!(matches!(err, TableError::InvalidId { line: 1, .. }), "{err}");
+            assert!(
+                matches!(err, TableError::InvalidId { line: 1, .. }),
+                "{err}"
+            );
         }
 
         #[test]
         fn a_malformed_line_selection_names_the_column_and_the_line() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,ArialMT ???,1,,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,ArialMT ???,1,,,,\n"),
+            );
             let err = get_investments_configs(repo.path()).unwrap_err();
             let TableError::InvalidLineSelection { line, column, .. } = err else {
                 panic!("expected InvalidLineSelection, got {err}")
@@ -1641,13 +2125,25 @@ mod tests {
         #[test]
         fn a_missing_file_is_reported_with_its_path() {
             let repo = Repo::new();
-            fs::remove_file(repo.path().join(STRUCTURED_DIR).join("investments/args.csv")).unwrap();
-            assert!(matches!(get_investments_configs(repo.path()), Err(TableError::MissingCsv(_))));
+            fs::remove_file(
+                repo.path()
+                    .join(STRUCTURED_DIR)
+                    .join("investments/args.csv"),
+            )
+            .unwrap();
+            assert!(matches!(
+                get_investments_configs(repo.path()),
+                Err(TableError::MissingCsv(_))
+            ));
         }
 
         #[test]
         fn an_empty_table_declares_no_pipe() {
-            assert!(get_investments_configs(Repo::new().path()).unwrap().is_empty());
+            assert!(
+                get_investments_configs(Repo::new().path())
+                    .unwrap()
+                    .is_empty()
+            );
         }
     }
 
@@ -1657,14 +2153,20 @@ mod tests {
 
         fn with_one_pipe() -> Repo {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"),
+            );
             repo
         }
 
         #[test]
         fn additional_args_join_onto_the_matching_pipe() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,FALSE,,\n"));
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER}A-EN24,,,,TRUE,FALSE,,\n"),
+            );
             let config = &get_investments_configs(repo.path()).unwrap()[0];
             let additional = config.additional.as_ref().unwrap();
             assert_eq!(additional.interpret_quantity_as_float, Some(true));
@@ -1675,7 +2177,11 @@ mod tests {
         #[test]
         fn a_pipe_without_additional_args_simply_has_none() {
             let repo = with_one_pipe();
-            assert!(get_investments_configs(repo.path()).unwrap()[0].additional.is_none());
+            assert!(
+                get_investments_configs(repo.path()).unwrap()[0]
+                    .additional
+                    .is_none()
+            );
         }
 
         #[test]
@@ -1685,15 +2191,24 @@ mod tests {
                 "investments/additional_args.csv",
                 &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,\n"),
             );
-            assert!(get_investments_configs(repo.path()).unwrap()[0].additional.is_some());
+            assert!(
+                get_investments_configs(repo.path()).unwrap()[0]
+                    .additional
+                    .is_some()
+            );
         }
 
         #[test]
         fn a_secondary_row_matching_no_pipe_is_rejected_with_its_line() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,,TRUE,,,\n"));
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER}GHOST-EN24,,,,TRUE,,,\n"),
+            );
             let err = get_investments_configs(repo.path()).unwrap_err();
-            let TableError::UnmatchedRow { line, id, .. } = err else { panic!("expected UnmatchedRow, got {err}") };
+            let TableError::UnmatchedRow { line, id, .. } = err else {
+                panic!("expected UnmatchedRow, got {err}")
+            };
             assert_eq!((line, id.as_str()), (1, "GHOST-EN24(investments)/0"));
         }
 
@@ -1705,7 +2220,10 @@ mod tests {
                 &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,\nA-EN24(investments)/0,,,,FALSE,,,\n"),
             );
             let err = get_investments_configs(repo.path()).unwrap_err();
-            assert!(matches!(err, TableError::DuplicateRow { line: 2, .. }), "{err}");
+            assert!(
+                matches!(err, TableError::DuplicateRow { line: 2, .. }),
+                "{err}"
+            );
         }
 
         #[test]
@@ -1716,29 +2234,50 @@ mod tests {
                 &format!("{DESEL_HEADER}A-EN24,\"Arial \"\"FIRST\"\"\"\nA-EN24,\"Arial \"\"SECOND\"\"\"\n"),
             );
             let config = &get_investments_configs(repo.path()).unwrap()[0];
-            assert_eq!(config.deselection_sets, vec!["Arial \"FIRST\"".to_string(), "Arial \"SECOND\"".to_string()]);
+            assert_eq!(
+                config.deselection_sets,
+                vec![
+                    "Arial \"FIRST\"".to_string(),
+                    "Arial \"SECOND\"".to_string()
+                ]
+            );
         }
 
         #[test]
         fn several_deselection_rows_for_one_pipe_are_not_a_duplicate() {
             // The relation is one-to-many: several rows per pipe are the norm, not an error.
             let repo = with_one_pipe();
-            repo.write("investments/deselection_lists.csv", &format!("{DESEL_HEADER}A-EN24,\nA-EN24,\n"));
+            repo.write(
+                "investments/deselection_lists.csv",
+                &format!("{DESEL_HEADER}A-EN24,\nA-EN24,\n"),
+            );
             assert!(get_investments_configs(repo.path()).is_ok());
         }
 
         #[test]
         fn an_unmatched_deselection_row_is_rejected() {
             let repo = with_one_pipe();
-            repo.write("investments/deselection_lists.csv", &format!("{DESEL_HEADER}GHOST-EN24,\n"));
-            assert!(matches!(get_investments_configs(repo.path()), Err(TableError::UnmatchedRow { .. })));
+            repo.write(
+                "investments/deselection_lists.csv",
+                &format!("{DESEL_HEADER}GHOST-EN24,\n"),
+            );
+            assert!(matches!(
+                get_investments_configs(repo.path()),
+                Err(TableError::UnmatchedRow { .. })
+            ));
         }
 
         #[test]
         fn a_malformed_deselection_selection_is_rejected() {
             let repo = with_one_pipe();
-            repo.write("investments/deselection_lists.csv", &format!("{DESEL_HEADER}A-EN24,???\n"));
-            assert!(matches!(get_investments_configs(repo.path()), Err(TableError::InvalidLineSelection { .. })));
+            repo.write(
+                "investments/deselection_lists.csv",
+                &format!("{DESEL_HEADER}A-EN24,???\n"),
+            );
+            assert!(matches!(
+                get_investments_configs(repo.path()),
+                Err(TableError::InvalidLineSelection { .. })
+            ));
         }
     }
 
@@ -1747,10 +2286,16 @@ mod tests {
     #[test]
     fn an_unknown_column_is_refused_even_in_a_file_with_no_rows() {
         let repo = Repo::new();
-        repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+        repo.write(
+            "investments/args.csv",
+            &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"),
+        );
         repo.write("investments/additional_args.csv", "ID,Note marks\n");
         let error = get_investments_configs(repo.path()).unwrap_err();
-        assert!(error.to_string().contains("unknown column 'Note marks'"), "{error}");
+        assert!(
+            error.to_string().contains("unknown column 'Note marks'"),
+            "{error}"
+        );
     }
 
     mod partial_pipes {
@@ -1759,7 +2304,10 @@ mod tests {
         fn repo_with(args_row: &str, partial_row: &str) -> Repo {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}{args_row}"));
-            repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}{partial_row}"));
+            repo.write(
+                "investments/partial_pipes.csv",
+                &format!("{PARTIAL_HEADER}{partial_row}"),
+            );
             repo
         }
 
@@ -1767,14 +2315,22 @@ mod tests {
         fn every_segment_is_wanted_when_no_row_declares_otherwise() {
             let repo = repo_with("A-EN24,,,,1,,,,\n", "");
             let config = &get_investments_configs(repo.path()).unwrap()[0];
-            assert!(config.wants_pdf_extract() && config.wants_text_filter() && config.wants_deserialize());
+            assert!(
+                config.wants_pdf_extract()
+                    && config.wants_text_filter()
+                    && config.wants_deserialize()
+            );
         }
 
         #[test]
         fn an_empty_cell_still_means_wanted() {
             let repo = repo_with("A-EN24,,,,1,,,,\n", "A-EN24,,,\n");
             let config = &get_investments_configs(repo.path()).unwrap()[0];
-            assert!(config.wants_pdf_extract() && config.wants_text_filter() && config.wants_deserialize());
+            assert!(
+                config.wants_pdf_extract()
+                    && config.wants_text_filter()
+                    && config.wants_deserialize()
+            );
         }
 
         #[test]
@@ -1789,7 +2345,10 @@ mod tests {
         fn a_disabled_segment_carrying_its_configuration_is_a_contradiction() {
             let repo = repo_with("A-EN24,,,ArialMT,1,,,,\n", "A-EN24,FALSE,TRUE,TRUE\n");
             let err = get_investments_configs(repo.path()).unwrap_err();
-            let TableError::DisabledSegmentConfigured { segment, column, .. } = err else {
+            let TableError::DisabledSegmentConfigured {
+                segment, column, ..
+            } = err
+            else {
                 panic!("expected DisabledSegmentConfigured, got {err}")
             };
             assert_eq!((segment, column), ("pdf_extract", "Body set"));
@@ -1800,7 +2359,14 @@ mod tests {
             let repo = repo_with("A-EN24,,,,1,,,,\n", "A-EN24,TRUE,FALSE,TRUE\n");
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(
-                matches!(err, TableError::DisabledSegmentConfigured { segment: "text_filter", column: "Market value", .. }),
+                matches!(
+                    err,
+                    TableError::DisabledSegmentConfigured {
+                        segment: "text_filter",
+                        column: "Market value",
+                        ..
+                    }
+                ),
                 "{err}"
             );
         }
@@ -1808,12 +2374,27 @@ mod tests {
         #[test]
         fn a_disabled_deserialize_may_not_carry_its_interpretation_flags() {
             let repo = Repo::new();
-            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,,,,,\n"));
-            repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,TRUE,TRUE,FALSE\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,,,\n"));
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,,,,,,,,\n"),
+            );
+            repo.write(
+                "investments/partial_pipes.csv",
+                &format!("{PARTIAL_HEADER}A-EN24,TRUE,TRUE,FALSE\n"),
+            );
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER}A-EN24,,,,TRUE,,,\n"),
+            );
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(
-                matches!(err, TableError::DisabledSegmentConfigured { segment: "deserialize", .. }),
+                matches!(
+                    err,
+                    TableError::DisabledSegmentConfigured {
+                        segment: "deserialize",
+                        ..
+                    }
+                ),
                 "{err}"
             );
         }
@@ -1827,10 +2408,19 @@ mod tests {
         #[test]
         fn a_deselection_row_counts_as_pdf_extract_configuration() {
             let repo = repo_with("A-EN24,,,,1,,,,\n", "A-EN24,FALSE,TRUE,TRUE\n");
-            repo.write("investments/deselection_lists.csv", &format!("{DESEL_HEADER}A-EN24,ArialMT\n"));
+            repo.write(
+                "investments/deselection_lists.csv",
+                &format!("{DESEL_HEADER}A-EN24,ArialMT\n"),
+            );
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(
-                matches!(err, TableError::DisabledSegmentConfigured { column: "Deselection set", .. }),
+                matches!(
+                    err,
+                    TableError::DisabledSegmentConfigured {
+                        column: "Deselection set",
+                        ..
+                    }
+                ),
                 "{err}"
             );
         }
@@ -1838,7 +2428,10 @@ mod tests {
         #[test]
         fn an_unparsable_boolean_cell_is_rejected() {
             let repo = repo_with("A-EN24,,,,1,,,,\n", "A-EN24,maybe,,\n");
-            assert!(matches!(get_investments_configs(repo.path()), Err(TableError::MalformedRow { line: 1, .. })));
+            assert!(matches!(
+                get_investments_configs(repo.path()),
+                Err(TableError::MalformedRow { line: 1, .. })
+            ));
         }
 
         #[test]
@@ -1875,7 +2468,10 @@ mod tests {
         #[test]
         fn the_default_pipeline_of_this_table_is_the_unnamed_one() {
             let repo = Repo::new();
-            repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,investments\n"));
+            repo.write(
+                "page_classify/args.csv",
+                &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,investments\n"),
+            );
             let config = &get_page_classify_configs(repo.path()).unwrap()[0];
             assert_eq!(config.id.to_string(), "A-EN24()/0");
         }
@@ -1883,7 +2479,10 @@ mod tests {
         #[test]
         fn rows_without_an_index_all_belong_to_pipe_zero() {
             let repo = Repo::new();
-            repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24,,inv\nA-EN24,,inv\n"));
+            repo.write(
+                "page_classify/args.csv",
+                &format!("{PAGE_CLASSIFY_HEADER}A-EN24,,inv\nA-EN24,,inv\n"),
+            );
             let configs = get_page_classify_configs(repo.path()).unwrap();
             assert_eq!(configs.len(), 1);
             assert_eq!(configs[0].id.index, 0);
@@ -1892,9 +2491,15 @@ mod tests {
         #[test]
         fn two_rows_of_one_pipe_declaring_different_classes_are_rejected() {
             let repo = Repo::new();
-            repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\nA-EN24/0,,manco\n"));
+            repo.write(
+                "page_classify/args.csv",
+                &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\nA-EN24/0,,manco\n"),
+            );
             let err = get_page_classify_configs(repo.path()).unwrap_err();
-            let TableError::ConflictingClass { line, first, found, .. } = err else {
+            let TableError::ConflictingClass {
+                line, first, found, ..
+            } = err
+            else {
                 panic!("expected ConflictingClass, got {err}")
             };
             assert_eq!((line, first.as_str(), found.as_str()), (2, "inv", "manco"));
@@ -1903,7 +2508,10 @@ mod tests {
         #[test]
         fn different_pipes_may_declare_different_classes() {
             let repo = Repo::new();
-            repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\nA-EN24/1,,manco\n"));
+            repo.write(
+                "page_classify/args.csv",
+                &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\nA-EN24/1,,manco\n"),
+            );
             assert_eq!(get_page_classify_configs(repo.path()).unwrap().len(), 2);
         }
 
@@ -1912,7 +2520,10 @@ mod tests {
             // A classifier with no headers matches every page: rare but legal, and it must be
             // built.
             let repo = Repo::new();
-            repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\n"));
+            repo.write(
+                "page_classify/args.csv",
+                &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\n"),
+            );
             let configs = get_page_classify_configs(repo.path()).unwrap();
             assert!(configs[0].header_sets.is_empty());
         }
@@ -1920,7 +2531,10 @@ mod tests {
         #[test]
         fn a_malformed_header_set_names_the_column_and_the_line() {
             let repo = Repo::new();
-            repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\nA-EN24/0,???,inv\n"));
+            repo.write(
+                "page_classify/args.csv",
+                &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\nA-EN24/0,???,inv\n"),
+            );
             let err = get_page_classify_configs(repo.path()).unwrap_err();
             let TableError::InvalidLineSelection { line, column, .. } = err else {
                 panic!("expected InvalidLineSelection, got {err}")
@@ -1937,21 +2551,36 @@ mod tests {
             );
             let configs = get_page_classify_configs(repo.path()).unwrap();
             assert_eq!(
-                configs.iter().map(|c| c.id.format.as_str()).collect::<Vec<_>>(),
+                configs
+                    .iter()
+                    .map(|c| c.id.format.as_str())
+                    .collect::<Vec<_>>(),
                 vec!["B-EN24", "A-EN24"]
             );
         }
 
         #[test]
         fn an_empty_table_declares_no_pipe() {
-            assert!(get_page_classify_configs(Repo::new().path()).unwrap().is_empty());
+            assert!(
+                get_page_classify_configs(Repo::new().path())
+                    .unwrap()
+                    .is_empty()
+            );
         }
 
         #[test]
         fn a_missing_file_is_reported_with_its_path() {
             let repo = Repo::new();
-            fs::remove_file(repo.path().join(STRUCTURED_DIR).join("page_classify/args.csv")).unwrap();
-            assert!(matches!(get_page_classify_configs(repo.path()), Err(TableError::MissingCsv(_))));
+            fs::remove_file(
+                repo.path()
+                    .join(STRUCTURED_DIR)
+                    .join("page_classify/args.csv"),
+            )
+            .unwrap();
+            assert!(matches!(
+                get_page_classify_configs(repo.path()),
+                Err(TableError::MissingCsv(_))
+            ));
         }
     }
 }

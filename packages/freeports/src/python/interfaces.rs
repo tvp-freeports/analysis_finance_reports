@@ -85,12 +85,28 @@ block_type_catalog!(PyOneTextBlockType, "OneTextBlockType", [RELEVANT_BLOCK]);
 block_type_catalog!(
     PyResultStandardExtraction,
     "ResultStandardExtraction",
-    [FUND_NAME, CURRENCY_STATEMENT, TABLE_BODY, MANAGEMENT_COMPANY, INVESTMENTS_MANAGER, SFDR_ARTICLE, PAGE_CLASS]
+    [
+        FUND_NAME,
+        CURRENCY_STATEMENT,
+        TABLE_BODY,
+        MANAGEMENT_COMPANY,
+        INVESTMENTS_MANAGER,
+        SFDR_ARTICLE,
+        PAGE_CLASS
+    ]
 );
 block_type_catalog!(
     PyResultStandardFiltering,
     "ResultStandardFiltering",
-    [BOND_TARGET, EQUITY_TARGET, FUND, MANAGEMENT_COMPANY, INVESTMENTS_MANAGER, SFDR_ARTICLE, PAGE_CLASS]
+    [
+        BOND_TARGET,
+        EQUITY_TARGET,
+        FUND,
+        MANAGEMENT_COMPANY,
+        INVESTMENTS_MANAGER,
+        SFDR_ARTICLE,
+        PAGE_CLASS
+    ]
 );
 
 /// The funds passed to a standard block builder: an iterable of fund identities.
@@ -133,14 +149,24 @@ macro_rules! standard_txt_blk {
                 PyTextBlock::from_native(py, &block)
             }
 
-            fn from_content(&self, py: Python<'_>, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
+            fn from_content(
+                &self,
+                py: Python<'_>,
+                name: &str,
+                funds: &Bound<'_, PyAny>,
+            ) -> PyResult<PyTextBlock> {
                 let funds = match_funds(funds)?;
                 let block = $from_content(name, &funds);
                 PyTextBlock::from_native(py, &block)
             }
 
             /// A historical alias of the content constructor, kept because it was exposed.
-            fn from_name(&self, py: Python<'_>, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
+            fn from_name(
+                &self,
+                py: Python<'_>,
+                name: &str,
+                funds: &Bound<'_, PyAny>,
+            ) -> PyResult<PyTextBlock> {
                 self.from_content(py, name, funds)
             }
         }
@@ -162,7 +188,11 @@ standard_txt_blk!(
 
 /// The fund block: unlike the other two it carries no set of managed funds, so it does not go
 /// through the macro above.
-#[pyclass(name = "StandardFundTextBlock", module = "freeports.interfaces", frozen)]
+#[pyclass(
+    name = "StandardFundTextBlock",
+    module = "freeports.interfaces",
+    frozen
+)]
 pub struct PyStandardFundTextBlock;
 
 // See the note on the self convention in the macro above.
@@ -185,10 +215,11 @@ impl PyStandardFundTextBlock {
     /// From a fund identity, taking its name: the form author modules use when the fund comes from
     /// matching against the target companies rather than from a PDF block.
     fn from_matched_fund(&self, py: Python<'_>, fund: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
-        let name: String = match fund.extract::<PyRef<'_, crate::python::utils::text_filter::PyMatchFund>>() {
-            Ok(matched) => matched.inner().name().to_string(),
-            Err(_) => fund.getattr("name")?.extract()?,
-        };
+        let name: String =
+            match fund.extract::<PyRef<'_, crate::python::utils::text_filter::PyMatchFund>>() {
+                Ok(matched) => matched.inner().name().to_string(),
+                Err(_) => fund.getattr("name")?.extract()?,
+            };
         self.from_content(py, &name)
     }
 }
@@ -211,21 +242,55 @@ pub fn init(pdf_blks: &Bound<'_, PyModule>, text_blks: &Bound<'_, PyModule>) -> 
         "every catalog member must be a standard BlockType"
     );
 
-    attach(pdf_blks, "OnePdfBlockType", PyOnePdfBlockType::MEMBERS, PyOnePdfBlockType)?;
-    attach(pdf_blks, "ResultStandardExtraction", PyResultStandardExtraction::MEMBERS, PyResultStandardExtraction)?;
-    attach(text_blks, "OneTextBlockType", PyOneTextBlockType::MEMBERS, PyOneTextBlockType)?;
-    attach(text_blks, "ResultStandardFiltering", PyResultStandardFiltering::MEMBERS, PyResultStandardFiltering)?;
+    attach(
+        pdf_blks,
+        "OnePdfBlockType",
+        PyOnePdfBlockType::MEMBERS,
+        PyOnePdfBlockType,
+    )?;
+    attach(
+        pdf_blks,
+        "ResultStandardExtraction",
+        PyResultStandardExtraction::MEMBERS,
+        PyResultStandardExtraction,
+    )?;
+    attach(
+        text_blks,
+        "OneTextBlockType",
+        PyOneTextBlockType::MEMBERS,
+        PyOneTextBlockType,
+    )?;
+    attach(
+        text_blks,
+        "ResultStandardFiltering",
+        PyResultStandardFiltering::MEMBERS,
+        PyResultStandardFiltering,
+    )?;
 
     // The three builders are callable objects, not classes; see the macro above.
     let py = text_blks.py();
-    text_blks.setattr("StandardManagmentCompanyTextBlock", Bound::new(py, PyStandardManagmentCompanyTextBlock)?)?;
-    text_blks.setattr("StandardInvestmentsMangerTextBlock", Bound::new(py, PyStandardInvestmentsMangerTextBlock)?)?;
-    text_blks.setattr("StandardFundTextBlock", Bound::new(py, PyStandardFundTextBlock)?)?;
+    text_blks.setattr(
+        "StandardManagmentCompanyTextBlock",
+        Bound::new(py, PyStandardManagmentCompanyTextBlock)?,
+    )?;
+    text_blks.setattr(
+        "StandardInvestmentsMangerTextBlock",
+        Bound::new(py, PyStandardInvestmentsMangerTextBlock)?,
+    )?;
+    text_blks.setattr(
+        "StandardFundTextBlock",
+        Bound::new(py, PyStandardFundTextBlock)?,
+    )?;
     Ok(())
 }
 
 /// Attaches a catalogue's members to its own type object.
-fn attach<T, F>(module: &Bound<'_, PyModule>, py_name: &str, members: &[&'static str], make: F) -> PyResult<()>
+fn attach<T, F>(
+    module: &Bound<'_, PyModule>,
+    py_name: &str,
+    members: &[&'static str],
+    make: F,
+) -> PyResult<()>
 where
     T: for<'py> IntoPyObject<'py>,
     F: Fn(&'static str) -> T,

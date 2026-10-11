@@ -47,7 +47,11 @@ macro_rules! enum_shim {
             }
 
             fn by_name(name: &str) -> Option<$shim> {
-                $variants.iter().copied().find(|v| Self::variant_name(*v) == name).map($shim)
+                $variants
+                    .iter()
+                    .copied()
+                    .find(|v| Self::variant_name(*v) == name)
+                    .map($shim)
             }
         }
 
@@ -87,7 +91,11 @@ macro_rules! enum_shim {
 
             #[classattr]
             fn __members__() -> std::collections::BTreeMap<&'static str, $shim> {
-                $variants.iter().copied().map(|v| (Self::variant_name(v), $shim(v))).collect()
+                $variants
+                    .iter()
+                    .copied()
+                    .map(|v| (Self::variant_name(v), $shim(v)))
+                    .collect()
             }
         }
     };
@@ -99,15 +107,27 @@ const SFDR_VARIANTS: [SfdrArticle; 3] = [SfdrArticle::Art6, SfdrArticle::Art8, S
 const INSTRUMENT_VARIANTS: [FinancialInstrument; 2] =
     [FinancialInstrument::EQUITY, FinancialInstrument::BOND];
 
-enum_shim!(PyCurrency, Currency, "Currency", Currency::variants(), |v: Currency| v.code());
+enum_shim!(
+    PyCurrency,
+    Currency,
+    "Currency",
+    Currency::variants(),
+    |v: Currency| v.code()
+);
 // The names visible from Python are the underscored ones, not the Rust identifiers: they are what
 // author code writes and what already-recorded fixtures name the variant by. The crate's own naming
 // convention is a separate matter from the public name.
-enum_shim!(PySfdrArticle, SfdrArticle, "SfdrArticle", SFDR_VARIANTS, |v: SfdrArticle| match v {
-    SfdrArticle::Art6 => "ART_6",
-    SfdrArticle::Art8 => "ART_8",
-    SfdrArticle::Art9 => "ART_9",
-});
+enum_shim!(
+    PySfdrArticle,
+    SfdrArticle,
+    "SfdrArticle",
+    SFDR_VARIANTS,
+    |v: SfdrArticle| match v {
+        SfdrArticle::Art6 => "ART_6",
+        SfdrArticle::Art8 => "ART_8",
+        SfdrArticle::Art9 => "ART_9",
+    }
+);
 enum_shim!(
     PyFinancialInstrument,
     FinancialInstrument,
@@ -124,7 +144,11 @@ enum_shim!(
 /// Not declarative attributes, because those cannot be generated in variable number: they are
 /// registered on the type after the module is built, which is the only point at which the Python
 /// type object really exists.
-fn attach_variants<T>(module: &Bound<'_, PyModule>, py_name: &str, values: Vec<(&str, T)>) -> PyResult<()>
+fn attach_variants<T>(
+    module: &Bound<'_, PyModule>,
+    py_name: &str,
+    values: Vec<(&str, T)>,
+) -> PyResult<()>
 where
     T: for<'py> IntoPyObject<'py>,
 {
@@ -140,19 +164,30 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
     attach_variants(
         module,
         "Currency",
-        Currency::variants().iter().map(|v| (v.code(), PyCurrency::from(*v))).collect(),
+        Currency::variants()
+            .iter()
+            .map(|v| (v.code(), PyCurrency::from(*v)))
+            .collect(),
     )?;
     attach_variants(
         module,
         "SfdrArticle",
-        SFDR_VARIANTS.iter().map(|v| (PySfdrArticle::variant_name(*v), PySfdrArticle::from(*v))).collect(),
+        SFDR_VARIANTS
+            .iter()
+            .map(|v| (PySfdrArticle::variant_name(*v), PySfdrArticle::from(*v)))
+            .collect(),
     )?;
     attach_variants(
         module,
         "FinancialInstrument",
         INSTRUMENT_VARIANTS
             .iter()
-            .map(|v| (PyFinancialInstrument::variant_name(*v), PyFinancialInstrument::from(*v)))
+            .map(|v| {
+                (
+                    PyFinancialInstrument::variant_name(*v),
+                    PyFinancialInstrument::from(*v),
+                )
+            })
             .collect(),
     )?;
     Ok(())

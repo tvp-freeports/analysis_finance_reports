@@ -23,11 +23,11 @@
    
       CollapseAlgorithm
       ColumnConfig
+      LabelledValueTake
+      LabelledValueWhere
       Limits
       PageImage
       PdfLine
-      LabelledValueTake
-      LabelledValueWhere
       PdfLineSelection
       PdfLineSet
       RowConfig

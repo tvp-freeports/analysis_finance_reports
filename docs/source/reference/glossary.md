@@ -13,9 +13,10 @@ job
   repeated `--input` or from the rows of a batch CSV ({doc}`../guides/user/advanced/batch`).
 
 format
-  The recipe for one report layout, named for the issuer and the publication year —
-  `EURIZON-EN23`. A layout is a snapshot, so next year's report from the same issuer is a different
-  format rather than a revision. {doc}`../guides/formats/index`.
+  The recipe for one report layout, named for the issuer, the language and the earliest publication
+  year it reads — `EURIZON-EN23`. The name follows the recipe, not the document: a later report the
+  same recipe still reads keeps the name, and only a report that needs a recipe of its own gets a new
+  one. {doc}`../guides/formats/index`, {doc}`formats/names`.
 
 formats repository
   A repository holding formats, their tests and their validation documents, maintained

@@ -63,7 +63,10 @@ pub enum RecordError {
 }
 
 impl Record {
-    pub fn new(block_type: BlockType, fields: BTreeMap<String, BlockType>) -> Result<Self, RecordError> {
+    pub fn new(
+        block_type: BlockType,
+        fields: BTreeMap<String, BlockType>,
+    ) -> Result<Self, RecordError> {
         if fields.is_empty() {
             return Err(RecordError::NoField);
         }
@@ -81,7 +84,10 @@ impl Record {
     pub fn call(&self, blocks: &[PdfBlock], also: &BTreeMap<String, BlockValue>) -> Vec<PdfBlock> {
         let mut metadata = also.clone();
         for (key, block_type) in &self.fields {
-            let taken: Vec<&PdfBlock> = blocks.iter().filter(|blk| &blk.type_block == block_type).collect();
+            let taken: Vec<&PdfBlock> = blocks
+                .iter()
+                .filter(|blk| &blk.type_block == block_type)
+                .collect();
             let [first, rest @ ..] = taken.as_slice() else {
                 if !metadata.contains_key(key) {
                     tracing::warn!(
@@ -99,13 +105,20 @@ impl Record {
                     taken.len()
                 );
             }
-            metadata.insert(key.clone(), BlockValue::from(as_text(&first.content).as_str()));
+            metadata.insert(
+                key.clone(),
+                BlockValue::from(as_text(&first.content).as_str()),
+            );
         }
         if metadata.is_empty() {
             tracing::warn!("none of the expected blocks is on this page: no statement is read");
             return Vec::new();
         }
-        vec![PdfBlock::new(self.block_type.clone(), metadata, BlockValue::from(""))]
+        vec![PdfBlock::new(
+            self.block_type.clone(),
+            metadata,
+            BlockValue::from(""),
+        )]
     }
 }
 
@@ -120,7 +133,10 @@ pub(crate) fn as_text(value: &BlockValue) -> String {
         BlockValue::Int(found) => found.to_string(),
         BlockValue::Float(found) => found.to_string(),
         other => {
-            tracing::debug!(?other, "a gathered block carries a value that is not text: read as empty");
+            tracing::debug!(
+                ?other,
+                "a gathered block carries a value that is not text: read as empty"
+            );
             String::new()
         }
     }

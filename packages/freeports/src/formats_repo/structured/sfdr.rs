@@ -127,7 +127,9 @@ fn text_filter_input(config: &SfdrConfig) -> InputSfdrAnnexTextFilter {
             config
                 .prefixes
                 .iter()
-                .map(|pattern| PrefixSpec::Pattern { pattern: pattern.clone() })
+                .map(|pattern| PrefixSpec::Pattern {
+                    pattern: pattern.clone(),
+                })
                 .collect(),
         ),
     };
@@ -152,20 +154,32 @@ pub fn get_pipelines(
 
     for config in configs.into_iter().filter(|c| c.id.format == format_name) {
         let id = config.id.to_string();
-        let extract = pdf_extract(&pdf_extract_input(&config))
-            .map_err(|source| StructuredError::SfdrAnnex { id: id.clone(), source })?;
-        let filter = text_filter(&text_filter_input(&config))
-            .map_err(|source| StructuredError::SfdrAnnex { id: id.clone(), source })?;
+        let extract = pdf_extract(&pdf_extract_input(&config)).map_err(|source| {
+            StructuredError::SfdrAnnex {
+                id: id.clone(),
+                source,
+            }
+        })?;
+        let filter = text_filter(&text_filter_input(&config)).map_err(|source| {
+            StructuredError::SfdrAnnex {
+                id: id.clone(),
+                source,
+            }
+        })?;
 
         let name = PipelineName::new(&config.id.pipeline);
-        let pipeline = pipelines.entry(name.clone()).or_insert_with(|| Pipeline::new(name));
+        let pipeline = pipelines
+            .entry(name.clone())
+            .or_insert_with(|| Pipeline::new(name));
         for pipe in extract {
             pipeline.pdf_extract.push(pipe);
         }
         for pipe in filter {
             pipeline.text_filter.push(pipe);
         }
-        pipeline.deserialize.push(Arc::new(DeserializeSfdrArticleStandard));
+        pipeline
+            .deserialize
+            .push(Arc::new(DeserializeSfdrArticleStandard));
     }
 
     tracing::debug!(pipeline_count = pipelines.len(), "built sfdr pipelines");
@@ -174,11 +188,16 @@ pub fn get_pipelines(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::tables::SfdrArgsRow;
+    use super::*;
     use crate::formats_repo::id_format::ComputedId;
 
-    fn config(language: &str, joined: Option<bool>, prepend: Option<&str>, prefixes: &[&str]) -> SfdrConfig {
+    fn config(
+        language: &str,
+        joined: Option<bool>,
+        prepend: Option<&str>,
+        prefixes: &[&str],
+    ) -> SfdrConfig {
         SfdrConfig {
             id: ComputedId {
                 format: "A-FORMAT".to_string(),
@@ -217,7 +236,12 @@ mod tests {
 
         #[test]
         fn the_two_optional_cells_pass_through() {
-            let input = pdf_extract_input(&config("ENGLISH", Some(true), Some("SIDERA FUNDS SICAV"), &[]));
+            let input = pdf_extract_input(&config(
+                "ENGLISH",
+                Some(true),
+                Some("SIDERA FUNDS SICAV"),
+                &[],
+            ));
             assert!(input.product_joined);
             assert_eq!(input.product_prepend, "SIDERA FUNDS SICAV");
         }
@@ -251,15 +275,26 @@ mod tests {
         /// list would strip nothing at all, and every product name would keep its label.
         #[test]
         fn no_prefix_row_is_absent_and_not_an_empty_list() {
-            assert!(text_filter_input(&config("ENGLISH", None, None, &[])).product_prefix.is_none());
+            assert!(
+                text_filter_input(&config("ENGLISH", None, None, &[]))
+                    .product_prefix
+                    .is_none()
+            );
         }
 
         #[test]
         fn each_row_keeps_its_place() {
-            let input = text_filter_input(&config("ITALIAN", None, None, &["Nome del prodotto: ", " \\(.*\\)"]));
+            let input = text_filter_input(&config(
+                "ITALIAN",
+                None,
+                None,
+                &["Nome del prodotto: ", " \\(.*\\)"],
+            ));
             let specs = input.product_prefix.expect("two rows are a list");
             assert_eq!(specs.len(), 2);
-            assert!(matches!(&specs[0], PrefixSpec::Pattern { pattern } if pattern == "Nome del prodotto: "));
+            assert!(
+                matches!(&specs[0], PrefixSpec::Pattern { pattern } if pattern == "Nome del prodotto: ")
+            );
             assert!(matches!(&specs[1], PrefixSpec::Pattern { pattern } if pattern == " \\(.*\\)"));
         }
     }

@@ -64,7 +64,9 @@ pub fn printed_page_number(selection: &PdfLineSelection, lines: &[PdfLine]) -> O
             return Some(number);
         }
     }
-    tracing::debug!("this page carries no printed page number: nothing can be carried over from it");
+    tracing::debug!(
+        "this page carries no printed page number: nothing can be carried over from it"
+    );
     None
 }
 
@@ -80,8 +82,16 @@ pub struct PdfExtractPageNumberStandard {
 }
 
 impl PdfExtractPageNumberStandard {
-    pub fn new(selection: PdfLineSelection, type_block: BlockType, name: impl Into<String>) -> Self {
-        Self { selection, type_block, name: name.into() }
+    pub fn new(
+        selection: PdfLineSelection,
+        type_block: BlockType,
+        name: impl Into<String>,
+    ) -> Self {
+        Self {
+            selection,
+            type_block,
+            name: name.into(),
+        }
     }
 }
 
@@ -116,8 +126,16 @@ pub struct PdfExtractWithPrintedPage {
 }
 
 impl PdfExtractWithPrintedPage {
-    pub fn new(inner: Arc<dyn PdfExtractPipe>, selection: PdfLineSelection, key: impl Into<String>) -> Self {
-        Self { inner, selection, key: key.into() }
+    pub fn new(
+        inner: Arc<dyn PdfExtractPipe>,
+        selection: PdfLineSelection,
+        key: impl Into<String>,
+    ) -> Self {
+        Self {
+            inner,
+            selection,
+            key: key.into(),
+        }
     }
 }
 
@@ -141,7 +159,9 @@ impl PdfExtractPipe for PdfExtractWithPrintedPage {
             return Ok(blocks);
         };
         for block in &mut blocks {
-            block.metadata.insert(self.key.clone(), BlockValue::Int(number));
+            block
+                .metadata
+                .insert(self.key.clone(), BlockValue::Int(number));
         }
         Ok(blocks)
     }
@@ -221,7 +241,10 @@ mod tests {
 
         #[test]
         fn a_page_with_no_number_in_the_foot_has_none() {
-            let page = page(vec![line("UBS (Lux) Equity Fund", (60.0, 790.0, 260.0, 800.0))]);
+            let page = page(vec![line(
+                "UBS (Lux) Equity Fund",
+                (60.0, 790.0, 260.0, 800.0),
+            )]);
             assert_eq!(printed_page_number(&foot(), &page.lines), None);
         }
 
@@ -275,15 +298,26 @@ mod tests {
             assert_eq!(blocks.len(), 1);
             assert_eq!(blocks[0].content.as_str(), Some("14"));
             assert_eq!(blocks[0].type_block, BlockType::new("ASSETS_PAGE"));
-            assert!(blocks[0].metadata.is_empty(), "the number is the content, not a key");
+            assert!(
+                blocks[0].metadata.is_empty(),
+                "the number is the content, not a key"
+            );
         }
 
         /// No block, and no error: a page without a number has nothing to pair, and the
         /// `text_filter` that looks for this block already says so when it is missing.
         #[test]
         fn no_number_is_no_block_and_no_failure() {
-            let page = page(vec![line("UBS (Lux) Equity Fund", (60.0, 790.0, 260.0, 800.0))]);
-            assert!(pipe().extract(&page).expect("no number is not a failure").is_empty());
+            let page = page(vec![line(
+                "UBS (Lux) Equity Fund",
+                (60.0, 790.0, 260.0, 800.0),
+            )]);
+            assert!(
+                pipe()
+                    .extract(&page)
+                    .expect("no number is not a failure")
+                    .is_empty()
+            );
         }
     }
 
@@ -322,7 +356,9 @@ mod tests {
         #[test]
         fn every_block_gains_the_number_and_keeps_what_it_had() {
             let page = page(vec![line("894", (60.0, 812.0, 80.0, 822.0))]);
-            let blocks = decorated(two_blocks()).extract(&page).expect("the pipe reads the page");
+            let blocks = decorated(two_blocks())
+                .extract(&page)
+                .expect("the pipe reads the page");
             assert_eq!(blocks.len(), 2);
             for block in &blocks {
                 assert_eq!(block.metadata.get("page"), Some(&BlockValue::Int(894)));
@@ -333,7 +369,8 @@ mod tests {
         #[test]
         fn the_key_is_the_one_the_entry_names() {
             let page = page(vec![line("894", (60.0, 812.0, 80.0, 822.0))]);
-            let pipe = PdfExtractWithPrintedPage::new(Arc::new(Inner(two_blocks())), foot(), "sheet");
+            let pipe =
+                PdfExtractWithPrintedPage::new(Arc::new(Inner(two_blocks())), foot(), "sheet");
             let blocks = pipe.extract(&page).expect("the pipe reads the page");
             assert_eq!(blocks[0].metadata.get("sheet"), Some(&BlockValue::Int(894)));
             assert_eq!(blocks[0].metadata.get("page"), None);
@@ -344,23 +381,40 @@ mod tests {
         /// key is missing, and the deposit that reads the key already reports it.
         #[test]
         fn a_page_without_a_number_keeps_its_blocks() {
-            let page = page(vec![line("UBS (Lux) Equity Fund", (60.0, 790.0, 260.0, 800.0))]);
-            let blocks = decorated(two_blocks()).extract(&page).expect("the pipe reads the page");
+            let page = page(vec![line(
+                "UBS (Lux) Equity Fund",
+                (60.0, 790.0, 260.0, 800.0),
+            )]);
+            let blocks = decorated(two_blocks())
+                .extract(&page)
+                .expect("the pipe reads the page");
             assert_eq!(blocks.len(), 2);
-            assert!(blocks.iter().all(|block| !block.metadata.contains_key("page")));
+            assert!(
+                blocks
+                    .iter()
+                    .all(|block| !block.metadata.contains_key("page"))
+            );
         }
 
         #[test]
         fn a_pipe_that_produced_nothing_is_left_alone() {
             let page = page(vec![line("894", (60.0, 812.0, 80.0, 822.0))]);
-            assert!(decorated(Vec::new()).extract(&page).expect("nothing to decorate").is_empty());
+            assert!(
+                decorated(Vec::new())
+                    .extract(&page)
+                    .expect("nothing to decorate")
+                    .is_empty()
+            );
         }
 
         /// The log and the error messages keep naming the pipe that reads the page, not the
         /// decorator: what failed is the section, and that is what has to be looked for.
         #[test]
         fn the_name_is_the_inner_pipes() {
-            assert_eq!(PdfExtractPipe::name(&decorated(Vec::new())), "the inner pipe");
+            assert_eq!(
+                PdfExtractPipe::name(&decorated(Vec::new())),
+                "the inner pipe"
+            );
         }
     }
 }

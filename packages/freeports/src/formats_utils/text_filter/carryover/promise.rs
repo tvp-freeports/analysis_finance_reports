@@ -61,14 +61,22 @@ pub enum CarryoverError {
 }
 
 impl Carryover {
-    pub fn new(fields: Vec<String>, fund_key: String, separator: String) -> Result<Self, CarryoverError> {
+    pub fn new(
+        fields: Vec<String>,
+        fund_key: String,
+        separator: String,
+    ) -> Result<Self, CarryoverError> {
         if fields.is_empty() {
             return Err(CarryoverError::NoField);
         }
         if separator.is_empty() {
             return Err(CarryoverError::EmptySeparator);
         }
-        Ok(Self { fields, fund_key, separator })
+        Ok(Self {
+            fields,
+            fund_key,
+            separator,
+        })
     }
 
     pub fn fund_key(&self) -> &str {
@@ -85,7 +93,10 @@ impl Carryover {
 
     /// The first page's `deserialize`: what it leaves to the second.
     pub fn deposit(&self, metadata: &BTreeMap<String, BlockValue>) -> PromiseEntries {
-        let Some(fund) = metadata.get(&self.fund_key).map(super::record::as_text).filter(|f| !f.is_empty())
+        let Some(fund) = metadata
+            .get(&self.fund_key)
+            .map(super::record::as_text)
+            .filter(|f| !f.is_empty())
         else {
             tracing::error!(
                 "a block with no '{}' cannot leave anything to the next page: it is dropped",
@@ -111,12 +122,19 @@ impl Carryover {
     ///
     /// Keys that do not begin with one of **this** carryover's fields belong to somebody else — a
     /// second datum crossing pages in the same run — and are left alone.
-    pub fn promised(&self, data: &FilterData<'_>) -> BTreeMap<MatchFund, BTreeMap<String, BlockValue>> {
+    pub fn promised(
+        &self,
+        data: &FilterData<'_>,
+    ) -> BTreeMap<MatchFund, BTreeMap<String, BlockValue>> {
         let mut out: BTreeMap<MatchFund, BTreeMap<String, BlockValue>> = BTreeMap::new();
         for entries in data.previous().iter().filter_map(Extracted::as_promises) {
             for (key, value) in entries.iter() {
-                let Some((field, fund)) = self.split(key) else { continue };
-                out.entry(MatchFund::new(fund)).or_default().insert(field.to_string(), value.clone());
+                let Some((field, fund)) = self.split(key) else {
+                    continue;
+                };
+                out.entry(MatchFund::new(fund))
+                    .or_default()
+                    .insert(field.to_string(), value.clone());
             }
         }
         out
@@ -154,8 +172,14 @@ impl Carryover {
         let available = self.promised(data);
         let mut out = Vec::with_capacity(blocks.len());
         for mut block in blocks {
-            let fund = block.metadata.get(&self.fund_key).map(super::record::as_text).unwrap_or_default();
-            let carried = (!fund.is_empty()).then(|| available.get(&MatchFund::new(&fund))).flatten();
+            let fund = block
+                .metadata
+                .get(&self.fund_key)
+                .map(super::record::as_text)
+                .unwrap_or_default();
+            let carried = (!fund.is_empty())
+                .then(|| available.get(&MatchFund::new(&fund)))
+                .flatten();
             let missing: Vec<&str> = self
                 .fields
                 .iter()
@@ -174,7 +198,9 @@ impl Carryover {
             }
             // `carried` is `Some` here: an empty `missing` on a `None` would mean a carryover with
             // no fields, which the constructor refuses.
-            for (field, value) in carried.expect("an empty missing list means the promise was found") {
+            for (field, value) in
+                carried.expect("an empty missing list means the promise was found")
+            {
                 block.metadata.insert(field.clone(), value.clone());
             }
             out.push(block);

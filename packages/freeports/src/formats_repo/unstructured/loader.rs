@@ -21,6 +21,7 @@
 //! which is the reason the adapter exists.
 
 use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -51,15 +52,34 @@ pub enum UnstructuredError {
         .file.display(),
         .package.display()
     )]
-    TwoLayouts { format: String, file: PathBuf, package: PathBuf },
+    TwoLayouts {
+        format: String,
+        file: PathBuf,
+        package: PathBuf,
+    },
     #[error("failed to load the author module for format '{format}' at {path}: {message}")]
-    ModuleLoad { format: String, path: PathBuf, message: String },
+    ModuleLoad {
+        format: String,
+        path: PathBuf,
+        message: String,
+    },
     #[error("format '{format}': 'pipelines' must be a mapping from pipeline name to pipeline")]
     PipelinesNotAMapping { format: String },
-    #[error("format '{format}', pipeline '{pipeline}': the value is not a pipeline (it has no '{segment}')")]
-    NotAPipeline { format: String, pipeline: String, segment: &'static str },
+    #[error(
+        "format '{format}', pipeline '{pipeline}': the value is not a pipeline (it has no '{segment}')"
+    )]
+    NotAPipeline {
+        format: String,
+        pipeline: String,
+        segment: &'static str,
+    },
     #[error("format '{format}', pipeline '{pipeline}', segment '{segment}': {message}")]
-    InvalidSegment { format: String, pipeline: String, segment: &'static str, message: String },
+    InvalidSegment {
+        format: String,
+        pipeline: String,
+        segment: &'static str,
+        message: String,
+    },
     #[error("format '{format}': 'compute_page_class' is not callable")]
     ComputePageClassNotCallable { format: String },
     #[error("format '{format}': {message}")]
@@ -75,9 +95,20 @@ pub fn module_name(format_name: &str) -> String {
 /// The file to import for `format_name`, whether a plain module or a package. `None` when the
 /// format has no author module, which is entirely legitimate; both layouts present is
 /// [`UnstructuredError::TwoLayouts`].
-pub fn module_path(formats_repo_dir: &Path, format_name: &str) -> Result<Option<(PathBuf, bool)>, UnstructuredError> {
-    find_module(&formats_repo_dir.join(UNSTRUCTURED_DIR), &module_name(format_name)).map_err(
-        |BothLayouts { file, package }| UnstructuredError::TwoLayouts { format: format_name.to_string(), file, package },
+pub fn module_path(
+    formats_repo_dir: &Path,
+    format_name: &str,
+) -> Result<Option<(PathBuf, bool)>, UnstructuredError> {
+    find_module(
+        &formats_repo_dir.join(UNSTRUCTURED_DIR),
+        &module_name(format_name),
+    )
+    .map_err(
+        |BothLayouts { file, package }| UnstructuredError::TwoLayouts {
+            format: format_name.to_string(),
+            file,
+            package,
+        },
     )
 }
 
@@ -103,6 +134,18 @@ pub(crate) fn find_module(dir: &Path, name: &str) -> Result<Option<(PathBuf, boo
     }
 }
 
+/// The name an author module of the repository at `formats_repo_dir` is registered under in
+/// `sys.modules`: `_<stem>_<hash of the repository path>`, distinct for every repository.
+///
+/// Python caches a package's submodules under the package's name: with one name for all
+/// repositories, the `from .rules import ...` of a second repository would get the first one's
+/// `rules`. Hashing the path keeps the name a valid identifier whatever the path contains.
+pub(crate) fn runtime_name(formats_repo_dir: &Path, stem: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    formats_repo_dir.hash(&mut hasher);
+    format!("_{stem}_{:016x}", hasher.finish())
+}
+
 /// Imports the author module at `path` — a file, or a package's `__init__.py` when `is_package` —
 /// registered in `sys.modules` as `runtime_name`.
 ///
@@ -126,7 +169,10 @@ pub(crate) fn import_module_at<'py>(
     crate::python::install(py)?;
 
     let sys = py.import("sys")?;
-    let sys_path = sys.getattr("path")?.cast_into::<PyList>().map_err(PyErr::from)?;
+    let sys_path = sys
+        .getattr("path")?
+        .cast_into::<PyList>()
+        .map_err(PyErr::from)?;
     let templates = formats_repo_dir.join(TEMPLATES_DIR);
     let templates = templates.to_string_lossy().to_string();
     if !sys_path.contains(&templates)? {
@@ -139,11 +185,15 @@ pub(crate) fn import_module_at<'py>(
         let parent = path.parent().unwrap_or(path).to_string_lossy().to_string();
         kwargs.set_item("submodule_search_locations", vec![parent])?;
     }
-    let spec =
-        util.call_method("spec_from_file_location", (runtime_name, path.to_string_lossy().as_ref()), Some(&kwargs))?;
+    let spec = util.call_method(
+        "spec_from_file_location",
+        (runtime_name, path.to_string_lossy().as_ref()),
+        Some(&kwargs),
+    )?;
     let module = util.call_method1("module_from_spec", (&spec,))?;
     sys.getattr("modules")?.set_item(runtime_name, &module)?;
-    spec.getattr("loader")?.call_method1("exec_module", (&module,))?;
+    spec.getattr("loader")?
+        .call_method1("exec_module", (&module,))?;
     Ok(module)
 }
 
@@ -156,18 +206,31 @@ fn import_module<'py>(
     let Some((path, is_package)) = module_path(formats_repo_dir, format_name)? else {
         return Ok(None);
     };
-    let runtime_name = format!("_plugin_{}", module_name(format_name));
+    let runtime_name = runtime_name(
+        formats_repo_dir,
+        &format!("plugin_{}", module_name(format_name)),
+    );
 
     match import_module_at(py, formats_repo_dir, &path, is_package, &runtime_name) {
         Ok(module) => {
-            tracing::debug!(format = format_name, "imported the author's unstructured module");
+            tracing::debug!(
+                format = format_name,
+                "imported the author's unstructured module"
+            );
             Ok(Some(module))
         }
         Err(error) => {
             let message = error.to_string();
-            tracing::error!(format = format_name, "failed to load author module: {message}");
+            tracing::error!(
+                format = format_name,
+                "failed to load author module: {message}"
+            );
             error.print(py);
-            Err(UnstructuredError::ModuleLoad { format: format_name.to_string(), path, message })
+            Err(UnstructuredError::ModuleLoad {
+                format: format_name.to_string(),
+                path,
+                message,
+            })
         }
     }
 }
@@ -205,7 +268,9 @@ pub(crate) fn segment_callables<'py>(
     for item in iterator {
         let item = item.map_err(|e| invalid(e.to_string()))?;
         if !item.is_callable() {
-            return Err(invalid("every pipe of a segment must be callable".to_string()));
+            return Err(invalid(
+                "every pipe of a segment must be callable".to_string(),
+            ));
         }
         out.push(item);
     }
@@ -222,31 +287,43 @@ pub fn get_pipelines(
 ) -> Result<HashMap<PipelineName, Pipeline>, UnstructuredError> {
     Python::attach(|py| {
         let Some(module) = import_module(py, formats_repo_dir, format_name)? else {
-            tracing::trace!(format = format_name, "no author module for this format, no unstructured pipelines");
+            tracing::trace!(
+                format = format_name,
+                "no author module for this format, no unstructured pipelines"
+            );
             return Ok(HashMap::new());
         };
         let Some(pipelines) = field(&module, "pipelines") else {
-            tracing::trace!(format = format_name, "the author module has no 'pipelines' attribute");
+            tracing::trace!(
+                format = format_name,
+                "the author module has no 'pipelines' attribute"
+            );
             return Ok(HashMap::new());
         };
-        let mapping = pipelines
-            .cast::<PyDict>()
-            .map_err(|_| UnstructuredError::PipelinesNotAMapping { format: format_name.to_string() })?;
+        let mapping =
+            pipelines
+                .cast::<PyDict>()
+                .map_err(|_| UnstructuredError::PipelinesNotAMapping {
+                    format: format_name.to_string(),
+                })?;
 
         let mut out = HashMap::new();
         for (key, value) in mapping.iter() {
-            let pipeline_name: String = key.extract().map_err(|e: PyErr| UnstructuredError::Python {
-                format: format_name.to_string(),
-                message: e.to_string(),
-            })?;
+            let pipeline_name: String =
+                key.extract()
+                    .map_err(|e: PyErr| UnstructuredError::Python {
+                        format: format_name.to_string(),
+                        message: e.to_string(),
+                    })?;
             let mut pipeline = Pipeline::new(PipelineName::new(&pipeline_name));
 
             for segment in SEGMENTS {
-                let raw = field(&value, segment).ok_or_else(|| UnstructuredError::NotAPipeline {
-                    format: format_name.to_string(),
-                    pipeline: pipeline_name.clone(),
-                    segment,
-                })?;
+                let raw =
+                    field(&value, segment).ok_or_else(|| UnstructuredError::NotAPipeline {
+                        format: format_name.to_string(),
+                        pipeline: pipeline_name.clone(),
+                        segment,
+                    })?;
                 for (i, func) in segment_callables(raw, format_name, &pipeline_name, segment)?
                     .into_iter()
                     .enumerate()
@@ -256,21 +333,33 @@ pub fn get_pipelines(
                         "pdf_extract" => {
                             let pipe = match unwrap_pdf_extract(&func) {
                                 Some(native) => native,
-                                None => Arc::new(PyPdfExtractPipe::new(&pipeline_name, name, func.unbind())),
+                                None => Arc::new(PyPdfExtractPipe::new(
+                                    &pipeline_name,
+                                    name,
+                                    func.unbind(),
+                                )),
                             };
                             pipeline.pdf_extract.push(pipe);
                         }
                         "text_filter" => {
                             let pipe = match unwrap_text_filter(&func) {
                                 Some(native) => native,
-                                None => Arc::new(PyTextFilterPipe::new(&pipeline_name, name, func.unbind())),
+                                None => Arc::new(PyTextFilterPipe::new(
+                                    &pipeline_name,
+                                    name,
+                                    func.unbind(),
+                                )),
                             };
                             pipeline.text_filter.push(pipe);
                         }
                         _ => {
                             let pipe = match unwrap_deserialize(&func) {
                                 Some(native) => native,
-                                None => Arc::new(PyDeserializePipe::new(&pipeline_name, name, func.unbind())),
+                                None => Arc::new(PyDeserializePipe::new(
+                                    &pipeline_name,
+                                    name,
+                                    func.unbind(),
+                                )),
                             };
                             pipeline.deserialize.push(pipe);
                         }
@@ -300,7 +389,9 @@ pub fn get_compute_page_class(
             return Ok(None);
         };
         if !value.is_callable() {
-            return Err(UnstructuredError::ComputePageClassNotCallable { format: format_name.to_string() });
+            return Err(UnstructuredError::ComputePageClassNotCallable {
+                format: format_name.to_string(),
+            });
         }
         Ok(Some(value.unbind()))
     })
@@ -316,7 +407,10 @@ pub struct PyPageClassFinalizer {
 
 impl PyPageClassFinalizer {
     pub fn new(format: impl Into<String>, func: Py<PyAny>) -> Self {
-        Self { format: format.into(), func }
+        Self {
+            format: format.into(),
+            func,
+        }
     }
 }
 
@@ -324,7 +418,8 @@ impl crate::core::algorithm::PageClassFinalize for PyPageClassFinalizer {
     fn finalize(
         &self,
         classes: Vec<Option<crate::core::schedule::PageClass>>,
-    ) -> Result<Vec<Option<crate::core::schedule::PageClass>>, crate::core::pipeline::PipeError> {
+    ) -> Result<Vec<Option<crate::core::schedule::PageClass>>, crate::core::pipeline::PipeError>
+    {
         use crate::core::pipeline::PipeError;
         use crate::core::schedule::PageClass;
 
@@ -341,8 +436,10 @@ impl crate::core::algorithm::PageClassFinalize for PyPageClassFinalizer {
             };
             match call() {
                 Ok(result) => {
-                    let classes: Vec<Option<PageClass>> =
-                        result.into_iter().map(|name| name.map(PageClass::new)).collect();
+                    let classes: Vec<Option<PageClass>> = result
+                        .into_iter()
+                        .map(|name| name.map(PageClass::new))
+                        .collect();
                     tracing::debug!(
                         format = self.format,
                         class_count = classes.len(),
@@ -354,7 +451,11 @@ impl crate::core::algorithm::PageClassFinalize for PyPageClassFinalizer {
                     let message = error.to_string();
                     tracing::error!(format = self.format, "compute_page_class raised: {message}");
                     error.print(py);
-                    Err(PipeError::author(&self.format, "compute_page_class", message))
+                    Err(PipeError::author(
+                        &self.format,
+                        "compute_page_class",
+                        message,
+                    ))
                 }
             }
         })
@@ -367,13 +468,18 @@ pub fn get_page_class_finalizer(
     format_name: &str,
 ) -> Result<crate::core::algorithm::PageClassFinalizer, UnstructuredError> {
     use crate::core::algorithm::PageClassFinalizer;
-    Ok(match get_compute_page_class(formats_repo_dir, format_name)? {
-        Some(func) => {
-            tracing::debug!(format = format_name, "using the author's compute_page_class as page class finalizer");
-            PageClassFinalizer::Custom(Arc::new(PyPageClassFinalizer::new(format_name, func)))
-        }
-        None => PageClassFinalizer::Identity,
-    })
+    Ok(
+        match get_compute_page_class(formats_repo_dir, format_name)? {
+            Some(func) => {
+                tracing::debug!(
+                    format = format_name,
+                    "using the author's compute_page_class as page class finalizer"
+                );
+                PageClassFinalizer::Custom(Arc::new(PyPageClassFinalizer::new(format_name, func)))
+            }
+            None => PageClassFinalizer::Identity,
+        },
+    )
 }
 
 #[cfg(test)]
@@ -394,6 +500,37 @@ mod tests {
         #[test_case("MEDIOLANUM-IT24@ES.b", "mediolanum_it24_es_b"; "with both")]
         fn maps_a_format_name_onto_a_module_name(format: &str, expected: &str) {
             assert_eq!(module_name(format), expected);
+        }
+
+        #[test]
+        fn the_runtime_name_starts_with_the_stem() {
+            let name = runtime_name(Path::new("/repo"), "plugin_amundi_en24");
+            assert!(name.starts_with("_plugin_amundi_en24_"), "{name}");
+        }
+
+        #[test]
+        fn the_runtime_name_is_stable_for_one_repository() {
+            assert_eq!(
+                runtime_name(Path::new("/repo"), "plugin_x"),
+                runtime_name(Path::new("/repo"), "plugin_x")
+            );
+        }
+
+        #[test]
+        fn two_repositories_get_different_runtime_names_for_the_same_module() {
+            assert_ne!(
+                runtime_name(Path::new("/repo/a"), "plugin_x"),
+                runtime_name(Path::new("/repo/b"), "plugin_x")
+            );
+        }
+
+        #[test]
+        fn the_runtime_name_is_an_identifier_whatever_the_path() {
+            let name = runtime_name(Path::new("/a dir/with-odd.chars/àè"), "plugin_x");
+            assert!(
+                name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'),
+                "{name}"
+            );
         }
     }
 
@@ -425,7 +562,14 @@ mod tests {
         fn a_package_module_is_found_through_its_init() {
             let dir = repo();
             fs::create_dir_all(dir.path().join(UNSTRUCTURED_DIR).join("a_en24")).unwrap();
-            fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24").join("__init__.py"), "").unwrap();
+            fs::write(
+                dir.path()
+                    .join(UNSTRUCTURED_DIR)
+                    .join("a_en24")
+                    .join("__init__.py"),
+                "",
+            )
+            .unwrap();
             let (path, is_package) = module_path(dir.path(), "A-EN24").unwrap().unwrap();
             assert!(path.ends_with("__init__.py"));
             assert!(is_package);
@@ -435,7 +579,14 @@ mod tests {
         fn a_folder_without_init_is_not_a_module() {
             let dir = repo();
             fs::create_dir_all(dir.path().join(UNSTRUCTURED_DIR).join("a_en24")).unwrap();
-            fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24").join("helpers.py"), "").unwrap();
+            fs::write(
+                dir.path()
+                    .join(UNSTRUCTURED_DIR)
+                    .join("a_en24")
+                    .join("helpers.py"),
+                "",
+            )
+            .unwrap();
             assert!(module_path(dir.path(), "A-EN24").unwrap().is_none());
         }
     }
@@ -464,7 +615,11 @@ mod tests {
         fn both_layouts_present_is_an_error_naming_the_format_and_both_paths() {
             let (dir, file, package) = repo_with_both();
             match module_path(dir.path(), "A-EN24") {
-                Err(UnstructuredError::TwoLayouts { format, file: f, package: p }) => {
+                Err(UnstructuredError::TwoLayouts {
+                    format,
+                    file: f,
+                    package: p,
+                }) => {
                     assert_eq!(format, "A-EN24");
                     assert_eq!(f, file);
                     assert_eq!(p, package);
@@ -478,20 +633,29 @@ mod tests {
             let (dir, file, package) = repo_with_both();
             let message = module_path(dir.path(), "A-EN24").unwrap_err().to_string();
             assert!(message.contains(&file.display().to_string()), "{message}");
-            assert!(message.contains(&package.display().to_string()), "{message}");
+            assert!(
+                message.contains(&package.display().to_string()),
+                "{message}"
+            );
             assert!(message.contains("A-EN24"), "{message}");
         }
 
         #[test]
         fn loading_the_pipelines_fails_with_the_same_error() {
             let (dir, _, _) = repo_with_both();
-            assert!(matches!(get_pipelines(dir.path(), "A-EN24"), Err(UnstructuredError::TwoLayouts { .. })));
+            assert!(matches!(
+                get_pipelines(dir.path(), "A-EN24"),
+                Err(UnstructuredError::TwoLayouts { .. })
+            ));
         }
 
         #[test]
         fn loading_the_page_class_finalizer_fails_with_the_same_error() {
             let (dir, _, _) = repo_with_both();
-            assert!(matches!(get_page_class_finalizer(dir.path(), "A-EN24"), Err(UnstructuredError::TwoLayouts { .. })));
+            assert!(matches!(
+                get_page_class_finalizer(dir.path(), "A-EN24"),
+                Err(UnstructuredError::TwoLayouts { .. })
+            ));
         }
 
         /// Another format's module in the other layout is no conflict.
@@ -524,8 +688,13 @@ mod tests {
             let dir = TempDir::new().expect("temp dir");
             fs::create_dir_all(dir.path().join(UNSTRUCTURED_DIR)).expect("unstructured dir");
             fs::create_dir_all(dir.path().join(TEMPLATES_DIR)).expect("templates dir");
-            fs::write(dir.path().join(UNSTRUCTURED_DIR).join(format!("{}.py", module_name(format))), source)
-                .expect("write module");
+            fs::write(
+                dir.path()
+                    .join(UNSTRUCTURED_DIR)
+                    .join(format!("{}.py", module_name(format))),
+                source,
+            )
+            .expect("write module");
             dir
         }
 
@@ -554,13 +723,20 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
         fn page_with_raw(py: Python<'_>) -> Page {
             let raw = py
                 .eval(
-                    pyo3::ffi::c_str!("{'width': 10.0, 'height': 10.0, 'blocks': [{'type': 0, 'lines': []}]}"),
+                    pyo3::ffi::c_str!(
+                        "{'width': 10.0, 'height': 10.0, 'blocks': [{'type': 0, 'lines': []}]}"
+                    ),
                     None,
                     None,
                 )
                 .expect("page dict");
-            Page::new(1, (10.0, 10.0), vec![PdfLine::new("Arial", 10.0, "x", (0.0, 0.0, 5.0, 5.0))], Vec::new())
-                .with_raw(raw.unbind())
+            Page::new(
+                1,
+                (10.0, 10.0),
+                vec![PdfLine::new("Arial", 10.0, "x", (0.0, 0.0, 5.0, 5.0))],
+                Vec::new(),
+            )
+            .with_raw(raw.unbind())
         }
 
         #[test]
@@ -587,10 +763,15 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
 
         #[test]
         fn a_segment_may_hold_several_callables() {
-            let source = format!("{COMPLETE_MODULE}\npipelines['authored'].pdf_extract = [extract, extract]\n");
+            let source = format!(
+                "{COMPLETE_MODULE}\npipelines['authored'].pdf_extract = [extract, extract]\n"
+            );
             let dir = repo_with_module("A-EN24", &source);
             let pipelines = get_pipelines(dir.path(), "A-EN24").unwrap();
-            assert_eq!(pipelines[&PipelineName::new("authored")].pdf_extract.len(), 2);
+            assert_eq!(
+                pipelines[&PipelineName::new("authored")].pdf_extract.len(),
+                2
+            );
         }
 
         #[test]
@@ -605,7 +786,16 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
         fn a_value_that_is_not_a_pipeline_is_rejected_naming_the_missing_segment() {
             let dir = repo_with_module("A-EN24", "pipelines = {'authored': object()}\n");
             let err = get_pipelines(dir.path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, UnstructuredError::NotAPipeline { segment: "pdf_extract", .. }), "{err}");
+            assert!(
+                matches!(
+                    err,
+                    UnstructuredError::NotAPipeline {
+                        segment: "pdf_extract",
+                        ..
+                    }
+                ),
+                "{err}"
+            );
         }
 
         #[test]
@@ -613,7 +803,16 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
             let source = format!("{COMPLETE_MODULE}\npipelines['authored'].pdf_extract = [1, 2]\n");
             let dir = repo_with_module("A-EN24", &source);
             let err = get_pipelines(dir.path(), "A-EN24").unwrap_err();
-            assert!(matches!(err, UnstructuredError::InvalidSegment { segment: "pdf_extract", .. }), "{err}");
+            assert!(
+                matches!(
+                    err,
+                    UnstructuredError::InvalidSegment {
+                        segment: "pdf_extract",
+                        ..
+                    }
+                ),
+                "{err}"
+            );
         }
 
         #[test]
@@ -650,7 +849,13 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
             let pipeline = &pipelines[&PipelineName::new("authored")];
             Python::attach(|py| {
                 let page = page_with_raw(py);
-                let blocks = pipeline.pdf_extract.iter().next().unwrap().extract(&page).unwrap();
+                let blocks = pipeline
+                    .pdf_extract
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .extract(&page)
+                    .unwrap();
                 assert_eq!(blocks.len(), 1);
                 assert_eq!(blocks[0].type_block, BlockType::RELEVANT_BLOCK);
                 assert_eq!(blocks[0].content, BlockValue::from("hello"));
@@ -684,7 +889,10 @@ pipelines = {'authored': _P()}
                 // The identity that matters: the class reachable from Python and the one this
                 // artefact registers must be **the same object**.
                 let ours = py.get_type::<crate::python::core::PyPdfBlock>();
-                assert!(seeded_type.is(&ours), "the seeded PdfBlock is not this artifact's");
+                assert!(
+                    seeded_type.is(&ours),
+                    "the seeded PdfBlock is not this artifact's"
+                );
             });
         }
 
@@ -694,7 +902,13 @@ pipelines = {'authored': _P()}
             let pipelines = get_pipelines(dir.path(), "A-EN24").unwrap();
             let pipeline = &pipelines[&PipelineName::new("authored")];
             let page = Page::new(1, (10.0, 10.0), Vec::new(), Vec::new());
-            let err = pipeline.pdf_extract.iter().next().unwrap().extract(&page).unwrap_err();
+            let err = pipeline
+                .pdf_extract
+                .iter()
+                .next()
+                .unwrap()
+                .extract(&page)
+                .unwrap_err();
             assert!(!err.is_page_failure());
         }
 
@@ -704,7 +918,13 @@ pipelines = {'authored': _P()}
             let pipelines = get_pipelines(dir.path(), "A-EN24").unwrap();
             let pipeline = &pipelines[&PipelineName::new("authored")];
             let blocks = vec![PdfBlock::bare(BlockType::RELEVANT_BLOCK, "hello")];
-            let out = pipeline.text_filter.iter().next().unwrap().filter(&blocks, &FilterData::TargetCompanies(&[])).unwrap();
+            let out = pipeline
+                .text_filter
+                .iter()
+                .next()
+                .unwrap()
+                .filter(&blocks, &FilterData::TargetCompanies(&[]))
+                .unwrap();
             assert_eq!(out.len(), 1);
             assert_eq!(out[0].type_block, BlockType::FUND);
             assert_eq!(out[0].content, BlockValue::from("hello"));
@@ -717,10 +937,19 @@ pipelines = {'authored': _P()}
             let pipelines = get_pipelines(dir.path(), "A-EN24").unwrap();
             let pipeline = &pipelines[&PipelineName::new("authored")];
             let block = TextBlock::from_content(BlockType::FUND, BTreeMap::new(), "Alpha Fund");
-            let out = pipeline.deserialize.iter().next().unwrap().deserialize(&block).unwrap();
+            let out = pipeline
+                .deserialize
+                .iter()
+                .next()
+                .unwrap()
+                .deserialize(&block)
+                .unwrap();
             assert_eq!(out.len(), 1);
             let promises = out[0].as_promises().expect("a promise entry");
-            assert_eq!(promises.iter().collect::<Vec<_>>(), vec![("fund-id", &BlockValue::from("Alpha Fund"))]);
+            assert_eq!(
+                promises.iter().collect::<Vec<_>>(),
+                vec![("fund-id", &BlockValue::from("Alpha Fund"))]
+            );
         }
 
         #[test]
@@ -740,7 +969,13 @@ pipelines = {'authored': _P()}
             let pipeline = &pipelines[&PipelineName::new("authored")];
             Python::attach(|py| {
                 let page = page_with_raw(py);
-                let err = pipeline.pdf_extract.iter().next().unwrap().extract(&page).unwrap_err();
+                let err = pipeline
+                    .pdf_extract
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .extract(&page)
+                    .unwrap_err();
                 assert!(err.to_string().contains("author bug"), "{err}");
             });
         }
@@ -749,7 +984,10 @@ pipelines = {'authored': _P()}
         fn a_format_without_compute_page_class_gets_the_identity_finalizer() {
             let dir = repo_with_module("A-EN24", COMPLETE_MODULE);
             let finalizer = get_page_class_finalizer(dir.path(), "A-EN24").unwrap();
-            assert!(matches!(finalizer, crate::core::algorithm::PageClassFinalizer::Identity));
+            assert!(matches!(
+                finalizer,
+                crate::core::algorithm::PageClassFinalizer::Identity
+            ));
         }
 
         #[test]
@@ -762,7 +1000,9 @@ pipelines = {'authored': _P()}
             let classes = vec![Some(crate::core::schedule::PageClass::new("inv")), None];
             let out = finalizer.finalize(classes).unwrap();
             assert_eq!(
-                out.iter().map(|c| c.as_ref().map(|c| c.as_str().to_string())).collect::<Vec<_>>(),
+                out.iter()
+                    .map(|c| c.as_ref().map(|c| c.as_str().to_string()))
+                    .collect::<Vec<_>>(),
                 vec![Some("inv".to_string()), Some("filled".to_string())]
             );
         }

@@ -25,9 +25,7 @@ use std::fmt;
 // it only promises that the existing `PartialEq` is reflexive, which the doc contract requires.
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 pub enum LimitsBuildError {
-    #[error(
-        "left limit bound can't be bigger than right one, found left '{0}' and right '{1}'"
-    )]
+    #[error("left limit bound can't be bigger than right one, found left '{0}' and right '{1}'")]
     NegativeInterval(f32, f32),
 }
 impl Eq for LimitsBuildError {}
@@ -170,9 +168,9 @@ mod tests {
 
     mod limits {
         use super::*;
+        use LimitsBuildError::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
-        use LimitsBuildError::*;
 
         #[test]
         fn build_accepts_a_strictly_increasing_pair() {
@@ -245,9 +243,9 @@ mod tests {
 
     mod positive_limits {
         use super::*;
+        use PositiveLimitsBuildError::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
-        use PositiveLimitsBuildError::*;
 
         #[test]
         fn build_accepts_a_non_negative_strictly_increasing_pair() {
@@ -301,7 +299,10 @@ mod tests {
             "left limit bound can't be bigger than right one, found left '30.1' and right '20'";
             "invalid limit error message delegates to the inner error"
         )]
-        fn formats_as_expected(x: Result<PositiveLimits, PositiveLimitsBuildError>, expected: &str) {
+        fn formats_as_expected(
+            x: Result<PositiveLimits, PositiveLimitsBuildError>,
+            expected: &str,
+        ) {
             match x {
                 Ok(value) => assert_eq!(format!("{value}"), expected),
                 Err(err) => assert_eq!(format!("{err}"), expected),
@@ -348,10 +349,10 @@ mod tests {
 
     mod rectangle {
         use super::*;
-        use pretty_assertions::assert_eq;
-        use test_case::test_case;
         use LimitsBuildError::*;
         use RectangleBuildError::*;
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test]
         fn build_accepts_strictly_increasing_bounds_on_both_axes() {
@@ -370,7 +371,13 @@ mod tests {
         #[test_case(20.0, 0.2, 30.1, 0.1, Vertical(NegativeInterval(0.2, 0.1)); "invalid height")]
         #[test_case(20.0, 1.0, 20.0, 40.0, Horizontal(NegativeInterval(20.0, 20.0)); "degenerate width")]
         #[test_case(20.0, 20.0, 30.1, 20.0, Vertical(NegativeInterval(20.0, 20.0)); "degenerate height, checked after a valid width")]
-        fn build_rejects_a_non_increasing_axis(x0: f32, y0: f32, x1: f32, y1: f32, expected: RectangleBuildError) {
+        fn build_rejects_a_non_increasing_axis(
+            x0: f32,
+            y0: f32,
+            x1: f32,
+            y1: f32,
+            expected: RectangleBuildError,
+        ) {
             assert_eq!(Rectangle::build(x0, y0, x1, y1), Err(expected));
         }
 

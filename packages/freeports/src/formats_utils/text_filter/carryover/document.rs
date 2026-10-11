@@ -19,8 +19,12 @@ use crate::output::classes::fund::Fund;
 /// it says so as an error: a statement page nobody can be billed to is a row lost, not a row that
 /// was not there.
 pub fn sole_fund(data: &FilterData<'_>) -> Option<String> {
-    let names: std::collections::BTreeSet<String> =
-        data.previous().iter().filter_map(Extracted::as_fund).filter_map(Fund::name).collect();
+    let names: std::collections::BTreeSet<String> = data
+        .previous()
+        .iter()
+        .filter_map(Extracted::as_fund)
+        .filter_map(Fund::name)
+        .collect();
     let mut found = names.into_iter();
     let Some(first) = found.next() else {
         tracing::error!(
@@ -38,6 +42,10 @@ pub fn sole_fund(data: &FilterData<'_>) -> Option<String> {
         );
         return None;
     }
-    warn_imposed("fund", &first, "the statement does not name it and the report declares one fund only");
+    warn_imposed(
+        "fund",
+        &first,
+        "the statement does not name it and the report declares one fund only",
+    );
     Some(first)
 }

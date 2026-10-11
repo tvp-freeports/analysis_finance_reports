@@ -15,15 +15,18 @@ use crate::cli::config_locations::file;
 use crate::cli::partial_config::{ConfigSource, PartialConfig, defaults, overwrite};
 use crate::cli::{freeports_config, job, output};
 use crate::core::algorithm::Algorithm;
-use crate::core::parallelism::Parallelism;
-use crate::core::tracing_setup::{self, CsvLogLayer};
 use crate::core::page::{Document, FormatName};
+use crate::core::parallelism::Parallelism;
 use crate::core::schedule::PageClass;
+use crate::core::tracing_setup::{self, CsvLogLayer};
 use crate::formats_repo::metadata;
 use crate::output::routines::write::{OutFlags, OutStructureMode};
 
 use super::core::{PyPdfBlock, PyTextBlock};
-use super::pipes::{extracted_to_py, filter_data_of, page_from_py, previous_results_from_py, target_companies_from_py};
+use super::pipes::{
+    extracted_to_py, filter_data_of, page_from_py, previous_results_from_py,
+    target_companies_from_py,
+};
 use crate::core::tracing_setup::log_error;
 
 /// The document identifier the inspection shim gives the pages it is handed.
@@ -64,14 +67,20 @@ impl PyAlgorithm {
             formats_repo_dir = %formats_repo_dir.display(),
             "Algorithm.load called from Python"
         );
-        Algorithm::load(&formats_repo_dir, &FormatName::new(format_name.clone())).map(PyAlgorithm).map_err(|e| {
-            // `Algorithm::load` itself never logs its own failure (only the success path does,
-            // `formats_repo.rs`'s "format algorithm loaded"): this shim is the only place that
-            // ever sees this particular call fail, since `freeports-dev`'s single-page runner
-            // does not go through `cli::job::run` (which logs job-level failures on its own).
-            tracing::error!(error = log_error(&e), format = format_name, "Algorithm.load failed: {e}");
-            value_error(e)
-        })
+        Algorithm::load(&formats_repo_dir, &FormatName::new(format_name.clone()))
+            .map(PyAlgorithm)
+            .map_err(|e| {
+                // `Algorithm::load` itself never logs its own failure (only the success path does,
+                // `formats_repo.rs`'s "format algorithm loaded"): this shim is the only place that
+                // ever sees this particular call fail, since `freeports-dev`'s single-page runner
+                // does not go through `cli::job::run` (which logs job-level failures on its own).
+                tracing::error!(
+                    error = log_error(&e),
+                    format = format_name,
+                    "Algorithm.load failed: {e}"
+                );
+                value_error(e)
+            })
     }
 
     #[getter]
@@ -82,7 +91,12 @@ impl PyAlgorithm {
     /// The page classes the schedule visits, in schedule order.
     #[getter]
     fn page_classes(&self) -> Vec<String> {
-        self.0.schedule().page_classes().iter().map(|class| class.as_str().to_string()).collect()
+        self.0
+            .schedule()
+            .page_classes()
+            .iter()
+            .map(|class| class.as_str().to_string())
+            .collect()
     }
 
     /// Classifies **a whole document**: which of the format's page classes each page belongs to,
@@ -104,24 +118,44 @@ impl PyAlgorithm {
             parsed.number = index as u32 + 1;
             native.push(parsed);
         }
-        tracing::debug!(pages = native.len(), "Algorithm.classify_pages called from Python");
+        tracing::debug!(
+            pages = native.len(),
+            "Algorithm.classify_pages called from Python"
+        );
         let document = Document::new(INSPECTED_DOCUMENT_ID, self.0.format().clone(), native);
         let classified = self.0.classify_pages(&document).map_err(|e| {
             tracing::error!(error = log_error(&e), "classify_pages failed: {e}");
             value_error(e)
         })?;
-        Ok(classified.into_iter().map(|class| class.map(|c| c.as_str().to_string())).collect())
+        Ok(classified
+            .into_iter()
+            .map(|class| class.map(|c| c.as_str().to_string()))
+            .collect())
     }
 
-    fn apply_pdf_extract(&self, page: &Bound<'_, PyAny>, page_class: &str) -> PyResult<Vec<PyPdfBlock>> {
+    fn apply_pdf_extract(
+        &self,
+        page: &Bound<'_, PyAny>,
+        page_class: &str,
+    ) -> PyResult<Vec<PyPdfBlock>> {
         let py = page.py();
         let page = page_from_py(page)?;
         tracing::debug!(page_class, "Algorithm.apply_pdf_extract called from Python");
-        let blocks = self.0.apply_pdf_extract(&page, &PageClass::new(page_class)).map_err(|e| {
-            tracing::error!(error = log_error(&e), page_class, "apply_pdf_extract failed: {e}");
-            value_error(e)
-        })?;
-        blocks.iter().map(|block| PyPdfBlock::from_native(py, block)).collect()
+        let blocks = self
+            .0
+            .apply_pdf_extract(&page, &PageClass::new(page_class))
+            .map_err(|e| {
+                tracing::error!(
+                    error = log_error(&e),
+                    page_class,
+                    "apply_pdf_extract failed: {e}"
+                );
+                value_error(e)
+            })?;
+        blocks
+            .iter()
+            .map(|block| PyPdfBlock::from_native(py, block))
+            .collect()
     }
 
     #[pyo3(signature = (page, filter_data, page_class))]
@@ -142,11 +176,21 @@ impl PyAlgorithm {
             previous_count = previous.len(),
             "Algorithm.apply_text_filter called from Python"
         );
-        let blocks = self.0.apply_text_filter(&page, &PageClass::new(page_class), &data).map_err(|e| {
-            tracing::error!(error = log_error(&e), page_class, "apply_text_filter failed: {e}");
-            value_error(e)
-        })?;
-        blocks.iter().map(|block| PyTextBlock::from_native(py, block)).collect()
+        let blocks = self
+            .0
+            .apply_text_filter(&page, &PageClass::new(page_class), &data)
+            .map_err(|e| {
+                tracing::error!(
+                    error = log_error(&e),
+                    page_class,
+                    "apply_text_filter failed: {e}"
+                );
+                value_error(e)
+            })?;
+        blocks
+            .iter()
+            .map(|block| PyTextBlock::from_native(py, block))
+            .collect()
     }
 
     #[pyo3(signature = (page, filter_data, page_class))]
@@ -169,11 +213,21 @@ impl PyAlgorithm {
         );
         // The full per-page chain, not the hand-made composition of two segments: the two differ
         // when a page class maps several pipelines.
-        let extracted = self.0.apply_deserialize(&page, &PageClass::new(page_class), &data).map_err(|e| {
-            tracing::error!(error = log_error(&e), page_class, "apply_deserialize failed: {e}");
-            value_error(e)
-        })?;
-        extracted.iter().map(|item| extracted_to_py(py, item)).collect()
+        let extracted = self
+            .0
+            .apply_deserialize(&page, &PageClass::new(page_class), &data)
+            .map_err(|e| {
+                tracing::error!(
+                    error = log_error(&e),
+                    page_class,
+                    "apply_deserialize failed: {e}"
+                );
+                value_error(e)
+            })?;
+        extracted
+            .iter()
+            .map(|item| extracted_to_py(py, item))
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -207,10 +261,12 @@ pub fn py_url_to_format(formats_repo_dir: PathBuf, url: &str) -> PyResult<Option
         tracing::error!(error = log_error(&e), formats_repo_dir = %formats_repo_dir.display(), "url_to_format: get_formats failed: {e}");
         value_error(e)
     })?;
-    metadata::url_to_format(&formats_repo_dir, &format_names, url).map_err(|e| {
-        tracing::error!(error = log_error(&e), url, "url_to_format failed: {e}");
-        value_error(e)
-    })
+    metadata::url_to_format(&formats_repo_dir, &format_names, url)
+        .map(|found| found.map(|pattern| pattern.to_string()))
+        .map_err(|e| {
+            tracing::error!(error = log_error(&e), url, "url_to_format failed: {e}");
+            value_error(e)
+        })
 }
 
 /// The write profile from a string, with the same names the command line accepts.
@@ -232,7 +288,11 @@ fn out_profile_of(value: &str) -> PyResult<OutStructureMode> {
 /// the flag is off — this argument describes one whole run, with no other source to defer to.
 fn out_flags_of(value: &str) -> PyResult<OutFlags> {
     let mut flags = OutFlags::default();
-    for name in value.split(',').map(str::trim).filter(|name| !name.is_empty()) {
+    for name in value
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+    {
         match name.to_ascii_lowercase().as_str() {
             "compressed" | "archive" => flags.compressed = true,
             "separate_out" => flags.separate_out = true,
@@ -248,7 +308,9 @@ fn out_flags_of(value: &str) -> PyResult<OutFlags> {
 }
 
 /// A `(url, path, name)` triple as a document spec.
-fn document_spec_of(spec: (Option<String>, Option<PathBuf>, Option<String>)) -> PyResult<DocumentSpec> {
+fn document_spec_of(
+    spec: (Option<String>, Option<PathBuf>, Option<String>),
+) -> PyResult<DocumentSpec> {
     let (url, path, name) = spec;
     if url.is_none() && path.is_none() {
         tracing::error!("document spec has neither a url nor a pdf file path");
@@ -287,7 +349,10 @@ pub fn py_run_job(
         target_list_count = target_lists.len(),
         "run_job called from Python"
     );
-    let reports = input_reports.into_iter().map(document_spec_of).collect::<PyResult<Vec<_>>>()?;
+    let reports = input_reports
+        .into_iter()
+        .map(document_spec_of)
+        .collect::<PyResult<Vec<_>>>()?;
     let out_profile = out_profile.as_deref().map(out_profile_of).transpose()?;
     let out_flags = out_flags.as_deref().map(out_flags_of).transpose()?;
 
@@ -314,10 +379,14 @@ pub fn py_run_job(
     // sink for its own validation failures. Not fixed here (would mean moving subscriber
     // installation, a behavioral change beyond additive instrumentation); logged anyway so this
     // stops being invisible the day that gap is closed.
-    let config = freeports_config::validate(overwrite(defaults(), overlay, ConfigSource::Cmd)).map_err(|e| {
-        tracing::error!(error = log_error(&e), "run_job: configuration validation failed: {e}");
-        value_error(e)
-    })?;
+    let config = freeports_config::validate(overwrite(defaults(), overlay, ConfigSource::Cmd))
+        .map_err(|e| {
+            tracing::error!(
+                error = log_error(&e),
+                "run_job: configuration validation failed: {e}"
+            );
+            value_error(e)
+        })?;
 
     // The log goes beside the other output files, in the output directory rather than in the
     // working directory. It is a file the integration tests compare, so it must exist even with no
@@ -333,7 +402,11 @@ pub fn py_run_job(
         })?;
     }
     let log_dir = if config.out_profile == OutStructureMode::SingleFile {
-        config.out_path.parent().unwrap_or(Path::new(".")).to_path_buf()
+        config
+            .out_path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .to_path_buf()
     } else {
         config.out_path.clone()
     };
@@ -351,8 +424,11 @@ pub fn py_run_job(
         // dispatched on this path too — which is what made `pytest tests/formats` crawl. The
         // Python entry point has no `-v`/`-q` of its own, so it takes the CSV ceiling directly.
         use tracing_subscriber::Layer;
-        tracing_subscriber::registry()
-            .with(csv_layer.clone().with_filter(tracing_setup::csv_event_filter()))
+        tracing_subscriber::registry().with(
+            csv_layer
+                .clone()
+                .with_filter(tracing_setup::csv_event_filter()),
+        )
     };
 
     // **Sequential, and not an oversight.** Two independent reasons, each sufficient:

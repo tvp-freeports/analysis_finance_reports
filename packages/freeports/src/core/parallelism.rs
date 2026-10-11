@@ -46,7 +46,9 @@ impl Parallelism {
     /// `available_parallelism` fails on platforms that cannot answer; there the careful reply is
     /// one, not an invented number.
     pub fn auto() -> Parallelism {
-        Parallelism { pages: available_threads() }
+        Parallelism {
+            pages: available_threads(),
+        }
     }
 
     /// `pages` pages at a time, with `0` normalised to `1`.
@@ -54,7 +56,9 @@ impl Parallelism {
     /// Zero arrives from hand-written configurations and from splitting a worker budget across
     /// jobs; treating it as sequential is more useful than rejecting it.
     pub fn pages(pages: usize) -> Parallelism {
-        Parallelism { pages: pages.max(1) }
+        Parallelism {
+            pages: pages.max(1),
+        }
     }
 
     /// Whether distributing `count` units of work is worth it at all.
@@ -165,7 +169,10 @@ mod tests {
         fn the_pool_is_built_once_and_reused() {
             let first = pool(Parallelism::pages(2)).expect("a pool must be available");
             let second = pool(Parallelism::pages(3)).expect("a pool must be available");
-            assert!(std::ptr::eq(first, second), "the pool must be built once per process");
+            assert!(
+                std::ptr::eq(first, second),
+                "the pool must be built once per process"
+            );
         }
 
         #[test]

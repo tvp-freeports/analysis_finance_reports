@@ -150,7 +150,9 @@ pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<B
 
 /// A native date as a Python date, by the same ISO route and for the same reason.
 fn date_to_py<'py>(py: Python<'py>, date: &Date) -> PyResult<Bound<'py, PyAny>> {
-    py.import("datetime")?.getattr("date")?.call_method1("fromisoformat", (date.to_string(),))
+    py.import("datetime")?
+        .getattr("date")?
+        .call_method1("fromisoformat", (date.to_string(),))
 }
 
 /// A block's metadata: always a map from string to value. Nothing means the empty map, so that a
@@ -158,7 +160,9 @@ fn date_to_py<'py>(py: Python<'py>, date: &Date) -> PyResult<Bound<'py, PyAny>> 
 pub fn metadata_from_py(
     object: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<BTreeMap<String, BlockValue>> {
-    let Some(object) = object else { return Ok(BTreeMap::new()) };
+    let Some(object) = object else {
+        return Ok(BTreeMap::new());
+    };
     match block_value_from_py(object)? {
         BlockValue::Map(map) => Ok(map),
         BlockValue::Null => Ok(BTreeMap::new()),

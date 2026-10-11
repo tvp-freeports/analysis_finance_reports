@@ -9,15 +9,17 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
 
 use crate::commons::geometry::{Limits, Rectangle};
-use crate::core::page::PageImage;
 use crate::commons::sets::Container;
+use crate::core::page::PageImage;
+use crate::core::tracing_setup::log_error;
 use crate::formats_utils::pdf_extract::labelled_value::{LabelledValueTake, LabelledValueWhere};
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 use crate::formats_utils::pdf_extract::position::{self, ColumnConfig, RowConfig, TableConfig};
 use crate::formats_utils::pdf_extract::relative::OptionallyRelative;
-use crate::formats_utils::pdf_extract::select::pdf_line::{PdfLineSet, SelectPdfLineSet};
+use crate::formats_utils::pdf_extract::relative::RelativeInfo;
 use crate::formats_utils::pdf_extract::select::pdf_line::area::Area;
 use crate::formats_utils::pdf_extract::select::pdf_line::font_size::FontSizeInterval;
+use crate::formats_utils::pdf_extract::select::pdf_line::{PdfLineSet, SelectPdfLineSet};
 use crate::formats_utils::pdf_extract::select::relative::{
     PdfLineSelection, RelativePdfLineSet, RelativeSelectPdfLineSet,
 };
@@ -26,10 +28,8 @@ use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorit
 use crate::formats_utils::pdf_extract::tabularizer::{
     TableCoordinatesConfig, TablePosMeasureUnit, get_table_coordinates_from_lines,
 };
-use crate::formats_utils::pdf_extract::relative::RelativeInfo;
 use crate::input::document::page_dict::{self, PageDict};
 use crate::input::document::selection;
-use crate::core::tracing_setup::log_error;
 
 /// A native error as a Python `ValueError`.
 ///
@@ -41,7 +41,10 @@ use crate::core::tracing_setup::log_error;
 /// It also attaches the structured error, so that the file logs carry its debug form, display form
 /// and chain of causes rather than the message alone.
 fn value_error<E: std::error::Error + 'static>(error: E) -> PyErr {
-    tracing::error!(error = log_error(&error), "pdf_extract call failed: {error}");
+    tracing::error!(
+        error = log_error(&error),
+        "pdf_extract call failed: {error}"
+    );
     pyo3::exceptions::PyValueError::new_err(error.to_string())
 }
 
@@ -93,7 +96,12 @@ impl PyPdfLine {
     /// reader filters those spans out before ever calling it. Here the four numbers and the size
     /// are author input, so the boundary validates them and raises something the author can catch.
     #[new]
-    fn new(font: &str, font_size: f32, text: &str, bbox: (f32, f32, f32, f32)) -> PyResult<PyPdfLine> {
+    fn new(
+        font: &str,
+        font_size: f32,
+        text: &str,
+        bbox: (f32, f32, f32, f32),
+    ) -> PyResult<PyPdfLine> {
         if font_size <= 0.0 {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "the font size of a PdfLine must be positive, found {font_size}"
@@ -171,7 +179,11 @@ fn lines_from_py(lines: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLine>> {
 /// It wraps the *relative* form rather than the either-or one, because the relative branch is a
 /// superset of the absolute one — an absolute selection is an absolute leaf inside a relative tree
 /// — and keeping only one makes the operators definable once instead of over four combinations.
-#[pyclass(name = "PdfLineSelection", module = "freeports.utils.pdf_extract", frozen)]
+#[pyclass(
+    name = "PdfLineSelection",
+    module = "freeports.utils.pdf_extract",
+    frozen
+)]
 #[derive(Clone)]
 pub struct PyPdfLineSelection(RelativePdfLineSet);
 
@@ -183,13 +195,19 @@ impl PyPdfLineSelection {
 }
 
 /// A relative selection from an absolute leaf.
-fn absolute(leaf: crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet) -> PyPdfLineSelection {
-    PyPdfLineSelection(RelativePdfLineSet::from_leaf(OptionallyRelative::Absolute(leaf)))
+fn absolute(
+    leaf: crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet,
+) -> PyPdfLineSelection {
+    PyPdfLineSelection(RelativePdfLineSet::from_leaf(OptionallyRelative::Absolute(
+        leaf,
+    )))
 }
 
 /// A relative selection from a relative leaf.
 fn relative(leaf: RelativeSelectPdfLineSet) -> PyPdfLineSelection {
-    PyPdfLineSelection(RelativePdfLineSet::from_leaf(OptionallyRelative::Relative(leaf)))
+    PyPdfLineSelection(RelativePdfLineSet::from_leaf(OptionallyRelative::Relative(
+        leaf,
+    )))
 }
 
 #[pymethods]
@@ -219,10 +237,12 @@ impl PyPdfLineSelection {
         match parts.split_first() {
             // The one interval that is not author input: a literal pair this crate chose, which is
             // why it stays on the infallible path.
-            None => Ok(absolute(SelectPdfLineSet::FontSize(FontSizeInterval::new(0.0, 1e6)))),
-            Some((first, rest)) => {
-                Ok(rest.iter().fold(first.clone(), |acc, part| acc.__and__(part.clone())))
-            }
+            None => Ok(absolute(SelectPdfLineSet::FontSize(FontSizeInterval::new(
+                0.0, 1e6,
+            )))),
+            Some((first, rest)) => Ok(rest
+                .iter()
+                .fold(first.clone(), |acc, part| acc.__and__(part.clone()))),
         }
     }
 
@@ -230,7 +250,11 @@ impl PyPdfLineSelection {
 
     #[staticmethod]
     fn font(font: &str) -> PyPdfLineSelection {
-        absolute(crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_font(font))
+        absolute(
+            crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_font(
+                font,
+            ),
+        )
     }
 
     /// # Errors
@@ -248,7 +272,11 @@ impl PyPdfLineSelection {
 
     #[staticmethod]
     fn text(text: &str) -> PyPdfLineSelection {
-        absolute(crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_text(text))
+        absolute(
+            crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_text(
+                text,
+            ),
+        )
     }
 
     /// # Errors
@@ -280,7 +308,9 @@ impl PyPdfLineSelection {
 
     #[staticmethod]
     fn font_size_of(target: PyPdfLineSelection) -> PyPdfLineSelection {
-        relative(RelativeSelectPdfLineSet::select_fontsize_of(target.selection()))
+        relative(RelativeSelectPdfLineSet::select_fontsize_of(
+            target.selection(),
+        ))
     }
 
     #[staticmethod]
@@ -356,17 +386,26 @@ impl PyPdfLineSelection {
     ///
     /// The selection is *contextualised* first: its relative parts need the page's lines to know
     /// what they refer to.
-    fn select<'py>(&self, py: Python<'py>, lines: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyList>> {
+    fn select<'py>(
+        &self,
+        py: Python<'py>,
+        lines: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyList>> {
         let lines = lines_from_py(lines)?;
         let set = self.0.clone().contextualize(&lines);
-        let selected: Vec<PyPdfLine> =
-            lines.into_iter().filter(|line| set.contains(line)).map(PyPdfLine).collect();
+        let selected: Vec<PyPdfLine> = lines
+            .into_iter()
+            .filter(|line| set.contains(line))
+            .map(PyPdfLine)
+            .collect();
         PyList::new(py, selected)
     }
 
     /// The selection resolved against a set of lines, without applying it.
     fn contextualize(&self, lines: &Bound<'_, PyAny>) -> PyResult<PyPdfLineSet> {
-        Ok(PyPdfLineSet(self.0.clone().contextualize(&lines_from_py(lines)?)))
+        Ok(PyPdfLineSet(
+            self.0.clone().contextualize(&lines_from_py(lines)?),
+        ))
     }
 }
 
@@ -402,7 +441,10 @@ impl PyPdfLineSet {
 /// The text lines of a page, from the dict PyMuPDF returns.
 #[pyfunction]
 #[pyo3(name = "pdflines_from_pagedict", signature = (page, auto_rotate=true))]
-pub fn py_pdflines_from_pagedict(page: &Bound<'_, PyDict>, auto_rotate: bool) -> PyResult<Vec<PyPdfLine>> {
+pub fn py_pdflines_from_pagedict(
+    page: &Bound<'_, PyDict>,
+    auto_rotate: bool,
+) -> PyResult<Vec<PyPdfLine>> {
     let page = PageDict::from_py(page).map_err(value_error)?;
     let lines = page_dict::pdflines_from_pagedict(&page, auto_rotate);
     Ok(lines.into_iter().map(PyPdfLine).collect())
@@ -444,7 +486,9 @@ impl PyPageImage {
 #[pyfunction]
 #[pyo3(name = "pdfline_selection_from_str", signature = (input))]
 pub fn py_pdfline_selection_from_str(input: &str) -> PyResult<PyPdfLineSelection> {
-    selection::pdfline_selection_from_str(input).map(into_shim).map_err(value_error)
+    selection::pdfline_selection_from_str(input)
+        .map(into_shim)
+        .map_err(value_error)
 }
 
 /// A selection written as a mapping — the extended form of the same configuration.
@@ -453,7 +497,9 @@ pub fn py_pdfline_selection_from_str(input: &str) -> PyResult<PyPdfLineSelection
 pub fn py_pdfline_selection_from_dict(data: &Bound<'_, PyAny>) -> PyResult<PyPdfLineSelection> {
     let spec: selection::InputPdfLineSet = serde_json::from_str(&py_to_json(data)?)
         .map_err(|e| value_error_msg(format!("not a valid line-selection mapping: {e}")))?;
-    selection::pdfline_selection_from_dict(&spec).map(into_shim).map_err(value_error)
+    selection::pdfline_selection_from_dict(&spec)
+        .map(into_shim)
+        .map_err(value_error)
 }
 
 /// A native selection as a shim.
@@ -509,7 +555,11 @@ fn py_to_json(value: &Bound<'_, PyAny>) -> PyResult<String> {
 /// Groups lines by proximity along one axis.
 #[pyfunction]
 #[pyo3(name = "get_groups", signature = (lines, treshold, vertical=true))]
-pub fn py_get_groups(lines: &Bound<'_, PyAny>, treshold: f32, vertical: bool) -> PyResult<Vec<i64>> {
+pub fn py_get_groups(
+    lines: &Bound<'_, PyAny>,
+    treshold: f32,
+    vertical: bool,
+) -> PyResult<Vec<i64>> {
     position::get_groups(&lines_from_py(lines)?, treshold, vertical).map_err(value_error)
 }
 
@@ -547,8 +597,12 @@ pub fn py_get_table_coordinates(
     };
     let config = TableCoordinatesConfig {
         table_config: table_cfg.map(|c| c.0.clone()),
-        algorithm_flags: algorithm_flags.map(|f| f.0).unwrap_or(TablePosAlgorithm::Default),
-        collapse_algorithm: collapse_alg.map(|c| c.native()).unwrap_or(CollapseAlgorithm::Geometry),
+        algorithm_flags: algorithm_flags
+            .map(|f| f.0)
+            .unwrap_or(TablePosAlgorithm::Default),
+        collapse_algorithm: collapse_alg
+            .map(|c| c.native())
+            .unwrap_or(CollapseAlgorithm::Geometry),
         col_tolerance,
         row_tolerance,
         tolerance_unit: tolerance_mu.map(|u| u.native()).unwrap_or_default(),
@@ -582,7 +636,9 @@ impl PyLimits {
 
 /// The bounds of a row or column, as a tuple or as an already-built value.
 fn limits_from_py(value: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Limits>> {
-    let Some(value) = value.filter(|v| !v.is_none()) else { return Ok(None) };
+    let Some(value) = value.filter(|v| !v.is_none()) else {
+        return Ok(None);
+    };
     if let Ok(limits) = value.extract::<PyRef<'_, PyLimits>>() {
         return Ok(Some(limits.0));
     }
@@ -600,7 +656,9 @@ impl PyRowConfig {
     #[new]
     #[pyo3(signature = (limits=None))]
     fn new(limits: Option<&Bound<'_, PyAny>>) -> PyResult<PyRowConfig> {
-        Ok(PyRowConfig(RowConfig { limits: limits_from_py(limits)? }))
+        Ok(PyRowConfig(RowConfig {
+            limits: limits_from_py(limits)?,
+        }))
     }
 
     #[getter]
@@ -677,11 +735,16 @@ pub struct PyTableConfig(TableConfig);
 ///
 /// Accepting the single case is not a free convenience: it is the form a formats repository writes
 /// most often.
-fn coerce_configs<T, N>(value: Option<&Bound<'_, PyAny>>, native: fn(&T) -> N) -> PyResult<Option<Vec<N>>>
+fn coerce_configs<T, N>(
+    value: Option<&Bound<'_, PyAny>>,
+    native: fn(&T) -> N,
+) -> PyResult<Option<Vec<N>>>
 where
     T: PyClass,
 {
-    let Some(value) = value.filter(|v| !v.is_none()) else { return Ok(None) };
+    let Some(value) = value.filter(|v| !v.is_none()) else {
+        return Ok(None);
+    };
     if let Ok(single) = value.extract::<PyRef<'_, T>>() {
         return Ok(Some(vec![native(&single)]));
     }
@@ -707,7 +770,10 @@ impl PyTableConfig {
 impl PyTableConfig {
     #[new]
     #[pyo3(signature = (cols=None, rows=None))]
-    fn new(cols: Option<&Bound<'_, PyAny>>, rows: Option<&Bound<'_, PyAny>>) -> PyResult<PyTableConfig> {
+    fn new(
+        cols: Option<&Bound<'_, PyAny>>,
+        rows: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyTableConfig> {
         Ok(PyTableConfig(TableConfig {
             cols: coerce_configs::<PyColumnConfig, _>(cols, |c| c.0)?,
             rows: coerce_configs::<PyRowConfig, _>(rows, |r| r.0)?,
@@ -716,7 +782,10 @@ impl PyTableConfig {
 
     #[getter]
     fn cols(&self) -> Option<Vec<PyColumnConfig>> {
-        self.0.cols.as_ref().map(|c| c.iter().copied().map(PyColumnConfig).collect())
+        self.0
+            .cols
+            .as_ref()
+            .map(|c| c.iter().copied().map(PyColumnConfig).collect())
     }
 
     #[setter]
@@ -727,7 +796,10 @@ impl PyTableConfig {
 
     #[getter]
     fn rows(&self) -> Option<Vec<PyRowConfig>> {
-        self.0.rows.as_ref().map(|r| r.iter().copied().map(PyRowConfig).collect())
+        self.0
+            .rows
+            .as_ref()
+            .map(|r| r.iter().copied().map(PyRowConfig).collect())
     }
 
     #[setter]
@@ -741,7 +813,11 @@ impl PyTableConfig {
 ///
 /// Not a catalogue of names like the block-type ones: these flags **combine** with `|`, and that is
 /// how a formats repository writes them.
-#[pyclass(name = "TablePosAlgorithm", module = "freeports.utils.pdf_extract", frozen)]
+#[pyclass(
+    name = "TablePosAlgorithm",
+    module = "freeports.utils.pdf_extract",
+    frozen
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct PyTablePosAlgorithm(TablePosAlgorithm);
 
@@ -796,8 +872,13 @@ impl PyTablePosAlgorithm {
 
     /// The textual expression formats repositories write in their configuration files.
     #[classmethod]
-    fn from_expression(_cls: &Bound<'_, PyType>, expression: &str) -> PyResult<PyTablePosAlgorithm> {
-        TablePosAlgorithm::from_expression(expression).map(PyTablePosAlgorithm).map_err(value_error)
+    fn from_expression(
+        _cls: &Bound<'_, PyType>,
+        expression: &str,
+    ) -> PyResult<PyTablePosAlgorithm> {
+        TablePosAlgorithm::from_expression(expression)
+            .map(PyTablePosAlgorithm)
+            .map_err(value_error)
     }
 }
 
@@ -854,8 +935,18 @@ plain_enum_shim!(
     "SplittingState",
     [
         (DISALLOW, SplittingState::Disallow),
-        (ALLOW_UP, SplittingState::Allow(crate::formats_utils::pdf_extract::position::SplittingDirection::Up)),
-        (ALLOW_DOWN, SplittingState::Allow(crate::formats_utils::pdf_extract::position::SplittingDirection::Down)),
+        (
+            ALLOW_UP,
+            SplittingState::Allow(
+                crate::formats_utils::pdf_extract::position::SplittingDirection::Up
+            )
+        ),
+        (
+            ALLOW_DOWN,
+            SplittingState::Allow(
+                crate::formats_utils::pdf_extract::position::SplittingDirection::Down
+            )
+        ),
     ]
 );
 plain_enum_shim!(
@@ -865,8 +956,14 @@ plain_enum_shim!(
     [
         (PATTERN, CollapseAlgorithm::Pattern),
         (GEOMETRY, CollapseAlgorithm::Geometry),
-        (GEOMETRY_THEN_PATTERN, CollapseAlgorithm::GeometryThenPattern),
-        (PATTERN_THEN_GEOMETRY, CollapseAlgorithm::PatternThenGeometry),
+        (
+            GEOMETRY_THEN_PATTERN,
+            CollapseAlgorithm::GeometryThenPattern
+        ),
+        (
+            PATTERN_THEN_GEOMETRY,
+            CollapseAlgorithm::PatternThenGeometry
+        ),
     ]
 );
 plain_enum_shim!(
@@ -883,7 +980,10 @@ plain_enum_shim!(
     PyLabelledValueTake,
     LabelledValueTake,
     "LabelledValueTake",
-    [(FIRST, LabelledValueTake::First), (ALL, LabelledValueTake::All)]
+    [
+        (FIRST, LabelledValueTake::First),
+        (ALL, LabelledValueTake::All)
+    ]
 );
 plain_enum_shim!(
     PyTablePosMeasureUnit,
@@ -920,7 +1020,12 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
         PyCollapseAlgorithm::MEMBERS
             .iter()
             .enumerate()
-            .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyCollapseAlgorithm(i))?.into_any().unbind())))
+            .map(|(i, (n, _))| {
+                Ok((
+                    *n,
+                    Bound::new(py, PyCollapseAlgorithm(i))?.into_any().unbind(),
+                ))
+            })
             .collect::<PyResult<_>>()?,
     )?;
     attach(
@@ -928,7 +1033,14 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
         PyTablePosMeasureUnit::MEMBERS
             .iter()
             .enumerate()
-            .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyTablePosMeasureUnit(i))?.into_any().unbind())))
+            .map(|(i, (n, _))| {
+                Ok((
+                    *n,
+                    Bound::new(py, PyTablePosMeasureUnit(i))?
+                        .into_any()
+                        .unbind(),
+                ))
+            })
             .collect::<PyResult<_>>()?,
     )?;
     attach(
@@ -936,7 +1048,12 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
         PyLabelledValueWhere::MEMBERS
             .iter()
             .enumerate()
-            .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyLabelledValueWhere(i))?.into_any().unbind())))
+            .map(|(i, (n, _))| {
+                Ok((
+                    *n,
+                    Bound::new(py, PyLabelledValueWhere(i))?.into_any().unbind(),
+                ))
+            })
             .collect::<PyResult<_>>()?,
     )?;
     attach(
@@ -944,7 +1061,12 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
         PyLabelledValueTake::MEMBERS
             .iter()
             .enumerate()
-            .map(|(i, (n, _))| Ok((*n, Bound::new(py, PyLabelledValueTake(i))?.into_any().unbind())))
+            .map(|(i, (n, _))| {
+                Ok((
+                    *n,
+                    Bound::new(py, PyLabelledValueTake(i))?.into_any().unbind(),
+                ))
+            })
             .collect::<PyResult<_>>()?,
     )?;
     attach(
@@ -957,7 +1079,12 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
             ("USE_TEST_POS", TablePosAlgorithm::UseTestPos),
         ]
         .into_iter()
-        .map(|(n, v)| Ok((n, Bound::new(py, PyTablePosAlgorithm(v))?.into_any().unbind())))
+        .map(|(n, v)| {
+            Ok((
+                n,
+                Bound::new(py, PyTablePosAlgorithm(v))?.into_any().unbind(),
+            ))
+        })
         .collect::<PyResult<_>>()?,
     )?;
 
@@ -1000,7 +1127,10 @@ mod tests {
 
         fn message_of(err: PyErr) -> String {
             Python::attach(|py| {
-                assert!(err.is_instance_of::<PyValueError>(py), "author code must be able to catch this");
+                assert!(
+                    err.is_instance_of::<PyValueError>(py),
+                    "author code must be able to catch this"
+                );
                 err.value(py).to_string()
             })
         }
@@ -1022,14 +1152,22 @@ mod tests {
         #[test]
         fn a_degenerate_area_raises_too() {
             Python::initialize();
-            assert!(PyPdfLineSelection::area(10.0, 0.0, 10.0, 100.0).is_err(), "bounds are strict");
+            assert!(
+                PyPdfLineSelection::area(10.0, 0.0, 10.0, 100.0).is_err(),
+                "bounds are strict"
+            );
         }
 
         #[test]
         fn an_inverted_font_size_interval_raises_value_error() {
             Python::initialize();
-            let err = PyPdfLineSelection::font_size(20.0, 10.0).err().expect("an inverted interval must be refused");
-            assert_eq!(message_of(err), "left limit bound can't be bigger than right one, found left '20' and right '10'");
+            let err = PyPdfLineSelection::font_size(20.0, 10.0)
+                .err()
+                .expect("an inverted interval must be refused");
+            assert_eq!(
+                message_of(err),
+                "left limit bound can't be bigger than right one, found left '20' and right '10'"
+            );
         }
 
         /// The same defect reached through the constructor rather than the static method: `new`
@@ -1038,7 +1176,8 @@ mod tests {
         fn the_constructor_propagates_the_failure_of_the_criterion_it_builds() {
             Python::initialize();
             assert!(
-                PyPdfLineSelection::new(Some("bold"), None, None, Some((0.0, 60.0, 1e6, 50.0))).is_err(),
+                PyPdfLineSelection::new(Some("bold"), None, None, Some((0.0, 60.0, 1e6, 50.0)))
+                    .is_err(),
                 "an inverted area given to the constructor must raise, not panic"
             );
             assert!(
@@ -1057,7 +1196,10 @@ mod tests {
             Python::initialize();
             let err = PyPdfLine::new("Arial", 0.0, "text", (0.0, 0.0, 10.0, 10.0))
                 .expect_err("a line without a positive size is not a line");
-            assert_eq!(message_of(err), "the font size of a PdfLine must be positive, found 0");
+            assert_eq!(
+                message_of(err),
+                "the font size of a PdfLine must be positive, found 0"
+            );
         }
 
         #[test]

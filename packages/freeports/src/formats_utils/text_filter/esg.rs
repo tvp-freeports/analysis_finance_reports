@@ -199,7 +199,10 @@ impl Reader {
         Ok(Reader::LabelledPairs {
             separator,
             drop: drop.iter().map(|p| compiled(p)).collect::<Result<_, _>>()?,
-            strip: strip.iter().map(|p| compiled(p)).collect::<Result<_, _>>()?,
+            strip: strip
+                .iter()
+                .map(|p| compiled(p))
+                .collect::<Result<_, _>>()?,
             number: compiled(number)?,
             group_key,
         })
@@ -208,18 +211,32 @@ impl Reader {
     /// The indicators the page carries, in the order it writes them.
     pub fn call(&self, blocks: &[PdfBlock]) -> Vec<Indicator> {
         match self {
-            Reader::LeadingNumber { marker, leading, group_key, max_name } => {
+            Reader::LeadingNumber {
+                marker,
+                leading,
+                group_key,
+                max_name,
+            } => {
                 let mut out = Vec::new();
                 for entry in entries(blocks, marker.as_ref(), group_key) {
                     let text = joined(&entry);
                     // `R11` drops an entry that does not begin with a number, and that is what
                     // makes the prose-only page a case already covered rather than an exception.
-                    let Some(found) = leading.captures(&text) else { continue };
-                    let (value, name) =
-                        (found.at(1).unwrap_or("").to_string(), found.at(2).unwrap_or("").to_string());
+                    let Some(found) = leading.captures(&text) else {
+                        continue;
+                    };
+                    let (value, name) = (
+                        found.at(1).unwrap_or("").to_string(),
+                        found.at(2).unwrap_or("").to_string(),
+                    );
                     let mut name = name.trim().to_string();
                     if *max_name > 0 && name.chars().count() > *max_name {
-                        name = name.chars().take(*max_name).collect::<String>().trim_end().to_string();
+                        name = name
+                            .chars()
+                            .take(*max_name)
+                            .collect::<String>()
+                            .trim_end()
+                            .to_string();
                     }
                     let Some(first) = entry.first() else { continue };
                     out.push(Indicator {
@@ -230,7 +247,14 @@ impl Reader {
                 }
                 out
             }
-            Reader::DatedRows { indicator_key, series_key, column_key, series, column, whole } => {
+            Reader::DatedRows {
+                indicator_key,
+                series_key,
+                column_key,
+                series,
+                column,
+                whole,
+            } => {
                 blocks
                     .iter()
                     .filter(|block| index_of(block, series_key) == Some(*series))
@@ -252,19 +276,33 @@ impl Reader {
                         if name.is_empty() {
                             return None;
                         }
-                        Some(Indicator { name, value, block: block.clone() })
+                        Some(Indicator {
+                            name,
+                            value,
+                            block: block.clone(),
+                        })
                     })
                     .collect()
             }
-            Reader::LabelledPairs { separator, drop, strip, number, group_key } => {
+            Reader::LabelledPairs {
+                separator,
+                drop,
+                strip,
+                number,
+                group_key,
+            } => {
                 let mut out = Vec::new();
                 for entry in entries(blocks, None, group_key) {
                     let text = joined(&entry);
-                    let Some((name, tail)) = text.split_once(separator.as_str()) else { continue };
+                    let Some((name, tail)) = text.split_once(separator.as_str()) else {
+                        continue;
+                    };
                     if drop.iter().any(|pattern| pattern.find(&text).is_some()) {
                         continue;
                     }
-                    let Some(value) = number.find(tail).map(|(start, end)| tail[start..end].to_string())
+                    let Some(value) = number
+                        .find(tail)
+                        .map(|(start, end)| tail[start..end].to_string())
                     else {
                         continue;
                     };
@@ -291,7 +329,11 @@ impl Reader {
 
 /// The blocks split into entries: on the marker where there is one, on the group otherwise, all
 /// together where there is neither.
-fn entries<'a>(blocks: &'a [PdfBlock], marker: Option<&Regex>, group_key: &str) -> Vec<Vec<&'a PdfBlock>> {
+fn entries<'a>(
+    blocks: &'a [PdfBlock],
+    marker: Option<&Regex>,
+    group_key: &str,
+) -> Vec<Vec<&'a PdfBlock>> {
     let mut out: Vec<Vec<&PdfBlock>> = Vec::new();
     let mut previous: Option<Option<String>> = None;
     for block in blocks {
@@ -304,7 +346,9 @@ fn entries<'a>(blocks: &'a [PdfBlock], marker: Option<&Regex>, group_key: &str) 
         if out.is_empty() || (group.is_some() && Some(group.clone()) != previous) {
             out.push(Vec::new());
         }
-        out.last_mut().expect("a group was just pushed if there was none").push(block);
+        out.last_mut()
+            .expect("a group was just pushed if there was none")
+            .push(block);
         previous = Some(group);
     }
     out.retain(|entry| !entry.is_empty());
@@ -313,7 +357,12 @@ fn entries<'a>(blocks: &'a [PdfBlock], marker: Option<&Regex>, group_key: &str) 
 
 /// The texts of an entry's blocks, joined, with the empty ones left out.
 fn joined(entry: &[&PdfBlock]) -> String {
-    entry.iter().map(|block| text_of(block)).filter(|line| !line.is_empty()).collect::<Vec<_>>().join(" ")
+    entry
+        .iter()
+        .map(|block| text_of(block))
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn text_of(block: &PdfBlock) -> String {
@@ -352,7 +401,12 @@ pub enum FundOf {
     Promised(String),
     /// The promise the page `n - offset` left, keyed by the **printed** page number this page
     /// carries in its metadata. See [`super::carryover::page`].
-    PagePromise { field: String, page_key: String, offset: i64, separator: String },
+    PagePromise {
+        field: String,
+        page_key: String,
+        offset: i64,
+        separator: String,
+    },
     /// The name is on **this** page, in a block this pipeline's own `pdf_extract` produced.
     ///
     /// The case of a report whose indicators sit on a page of their own and whose running head
@@ -376,7 +430,12 @@ impl FundOf {
         match self {
             FundOf::Nobody => None,
             FundOf::Promised(id) => Some(BlockValue::Promise(Promise::new(id))),
-            FundOf::PagePromise { field, page_key, offset, separator } => {
+            FundOf::PagePromise {
+                field,
+                page_key,
+                offset,
+                separator,
+            } => {
                 let page = blocks.iter().find_map(|block| index_of(block, page_key));
                 let Some(page) = page else {
                     tracing::error!(
@@ -428,14 +487,22 @@ impl TextFilterEsg {
             // there are no measurements. No warning, because there is nothing anomalous to report.
             return Vec::new();
         }
-        let Some(owner) = self.fund.resolve(blocks) else { return Vec::new() };
+        let Some(owner) = self.fund.resolve(blocks) else {
+            return Vec::new();
+        };
         indicators
             .into_iter()
             .map(|indicator| {
                 let metadata = [
                     ("fund".to_string(), owner.clone()),
-                    ("name".to_string(), BlockValue::from(indicator.name.as_str())),
-                    ("value".to_string(), BlockValue::from(indicator.value.as_str())),
+                    (
+                        "name".to_string(),
+                        BlockValue::from(indicator.name.as_str()),
+                    ),
+                    (
+                        "value".to_string(),
+                        BlockValue::from(indicator.value.as_str()),
+                    ),
                 ]
                 .into_iter()
                 .collect();
@@ -450,7 +517,11 @@ impl TextFilterPipe for TextFilterEsg {
         "TextFilterEsg"
     }
 
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
         Ok(self.call(blocks, data))
     }
 }
@@ -464,18 +535,31 @@ mod tests {
     fn lines(texts: &[&str]) -> Vec<PdfBlock> {
         texts
             .iter()
-            .map(|text| PdfBlock::new(BlockType::RELEVANT_BLOCK, BTreeMap::new(), BlockValue::from(*text)))
+            .map(|text| {
+                PdfBlock::new(
+                    BlockType::RELEVANT_BLOCK,
+                    BTreeMap::new(),
+                    BlockValue::from(*text),
+                )
+            })
             .collect()
     }
 
     fn with_meta(pairs: &[(&str, BlockValue)], text: &str) -> PdfBlock {
-        let metadata = pairs.iter().map(|(k, v)| (k.to_string(), v.clone())).collect();
+        let metadata = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.clone()))
+            .collect();
         PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, BlockValue::from(text))
     }
 
     /// The indicators in a shape easy to compare: value, then name.
     fn read(reader: &Reader, blocks: &[PdfBlock]) -> Vec<(String, String)> {
-        reader.call(blocks).into_iter().map(|i| (i.value, i.name)).collect()
+        reader
+            .call(blocks)
+            .into_iter()
+            .map(|i| (i.value, i.name))
+            .collect()
     }
 
     fn leading(marker: Option<&str>, max_name: usize) -> Reader {
@@ -572,8 +656,14 @@ mod tests {
         #[test]
         fn without_the_marker_the_group_is_what_separates_two_items() {
             let blocks = vec![
-                with_meta(&[("group", BlockValue::from(0_i64))], "10% of the first thing"),
-                with_meta(&[("group", BlockValue::from(1_i64))], "20% of the second thing"),
+                with_meta(
+                    &[("group", BlockValue::from(0_i64))],
+                    "10% of the first thing",
+                ),
+                with_meta(
+                    &[("group", BlockValue::from(1_i64))],
+                    "20% of the second thing",
+                ),
             ];
             assert_eq!(
                 read(&leading(None, 0), &blocks),
@@ -639,7 +729,10 @@ mod tests {
             assert_eq!(
                 read(&dated(0), &table()),
                 vec![
-                    ("71".to_string(), "Weighted Average Carbon Intensity".to_string()),
+                    (
+                        "71".to_string(),
+                        "Weighted Average Carbon Intensity".to_string()
+                    ),
                     ("12".to_string(), "Carbon Footprint".to_string()),
                     ("96.51%".to_string(), "Coverage (% invested)".to_string()),
                 ]
@@ -652,7 +745,10 @@ mod tests {
         fn the_benchmark_row_is_reachable_by_asking_for_it() {
             assert_eq!(
                 read(&dated(1), &table()),
-                vec![("83".to_string(), "Weighted Average Carbon Intensity".to_string())]
+                vec![(
+                    "83".to_string(),
+                    "Weighted Average Carbon Intensity".to_string()
+                )]
             );
         }
 
@@ -673,7 +769,10 @@ mod tests {
         #[test]
         fn a_cell_without_its_indicator_is_dropped() {
             let blocks = vec![with_meta(
-                &[("series", BlockValue::from(0_i64)), ("column", BlockValue::from(0_i64))],
+                &[
+                    ("series", BlockValue::from(0_i64)),
+                    ("column", BlockValue::from(0_i64)),
+                ],
                 "71",
             )];
             assert!(read(&dated(0), &blocks).is_empty());
@@ -689,7 +788,10 @@ mod tests {
             Reader::labelled_pairs(
                 ":".to_string(),
                 &["of the benchmark".to_string()],
-                &[r"^o\s+".to_string(), r"\s+of the financial product$".to_string()],
+                &[
+                    r"^o\s+".to_string(),
+                    r"\s+of the financial product$".to_string(),
+                ],
                 NUMBER,
                 "group".to_string(),
             )
@@ -704,8 +806,14 @@ mod tests {
         /// its benchmark.
         fn page() -> Vec<PdfBlock> {
             vec![
-                entry(0, "o  Weighted Average Carbon Intensity (WACI) of the financial product: 26.81 tons CO\u{2082} per million dollars revenues"),
-                entry(1, "o  Weighted Average Carbon Intensity (WACI) of the benchmark: 38.2 tons CO\u{2082} per million dollars revenues"),
+                entry(
+                    0,
+                    "o  Weighted Average Carbon Intensity (WACI) of the financial product: 26.81 tons CO\u{2082} per million dollars revenues",
+                ),
+                entry(
+                    1,
+                    "o  Weighted Average Carbon Intensity (WACI) of the benchmark: 38.2 tons CO\u{2082} per million dollars revenues",
+                ),
                 entry(2, "o  UBS consensus score of the financial product: 6.4"),
             ]
         }
@@ -715,7 +823,10 @@ mod tests {
             assert_eq!(
                 read(&reader(), &page()),
                 vec![
-                    ("26.81".to_string(), "Weighted Average Carbon Intensity (WACI)".to_string()),
+                    (
+                        "26.81".to_string(),
+                        "Weighted Average Carbon Intensity (WACI)".to_string()
+                    ),
                     ("6.4".to_string(), "UBS consensus score".to_string()),
                 ]
             );
@@ -767,7 +878,8 @@ mod tests {
         #[test]
         fn an_empty_separator_is_refused_when_the_reader_is_built() {
             assert!(
-                Reader::labelled_pairs(String::new(), &[], &[], NUMBER, "group".to_string()).is_err()
+                Reader::labelled_pairs(String::new(), &[], &[], NUMBER, "group".to_string())
+                    .is_err()
             );
         }
     }
@@ -787,9 +899,15 @@ mod tests {
 
         #[test]
         fn one_promise_for_the_whole_document() {
-            let got = rows(FundOf::Promised("esg-indicator-fund".to_string()), &fineco());
+            let got = rows(
+                FundOf::Promised("esg-indicator-fund".to_string()),
+                &fineco(),
+            );
             assert_eq!(got.len(), 2);
-            assert_eq!(fund_of(&got[0]), BlockValue::Promise(Promise::new("esg-indicator-fund")));
+            assert_eq!(
+                fund_of(&got[0]),
+                BlockValue::Promise(Promise::new("esg-indicator-fund"))
+            );
         }
 
         /// The key is computed from the **printed** page number this page carries, and the engine
@@ -807,7 +925,10 @@ mod tests {
                 },
                 &blocks,
             );
-            assert_eq!(fund_of(&got[0]), BlockValue::Promise(Promise::new("esg-fund-page-893")));
+            assert_eq!(
+                fund_of(&got[0]),
+                BlockValue::Promise(Promise::new("esg-fund-page-893"))
+            );
         }
 
         /// UBS-EN23: the title at p14 and the statement at p16, two pages apart.
@@ -824,7 +945,10 @@ mod tests {
                 },
                 &blocks,
             );
-            assert_eq!(fund_of(&got[0]), BlockValue::Promise(Promise::new("esg-fund-page-14")));
+            assert_eq!(
+                fund_of(&got[0]),
+                BlockValue::Promise(Promise::new("esg-fund-page-14"))
+            );
         }
 
         /// No printed number is no key, and a row tied to the wrong sub-fund is worse than one
@@ -853,9 +977,17 @@ mod tests {
                 BTreeMap::new(),
                 BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)"),
             ));
-            let got = rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &blocks);
+            let got = rows(
+                FundOf::Blocks {
+                    block_type: BlockType::FUND_NAME,
+                },
+                &blocks,
+            );
             assert_eq!(got.len(), 2);
-            assert_eq!(fund_of(&got[0]), BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)"));
+            assert_eq!(
+                fund_of(&got[0]),
+                BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)")
+            );
         }
 
         /// A format may read the title with two pipes of which only one applies to a page, and the
@@ -870,8 +1002,16 @@ mod tests {
                     BlockValue::from(content),
                 ));
             }
-            let got = rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &blocks);
-            assert_eq!(fund_of(&got[0]), BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)"));
+            let got = rows(
+                FundOf::Blocks {
+                    block_type: BlockType::FUND_NAME,
+                },
+                &blocks,
+            );
+            assert_eq!(
+                fund_of(&got[0]),
+                BlockValue::from("ISHARES GREEN BOND INDEX FUND (IE)")
+            );
         }
 
         /// The block type is the format's to name, because an author's `pdf_extract` writes a type
@@ -884,8 +1024,21 @@ mod tests {
                 BTreeMap::new(),
                 BlockValue::from("A FUND"),
             ));
-            assert!(rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &blocks).is_empty());
-            let got = rows(FundOf::Blocks { block_type: BlockType::new("ESG_TITLE") }, &blocks);
+            assert!(
+                rows(
+                    FundOf::Blocks {
+                        block_type: BlockType::FUND_NAME
+                    },
+                    &blocks
+                )
+                .is_empty()
+            );
+            let got = rows(
+                FundOf::Blocks {
+                    block_type: BlockType::new("ESG_TITLE"),
+                },
+                &blocks,
+            );
             assert_eq!(fund_of(&got[0]), BlockValue::from("A FUND"));
         }
 
@@ -893,7 +1046,15 @@ mod tests {
         /// that is missing: the same answer `PagePromise` gives a page without its number.
         #[test]
         fn a_page_naming_no_fund_yields_no_row() {
-            assert!(rows(FundOf::Blocks { block_type: BlockType::FUND_NAME }, &fineco()).is_empty());
+            assert!(
+                rows(
+                    FundOf::Blocks {
+                        block_type: BlockType::FUND_NAME
+                    },
+                    &fineco()
+                )
+                .is_empty()
+            );
         }
 
         /// ANIMA_SGR-IT24: the section answers in prose, so no row comes out and the question of
@@ -921,7 +1082,10 @@ mod tests {
                 },
                 &prose,
             );
-            assert!(got.is_empty(), "nessuna riga, e nessun errore sul numero mancante");
+            assert!(
+                got.is_empty(),
+                "nessuna riga, e nessun errore sul numero mancante"
+            );
         }
     }
 }

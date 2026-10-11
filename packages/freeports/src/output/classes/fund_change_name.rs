@@ -32,7 +32,11 @@ impl FundChangeNameData {
         date: &BlockValue,
     ) -> Result<Self, OutputClassError> {
         let date = promised_from_value("date", date, |v| v.date_or_fail("date"))?;
-        Ok(Self { old_name: old_name.into(), current_name: current_name.into(), date })
+        Ok(Self {
+            old_name: old_name.into(),
+            current_name: current_name.into(),
+            date,
+        })
     }
 
     fn pending_fields(&self) -> Vec<(&'static str, Promise)> {
@@ -63,7 +67,9 @@ impl FundRename {
         current_name: impl Into<String>,
         date: &BlockValue,
     ) -> Result<Self, OutputClassError> {
-        Ok(Self { data: FundChangeNameData::build(old_name, current_name, date)? })
+        Ok(Self {
+            data: FundChangeNameData::build(old_name, current_name, date)?,
+        })
     }
 }
 
@@ -72,7 +78,11 @@ impl PromisableFields for FundRename {
         self.data.pending_fields()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         self.data.resolve(field, value)
     }
 }
@@ -90,7 +100,9 @@ impl FundMerge {
         current_name: impl Into<String>,
         date: &BlockValue,
     ) -> Result<Self, OutputClassError> {
-        Ok(Self { data: FundChangeNameData::build(old_name, current_name, date)? })
+        Ok(Self {
+            data: FundChangeNameData::build(old_name, current_name, date)?,
+        })
     }
 }
 
@@ -99,7 +111,11 @@ impl PromisableFields for FundMerge {
         self.data.pending_fields()
     }
 
-    fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
+    fn resolve_field(
+        &mut self,
+        field: &'static str,
+        value: BlockValue,
+    ) -> Result<(), BlockValueError> {
         self.data.resolve(field, value)
     }
 }
@@ -107,8 +123,8 @@ impl PromisableFields for FundMerge {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::promise_resolution::FlatPromiseMap;
     use crate::core::promisable::{Fulfilled, fulfill_promises};
+    use crate::core::promise_resolution::FlatPromiseMap;
 
     fn resolved_date() -> Date {
         Date::new(2025, 7, 2).unwrap()
@@ -120,7 +136,8 @@ mod tests {
         #[test]
         fn builds_a_fund_rename_with_all_fields_resolved() {
             let rename =
-                FundRename::build("Old Fund", "New Fund", &BlockValue::from(resolved_date())).unwrap();
+                FundRename::build("Old Fund", "New Fund", &BlockValue::from(resolved_date()))
+                    .unwrap();
             assert_eq!(rename.data.old_name, "Old Fund");
             assert_eq!(rename.data.current_name, "New Fund");
             assert_eq!(rename.data.date.resolved(), Some(&resolved_date()));
@@ -129,7 +146,8 @@ mod tests {
         #[test]
         fn builds_a_fund_merge_the_same_way() {
             let merge =
-                FundMerge::build("Old Fund", "New Fund", &BlockValue::from(resolved_date())).unwrap();
+                FundMerge::build("Old Fund", "New Fund", &BlockValue::from(resolved_date()))
+                    .unwrap();
             assert_eq!(merge.data.old_name, "Old Fund");
             assert_eq!(merge.data.current_name, "New Fund");
         }
@@ -163,44 +181,68 @@ mod tests {
 
         #[test]
         fn a_fully_resolved_rename_reports_nothing_pending() {
-            let rename = FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
+            let rename =
+                FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
             assert!(rename.pending().is_empty());
         }
 
         #[test]
         fn resolving_the_date_field_works_in_place() {
             let mut rename = promised_rename();
-            rename.resolve_field("date", BlockValue::from(resolved_date())).unwrap();
+            rename
+                .resolve_field("date", BlockValue::from(resolved_date()))
+                .unwrap();
             assert_eq!(rename.data.date.resolved(), Some(&resolved_date()));
         }
 
         #[test]
         fn resolving_with_a_wrongly_typed_value_reports_the_field() {
             let mut rename = promised_rename();
-            let err = rename.resolve_field("date", BlockValue::from(1i64)).unwrap_err();
+            let err = rename
+                .resolve_field("date", BlockValue::from(1i64))
+                .unwrap_err();
             assert!(err.to_string().contains("date"), "{err}");
         }
 
         #[test]
         fn fulfilling_against_a_map_produces_the_same_rename_as_direct_construction() {
             let mut rename = promised_rename();
-            let map = FlatPromiseMap::from_pairs([("date-id".to_string(), BlockValue::from(resolved_date()))]);
-            assert_eq!(fulfill_promises(&mut rename, &map).unwrap(), Fulfilled::InPlace);
-            assert_eq!(rename, FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap());
+            let map = FlatPromiseMap::from_pairs([(
+                "date-id".to_string(),
+                BlockValue::from(resolved_date()),
+            )]);
+            assert_eq!(
+                fulfill_promises(&mut rename, &map).unwrap(),
+                Fulfilled::InPlace
+            );
+            assert_eq!(
+                rename,
+                FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap()
+            );
         }
 
         #[test]
         fn a_merge_resolves_the_same_shared_field_as_a_rename() {
-            let mut merge = FundMerge::build("Old", "New", &BlockValue::Promise(P::new("date-id"))).unwrap();
-            let map = FlatPromiseMap::from_pairs([("date-id".to_string(), BlockValue::from(resolved_date()))]);
-            assert_eq!(fulfill_promises(&mut merge, &map).unwrap(), Fulfilled::InPlace);
+            let mut merge =
+                FundMerge::build("Old", "New", &BlockValue::Promise(P::new("date-id"))).unwrap();
+            let map = FlatPromiseMap::from_pairs([(
+                "date-id".to_string(),
+                BlockValue::from(resolved_date()),
+            )]);
+            assert_eq!(
+                fulfill_promises(&mut merge, &map).unwrap(),
+                Fulfilled::InPlace
+            );
             assert_eq!(merge.data.date.resolved(), Some(&resolved_date()));
         }
 
         #[test]
         fn a_non_strict_unresolvable_date_drops_the_entity() {
             let mut rename = promised_rename();
-            assert_eq!(fulfill_promises(&mut rename, &FlatPromiseMap::new()).unwrap(), Fulfilled::Dropped);
+            assert_eq!(
+                fulfill_promises(&mut rename, &FlatPromiseMap::new()).unwrap(),
+                Fulfilled::Dropped
+            );
         }
     }
 
@@ -209,7 +251,8 @@ mod tests {
 
         #[test]
         fn a_resolved_fund_rename_survives_a_json_roundtrip() {
-            let rename = FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
+            let rename =
+                FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
             let json = serde_json::to_string(&rename).unwrap();
             assert_eq!(serde_json::from_str::<FundRename>(&json).unwrap(), rename);
         }
@@ -223,9 +266,10 @@ mod tests {
 
         #[test]
         fn the_shared_fields_are_flattened_not_nested_under_a_data_key() {
-            let json =
-                serde_json::to_string(&FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap())
-                    .unwrap();
+            let json = serde_json::to_string(
+                &FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap(),
+            )
+            .unwrap();
             assert!(json.contains("\"old_name\""), "{json}");
             assert!(!json.contains("\"data\""), "{json}");
         }
@@ -240,9 +284,13 @@ mod tests {
         #[test]
         fn fund_rename_and_fund_merge_are_distinct_types_even_with_identical_fields() {
             use std::any::TypeId;
-            let rename = FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
+            let rename =
+                FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
             let merge = FundMerge::build("Old", "New", &BlockValue::from(resolved_date())).unwrap();
-            assert_eq!(rename.data, merge.data, "the shared data is identical by construction");
+            assert_eq!(
+                rename.data, merge.data,
+                "the shared data is identical by construction"
+            );
             assert_ne!(TypeId::of::<FundRename>(), TypeId::of::<FundMerge>());
         }
     }

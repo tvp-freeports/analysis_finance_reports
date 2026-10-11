@@ -59,10 +59,19 @@ impl DashAsZero {
     fn flag_names() -> std::collections::HashMap<String, u64> {
         let all = DashAsZero::all().bits() as u64;
         std::collections::HashMap::from([
-            ("MARKET_VALUE".to_string(), DashAsZero::MarketValue.bits() as u64),
+            (
+                "MARKET_VALUE".to_string(),
+                DashAsZero::MarketValue.bits() as u64,
+            ),
             ("QUANTITY".to_string(), DashAsZero::Quantity.bits() as u64),
-            ("PERC_NET_ASSETS".to_string(), DashAsZero::PercNetAssets.bits() as u64),
-            ("ACQUISITION_COST".to_string(), DashAsZero::AcquisitionCost.bits() as u64),
+            (
+                "PERC_NET_ASSETS".to_string(),
+                DashAsZero::PercNetAssets.bits() as u64,
+            ),
+            (
+                "ACQUISITION_COST".to_string(),
+                DashAsZero::AcquisitionCost.bits() as u64,
+            ),
             ("ALL".to_string(), all),
         ])
     }
@@ -137,7 +146,10 @@ mod tests {
                 ("PERC_NET_ASSETS", DashAsZero::PercNetAssets),
                 ("ACQUISITION_COST", DashAsZero::AcquisitionCost),
             ] {
-                assert_eq!(DashAsZero::from_expression(expression).expect(expression), expected);
+                assert_eq!(
+                    DashAsZero::from_expression(expression).expect(expression),
+                    expected
+                );
             }
         }
 
@@ -151,7 +163,10 @@ mod tests {
 
         #[test]
         fn all_is_the_four_fields_together() {
-            assert_eq!(DashAsZero::from_expression("ALL").expect("valid"), DashAsZero::all());
+            assert_eq!(
+                DashAsZero::from_expression("ALL").expect("valid"),
+                DashAsZero::all()
+            );
         }
 
         /// `ALL` contributes no bit of its own, so the universe `~` inverts within stays the four
@@ -175,7 +190,9 @@ mod tests {
         #[test]
         fn an_unknown_name_is_rejected_by_name() {
             match DashAsZero::from_expression("ACQUISITION_CURRENCY") {
-                Err(FlagExprError::UnknownFlag { name }) => assert_eq!(name, "ACQUISITION_CURRENCY"),
+                Err(FlagExprError::UnknownFlag { name }) => {
+                    assert_eq!(name, "ACQUISITION_CURRENCY")
+                }
                 other => panic!("expected UnknownFlag, found {other:?}"),
             }
         }
@@ -216,8 +233,24 @@ mod tests {
         #[test]
         fn nothing_else_is_a_dash_marker() {
             for text in [
-                "", "   ", "n/a", "N/A", ".", ",", "0", "-1", "- 5", "1-2", "USD", "GBP", "Assets",
-                "nominale", "Valutazione", "ARION BANKI HF", "UNITEDSTATES", "CounterpartyB",
+                "",
+                "   ",
+                "n/a",
+                "N/A",
+                ".",
+                ",",
+                "0",
+                "-1",
+                "- 5",
+                "1-2",
+                "USD",
+                "GBP",
+                "Assets",
+                "nominale",
+                "Valutazione",
+                "ARION BANKI HF",
+                "UNITEDSTATES",
+                "CounterpartyB",
                 "EXXON MOBIL CORP - 110.00 - 16.08.24 PUT",
             ] {
                 assert!(!is_dash(text), "{text:?} must not be a dash marker");
@@ -248,14 +281,21 @@ mod tests {
         #[test]
         fn a_flagged_field_that_is_not_a_dash_is_left_alone() {
             assert_eq!(
-                substituted(DashAsZero::MarketValue, Some(DashAsZero::MarketValue), "USD"),
+                substituted(
+                    DashAsZero::MarketValue,
+                    Some(DashAsZero::MarketValue),
+                    "USD"
+                ),
                 "USD"
             );
         }
 
         #[test]
         fn the_empty_set_of_flags_substitutes_nothing() {
-            assert_eq!(substituted(DashAsZero::empty(), Some(DashAsZero::MarketValue), "-"), "-");
+            assert_eq!(
+                substituted(DashAsZero::empty(), Some(DashAsZero::MarketValue), "-"),
+                "-"
+            );
         }
 
         /// A field with no flag is never substituted, not even by `ALL`. Guarding the trap that
@@ -270,8 +310,14 @@ mod tests {
         #[test]
         fn one_flag_of_several_is_enough_for_its_own_field() {
             let flags = DashAsZero::MarketValue | DashAsZero::PercNetAssets;
-            assert_eq!(substituted(flags, Some(DashAsZero::PercNetAssets), "–"), "0");
-            assert_eq!(substituted(flags, Some(DashAsZero::AcquisitionCost), "–"), "–");
+            assert_eq!(
+                substituted(flags, Some(DashAsZero::PercNetAssets), "–"),
+                "0"
+            );
+            assert_eq!(
+                substituted(flags, Some(DashAsZero::AcquisitionCost), "–"),
+                "–"
+            );
         }
     }
 }

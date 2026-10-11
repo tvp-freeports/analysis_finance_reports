@@ -533,15 +533,9 @@ msgstr "`-f EURIZON-EN23`"
 
 #: ../../source/reference/configuration/options.md:91
 msgid ""
-"Left unset, the engine infers it from the URL of each document; the first matching "
-"prefix in the mapping wins, so the order of that file is meaningful. Two documents "
-"inferring **different** formats is an error. An explicit format that **disagrees** "
-"with a successful inference is a warning, and the explicit one is used."
+"Left unset, the engine infers it from the URL of each document: the longest matching prefix in the mapping wins, then the row with the more specific name, then the row that comes first in the file. Two documents inferring **different** formats is an error. An explicit format that **disagrees** with a successful inference is a warning, and the explicit one is used."
 msgstr ""
-"Deixado não definido, o motor o deduz pela URL de cada documento; vence o primeiro "
-"prefixo que casa no mapeamento, então a ordem daquele arquivo importa. Dois "
-"documentos deduzindo formatos **diferentes** é erro. Um formato explícito que "
-"**discorda** de uma dedução bem-sucedida é aviso, e usa-se o explícito."
+"Deixado não definido, o motor o deduz pela URL de cada documento: vence o prefixo mais longo que casa no mapeamento, depois a linha com o nome mais específico, depois a linha que vem primeiro no arquivo. Dois documentos deduzindo formatos **diferentes** é erro. Um formato explícito que **discorda** de uma dedução bem-sucedida é aviso, e usa-se o explícito."
 
 #: ../../source/reference/configuration/options.md:96
 msgid ""

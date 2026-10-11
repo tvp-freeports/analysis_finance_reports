@@ -19,9 +19,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use clap::Parser;
 use freeports::cli::config_locations::cmd::CliArgs;
 use freeports::cli::run::resolve_configs;
-use clap::Parser;
 
 const ALL_FREEPORTS_VARS: &[&str] = &[
     "FREEPORTS_URL",
@@ -57,11 +57,17 @@ struct EnvScope {
 impl EnvScope {
     fn new() -> Self {
         let lock = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
-        let originals = ALL_FREEPORTS_VARS.iter().map(|&k| (k, std::env::var(k).ok())).collect();
+        let originals = ALL_FREEPORTS_VARS
+            .iter()
+            .map(|&k| (k, std::env::var(k).ok()))
+            .collect();
         for &k in ALL_FREEPORTS_VARS {
             unsafe { std::env::remove_var(k) };
         }
-        Self { _lock: lock, originals }
+        Self {
+            _lock: lock,
+            originals,
+        }
     }
 
     fn set(&self, key: &str, value: &str) {
@@ -86,7 +92,11 @@ impl Drop for EnvScope {
 fn write_minimal_formats_repo(dir: &Path) -> PathBuf {
     let repo = dir.join("formats_repo");
     std::fs::create_dir_all(repo.join("metadata")).unwrap();
-    std::fs::write(repo.join("metadata/formats.csv"), "Name,Locale,Year,Country,Version\nA,EN,24,,\nB,EN,24,,\n").unwrap();
+    std::fs::write(
+        repo.join("metadata/formats.csv"),
+        "Name,Locale,Year,Country,Version\nA,EN,24,,\nB,EN,24,,\n",
+    )
+    .unwrap();
     std::fs::write(repo.join("metadata/url_mapping.csv"), "Format name,Url\n").unwrap();
     repo
 }
@@ -123,7 +133,11 @@ impl Fixture {
         let dir = tempfile::tempdir().unwrap();
         let pdf = write_pdf(dir.path(), "report.pdf");
         let formats_repo = write_minimal_formats_repo(dir.path());
-        Self { dir, pdf, formats_repo }
+        Self {
+            dir,
+            pdf,
+            formats_repo,
+        }
     }
 
     fn path(&self) -> &Path {
@@ -152,13 +166,22 @@ impl Fixture {
         ]
     }
 
-    fn resolve(&self, extra_args: &[&str], config_file: &Path) -> freeports::cli::freeports_config::FreeportsConfig {
+    fn resolve(
+        &self,
+        extra_args: &[&str],
+        config_file: &Path,
+    ) -> freeports::cli::freeports_config::FreeportsConfig {
         let base = self.base_args(config_file);
         let mut all: Vec<&str> = base.iter().map(String::as_str).collect();
         all.extend_from_slice(extra_args);
         let args = parse(&all);
-        let mut configs = resolve_configs(args).expect("resolve_configs must succeed for this fixture");
-        assert_eq!(configs.len(), 1, "non-batch invocation must resolve to exactly one config");
+        let mut configs =
+            resolve_configs(args).expect("resolve_configs must succeed for this fixture");
+        assert_eq!(
+            configs.len(),
+            1,
+            "non-batch invocation must resolve to exactly one config"
+        );
         configs.remove(0)
     }
 
@@ -187,7 +210,8 @@ impl Fixture {
         let mut all: Vec<&str> = base.iter().map(String::as_str).collect();
         all.extend_from_slice(extra_args);
         let args = parse(&all);
-        let mut configs = resolve_configs(args).expect("resolve_configs must succeed for this fixture");
+        let mut configs =
+            resolve_configs(args).expect("resolve_configs must succeed for this fixture");
         assert_eq!(configs.len(), 1);
         configs.remove(0)
     }
@@ -232,7 +256,10 @@ mod verbosity_precedence {
         let fixture = Fixture::new();
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "verbosity: debug\n");
         let config = fixture.resolve(&["-q"], &config_file);
-        assert_eq!(config.verbosity, Verbosity::from_verbose_and_quiet_counts(0, 1));
+        assert_eq!(
+            config.verbosity,
+            Verbosity::from_verbose_and_quiet_counts(0, 1)
+        );
     }
 }
 
@@ -250,7 +277,11 @@ mod reports_precedence {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
         let file_pdf = write_pdf(fixture.path(), "from_file.pdf");
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", &format!("pdf: {}\n", file_pdf.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("pdf: {}\n", file_pdf.to_str().unwrap()),
+        );
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.reports.len(), 1);
         assert_eq!(config.reports[0].path, Some(file_pdf));
@@ -263,7 +294,11 @@ mod reports_precedence {
         let env_pdf = write_pdf(fixture.path(), "from_env.pdf");
         scope.set("FREEPORTS_PDF", env_pdf.to_str().unwrap());
         let file_pdf = write_pdf(fixture.path(), "from_file.pdf");
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", &format!("pdf: {}\n", file_pdf.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("pdf: {}\n", file_pdf.to_str().unwrap()),
+        );
 
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.reports.len(), 1);
@@ -277,7 +312,11 @@ mod reports_precedence {
         let env_pdf = write_pdf(fixture.path(), "from_env.pdf");
         scope.set("FREEPORTS_PDF", env_pdf.to_str().unwrap());
         let file_pdf = write_pdf(fixture.path(), "from_file.pdf");
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", &format!("pdf: {}\n", file_pdf.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("pdf: {}\n", file_pdf.to_str().unwrap()),
+        );
         let cmd_pdf = write_pdf(fixture.path(), "from_cmd.pdf");
 
         // `base_args` sets no `--input` at all (see its doc comment), so this is the *only*
@@ -370,8 +409,11 @@ mod out_path_precedence {
         let fixture = Fixture::new();
         let out_dir = fixture.path().join("from-file-out");
         std::fs::create_dir_all(&out_dir).unwrap();
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", &format!("out_path: {}\n", out_dir.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("out_path: {}\n", out_dir.to_str().unwrap()),
+        );
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.out_path, out_dir);
     }
@@ -385,8 +427,11 @@ mod out_path_precedence {
         scope.set("FREEPORTS_OUT_PATH", env_out.to_str().unwrap());
         let file_out = fixture.path().join("from-file-out");
         std::fs::create_dir_all(&file_out).unwrap();
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", &format!("out_path: {}\n", file_out.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("out_path: {}\n", file_out.to_str().unwrap()),
+        );
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.out_path, env_out);
     }
@@ -400,8 +445,11 @@ mod out_path_precedence {
         scope.set("FREEPORTS_OUT_PATH", env_out.to_str().unwrap());
         let file_out = fixture.path().join("from-file-out");
         std::fs::create_dir_all(&file_out).unwrap();
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", &format!("out_path: {}\n", file_out.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("out_path: {}\n", file_out.to_str().unwrap()),
+        );
         let cmd_out = fixture.path().join("from-cmd-out");
         std::fs::create_dir_all(&cmd_out).unwrap();
         let config = fixture.resolve(&["--out", cmd_out.to_str().unwrap()], &config_file);
@@ -424,7 +472,10 @@ mod parallelism_precedence {
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(
             config.parallelism,
-            ParallelismConfig { jobs: Workers::Fixed(2), pages: Workers::Fixed(2) }
+            ParallelismConfig {
+                jobs: Workers::Fixed(2),
+                pages: Workers::Fixed(2)
+            }
         );
     }
 
@@ -447,7 +498,10 @@ mod parallelism_precedence {
         let config = fixture.resolve(&["--workers", "4"], &config_file);
         assert_eq!(
             config.parallelism,
-            ParallelismConfig { jobs: Workers::Fixed(4), pages: Workers::Fixed(4) }
+            ParallelismConfig {
+                jobs: Workers::Fixed(4),
+                pages: Workers::Fixed(4)
+            }
         );
     }
 
@@ -458,12 +512,14 @@ mod parallelism_precedence {
     fn a_level_set_by_the_file_survives_a_global_default_set_on_the_command_line() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 8\n");
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 8\n");
         let config = fixture.resolve(&["--workers", "2"], &config_file);
         assert_eq!(
             config.parallelism,
-            ParallelismConfig { jobs: Workers::Fixed(2), pages: Workers::Fixed(8) }
+            ParallelismConfig {
+                jobs: Workers::Fixed(2),
+                pages: Workers::Fixed(8)
+            }
         );
     }
 
@@ -473,12 +529,14 @@ mod parallelism_precedence {
         let scope = EnvScope::new();
         let fixture = Fixture::new();
         scope.set("FREEPORTS_PARALLELISM_JOBS", "3");
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 5\n");
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 5\n");
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(
             config.parallelism,
-            ParallelismConfig { jobs: Workers::Fixed(3), pages: Workers::Fixed(5) }
+            ParallelismConfig {
+                jobs: Workers::Fixed(3),
+                pages: Workers::Fixed(5)
+            }
         );
     }
 
@@ -489,8 +547,7 @@ mod parallelism_precedence {
         let scope = EnvScope::new();
         let fixture = Fixture::new();
         scope.set("FREEPORTS_PARALLELISM_PAGES", "5");
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 8\n");
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 8\n");
         let from_env = fixture.resolve(&[], &config_file);
         assert_eq!(from_env.parallelism.pages, Workers::Fixed(5));
         let from_cmd = fixture.resolve(&["--pages", "6"], &config_file);
@@ -572,11 +629,17 @@ mod formats_repo_path_precedence {
         let fixture = Fixture::new();
         let other_repo = write_minimal_formats_repo(&fixture.path().join("other"));
         scope.set("FREEPORTS_FORMATS_REPO_PATH", other_repo.to_str().unwrap());
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", &format!("formats_repo: {}\n", other_repo.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("formats_repo: {}\n", other_repo.to_str().unwrap()),
+        );
         // base_args already passes --formats-directory pointing at fixture.formats_repo.
         let config = fixture.resolve(&[], &config_file);
-        assert_eq!(config.formats_repo_path.as_deref(), Some(fixture.formats_repo.as_path()));
+        assert_eq!(
+            config.formats_repo_path.as_deref(),
+            Some(fixture.formats_repo.as_path())
+        );
     }
 }
 
@@ -592,7 +655,11 @@ mod input_db_path_precedence {
         scope.set("FREEPORTS_INPUT_DB_PATH", env_db.to_str().unwrap());
         let file_db = fixture.path().join("file_db");
         std::fs::create_dir_all(&file_db).unwrap();
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", &format!("db_path: {}\n", file_db.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("db_path: {}\n", file_db.to_str().unwrap()),
+        );
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.input_db_path.as_deref(), Some(env_db.as_path()));
     }
@@ -608,8 +675,11 @@ mod batch_file_precedence {
         let env_batch = write_yaml(fixture.path(), "env_batch.csv", "format\nA-EN24\n");
         scope.set("FREEPORTS_BATCH_FILE", env_batch.to_str().unwrap());
         let file_batch = write_yaml(fixture.path(), "file_batch.csv", "format\nA-EN24\n");
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", &format!("batch_file: {}\n", file_batch.to_str().unwrap()));
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            &format!("batch_file: {}\n", file_batch.to_str().unwrap()),
+        );
         let cmd_batch = write_yaml(fixture.path(), "cmd_batch.csv", "format\nA-EN24\n");
 
         let args = parse(&[
@@ -688,10 +758,19 @@ mod out_flags {
     fn file_overrides_default() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
-        let config_file =
-            write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  separate_out: true\n  archive: true\n");
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            "out_flags:\n  separate_out: true\n  archive: true\n",
+        );
         let config = fixture.resolve(&[], &config_file);
-        assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
+        assert_eq!(
+            config.out_flags,
+            OutFlags {
+                compressed: true,
+                separate_out: true
+            }
+        );
     }
 
     #[test]
@@ -699,7 +778,11 @@ mod out_flags {
         let scope = EnvScope::new();
         scope.set("FREEPORTS_SEPARATE_OUT", "false");
         let fixture = Fixture::new();
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  separate_out: true\n");
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            "out_flags:\n  separate_out: true\n",
+        );
         let config = fixture.resolve(&[], &config_file);
         assert!(!config.out_flags.separate_out);
     }
@@ -723,7 +806,13 @@ mod out_flags {
         let fixture = Fixture::new();
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  archive: true\n");
         let config = fixture.resolve(&[], &config_file);
-        assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
+        assert_eq!(
+            config.out_flags,
+            OutFlags {
+                compressed: true,
+                separate_out: true
+            }
+        );
     }
 
     /// Same property against the strongest source: `--separate-out` on the command line says
@@ -734,7 +823,13 @@ mod out_flags {
         let fixture = Fixture::new();
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  archive: true\n");
         let config = fixture.resolve(&["--separate-out"], &config_file);
-        assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
+        assert_eq!(
+            config.out_flags,
+            OutFlags {
+                compressed: true,
+                separate_out: true
+            }
+        );
     }
 }
 
@@ -772,7 +867,11 @@ mod tooling_sections {
     fn a_file_carrying_them_is_still_accepted_by_the_engine() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", "validate:\n  key_id: DEADBEEF\n");
+        let config_file = write_yaml(
+            fixture.path(),
+            "cfg.yaml",
+            "validate:\n  key_id: DEADBEEF\n",
+        );
         let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.format, "A-EN24");
     }
@@ -786,7 +885,11 @@ mod tooling_sections {
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "dev:\n  tagret_lists: [TEST]\n");
         let base = fixture.base_args(&config_file);
         let all: Vec<&str> = base.iter().map(String::as_str).collect();
-        let error = resolve_configs(parse(&all)).expect_err("una sotto-chiave sconosciuta deve fermare la corsa");
-        assert!(error.to_string().contains("dev.tagret_lists"), "got {error}");
+        let error = resolve_configs(parse(&all))
+            .expect_err("una sotto-chiave sconosciuta deve fermare la corsa");
+        assert!(
+            error.to_string().contains("dev.tagret_lists"),
+            "got {error}"
+        );
     }
 }
