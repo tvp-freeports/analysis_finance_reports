@@ -421,9 +421,9 @@ mod tests {
     use super::*;
     use crate::formats_repo::id_format::{IdFormat, id_matches};
 
-    /// The 26 formats `analysis_finance_reports_formats/metadata/formats.csv` declares, as
+    /// The 25 formats `analysis_finance_reports_formats/metadata/formats.csv` declares, as
     /// `get_formats` synthesises them, in file order (copied 2026-10-10).
-    const REAL_FORMATS: [&str; 26] = [
+    const REAL_FORMATS: [&str; 25] = [
         "AMUNDI-EN24",
         "AMUNDI-IT24",
         "ANIMA-EN23",
@@ -439,7 +439,6 @@ mod tests {
         "MEDIOLANUM-ES24.A",
         "MEDIOLANUM-ES24.B",
         "MEDIOLANUM-IT24.A",
-        "MEDIOLANUM-IT24.C",
         "MEDIOLANUM-EN24",
         "MEDIOLANUM-IT24.B",
         "FIDEURAM-IT24",
@@ -694,6 +693,18 @@ mod tests {
                 expected("FOO-BAR", fixed("IT"), fixed("24"), Slot::Absent, Slot::Absent)
             );
             assert_eq!(pattern.to_string(), "FOO-BAR-IT24");
+        }
+
+        #[test]
+        fn a_name_with_two_readings_takes_the_strict_one() {
+            // `A-IT24.B-EN23` reads two ways: entity `A` with variant `B-EN23` (the partial
+            // grammar's entity, split from the right), or entity `A-IT24.B` with `EN23` (what the
+            // greedy `.+` of `FORMAT_NAME_PATTERN` would pick). The strict reading wins, so that a
+            // name never parses differently from the partials written beside it.
+            assert_eq!(
+                slots(&p("A-IT24.B-EN23")),
+                expected("A", fixed("IT"), fixed("24"), Slot::Absent, fixed("B-EN23"))
+            );
         }
 
         #[test]
@@ -1368,7 +1379,7 @@ mod tests {
 
         #[test]
         fn the_meet_of_two_patterns_expands_to_the_intersection_of_their_expansions() {
-            // §1.5: expand(P ⊓ Q) = expand(P) ∩ expand(Q), on the 26 real formats.
+            // §1.5: expand(P ⊓ Q) = expand(P) ∩ expand(Q), on the 25 real formats.
             let formats = real_formats();
             let all = representative();
             for a in &all {
@@ -1401,7 +1412,6 @@ mod tests {
                     "MEDIOLANUM-ES24.A",
                     "MEDIOLANUM-ES24.B",
                     "MEDIOLANUM-IT24.A",
-                    "MEDIOLANUM-IT24.C",
                     "MEDIOLANUM-EN24",
                     "MEDIOLANUM-IT24.B",
                 ])
@@ -1412,7 +1422,7 @@ mod tests {
         fn a_required_variant_expands_to_every_variant_in_file_order() {
             assert_eq!(
                 e("MEDIOLANUM-IT24.*"),
-                strings(&["MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.C", "MEDIOLANUM-IT24.B"])
+                strings(&["MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"])
             );
             assert_eq!(e("MEDIOLANUM-ES24.*"), strings(&["MEDIOLANUM-ES24.A", "MEDIOLANUM-ES24.B"]));
         }
@@ -1421,7 +1431,7 @@ mod tests {
         fn a_language_truncation_expands_to_every_year_and_suffix() {
             assert_eq!(
                 e("MEDIOLANUM-IT"),
-                strings(&["MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.C", "MEDIOLANUM-IT24.B"])
+                strings(&["MEDIOLANUM-IT24.A", "MEDIOLANUM-IT24.B"])
             );
             assert_eq!(e("MEDIOLANUM-EN"), strings(&["MEDIOLANUM-EN23", "MEDIOLANUM-EN24"]));
             assert_eq!(e("EURIZON-EN"), strings(&["EURIZON-EN23", "EURIZON-EN21"]));

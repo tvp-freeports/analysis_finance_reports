@@ -578,7 +578,7 @@ mod tests {
             assert!(!texts(&blocks).iter().any(|text| text.contains("Jim Firn")));
         }
 
-        /// MEDIOLANUM-IT24.A p5 and MEDIOLANUM-IT24.C p5: the value's box starts **slightly above**
+        /// MEDIOLANUM-IT24.A, p5 of both its documents: the value's box starts **slightly above**
         /// its label's — by 0.5 and by 0.9 points on lines eleven points high. A band that
         /// compared top edges would lose both.
         #[test]

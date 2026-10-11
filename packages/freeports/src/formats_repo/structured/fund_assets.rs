@@ -40,8 +40,9 @@ use crate::core::pipeline::{Pipeline, PipelineName};
 use crate::formats_utils::deserialize::cast::{self, CastError};
 use crate::formats_utils::deserialize::standard_funcs::{DeserializerAssetsStandard, NumConverter};
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    AssetsColumn, AssetsPairing, AssetsStandardArgs, PdfExtractAssetsStandard,
+    AssetsColumn, AssetsPairing, AssetsStandardArgs, PdfExtractAssetsStandard, TableSettings,
 };
+use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
 use crate::formats_utils::text_filter::standard_funcs::TextFilterAssetsStandard;
 use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::input::document::selection::pdfline_selection_from_str;
@@ -258,6 +259,14 @@ pub fn get_pipelines(
             // statement that can only be paired by position is the semistructured
             // `assets_by_position`.
             pairing: AssetsPairing::ByAbscissa,
+            table: match &row.algorithm_flags {
+                None => TableSettings::assets_funds(),
+                Some(expression) => TableSettings {
+                    algorithm_flags: TablePosAlgorithm::from_expression(expression)
+                        .map_err(|source| StructuredError::AlgorithmFlags { id: key.clone(), source })?,
+                    ..TableSettings::assets_funds()
+                },
+            },
             drop: optional_selection(&row.drop_set, &key, "Drop set")?,
             drop_funds: optional_selection(&row.drop_fund_set, &key, "Drop fund set")?,
             ..AssetsStandardArgs::new(

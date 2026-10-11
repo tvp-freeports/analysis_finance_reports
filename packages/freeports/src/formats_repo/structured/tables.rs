@@ -988,6 +988,12 @@ pub struct FundAssetsArgsRow {
     /// Whether the fund columns are grouped by the tabularizer rather than taken one by one.
     #[serde(rename = "Table condition", default, deserialize_with = "optional_bool")]
     pub table_condition: Option<bool>,
+    /// How the tabularizer finds the fund columns: the flag expression of the investments table's
+    /// column of the same name. Absent means the engine's `BIG_CELL_RULE | USE_RULER_AREA`, which
+    /// keeps a wrapped name's last word in its column (MEDIOLANUM-IT24.A); FINECO-EN23@LUX p34 is
+    /// set so tight that the big-cell rule fuses three columns, and it writes `USE_RULER_AREA`.
+    #[serde(rename = "Algorithm flags", default, deserialize_with = "optional_text")]
+    pub algorithm_flags: Option<String>,
     /// The expression pulling the date out of the line, with exactly one capturing group.
     #[serde(rename = "Date regex", default, deserialize_with = "optional_text")]
     pub date_regex: Option<String>,
@@ -1053,6 +1059,7 @@ pub fn get_fund_assets_configs(formats_repo_dir: &Path) -> Result<Vec<FundAssets
         check_line_selection(&path, line, "Drop fund set", row.drop_fund_set.as_ref())?;
         let tabular = row.table_condition == Some(true);
         requires(&path, line, "Drop fund set", row.drop_fund_set.is_some(), "with 'Table condition'", tabular)?;
+        requires(&path, line, "Algorithm flags", row.algorithm_flags.is_some(), "with 'Table condition'", tabular)?;
         let dated = row.date_set.is_some();
         requires(&path, line, "Date regex", row.date_regex.is_some(), "on a date the 'Date set' reads", dated)?;
         requires(&path, line, "Date cast", row.date_cast.is_some(), "on a date the 'Date set' reads", dated)?;
@@ -1459,6 +1466,30 @@ mod tests {
             }
             let with_both = Row { drop_fund_set: "ArialMT", table_condition: "TRUE", ..Row::minimal() };
             assert!(get_fund_assets_configs(repo_with(&[with_both]).path()).is_ok());
+        }
+
+        /// `Algorithm flags`: read with the same vocabulary as the investments table, refused when
+        /// it names a flag that does not exist, and refused without `Table condition`, which is the
+        /// only branch that groups fund columns.
+        #[test]
+        fn the_algorithm_flags_are_read_checked_and_need_a_table() {
+            let header = "ID,Fund set,Currency set,Total assets,Total liabilities,Net assets,Table condition,Algorithm flags\n";
+            let load = |row: &str| {
+                let repo = Repo::new();
+                repo.write_fund_assets(&format!("{header}{row}"));
+                (get_fund_assets_configs(repo.path()), crate::formats_repo::structured::fund_assets::get_pipelines(repo.path(), "A-EN24").map(|p| p.len()))
+            };
+            let (configs, pipelines) = load("A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,TRUE,USE_RULER_AREA\n");
+            assert_eq!(configs.unwrap()[0].row.algorithm_flags.as_deref(), Some("USE_RULER_AREA"));
+            assert_eq!(pipelines.unwrap(), 1);
+
+            let (_, pipelines) = load("A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,TRUE,USE_RULER_ARE\n");
+            let error = pipelines.unwrap_err();
+            assert!(error.to_string().contains("USE_RULER_ARE"), "{error}");
+
+            let (configs, _) = load("A-EN24,ArialMT,Arial-Bold,Arial-Bold,Arial-Bold,Arial-Bold,,USE_RULER_AREA\n");
+            let error = configs.unwrap_err();
+            assert!(error.to_string().contains("'Algorithm flags' has an effect only"), "{error}");
         }
 
         /// The three columns that belonged to pairing by position are gone: the table pairs by
