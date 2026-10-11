@@ -88,6 +88,7 @@ Metric                                     Item                                 
 ``docs.python``                            ``docs.python.freeports_dev``                                       58.1 %
 ``docs.python``                            ``docs.python.freeports_validate``                                  64.0 %
 ``lint.rust``                              ``clippy::redundant_closure``                                       4
+``lint.rust``                              ``clippy::result_large_err``                                        2
 ``lint.rust``                              ``clippy::err_expect``                                              1
 ``lint.rust``                              ``clippy::ptr_arg``                                                 1
 ``lint.rust``                              ``clippy::useless_conversion``                                      1

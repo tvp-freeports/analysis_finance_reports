@@ -44,6 +44,14 @@ const SEGMENTS: [&str; 3] = ["pdf_extract", "text_filter", "deserialize"];
 /// Failures of loading the unstructured level.
 #[derive(Debug, thiserror::Error)]
 pub enum UnstructuredError {
+    /// Both `<module>.py` and `<module>/__init__.py` exist for the format: which one is meant
+    /// cannot be guessed.
+    #[error(
+        "format '{format}': {} and {} both exist: keep one of the two layouts",
+        .file.display(),
+        .package.display()
+    )]
+    TwoLayouts { format: String, file: PathBuf, package: PathBuf },
     #[error("failed to load the author module for format '{format}' at {path}: {message}")]
     ModuleLoad { format: String, path: PathBuf, message: String },
     #[error("format '{format}': 'pipelines' must be a mapping from pipeline name to pipeline")]
@@ -65,68 +73,92 @@ pub fn module_name(format_name: &str) -> String {
 }
 
 /// The file to import for `format_name`, whether a plain module or a package. `None` when the
-/// format has no author module, which is entirely legitimate.
-pub fn module_path(formats_repo_dir: &Path, format_name: &str) -> Option<(PathBuf, bool)> {
-    let base = formats_repo_dir.join(UNSTRUCTURED_DIR);
-    let name = module_name(format_name);
-    let file = base.join(format!("{name}.py"));
-    if file.is_file() {
-        return Some((file, false));
+/// format has no author module, which is entirely legitimate; both layouts present is
+/// [`UnstructuredError::TwoLayouts`].
+pub fn module_path(formats_repo_dir: &Path, format_name: &str) -> Result<Option<(PathBuf, bool)>, UnstructuredError> {
+    find_module(&formats_repo_dir.join(UNSTRUCTURED_DIR), &module_name(format_name)).map_err(
+        |BothLayouts { file, package }| UnstructuredError::TwoLayouts { format: format_name.to_string(), file, package },
+    )
+}
+
+/// The two layouts of one author module, both present: each caller turns it into its own error.
+pub(crate) struct BothLayouts {
+    pub file: PathBuf,
+    pub package: PathBuf,
+}
+
+/// The module `name` inside `dir`: `<name>.py`, or `<name>/__init__.py` (then `true`, a package).
+///
+/// Every author-written Python entry point of a formats repository accepts both layouts, so that a
+/// module can grow into several files without being renamed; both at once is refused rather than
+/// resolved by a precedence the author would have to know about.
+pub(crate) fn find_module(dir: &Path, name: &str) -> Result<Option<(PathBuf, bool)>, BothLayouts> {
+    let file = dir.join(format!("{name}.py"));
+    let package = dir.join(name).join("__init__.py");
+    match (file.is_file(), package.is_file()) {
+        (true, true) => Err(BothLayouts { file, package }),
+        (true, false) => Ok(Some((file, false))),
+        (false, true) => Ok(Some((package, true))),
+        (false, false) => Ok(None),
     }
-    let package = base.join(&name).join("__init__.py");
-    if package.is_file() {
-        return Some((package, true));
+}
+
+/// Imports the author module at `path` — a file, or a package's `__init__.py` when `is_package` —
+/// registered in `sys.modules` as `runtime_name`.
+///
+/// The module is executed afresh on every call. `runtime_name` is also the prefix of a package's
+/// submodules in `sys.modules`, where Python caches them: two modules given the same name would
+/// share the submodules of whichever was imported first.
+///
+/// The shared-templates directory is added to the import path first, which is how several modules
+/// of a repository share code.
+pub(crate) fn import_module_at<'py>(
+    py: Python<'py>,
+    formats_repo_dir: &Path,
+    path: &Path,
+    is_package: bool,
+    runtime_name: &str,
+) -> PyResult<Bound<'py, PyAny>> {
+    // Before anything else: the author module will import the engine's Python package, and that
+    // package must be **this** compiled artefact rather than another. See
+    // `crate::python::install`, which explains why, and which does nothing when we are already
+    // inside the extension module.
+    crate::python::install(py)?;
+
+    let sys = py.import("sys")?;
+    let sys_path = sys.getattr("path")?.cast_into::<PyList>().map_err(PyErr::from)?;
+    let templates = formats_repo_dir.join(TEMPLATES_DIR);
+    let templates = templates.to_string_lossy().to_string();
+    if !sys_path.contains(&templates)? {
+        sys_path.insert(0, &templates)?;
     }
-    None
+
+    let util = py.import("importlib.util")?;
+    let kwargs = PyDict::new(py);
+    if is_package {
+        let parent = path.parent().unwrap_or(path).to_string_lossy().to_string();
+        kwargs.set_item("submodule_search_locations", vec![parent])?;
+    }
+    let spec =
+        util.call_method("spec_from_file_location", (runtime_name, path.to_string_lossy().as_ref()), Some(&kwargs))?;
+    let module = util.call_method1("module_from_spec", (&spec,))?;
+    sys.getattr("modules")?.set_item(runtime_name, &module)?;
+    spec.getattr("loader")?.call_method1("exec_module", (&module,))?;
+    Ok(module)
 }
 
 /// Imports the author module of `format_name`, if it exists.
-///
-/// The shared-templates directory is added to the import path first, which is how several formats
-/// share code.
 fn import_module<'py>(
     py: Python<'py>,
     formats_repo_dir: &Path,
     format_name: &str,
 ) -> Result<Option<Bound<'py, PyAny>>, UnstructuredError> {
-    let Some((path, is_package)) = module_path(formats_repo_dir, format_name) else {
+    let Some((path, is_package)) = module_path(formats_repo_dir, format_name)? else {
         return Ok(None);
     };
+    let runtime_name = format!("_plugin_{}", module_name(format_name));
 
-    let load = || -> PyResult<Bound<'py, PyAny>> {
-        // Before anything else: the author module will import the engine's Python package, and that
-        // package must be **this** compiled artefact rather than another. See
-        // `crate::python::install`, which explains why, and which does nothing when we are already
-        // inside the extension module.
-        crate::python::install(py)?;
-
-        let sys = py.import("sys")?;
-        let sys_path = sys.getattr("path")?.cast_into::<PyList>().map_err(PyErr::from)?;
-        let templates = formats_repo_dir.join(TEMPLATES_DIR);
-        let templates = templates.to_string_lossy().to_string();
-        if !sys_path.contains(&templates)? {
-            sys_path.insert(0, &templates)?;
-        }
-
-        let util = py.import("importlib.util")?;
-        let runtime_name = format!("_plugin_{}", module_name(format_name));
-        let kwargs = PyDict::new(py);
-        if is_package {
-            let parent = path.parent().unwrap_or(&path).to_string_lossy().to_string();
-            kwargs.set_item("submodule_search_locations", vec![parent])?;
-        }
-        let spec = util.call_method(
-            "spec_from_file_location",
-            (&runtime_name, path.to_string_lossy().as_ref()),
-            Some(&kwargs),
-        )?;
-        let module = util.call_method1("module_from_spec", (&spec,))?;
-        py.import("sys")?.getattr("modules")?.set_item(&runtime_name, &module)?;
-        spec.getattr("loader")?.call_method1("exec_module", (&module,))?;
-        Ok(module)
-    };
-
-    match load() {
+    match import_module_at(py, formats_repo_dir, &path, is_package, &runtime_name) {
         Ok(module) => {
             tracing::debug!(format = format_name, "imported the author's unstructured module");
             Ok(Some(module))
@@ -142,7 +174,7 @@ fn import_module<'py>(
 
 /// Reads an attribute or a key, as the pipe boundary does: an author module may expose `pipelines`
 /// as an object or as a dictionary.
-fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny>> {
+pub(crate) fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny>> {
     if let Ok(value) = object.getattr(name) {
         return Some(value);
     }
@@ -150,7 +182,7 @@ fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny
 }
 
 /// The callables of one segment: either a single one, or an iterable.
-fn segment_callables<'py>(
+pub(crate) fn segment_callables<'py>(
     value: Bound<'py, PyAny>,
     format: &str,
     pipeline: &str,
@@ -377,14 +409,14 @@ mod tests {
         #[test]
         fn a_format_without_a_module_resolves_to_nothing() {
             let dir = repo();
-            assert!(module_path(dir.path(), "A-EN24").is_none());
+            assert!(module_path(dir.path(), "A-EN24").unwrap().is_none());
         }
 
         #[test]
         fn a_single_file_module_is_found() {
             let dir = repo();
             fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24.py"), "").unwrap();
-            let (path, is_package) = module_path(dir.path(), "A-EN24").unwrap();
+            let (path, is_package) = module_path(dir.path(), "A-EN24").unwrap().unwrap();
             assert!(path.ends_with("a_en24.py"));
             assert!(!is_package);
         }
@@ -394,20 +426,84 @@ mod tests {
             let dir = repo();
             fs::create_dir_all(dir.path().join(UNSTRUCTURED_DIR).join("a_en24")).unwrap();
             fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24").join("__init__.py"), "").unwrap();
-            let (path, is_package) = module_path(dir.path(), "A-EN24").unwrap();
+            let (path, is_package) = module_path(dir.path(), "A-EN24").unwrap().unwrap();
             assert!(path.ends_with("__init__.py"));
             assert!(is_package);
         }
 
         #[test]
-        fn a_single_file_wins_over_a_package_of_the_same_name() {
+        fn a_folder_without_init_is_not_a_module() {
             let dir = repo();
-            fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24.py"), "").unwrap();
             fs::create_dir_all(dir.path().join(UNSTRUCTURED_DIR).join("a_en24")).unwrap();
-            fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24").join("__init__.py"), "").unwrap();
-            let (path, is_package) = module_path(dir.path(), "A-EN24").unwrap();
-            assert!(path.ends_with("a_en24.py"));
-            assert!(!is_package);
+            fs::write(dir.path().join(UNSTRUCTURED_DIR).join("a_en24").join("helpers.py"), "").unwrap();
+            assert!(module_path(dir.path(), "A-EN24").unwrap().is_none());
+        }
+    }
+
+    /// Both `<module>.py` and `<module>/__init__.py`: an error, never a silent choice. Replaces the
+    /// former `a_single_file_wins_over_a_package_of_the_same_name` (user decision, 2026-10-11,
+    /// aligning the format modules with `metadata/document_classify`).
+    mod two_layouts {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// A repository holding both layouts of `A-EN24`'s module, each a valid module.
+        fn repo_with_both() -> (TempDir, PathBuf, PathBuf) {
+            let dir = TempDir::new().unwrap();
+            let base = dir.path().join(UNSTRUCTURED_DIR);
+            fs::create_dir_all(base.join("a_en24")).unwrap();
+            fs::create_dir_all(dir.path().join(TEMPLATES_DIR)).unwrap();
+            let file = base.join("a_en24.py");
+            let package = base.join("a_en24").join("__init__.py");
+            fs::write(&file, "pipelines = {}\n").unwrap();
+            fs::write(&package, "pipelines = {}\n").unwrap();
+            (dir, file, package)
+        }
+
+        #[test]
+        fn both_layouts_present_is_an_error_naming_the_format_and_both_paths() {
+            let (dir, file, package) = repo_with_both();
+            match module_path(dir.path(), "A-EN24") {
+                Err(UnstructuredError::TwoLayouts { format, file: f, package: p }) => {
+                    assert_eq!(format, "A-EN24");
+                    assert_eq!(f, file);
+                    assert_eq!(p, package);
+                }
+                other => panic!("expected TwoLayouts, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn the_message_names_both_paths() {
+            let (dir, file, package) = repo_with_both();
+            let message = module_path(dir.path(), "A-EN24").unwrap_err().to_string();
+            assert!(message.contains(&file.display().to_string()), "{message}");
+            assert!(message.contains(&package.display().to_string()), "{message}");
+            assert!(message.contains("A-EN24"), "{message}");
+        }
+
+        #[test]
+        fn loading_the_pipelines_fails_with_the_same_error() {
+            let (dir, _, _) = repo_with_both();
+            assert!(matches!(get_pipelines(dir.path(), "A-EN24"), Err(UnstructuredError::TwoLayouts { .. })));
+        }
+
+        #[test]
+        fn loading_the_page_class_finalizer_fails_with_the_same_error() {
+            let (dir, _, _) = repo_with_both();
+            assert!(matches!(get_page_class_finalizer(dir.path(), "A-EN24"), Err(UnstructuredError::TwoLayouts { .. })));
+        }
+
+        /// Another format's module in the other layout is no conflict.
+        #[test]
+        fn the_two_layouts_of_two_different_formats_are_no_conflict() {
+            let dir = TempDir::new().unwrap();
+            let base = dir.path().join(UNSTRUCTURED_DIR);
+            fs::create_dir_all(base.join("b_en24")).unwrap();
+            fs::write(base.join("a_en24.py"), "").unwrap();
+            fs::write(base.join("b_en24").join("__init__.py"), "").unwrap();
+            assert!(!module_path(dir.path(), "A-EN24").unwrap().unwrap().1);
+            assert!(module_path(dir.path(), "B-EN24").unwrap().unwrap().1);
         }
     }
 

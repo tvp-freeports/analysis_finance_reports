@@ -271,7 +271,7 @@ fn each<'py, T>(
 }
 
 /// Logs the traceback and converts the author's error. No `PyErr` leaves this module.
-fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: PyErr) -> PipeError {
+pub(crate) fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: PyErr) -> PipeError {
     let message = error.to_string();
     if error.is_instance_of::<crate::python::core::PageParseFail>(py) {
         // Non-fatal: whoever absorbs this error skips the page and carries on, which loses a result

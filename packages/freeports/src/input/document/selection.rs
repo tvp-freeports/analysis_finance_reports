@@ -233,7 +233,7 @@ impl InputPdfLineSet {
     /// [`LineSelectionError::NoCriterion`]. `without` alone does not count: subtracting from
     /// everything is the shape the compact grammar refuses as a first operand. A union does, since
     /// a union of selections that each state something states something.
-    fn states_a_criterion(&self) -> bool {
+    pub(crate) fn states_a_criterion(&self) -> bool {
         self.states_own_criterion() || !self.any_of.is_empty() || !self.all_of.is_empty()
     }
 

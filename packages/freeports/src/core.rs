@@ -2,6 +2,7 @@
 
 pub mod algorithm;
 pub mod classes;
+pub mod doc_classify;
 pub mod match_fund;
 pub mod normalization;
 pub mod page;

@@ -83,11 +83,12 @@ fn select<'a>(selection: &PdfLineSelection, lines: &'a [PdfLine]) -> Vec<&'a Pdf
     lines.iter().filter(|line| set.contains(line)).collect()
 }
 
-/// The recognition rule shared by the two classifiers: `Some` only if **every** selection finds at
-/// least one line, carrying the text of the first line the first selection found — what one
-/// searches for inside the PDF when a recognition looks wrong. With no selection at all the rule
-/// holds vacuously and the text is empty.
-fn first_line_if_every_selection_matches(selections: &[PdfLineSelection], lines: &[PdfLine]) -> Option<String> {
+/// The recognition rule shared by the two classifiers and by the YAML steps of the document
+/// classification (`core::doc_classify`): `Some` only if **every** selection finds at least one
+/// line, carrying the text of the first line the first selection found — what one searches for
+/// inside the PDF when a recognition looks wrong. With no selection at all the rule holds vacuously
+/// and the text is empty.
+pub(crate) fn first_line_if_every_selection_matches(selections: &[PdfLineSelection], lines: &[PdfLine]) -> Option<String> {
     let mut first_line = None;
     for selection in selections {
         let found = select(selection, lines);

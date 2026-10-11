@@ -27,10 +27,18 @@
 //! - [`orchestration`] — the schedule and page-class tables;
 //! - [`structured`], [`semistructured`], [`unstructured`] — one subtree each.
 //!
+//! [`doc_classify_yaml`] reads `metadata/document_classify.yaml`, the declarative document
+//! classification, into the steps [`crate::core::doc_classify`] runs; [`doc_classify_py`] reads the
+//! author's `metadata/document_classify.py` (or package) into its Python entries; [`doc_classify`]
+//! puts the two together with `formats.csv` into a ready [`DocumentClassifier`](crate::core::doc_classify::DocumentClassifier).
+//!
 //! [`id_format`] reads nothing: it is the grammar of identifiers the others share; [`format_pattern`]
 //! is the grammar of partial format names built on top of it.
 
 pub mod csv_columns;
+pub mod doc_classify;
+pub mod doc_classify_py;
+pub mod doc_classify_yaml;
 pub mod format_pattern;
 pub mod id_format;
 pub mod metadata;
