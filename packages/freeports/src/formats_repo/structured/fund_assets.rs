@@ -48,7 +48,7 @@ use crate::formats_utils::text_filter::standard_funcs::TextFilterAssetsStandard;
 use crate::input::document::selection::pdfline_selection_from_str;
 
 use super::StructuredError;
-use super::tables::{FundAssetsConfig, ValueWindow, get_fund_assets_configs};
+use super::tables::{FundAssetsArgsRow, FundAssetsConfig, ValueWindow, get_fund_assets_configs};
 
 /// Which of the engine's two numeric casts an amount goes through.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -253,7 +253,8 @@ fn optional_selection(
 
 /// The fund-assets pipelines the repository defines for `format_name`.
 ///
-/// One pipeline per row, with all three segments: the row carries the parameters of each.
+/// One pipeline per row, with the segments its partial-pipes row leaves on: the row carries the
+/// parameters of each.
 pub fn get_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -262,87 +263,34 @@ pub fn get_pipelines(
     let mut pipelines: HashMap<PipelineName, Pipeline> = HashMap::new();
 
     for config in configs.into_iter().filter(|c| c.id.format == format_name) {
-        let FundAssetsConfig { id, row } = config;
+        let FundAssetsConfig { id, row, segments } = config;
         let key = id.to_string();
-
-        let fund_set = pdfline_selection_from_str(&row.fund_set).map_err(|source| {
-            StructuredError::LineSelection {
-                id: key.clone(),
-                column: "Fund set",
-                source,
-            }
-        })?;
-        let currency_set = optional_selection(&row.currency_set, &key, "Currency set")?;
-        let date = match optional_selection(&row.date_set, &key, "Date set")? {
-            Some(selection) => vec![selection],
-            None => Vec::new(),
-        };
-
-        let args = AssetsStandardArgs {
-            date,
-            table_condition: row.table_condition.unwrap_or(false),
-            // By abscissa, always: a number goes with the fund whose column it stands under. A
-            // statement that can only be paired by position is the semistructured
-            // `assets_by_position`.
-            pairing: AssetsPairing::ByAbscissa,
-            table: match &row.algorithm_flags {
-                None => TableSettings::assets_funds(),
-                Some(expression) => TableSettings {
-                    algorithm_flags: TablePosAlgorithm::from_expression(expression).map_err(
-                        |source| StructuredError::AlgorithmFlags {
-                            id: key.clone(),
-                            source,
-                        },
-                    )?,
-                    ..TableSettings::assets_funds()
-                },
-            },
-            drop: optional_selection(&row.drop_set, &key, "Drop set")?,
-            drop_funds: optional_selection(&row.drop_fund_set, &key, "Drop fund set")?,
-            ..AssetsStandardArgs::new(
-                fund_set,
-                currency_set,
-                column(&row.net_assets, row.net_assets_window, &key, "Net assets")?,
-                column(
-                    &row.liabilities,
-                    row.liabilities_window,
-                    &key,
-                    "Total liabilities",
-                )?,
-                column(&row.tot_assets, row.tot_assets_window, &key, "Total assets")?,
-            )
-        };
-
-        // One cut per cell, as an alternation where there is more than one, exactly as the
-        // investments table does it.
-        let cuts: Vec<String> = row.remove_from_fund.clone().into_iter().collect();
-        let filter =
-            TextFilterAssetsStandard::new(row.date_regex.as_deref(), cuts).map_err(|source| {
-                StructuredError::TextFilter {
-                    id: key.clone(),
-                    source,
-                }
-            })?;
-
-        let deserializer = DeserializerAssetsStandard::with_converters(
-            row.amount_cast.unwrap_or_default().converter(),
-            Arc::new(row.date_cast.unwrap_or_default().converter()),
-        );
 
         let name = PipelineName::new(&id.pipeline);
         let mut pipeline = Pipeline::new(name.clone());
-        // `build` and not a constructor: the pipe refuses a statement that is neither tabular nor
-        // carries a currency, because there would be nothing to derive one from — and a
-        // misconfigured row must fail when the repository loads, not mid-run.
-        let extractor = PdfExtractAssetsStandard::build(args).map_err(|source| {
-            StructuredError::PdfExtract {
-                id: key.clone(),
-                source,
-            }
-        })?;
-        pipeline.pdf_extract.push(Arc::new(extractor));
-        pipeline.text_filter.push(Arc::new(filter));
-        pipeline.deserialize.push(Arc::new(deserializer));
+        if segments.pdf_extract {
+            pipeline.pdf_extract.push(Arc::new(extraction(&row, &key)?));
+        }
+        if segments.text_filter {
+            // One cut per cell, as an alternation where there is more than one, exactly as the
+            // investments table does it.
+            let cuts: Vec<String> = row.remove_from_fund.clone().into_iter().collect();
+            let filter = TextFilterAssetsStandard::new(row.date_regex.as_deref(), cuts).map_err(
+                |source| StructuredError::TextFilter {
+                    id: key.clone(),
+                    source,
+                },
+            )?;
+            pipeline.text_filter.push(Arc::new(filter));
+        }
+        if segments.deserialize {
+            pipeline
+                .deserialize
+                .push(Arc::new(DeserializerAssetsStandard::with_converters(
+                    row.amount_cast.unwrap_or_default().converter(),
+                    Arc::new(row.date_cast.unwrap_or_default().converter()),
+                )));
+        }
         pipelines.insert(name, pipeline);
     }
 
@@ -351,6 +299,83 @@ pub fn get_pipelines(
         "built fund assets pipelines"
     );
     Ok(pipelines)
+}
+
+/// The extraction pipe the row describes.
+///
+/// `build` and not a constructor: the pipe refuses a statement that is neither tabular nor carries
+/// a currency, because there would be nothing to derive one from — and a misconfigured row must
+/// fail when the repository loads, not mid-run.
+fn extraction(
+    row: &FundAssetsArgsRow,
+    key: &str,
+) -> Result<PdfExtractAssetsStandard, StructuredError> {
+    // Required while the extraction is built, which the table checked when it loaded.
+    let anchor = |cell: &Option<String>| {
+        cell.clone()
+            .expect("an anchor the table requires while the extraction is built")
+    };
+    let fund_set = pdfline_selection_from_str(&anchor(&row.fund_set)).map_err(|source| {
+        StructuredError::LineSelection {
+            id: key.to_string(),
+            column: "Fund set",
+            source,
+        }
+    })?;
+    let currency_set = optional_selection(&row.currency_set, key, "Currency set")?;
+    let date = match optional_selection(&row.date_set, key, "Date set")? {
+        Some(selection) => vec![selection],
+        None => Vec::new(),
+    };
+
+    let args = AssetsStandardArgs {
+        date,
+        table_condition: row.table_condition.unwrap_or(false),
+        // By abscissa, always: a number goes with the fund whose column it stands under. A
+        // statement that can only be paired by position is the semistructured
+        // `assets_by_position`.
+        pairing: AssetsPairing::ByAbscissa,
+        table: match &row.algorithm_flags {
+            None => TableSettings::assets_funds(),
+            Some(expression) => TableSettings {
+                algorithm_flags: TablePosAlgorithm::from_expression(expression).map_err(
+                    |source| StructuredError::AlgorithmFlags {
+                        id: key.to_string(),
+                        source,
+                    },
+                )?,
+                ..TableSettings::assets_funds()
+            },
+        },
+        drop: optional_selection(&row.drop_set, key, "Drop set")?,
+        drop_funds: optional_selection(&row.drop_fund_set, key, "Drop fund set")?,
+        ..AssetsStandardArgs::new(
+            fund_set,
+            currency_set,
+            column(
+                &anchor(&row.net_assets),
+                row.net_assets_window,
+                key,
+                "Net assets",
+            )?,
+            column(
+                &anchor(&row.liabilities),
+                row.liabilities_window,
+                key,
+                "Total liabilities",
+            )?,
+            column(
+                &anchor(&row.tot_assets),
+                row.tot_assets_window,
+                key,
+                "Total assets",
+            )?,
+        )
+    };
+    PdfExtractAssetsStandard::build(args).map_err(|source| StructuredError::PdfExtract {
+        id: key.to_string(),
+        source,
+    })
 }
 
 #[cfg(test)]
@@ -567,6 +592,85 @@ mod tests {
                 Err(error) => error,
             };
             assert!(error.to_string().contains("Net assets"), "{error}");
+        }
+    }
+
+    /// A disabled segment is left empty in the built pipeline, and the others are built as usual.
+    mod partial_segments {
+        use super::*;
+        use pretty_assertions::assert_eq;
+        use std::fs;
+        use tempfile::TempDir;
+
+        const HEADER: &str =
+            "ID,Fund set,Currency set,Date set,Total assets,Total liabilities,Net assets\n";
+        const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
+
+        fn pipeline(args: &str, partial: &str) -> Pipeline {
+            let dir = TempDir::new().expect("temp dir");
+            let base = dir
+                .path()
+                .join(super::super::super::tables::STRUCTURED_DIR)
+                .join("fund_assets");
+            fs::create_dir_all(&base).expect("fund_assets dir");
+            fs::write(base.join("args.csv"), format!("{HEADER}{args}")).expect("args");
+            fs::write(
+                base.join("partial_pipes.csv"),
+                format!("{PARTIAL_HEADER}{partial}"),
+            )
+            .expect("partial");
+            let mut pipelines = get_pipelines(dir.path(), "A-EN24").unwrap();
+            assert_eq!(pipelines.len(), 1);
+            pipelines
+                .remove(&PipelineName::new(FUND_ASSETS_PIPELINE))
+                .expect("the fund_assets pipeline")
+        }
+
+        const ROW: &str = "A-EN24,ArialMT,Arial-Bold,,Arial-Bold,Arial-Bold,Arial-Bold\n";
+
+        #[test]
+        fn with_no_row_every_segment_is_built() {
+            let pipeline = pipeline(ROW, "");
+            assert_eq!(
+                (
+                    pipeline.pdf_extract.len(),
+                    pipeline.text_filter.len(),
+                    pipeline.deserialize.len()
+                ),
+                (1, 1, 1)
+            );
+        }
+
+        /// The row that turns the extraction off needs none of its four anchors, which is what
+        /// makes the other two segments usable under somebody else's extraction.
+        #[test]
+        fn a_disabled_pdf_extract_leaves_that_segment_empty() {
+            let pipeline = pipeline("A-EN24,,,,,,\n", "A-EN24,FALSE,,\n");
+            assert!(pipeline.pdf_extract.is_empty());
+            assert_eq!(
+                (pipeline.text_filter.len(), pipeline.deserialize.len()),
+                (1, 1)
+            );
+        }
+
+        #[test]
+        fn a_disabled_text_filter_leaves_that_segment_empty() {
+            let pipeline = pipeline(ROW, "A-EN24,,FALSE,\n");
+            assert!(pipeline.text_filter.is_empty());
+            assert_eq!(
+                (pipeline.pdf_extract.len(), pipeline.deserialize.len()),
+                (1, 1)
+            );
+        }
+
+        #[test]
+        fn a_disabled_deserialize_leaves_that_segment_empty() {
+            let pipeline = pipeline(ROW, "A-EN24,,,FALSE\n");
+            assert!(pipeline.deserialize.is_empty());
+            assert_eq!(
+                (pipeline.pdf_extract.len(), pipeline.text_filter.len()),
+                (1, 1)
+            );
         }
     }
 }

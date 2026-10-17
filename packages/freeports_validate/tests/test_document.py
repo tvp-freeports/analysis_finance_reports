@@ -195,6 +195,151 @@ class TestGrantingAFile:
         assert "hash mismatch" in run.output.lower()
 
 
+class TestUngrantingAFileThatIsGone:
+    """A file is deleted first and ungranted afterwards, which is the order work happens in.
+
+    `check-grants` answers a deleted granted file by telling the user to ungrant it, so `ungrant`
+    refusing a path because nothing is there any more left the advice impossible to follow.
+    """
+
+    TARGET = "tests/formats/FOO-EN24/1/out/funds.csv"
+
+    @pytest.fixture
+    def granted(
+        self, prototypes, tmp_path, run_validate, tmp_repo, signer, local_source
+    ):
+        prototypes.restore(build_adopted, tmp_path)
+        run = run_validate(
+            "grant",
+            self.TARGET,
+            "with",
+            "basic check",
+            repo=tmp_repo,
+            key_id=signer.fingerprint,
+            sources=local_source,
+            cwd=tmp_repo.root,
+        )
+        assert run.returncode == 0, run
+        return tmp_repo.document(signer)
+
+    def ungrant(self, run_validate, tmp_repo, signer, local_source, *args):
+        return run_validate(
+            "ungrant",
+            *args,
+            repo=tmp_repo,
+            key_id=signer.fingerprint,
+            sources=local_source,
+            cwd=tmp_repo.root,
+        )
+
+    @pytest.mark.parametrize("methodology", ["basic check", "any"])
+    def test_a_deleted_file_is_ungranted(
+        self, run_validate, tmp_repo, signer, local_source, granted, methodology
+    ):
+        (tmp_repo.root / self.TARGET).unlink()
+        run = self.ungrant(
+            run_validate,
+            tmp_repo,
+            signer,
+            local_source,
+            self.TARGET,
+            "with",
+            methodology,
+        )
+        assert run.returncode == 0, run
+        assert self.TARGET not in granted.read_text()
+
+    def test_it_says_the_file_was_no_longer_there(
+        self, run_validate, tmp_repo, signer, local_source, granted
+    ):
+        (tmp_repo.root / self.TARGET).unlink()
+        run = self.ungrant(
+            run_validate, tmp_repo, signer, local_source, self.TARGET, "with", "any"
+        )
+        assert "no longer exists" in run.output.lower(), run
+
+    def test_its_folder_may_be_gone_too(
+        self, run_validate, tmp_repo, signer, local_source, granted
+    ):
+        import shutil
+
+        shutil.rmtree(tmp_repo.root / "tests/formats/FOO-EN24/1/out")
+        run = self.ungrant(
+            run_validate,
+            tmp_repo,
+            signer,
+            local_source,
+            self.TARGET,
+            "with",
+            "basic check",
+        )
+        assert run.returncode == 0, run
+        assert self.TARGET not in granted.read_text()
+
+    def test_the_document_checks_out_afterwards(
+        self, run_validate, tmp_repo, signer, local_source, granted
+    ):
+        """Re-signed, and no longer carrying a grant for a file `check-grants` cannot find."""
+        (tmp_repo.root / self.TARGET).unlink()
+        self.ungrant(
+            run_validate, tmp_repo, signer, local_source, self.TARGET, "with", "any"
+        )
+        run = run_validate(
+            "check-grants",
+            repo=tmp_repo,
+            key_id=signer.fingerprint,
+            sources=local_source,
+        )
+        assert run.returncode == 0, run
+
+    def test_a_path_never_granted_is_reported_and_nothing_is_signed(
+        self, run_validate, tmp_repo, signer, local_source, granted
+    ):
+        before = granted.read_bytes()
+        run = self.ungrant(
+            run_validate,
+            tmp_repo,
+            signer,
+            local_source,
+            "tests/formats/FOO-EN24/1/out/never.csv",
+            "with",
+            "any",
+        )
+        assert run.returncode == 1, run
+        assert "not granted" in run.output.lower(), run
+        assert granted.read_bytes() == before
+
+    def test_a_granted_path_beside_one_never_granted_is_still_ungranted(
+        self, run_validate, tmp_repo, signer, local_source, granted
+    ):
+        """One wrong path in a list warns; it does not cost the user the right ones."""
+        (tmp_repo.root / self.TARGET).unlink()
+        run = self.ungrant(
+            run_validate,
+            tmp_repo,
+            signer,
+            local_source,
+            "tests/formats/FOO-EN24/1/out/never.csv",
+            self.TARGET,
+            "with",
+            "basic check",
+        )
+        assert run.returncode == 0, run
+        assert "not granted" in run.output.lower(), run
+        assert self.TARGET not in granted.read_text()
+
+    def test_a_path_outside_the_repository_is_refused(
+        self, run_validate, tmp_repo, signer, local_source, granted
+    ):
+        before = granted.read_bytes()
+        run = self.ungrant(
+            run_validate, tmp_repo, signer, local_source, "../funds.csv", "with", "any"
+        )
+        assert run.returncode != 0, run
+        assert "outside the repository" in run.output.lower(), run
+        assert granted.read_bytes() == before
+
+
 class TestWhatAChangedPageDoes:
     """The mechanism working: a published text changing invalidates the grants made under it."""
 

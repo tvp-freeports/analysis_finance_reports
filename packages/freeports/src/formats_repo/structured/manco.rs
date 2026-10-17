@@ -78,7 +78,7 @@ use crate::formats_utils::text_filter::managment_company::{
 use crate::input::document::selection::pdfline_selection_from_str;
 
 use super::StructuredError;
-use super::tables::{MancoArgsRow, get_manco_configs};
+use super::tables::{MancoArgsRow, MancoConfig, get_manco_configs};
 
 /// The block type and the pipe's name, which no row writes because no row differs in them.
 const BLOCK: BlockType = BlockType::MANAGEMENT_COMPANY;
@@ -92,26 +92,32 @@ pub fn get_pipelines(
     let configs = get_manco_configs(formats_repo_dir)?;
     let mut pipelines: HashMap<PipelineName, Pipeline> = HashMap::new();
 
-    for (id, row) in configs
+    for MancoConfig { id, row, segments } in configs
         .into_iter()
-        .filter(|(id, _)| id.format == format_name)
+        .filter(|config| config.id.format == format_name)
     {
         let name = PipelineName::new(&id.pipeline);
         let pipeline = pipelines
             .entry(name.clone())
             .or_insert_with(|| Pipeline::new(name));
 
-        pipeline
-            .pdf_extract
-            .push(Arc::new(extraction(&id.to_string(), &row)?));
-        pipeline.text_filter.push(filtering(&id.to_string(), &row)?);
-        pipeline
-            .deserialize
-            .push(Arc::new(DeserializerManagmentCompanyStandard));
-        if row.also_investments_manager.unwrap_or(false) {
+        if segments.pdf_extract {
+            pipeline
+                .pdf_extract
+                .push(Arc::new(extraction(&id.to_string(), &row)?));
+        }
+        if segments.text_filter {
+            pipeline.text_filter.push(filtering(&id.to_string(), &row)?);
+        }
+        if segments.deserialize {
             pipeline
                 .deserialize
-                .push(Arc::new(DeserializerInvestmentsManagerFromManco));
+                .push(Arc::new(DeserializerManagmentCompanyStandard));
+            if row.also_investments_manager.unwrap_or(false) {
+                pipeline
+                    .deserialize
+                    .push(Arc::new(DeserializerInvestmentsManagerFromManco));
+            }
         }
     }
 
@@ -158,8 +164,12 @@ fn extraction(
         }
     };
 
-    let mut args =
-        LabelledValueArgs::new(selection("Label set", &row.label_set)?, BLOCK, PIPE_NAME);
+    // Required while the extraction is built, which the table checked when it loaded.
+    let label_set = row
+        .label_set
+        .as_deref()
+        .expect("a label the table requires while the extraction is built");
+    let mut args = LabelledValueArgs::new(selection("Label set", label_set)?, BLOCK, PIPE_NAME);
     args.r#where = placement;
     args.take = take;
     // A window only where the row asked for one, so that the side it did not name keeps the
@@ -205,4 +215,77 @@ fn filtering(
         source,
     })?;
     Ok(Arc::new(pipe))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    const HEADER: &str =
+        "ID,Label set,Where,Take,Reach,Stop set,After,Before,Among,Also investments manager\n";
+    const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
+
+    /// The `manco` pipeline the two tables build for `A-EN24`.
+    fn pipeline(args: &str, partial: &str) -> Pipeline {
+        let dir = TempDir::new().expect("temp dir");
+        let base = dir
+            .path()
+            .join(super::super::tables::STRUCTURED_DIR)
+            .join("manco");
+        fs::create_dir_all(&base).expect("manco dir");
+        fs::write(base.join("args.csv"), format!("{HEADER}{args}")).expect("args");
+        fs::write(
+            base.join("partial_pipes.csv"),
+            format!("{PARTIAL_HEADER}{partial}"),
+        )
+        .expect("partial");
+        get_pipelines(dir.path(), "A-EN24")
+            .unwrap()
+            .remove(&PipelineName::new(super::super::tables::MANCO_PIPELINE))
+            .expect("the manco pipeline")
+    }
+
+    /// The segments' sizes, in order.
+    fn sizes(pipeline: &Pipeline) -> (usize, usize, usize) {
+        (
+            pipeline.pdf_extract.len(),
+            pipeline.text_filter.len(),
+            pipeline.deserialize.len(),
+        )
+    }
+
+    mod partial_segments {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        #[test]
+        fn with_no_row_every_segment_is_built() {
+            assert_eq!(
+                sizes(&pipeline("A-EN24,arialmt,,,,,,,,TRUE\n", "")),
+                (1, 1, 2)
+            );
+        }
+
+        #[test]
+        fn a_disabled_pdf_extract_leaves_that_segment_empty() {
+            let pipeline = pipeline("A-EN24,,,,,,gestione,,,\n", "A-EN24,FALSE,,\n");
+            assert_eq!(sizes(&pipeline), (0, 1, 1));
+        }
+
+        #[test]
+        fn a_disabled_text_filter_leaves_that_segment_empty() {
+            let pipeline = pipeline("A-EN24,arialmt,,,,,,,,\n", "A-EN24,,FALSE,\n");
+            assert_eq!(sizes(&pipeline), (1, 0, 1));
+        }
+
+        /// Both deserializers go: `Also investments manager` is the deserialization's, and a
+        /// disabled one may not even declare it.
+        #[test]
+        fn a_disabled_deserialize_leaves_that_segment_empty() {
+            let pipeline = pipeline("A-EN24,arialmt,,,,,,,,\n", "A-EN24,,,FALSE\n");
+            assert_eq!(sizes(&pipeline), (1, 1, 0));
+        }
+    }
 }

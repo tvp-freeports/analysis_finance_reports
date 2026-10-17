@@ -100,7 +100,7 @@ use super::tables::{SfdrConfig, get_sfdr_configs};
 /// the annex would be a second place for the day a fifth language arrives.
 fn pdf_extract_input(config: &SfdrConfig) -> InputSfdrAnnexPdfExtract {
     InputSfdrAnnexPdfExtract {
-        language: config.args.language.clone(),
+        language: config.args.language.clone().unwrap_or_default(),
         question: None,
         affirmative: None,
         negative: None,
@@ -134,7 +134,7 @@ fn text_filter_input(config: &SfdrConfig) -> InputSfdrAnnexTextFilter {
         ),
     };
     InputSfdrAnnexTextFilter {
-        language: config.args.language.clone(),
+        language: config.args.language.clone().unwrap_or_default(),
         product_prefix,
         demand_investment_funds_match: true,
         demand_declared_fund: false,
@@ -144,7 +144,8 @@ fn text_filter_input(config: &SfdrConfig) -> InputSfdrAnnexTextFilter {
 /// The SFDR pipelines the repository defines for `format_name`.
 ///
 /// Three segments per row: the two pipes that read the tick and the product name, the filter that
-/// reunites them, and the parameterless builder of the article.
+/// reunites them, and the parameterless builder of the article — each left out where the row's
+/// partial-pipes row turns it off.
 pub fn get_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -154,32 +155,29 @@ pub fn get_pipelines(
 
     for config in configs.into_iter().filter(|c| c.id.format == format_name) {
         let id = config.id.to_string();
-        let extract = pdf_extract(&pdf_extract_input(&config)).map_err(|source| {
-            StructuredError::SfdrAnnex {
-                id: id.clone(),
-                source,
-            }
-        })?;
-        let filter = text_filter(&text_filter_input(&config)).map_err(|source| {
-            StructuredError::SfdrAnnex {
-                id: id.clone(),
-                source,
-            }
-        })?;
-
+        let annex = |source| StructuredError::SfdrAnnex {
+            id: id.clone(),
+            source,
+        };
         let name = PipelineName::new(&config.id.pipeline);
         let pipeline = pipelines
             .entry(name.clone())
             .or_insert_with(|| Pipeline::new(name));
-        for pipe in extract {
-            pipeline.pdf_extract.push(pipe);
+        if config.segments.pdf_extract {
+            for pipe in pdf_extract(&pdf_extract_input(&config)).map_err(annex)? {
+                pipeline.pdf_extract.push(pipe);
+            }
         }
-        for pipe in filter {
-            pipeline.text_filter.push(pipe);
+        if config.segments.text_filter {
+            for pipe in text_filter(&text_filter_input(&config)).map_err(annex)? {
+                pipeline.text_filter.push(pipe);
+            }
         }
-        pipeline
-            .deserialize
-            .push(Arc::new(DeserializeSfdrArticleStandard));
+        if config.segments.deserialize {
+            pipeline
+                .deserialize
+                .push(Arc::new(DeserializeSfdrArticleStandard));
+        }
     }
 
     tracing::debug!(pipeline_count = pipelines.len(), "built sfdr pipelines");
@@ -206,11 +204,12 @@ mod tests {
             },
             args: SfdrArgsRow {
                 id: "A-FORMAT".to_string(),
-                language: language.to_string(),
+                language: Some(language.to_string()),
                 product_joined: joined,
                 product_prepend: prepend.map(str::to_string),
             },
             prefixes: prefixes.iter().map(|t| t.to_string()).collect(),
+            segments: super::super::tables::Segments::ALL,
         }
     }
 
@@ -310,6 +309,79 @@ mod tests {
             let input = text_filter_input(&config("ENGLISH", None, None, &[]));
             assert!(input.demand_investment_funds_match);
             assert!(!input.demand_declared_fund);
+        }
+    }
+
+    mod partial_segments {
+        use super::*;
+        use pretty_assertions::assert_eq;
+        use std::fs;
+        use tempfile::TempDir;
+
+        /// The sizes of the three segments of the annex pipeline the tables build for `A-EN24`.
+        fn sizes(args: &str, partial: &str) -> (usize, usize, usize) {
+            let dir = TempDir::new().expect("temp dir");
+            let base = dir
+                .path()
+                .join(super::super::super::tables::STRUCTURED_DIR)
+                .join("sfdr");
+            fs::create_dir_all(&base).expect("sfdr dir");
+            fs::write(
+                base.join("args.csv"),
+                format!("ID,Language,Product joined,Product prepend\n{args}"),
+            )
+            .expect("args");
+            fs::write(
+                base.join("partial_pipes.csv"),
+                format!("ID,pdf_extract,text_filter,deserialize\n{partial}"),
+            )
+            .expect("partial");
+            let pipeline = get_pipelines(dir.path(), "A-EN24")
+                .unwrap()
+                .remove(&PipelineName::new(
+                    super::super::super::tables::SFDR_PIPELINE,
+                ))
+                .expect("the annex pipeline");
+            (
+                pipeline.pdf_extract.len(),
+                pipeline.text_filter.len(),
+                pipeline.deserialize.len(),
+            )
+        }
+
+        #[test]
+        fn with_no_row_every_segment_is_built() {
+            let (pdf_extract, text_filter, deserialize) = sizes("A-EN24,ENGLISH,,\n", "");
+            assert!(pdf_extract > 0 && text_filter > 0);
+            assert_eq!(deserialize, 1);
+        }
+
+        #[test]
+        fn a_disabled_pdf_extract_leaves_that_segment_empty() {
+            let (pdf_extract, text_filter, deserialize) =
+                sizes("A-EN24,ENGLISH,,\n", "A-EN24,FALSE,,\n");
+            assert_eq!(pdf_extract, 0);
+            assert!(text_filter > 0);
+            assert_eq!(deserialize, 1);
+        }
+
+        #[test]
+        fn a_disabled_text_filter_leaves_that_segment_empty() {
+            let (pdf_extract, text_filter, _) = sizes("A-EN24,ENGLISH,,\n", "A-EN24,,FALSE,\n");
+            assert!(pdf_extract > 0);
+            assert_eq!(text_filter, 0);
+        }
+
+        /// The deserializer alone needs no language at all.
+        #[test]
+        fn the_deserializer_alone_is_a_row_with_no_language() {
+            assert_eq!(sizes("A-EN24,,,\n", "A-EN24,FALSE,FALSE,\n"), (0, 0, 1));
+        }
+
+        #[test]
+        fn a_disabled_deserialize_leaves_that_segment_empty() {
+            let (_, _, deserialize) = sizes("A-EN24,ENGLISH,,\n", "A-EN24,,,FALSE\n");
+            assert_eq!(deserialize, 0);
         }
     }
 }

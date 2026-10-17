@@ -729,6 +729,21 @@ msgstr ""
 "A última forma pede confirmação, porque tira de uma vez todo aval dado sob aquela "
 "metodologia."
 
+#: ../../source/reference/cli/freeports-validate.md:288
+msgid ""
+"The files need not exist any more: a path is resolved, not looked up on disk, so a "
+"file deleted first is ungranted afterwards the way it was granted. A path the "
+"document does not hold is warned about and skipped; the document is re-signed only "
+"if something was removed, and if nothing was the command exits with status 1. A "
+"path outside the repository is refused before anything is changed."
+msgstr ""
+"Os arquivos não precisam mais existir: o caminho é resolvido, não procurado no "
+"disco, então um arquivo apagado antes tem o aval retirado depois, pelo mesmo caminho "
+"com que foi avalizado. Um caminho que o documento não contém gera um aviso e é "
+"pulado; o documento só é reassinado se algo foi retirado, e se nada foi o comando "
+"sai com status 1. Um caminho fora do repositório é recusado antes de qualquer "
+"alteração."
+
 #: ../../source/reference/cli/freeports-validate.md:289
 msgid "What a methodology says it covers"
 msgstr "O que uma metodologia declara cobrir"

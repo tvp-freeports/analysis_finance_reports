@@ -543,6 +543,7 @@ mod tests {
                         "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Interpret dash as zero\n",
                     )
                     .write("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n")
+                    .write("content/algorithms/structured/page_classify/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n")
                     .write("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n")
                     .write("content/algorithms/semistructured/formats_mapping.csv", "ID,pdf_extract,text_filter,deserialize\n")
                     .write("content/algorithms/semistructured/args/pdf_extract.yaml", "{}")

@@ -18,6 +18,10 @@ tables live under `content/algorithms/structured/`, one directory per datum:
 after the first, each when the same reading turned out to be the majority way of reading its datum —
 which is the condition for a datum to belong to this level at all.
 
+Every directory a repository does have carries a `partial_pipes.csv` beside its arguments, saying
+which segments each pipe builds (see [Partial pipelines](#partial-pipelines)). A required cell is
+required while the segment that reads it is built.
+
 ## The `ID` column
 
 Every row is keyed by an `ID` saying which pipe of which pipeline of which format it configures. The
@@ -211,6 +215,47 @@ Each of the three segments can be switched off **individually**. That is what a 
 is, and it is what makes the merge with the other levels useful rather than theoretical: a format can
 take its `pdf_extract` from here and its `text_filter` from a Python module, by leaving the second
 unspecified at this level ({doc}`../../../reference/design/formats-as-plugins`).
+
+Every algorithm has the same table for it, `partial_pipes.csv` in its own directory, with the same
+header:
+
+```text
+ID,pdf_extract,text_filter,deserialize
+BLACKROCK-EN25,TRUE,TRUE,FALSE
+```
+
+`FALSE` switches a segment off; `TRUE` or an empty cell leaves it on, and so does having no row at
+all. At most one row per pipe, and a row naming a pipe the arguments do not declare is refused. The
+file is required wherever the arguments are: a repository with `manco/args.csv` has
+`manco/partial_pipes.csv` too, even if it holds only its header.
+
+A segment switched off may not be configured, and a cell a built segment needs may not be empty. So
+each column belongs to the segment that reads it:
+
+| Directory | `pdf_extract` | `text_filter` | `deserialize` |
+|---|---|---|---|
+| `investments/` | the four selections, `Algorithm flags`, the two tolerances, the three `Collapse` cells | the five column positions, `Geometrical indexing`, `Interpret dash as zero`, `Remove from fund` | the two `Interpret … as …` flags |
+| `fund_assets/` | the fund column and the three amounts (required), `Currency set`, `Date set`, the three windows, `Drop set`, `Drop fund set`, `Table condition`, `Algorithm flags` | `Date regex`, `Remove from fund` | `Amount cast`, `Date cast` |
+| `manco/` | `Label set` (required), `Where`, `Take`, `Reach`, `Stop set` | `After`, `Before`, `Among` | `Also investments manager` |
+| `sfdr/` | `Language` (required), `Product joined`, `Product prepend` | `Language` (required), the rows of `product_prefixes.csv` | — |
+| `page_classify/` | `Class` (required), `Header set` | — | — |
+
+Two consequences are worth stating.
+
+**A column read by two segments goes only with both.** The SFDR language is read by the extraction
+and by the filter, so it stays required while either is built.
+
+**A cell that refines another segment's cell is free when that segment is off.** `Date regex`
+refines `Date set`, and `Among` chooses among the lines `Take: all` hands over; with the extraction
+built elsewhere, the cell they refine is empty by necessity, and what it would have said is not this
+row's to say.
+
+**A classification pipeline is a special case.** Its filter and its deserializer take no parameter
+and there is one of each for the whole pipeline, while each classifier has its own extraction. So
+`pdf_extract` can be switched off per pipe, but the pipes of one pipeline must **agree** on
+`text_filter` and `deserialize`: if they do not, loading fails and names the two pipes. Building the
+segment as soon as any pipe asked for it would be a rule written nowhere, covering a contradiction in
+the repository.
 
 ## Two conventions of the structured tables
 **An empty cell means *absent*, everywhere.** Not zero, not the default — absent. It is the same rule

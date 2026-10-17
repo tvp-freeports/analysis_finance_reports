@@ -7,6 +7,9 @@
 //! - **fund_assets** — one arguments table with **one** row per pipe, carrying the parameters of
 //!   all three segments.
 //!
+//! Each of the five algorithms also has a `partial_pipes.csv`, saying which of the three segments a
+//! pipe builds: see [`Segments`].
+//!
 //! Every table is a `Deserialize` struct read with the `csv` crate, the composite key is a
 //! [`ComputedId`], the join is a hash map, and every validation is a function reporting **the row
 //! number** — because a formats repository is edited by hand in a spreadsheet, and an error that
@@ -99,6 +102,28 @@ pub enum TableError {
         id: String,
         segment: &'static str,
         column: &'static str,
+    },
+    /// A column a built segment cannot do without is empty.
+    #[error(
+        "{path}, line {line}: column '{column}' is empty, but '{id}' builds segment '{segment}', which needs it"
+    )]
+    RequiredCellEmpty {
+        path: PathBuf,
+        line: usize,
+        id: String,
+        segment: &'static str,
+        column: &'static str,
+    },
+    /// Two pipes of one pipeline disagree on a segment the pipeline builds once for all of them.
+    #[error(
+        "{path}, line {line}: '{id}' and '{other}' are pipes of the same pipeline but disagree on segment '{segment}', which the pipeline builds once for all of its pipes"
+    )]
+    ConflictingSegments {
+        path: PathBuf,
+        line: usize,
+        id: String,
+        other: String,
+        segment: &'static str,
     },
     /// Two rows configuring the same classification pipe declare different classes.
     #[error("{path}, line {line}: '{id}' is declared as class '{found}' but also as '{first}'")]
@@ -411,7 +436,7 @@ pub struct DeselectionRow {
 
 /// A row of the partial-pipes table: which segments of the pipeline are active.
 ///
-/// An empty column means active.
+/// An empty column means active. Every algorithm has one such table, with the same columns.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PartialPipesRow {
     #[serde(rename = "ID")]
@@ -424,6 +449,163 @@ pub struct PartialPipesRow {
     pub deserialize: Option<bool>,
 }
 
+/// One of the three segments of a pipeline, by the name the partial-pipes table gives it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Segment {
+    PdfExtract,
+    TextFilter,
+    Deserialize,
+}
+
+impl Segment {
+    /// The segment's column in the partial-pipes table, which is also how errors name it.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Segment::PdfExtract => "pdf_extract",
+            Segment::TextFilter => "text_filter",
+            Segment::Deserialize => "deserialize",
+        }
+    }
+}
+
+/// Which segments a pipe builds: all three, unless its partial-pipes row turns some off.
+///
+/// A segment turned off is left for another level to fill — a semistructured block or an author's
+/// Python — and the structured row keeps the others. That is how a format takes the default reading
+/// of a datum and replaces one step of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Segments {
+    pub pdf_extract: bool,
+    pub text_filter: bool,
+    pub deserialize: bool,
+}
+
+impl Segments {
+    pub const ALL: Segments = Segments {
+        pdf_extract: true,
+        text_filter: true,
+        deserialize: true,
+    };
+
+    /// The segments a pipe's row asks for. No row, or an empty cell, means built.
+    pub fn from_row(row: Option<&PartialPipesRow>) -> Self {
+        let wanted = |cell: Option<bool>| cell.unwrap_or(true);
+        match row {
+            None => Self::ALL,
+            Some(row) => Segments {
+                pdf_extract: wanted(row.pdf_extract),
+                text_filter: wanted(row.text_filter),
+                deserialize: wanted(row.deserialize),
+            },
+        }
+    }
+
+    pub fn wants(self, segment: Segment) -> bool {
+        match segment {
+            Segment::PdfExtract => self.pdf_extract,
+            Segment::TextFilter => self.text_filter,
+            Segment::Deserialize => self.deserialize,
+        }
+    }
+}
+
+/// A column of an algorithm's tables, and the segments that read it.
+///
+/// A column read by two segments goes only when both do. One that is `required` must be filled as
+/// long as any of its segments is built, and is free to be empty otherwise: the four anchors of a
+/// statement of net assets mean nothing to a row whose extraction is somebody else's.
+struct SegmentColumn {
+    column: &'static str,
+    segments: &'static [Segment],
+    required: bool,
+}
+
+const fn optional(column: &'static str, segments: &'static [Segment]) -> SegmentColumn {
+    SegmentColumn {
+        column,
+        segments,
+        required: false,
+    }
+}
+
+const fn required(column: &'static str, segments: &'static [Segment]) -> SegmentColumn {
+    SegmentColumn {
+        column,
+        segments,
+        required: true,
+    }
+}
+
+const PDF_EXTRACT: &[Segment] = &[Segment::PdfExtract];
+const TEXT_FILTER: &[Segment] = &[Segment::TextFilter];
+const DESERIALIZE: &[Segment] = &[Segment::Deserialize];
+
+/// Checks a pipe's columns against the segments it builds.
+///
+/// Declaring a segment off and then configuring it is a contradiction, not something loading should
+/// have to guess its way through; leaving empty what a built segment needs is the same mistake the
+/// other way round. Both are refused with the row, in the order of `columns`.
+fn check_segment_columns(
+    path: &Path,
+    line: usize,
+    id: &ComputedId,
+    segments: Segments,
+    columns: &[SegmentColumn],
+    is_set: impl Fn(&str) -> bool,
+) -> Result<(), TableError> {
+    for spec in columns {
+        let built = spec.segments.iter().find(|s| segments.wants(**s));
+        match (built, is_set(spec.column)) {
+            (None, true) => {
+                return Err(TableError::DisabledSegmentConfigured {
+                    path: path.to_path_buf(),
+                    line,
+                    id: id.to_string(),
+                    segment: spec.segments[0].name(),
+                    column: spec.column,
+                });
+            }
+            (Some(segment), false) if spec.required => {
+                return Err(TableError::RequiredCellEmpty {
+                    path: path.to_path_buf(),
+                    line,
+                    id: id.to_string(),
+                    segment: segment.name(),
+                    column: spec.column,
+                });
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+/// A partial-pipes table indexed by pipe, each row with its line number.
+type PartialPipes = HashMap<ComputedId, (usize, PartialPipesRow)>;
+
+/// An algorithm's partial-pipes table, at most one row per pipe, each row with its line.
+fn read_partial_pipes(
+    formats_repo_dir: &Path,
+    relative_path: &str,
+    pipeline_default: &str,
+    known: &HashSet<&ComputedId>,
+) -> Result<(PathBuf, PartialPipes), TableError> {
+    let (path, rows): (_, Vec<PartialPipesRow>) = read_table(formats_repo_dir, relative_path)?;
+    let ids = identify(
+        &path,
+        &rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+        pipeline_default,
+        FkRelation::OneToMaybe,
+    )?;
+    let numbered: Vec<(usize, PartialPipesRow)> = rows
+        .into_iter()
+        .enumerate()
+        .map(|(i, row)| (i + 1, row))
+        .collect();
+    let rows = index_unique(&path, ids, numbered, known)?;
+    Ok((path, rows))
+}
+
 /// A row of the page-classify arguments table.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PageClassifyArgsRow {
@@ -431,8 +613,9 @@ pub struct PageClassifyArgsRow {
     pub id: String,
     #[serde(rename = "Header set", deserialize_with = "optional_text")]
     pub header_set: Option<String>,
-    #[serde(rename = "Class")]
-    pub class: String,
+    /// Required while the pipe builds its extraction, which is what reads it.
+    #[serde(rename = "Class", deserialize_with = "optional_text")]
+    pub class: Option<String>,
 }
 
 fn row_error(path: &Path, line: usize, error: &csv::Error) -> TableError {
@@ -595,28 +778,24 @@ pub struct InvestmentsConfig {
 }
 
 impl InvestmentsConfig {
+    /// The segments this pipe builds.
+    pub fn segments(&self) -> Segments {
+        Segments::from_row(self.partial_pipes.as_ref())
+    }
+
     /// Whether the extraction segment is to be built. An absent configuration means yes.
     pub fn wants_pdf_extract(&self) -> bool {
-        self.partial_pipes
-            .as_ref()
-            .and_then(|p| p.pdf_extract)
-            .unwrap_or(true)
+        self.segments().pdf_extract
     }
 
     /// Whether the filtering segment is to be built. See [`Self::wants_pdf_extract`].
     pub fn wants_text_filter(&self) -> bool {
-        self.partial_pipes
-            .as_ref()
-            .and_then(|p| p.text_filter)
-            .unwrap_or(true)
+        self.segments().text_filter
     }
 
     /// Whether the deserialization segment is to be built. See [`Self::wants_pdf_extract`].
     pub fn wants_deserialize(&self) -> bool {
-        self.partial_pipes
-            .as_ref()
-            .and_then(|p| p.deserialize)
-            .unwrap_or(true)
+        self.segments().deserialize
     }
 }
 
@@ -624,10 +803,32 @@ impl InvestmentsConfig {
 #[derive(Debug, Clone)]
 pub struct PageClassifyConfig {
     pub id: ComputedId,
-    /// The page class the pipe assigns when **every** header matches.
-    pub class: String,
+    /// The page class the pipe assigns when **every** header matches. Absent only where the pipe
+    /// does not build its extraction.
+    pub class: Option<String>,
     /// The headers to look for, one per CSV row, in file order.
     pub header_sets: Vec<String>,
+    /// Its own extraction, and the filter and deserializer of its pipeline, which every pipe of
+    /// the pipeline agrees on.
+    pub segments: Segments,
+}
+
+/// Which segment reads each column of the page-classification table. The other two segments of a
+/// classification pipeline take no parameter at all.
+const PAGE_CLASSIFY_COLUMNS: &[SegmentColumn] = &[
+    required("Class", PDF_EXTRACT),
+    optional("Header set", PDF_EXTRACT),
+];
+
+impl PageClassifyConfig {
+    /// Whether each column named by [`PAGE_CLASSIFY_COLUMNS`] is filled, by any row of the pipe.
+    fn column_is_set(&self, column: &str) -> bool {
+        match column {
+            "Class" => self.class.is_some(),
+            "Header set" => !self.header_sets.is_empty(),
+            other => unreachable!("PAGE_CLASSIFY_COLUMNS names an unknown column {other:?}"),
+        }
+    }
 }
 
 /// A row of the management-company table: one whole `manco` pipeline.
@@ -639,9 +840,10 @@ pub struct PageClassifyConfig {
 pub struct MancoArgsRow {
     #[serde(rename = "ID")]
     pub id: String,
-    /// How the label is recognised, in the compact grammar.
-    #[serde(rename = "Label set")]
-    pub label_set: String,
+    /// How the label is recognised, in the compact grammar. Required while the pipe builds its
+    /// extraction.
+    #[serde(rename = "Label set", deserialize_with = "optional_text")]
+    pub label_set: Option<String>,
     /// `on_line` (the default), `below` or `right`.
     #[serde(rename = "Where", default, deserialize_with = "optional_text")]
     pub placement: Option<String>,
@@ -684,9 +886,10 @@ pub struct SfdrArgsRow {
     #[serde(rename = "ID")]
     pub id: String,
     /// `ITALIAN`, `ENGLISH`, `SPANISH` or `FRENCH`. Written **once**, where the semistructured form
-    /// writes it in two segments with nothing checking that the two agree.
-    #[serde(rename = "Language")]
-    pub language: String,
+    /// writes it in two segments with nothing checking that the two agree. Required while either
+    /// of the two is built.
+    #[serde(rename = "Language", deserialize_with = "optional_text")]
+    pub language: Option<String>,
     /// Reads the product name in the label's **column**, joined, for a page that wraps it or breaks
     /// it into fragments. Seven of the sixteen measured annexes.
     #[serde(rename = "Product joined", default, deserialize_with = "optional_bool")]
@@ -720,52 +923,56 @@ pub struct SfdrConfig {
     /// The patterns to strip, in file order. Empty means the language's own prefix, which is what
     /// eleven of the sixteen do not override.
     pub prefixes: Vec<String>,
+    pub segments: Segments,
 }
 
-/// The columns a disabled segment may not carry, for each of the three segments.
-///
-/// Declaring a segment off and then configuring it is a contradiction, not something loading should
-/// have to guess its way through.
-const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
-    (
-        "pdf_extract",
-        &[
-            "Subfund set",
-            "Currency set",
-            "Body set",
-            "Deselection set",
-            "Algorithm flags",
-            "Column tolerance",
-            "Row tolerance",
-            "Collapse",
-            "Collapse direction",
-            "Collapse algorithm",
-        ],
-    ),
-    (
-        "text_filter",
-        &[
-            "Market value",
-            "Quantity",
-            "% net assets",
-            "Acquisition cost",
-            "Acquisition currency",
-            "Geometrical indexing",
-            "Interpret dash as zero",
-            "Remove from fund",
-        ],
-    ),
-    (
-        "deserialize",
-        &[
-            "Interpret quantity as float",
-            "Interpret cost and value as int",
-        ],
-    ),
+/// Which segment reads each column of the two SFDR tables. `Pattern` is the prefix table's.
+const SFDR_COLUMNS: &[SegmentColumn] = &[
+    required("Language", &[Segment::PdfExtract, Segment::TextFilter]),
+    optional("Product joined", PDF_EXTRACT),
+    optional("Product prepend", PDF_EXTRACT),
+    optional("Pattern", TEXT_FILTER),
+];
+
+impl SfdrConfig {
+    /// Whether each column named by [`SFDR_COLUMNS`] is filled.
+    fn column_is_set(&self, column: &str) -> bool {
+        match column {
+            "Language" => self.args.language.is_some(),
+            "Product joined" => self.args.product_joined.is_some(),
+            "Product prepend" => self.args.product_prepend.is_some(),
+            "Pattern" => !self.prefixes.is_empty(),
+            other => unreachable!("SFDR_COLUMNS names an unknown column {other:?}"),
+        }
+    }
+}
+
+/// Which segment reads each column of the four investments tables.
+const INVESTMENTS_COLUMNS: &[SegmentColumn] = &[
+    optional("Subfund set", PDF_EXTRACT),
+    optional("Currency set", PDF_EXTRACT),
+    optional("Body set", PDF_EXTRACT),
+    optional("Deselection set", PDF_EXTRACT),
+    optional("Algorithm flags", PDF_EXTRACT),
+    optional("Column tolerance", PDF_EXTRACT),
+    optional("Row tolerance", PDF_EXTRACT),
+    optional("Collapse", PDF_EXTRACT),
+    optional("Collapse direction", PDF_EXTRACT),
+    optional("Collapse algorithm", PDF_EXTRACT),
+    optional("Market value", TEXT_FILTER),
+    optional("Quantity", TEXT_FILTER),
+    optional("% net assets", TEXT_FILTER),
+    optional("Acquisition cost", TEXT_FILTER),
+    optional("Acquisition currency", TEXT_FILTER),
+    optional("Geometrical indexing", TEXT_FILTER),
+    optional("Interpret dash as zero", TEXT_FILTER),
+    optional("Remove from fund", TEXT_FILTER),
+    optional("Interpret quantity as float", DESERIALIZE),
+    optional("Interpret cost and value as int", DESERIALIZE),
 ];
 
 impl InvestmentsConfig {
-    /// Whether each column named by [`DISABLED_SEGMENT_COLUMNS`] is configured.
+    /// Whether each column named by [`INVESTMENTS_COLUMNS`] is configured.
     fn column_is_set(&self, column: &str) -> bool {
         let additional = self.additional.as_ref();
         match column {
@@ -795,34 +1002,8 @@ impl InvestmentsConfig {
                 additional.is_some_and(|a| a.interpret_dash_as_zero.is_some())
             }
             "Remove from fund" => additional.is_some_and(|a| a.remove_from_fund.is_some()),
-            other => unreachable!("DISABLED_SEGMENT_COLUMNS names an unknown column {other:?}"),
+            other => unreachable!("INVESTMENTS_COLUMNS names an unknown column {other:?}"),
         }
-    }
-
-    /// Checks that no disabled segment carries configuration.
-    fn check_disabled_segments(&self, path: &Path, line: usize) -> Result<(), TableError> {
-        let enabled = [
-            self.wants_pdf_extract(),
-            self.wants_text_filter(),
-            self.wants_deserialize(),
-        ];
-        for ((segment, columns), enabled) in DISABLED_SEGMENT_COLUMNS.iter().zip(enabled) {
-            if enabled {
-                continue;
-            }
-            for column in *columns {
-                if self.column_is_set(column) {
-                    return Err(TableError::DisabledSegmentConfigured {
-                        path: path.to_path_buf(),
-                        line,
-                        id: self.id.to_string(),
-                        segment,
-                        column,
-                    });
-                }
-            }
-        }
-        Ok(())
     }
 }
 
@@ -880,18 +1061,12 @@ pub fn get_investments_configs(
     )?;
     let mut additional = index_unique(&add_path, add_ids, add_rows, &known)?;
 
-    let (partial_path, partial_rows): (_, Vec<PartialPipesRow>) =
-        read_table(formats_repo_dir, "investments/partial_pipes.csv")?;
-    let partial_ids = identify(
-        &partial_path,
-        &partial_rows
-            .iter()
-            .map(|r| r.id.as_str())
-            .collect::<Vec<_>>(),
+    let (_, mut partial) = read_partial_pipes(
+        formats_repo_dir,
+        "investments/partial_pipes.csv",
         INVESTMENTS_PIPELINE,
-        FkRelation::OneToMaybe,
+        &known,
     )?;
-    let mut partial = index_unique(&partial_path, partial_ids, partial_rows, &known)?;
 
     let (desel_path, desel_rows): (_, Vec<DeselectionRow>) =
         read_table(formats_repo_dir, "investments/deselection_lists.csv")?;
@@ -927,11 +1102,18 @@ pub fn get_investments_configs(
         let config = InvestmentsConfig {
             additional: additional.remove(&id),
             deselection_sets: deselections.remove(&id).unwrap_or_default(),
-            partial_pipes: partial.remove(&id),
+            partial_pipes: partial.remove(&id).map(|(_, row)| row),
             args: row,
             id,
         };
-        config.check_disabled_segments(&args_path, i + 1)?;
+        check_segment_columns(
+            &args_path,
+            i + 1,
+            &config.id,
+            config.segments(),
+            INVESTMENTS_COLUMNS,
+            |column| config.column_is_set(column),
+        )?;
         configs.push(config);
     }
     tracing::debug!(
@@ -941,13 +1123,50 @@ pub fn get_investments_configs(
     Ok(configs)
 }
 
+/// One management-company pipeline, with the segments it builds.
+#[derive(Debug, Clone)]
+pub struct MancoConfig {
+    pub id: ComputedId,
+    pub row: MancoArgsRow,
+    pub segments: Segments,
+}
+
+/// Which segment reads each column of the management-company table.
+const MANCO_COLUMNS: &[SegmentColumn] = &[
+    required("Label set", PDF_EXTRACT),
+    optional("Where", PDF_EXTRACT),
+    optional("Take", PDF_EXTRACT),
+    optional("Reach", PDF_EXTRACT),
+    optional("Stop set", PDF_EXTRACT),
+    optional("After", TEXT_FILTER),
+    optional("Before", TEXT_FILTER),
+    optional("Among", TEXT_FILTER),
+    optional("Also investments manager", DESERIALIZE),
+];
+
+impl MancoArgsRow {
+    /// Whether each column named by [`MANCO_COLUMNS`] is filled.
+    fn column_is_set(&self, column: &str) -> bool {
+        match column {
+            "Label set" => self.label_set.is_some(),
+            "Where" => self.placement.is_some(),
+            "Take" => self.take.is_some(),
+            "Reach" => self.reach.is_some(),
+            "Stop set" => self.stop_set.is_some(),
+            "After" => self.after.is_some(),
+            "Before" => self.before.is_some(),
+            "Among" => self.among.is_some(),
+            "Also investments manager" => self.also_investments_manager.is_some(),
+            other => unreachable!("MANCO_COLUMNS names an unknown column {other:?}"),
+        }
+    }
+}
+
 /// The management-company configurations, in file order.
 ///
 /// One row per pipeline, and the table may be absent: see [`get_sfdr_configs`] for the reasoning,
-/// which is the same.
-pub fn get_manco_configs(
-    formats_repo_dir: &Path,
-) -> Result<Vec<(ComputedId, MancoArgsRow)>, TableError> {
+/// which is the same. Where it is present its partial-pipes table is too.
+pub fn get_manco_configs(formats_repo_dir: &Path) -> Result<Vec<MancoConfig>, TableError> {
     if !formats_repo_dir
         .join(STRUCTURED_DIR)
         .join("manco/args.csv")
@@ -963,9 +1182,22 @@ pub fn get_manco_configs(
         MANCO_PIPELINE,
         FkRelation::OneToOne,
     )?;
-    for (i, row) in rows.iter().enumerate() {
+    let known: HashSet<&ComputedId> = ids.iter().collect();
+    let (_, mut partial) = read_partial_pipes(
+        formats_repo_dir,
+        "manco/partial_pipes.csv",
+        MANCO_PIPELINE,
+        &known,
+    )?;
+
+    let mut configs = Vec::with_capacity(rows.len());
+    for (i, (id, row)) in ids.iter().cloned().zip(rows).enumerate() {
         let line = i + 1;
-        check_line_selection(&path, line, "Label set", Some(&row.label_set))?;
+        let segments = Segments::from_row(partial.remove(&id).map(|(_, row)| row).as_ref());
+        check_segment_columns(&path, line, &id, segments, MANCO_COLUMNS, |column| {
+            row.column_is_set(column)
+        })?;
+        check_line_selection(&path, line, "Label set", row.label_set.as_ref())?;
         check_line_selection(&path, line, "Stop set", row.stop_set.as_ref())?;
         let placement = row.placement.as_deref().map(str::trim);
         requires(
@@ -976,16 +1208,20 @@ pub fn get_manco_configs(
             "where the value is 'below' or 'right' of the label",
             matches!(placement, Some("below") | Some("right")),
         )?;
-        requires(
-            &path,
-            line,
-            "Among",
-            row.among.is_some(),
-            "with 'Take: all', since it chooses among several lines",
-            row.take.as_deref().map(str::trim) == Some("all"),
-        )?;
+        // `Take` belongs to the extraction and `Among` to the filter: with the extraction built
+        // elsewhere, how many lines it hands over is not this row's to say.
+        if segments.pdf_extract {
+            requires(
+                &path,
+                line,
+                "Among",
+                row.among.is_some(),
+                "with 'Take: all', since it chooses among several lines",
+                row.take.as_deref().map(str::trim) == Some("all"),
+            )?;
+        }
+        configs.push(MancoConfig { id, row, segments });
     }
-    let configs: Vec<(ComputedId, MancoArgsRow)> = ids.into_iter().zip(rows).collect();
     tracing::debug!(
         config_count = configs.len(),
         "read manco configuration rows"
@@ -1004,7 +1240,8 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
     // this table arrived after repositories already existed, and one whose annexes are all written
     // in YAML or in Python must not have to grow an empty file to keep loading. The prefix table
     // follows the arguments: a repository that has the one and not the other is declaring prefixes
-    // for nothing, which the join below reports.
+    // for nothing, which the join below reports. The partial-pipes table, like the arguments it
+    // qualifies, is required where they are present.
     if !formats_repo_dir
         .join(STRUCTURED_DIR)
         .join("sfdr/args.csv")
@@ -1031,6 +1268,12 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
         )?;
     }
     let known: HashSet<ComputedId> = args_ids.iter().cloned().collect();
+    let (_, mut partial) = read_partial_pipes(
+        formats_repo_dir,
+        "sfdr/partial_pipes.csv",
+        SFDR_PIPELINE,
+        &known.iter().collect(),
+    )?;
 
     let has_prefixes = formats_repo_dir
         .join(STRUCTURED_DIR)
@@ -1070,15 +1313,24 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
         prefixes.entry(id).or_default().push(row.pattern);
     }
 
-    let configs: Vec<SfdrConfig> = args_ids
-        .into_iter()
-        .zip(args)
-        .map(|(id, args)| SfdrConfig {
+    let mut configs = Vec::with_capacity(args.len());
+    for (i, (id, args)) in args_ids.into_iter().zip(args).enumerate() {
+        let config = SfdrConfig {
             prefixes: prefixes.remove(&id).unwrap_or_default(),
+            segments: Segments::from_row(partial.remove(&id).map(|(_, row)| row).as_ref()),
             id,
             args,
-        })
-        .collect();
+        };
+        check_segment_columns(
+            &args_path,
+            i + 1,
+            &config.id,
+            config.segments,
+            SFDR_COLUMNS,
+            |column| config.column_is_set(column),
+        )?;
+        configs.push(config);
+    }
     tracing::debug!(config_count = configs.len(), "read sfdr configuration rows");
     Ok(configs)
 }
@@ -1087,6 +1339,11 @@ pub fn get_sfdr_configs(formats_repo_dir: &Path) -> Result<Vec<SfdrConfig>, Tabl
 ///
 /// Several rows sharing an id describe the **same** pipe with several headers to look for, and must
 /// therefore declare the same class; a group that disagrees is an error.
+///
+/// The partial-pipes table turns segments off per pipe, but only the extraction is a pipe's own: a
+/// classification pipeline has **one** filter and **one** deserializer for all its pipes, so the
+/// pipes of a pipeline must agree on those two. Building them when any pipe asks would be a rule
+/// nobody wrote down, hiding a contradiction in the repository; it is refused instead.
 pub fn get_page_classify_configs(
     formats_repo_dir: &Path,
 ) -> Result<Vec<PageClassifyConfig>, TableError> {
@@ -1102,7 +1359,8 @@ pub fn get_page_classify_configs(
     )?;
 
     let mut order: Vec<ComputedId> = Vec::new();
-    let mut classes: HashMap<ComputedId, String> = HashMap::new();
+    let mut first_lines: HashMap<ComputedId, usize> = HashMap::new();
+    let mut classes: HashMap<ComputedId, Option<String>> = HashMap::new();
     let mut headers: HashMap<ComputedId, Vec<String>> = HashMap::new();
     for (i, (id, row)) in ids.into_iter().zip(rows).enumerate() {
         let line = i + 1;
@@ -1110,6 +1368,7 @@ pub fn get_page_classify_configs(
         match classes.get(&id) {
             None => {
                 order.push(id.clone());
+                first_lines.insert(id.clone(), line);
                 classes.insert(id.clone(), row.class.clone());
             }
             Some(first) if *first != row.class => {
@@ -1117,8 +1376,8 @@ pub fn get_page_classify_configs(
                     path: path.clone(),
                     line,
                     id: id.to_string(),
-                    first: first.clone(),
-                    found: row.class.clone(),
+                    first: first.clone().unwrap_or_default(),
+                    found: row.class.clone().unwrap_or_default(),
                 });
             }
             Some(_) => {}
@@ -1128,16 +1387,63 @@ pub fn get_page_classify_configs(
         }
     }
 
-    let configs: Vec<PageClassifyConfig> = order
-        .into_iter()
-        .map(|id| PageClassifyConfig {
+    let known: HashSet<&ComputedId> = order.iter().collect();
+    let (partial_path, mut partial) = read_partial_pipes(
+        formats_repo_dir,
+        "page_classify/partial_pipes.csv",
+        "",
+        &known,
+    )?;
+
+    let mut configs: Vec<PageClassifyConfig> = Vec::with_capacity(order.len());
+    // The first pipe of each pipeline, with its partial-pipes line, against which the others are
+    // compared.
+    let mut pipelines: HashMap<(String, String), (ComputedId, Option<usize>, Segments)> =
+        HashMap::new();
+    for id in order {
+        let row = partial.remove(&id);
+        let partial_line = row.as_ref().map(|(line, _)| *line);
+        let config = PageClassifyConfig {
             class: classes
                 .remove(&id)
                 .expect("ogni id in `order` è stato inserito in `classes`"),
             header_sets: headers.remove(&id).unwrap_or_default(),
+            segments: Segments::from_row(row.as_ref().map(|(_, row)| row)),
             id,
-        })
-        .collect();
+        };
+        check_segment_columns(
+            &path,
+            first_lines[&config.id],
+            &config.id,
+            config.segments,
+            PAGE_CLASSIFY_COLUMNS,
+            |column| config.column_is_set(column),
+        )?;
+
+        let key = (config.id.format.clone(), config.id.pipeline.clone());
+        match pipelines.get(&key) {
+            None => {
+                pipelines.insert(key, (config.id.clone(), partial_line, config.segments));
+            }
+            Some((first, first_line, agreed)) => {
+                for segment in [Segment::TextFilter, Segment::Deserialize] {
+                    if config.segments.wants(segment) != agreed.wants(segment) {
+                        return Err(TableError::ConflictingSegments {
+                            path: partial_path,
+                            // At least one of the two has a row, or both would build everything.
+                            line: partial_line
+                                .or(*first_line)
+                                .expect("two pipes that disagree cannot both lack a row"),
+                            id: config.id.to_string(),
+                            other: first.to_string(),
+                            segment: segment.name(),
+                        });
+                    }
+                }
+            }
+        }
+        configs.push(config);
+    }
     tracing::debug!(
         config_count = configs.len(),
         "read page classify configuration rows"
@@ -1155,20 +1461,23 @@ pub struct FundAssetsArgsRow {
     #[serde(rename = "ID")]
     pub id: String,
     /// The column of sub-fund names, which is what the three amounts are paired against.
-    #[serde(rename = "Fund set")]
-    pub fund_set: String,
+    ///
+    /// This and the three amounts are required while the pipe builds its extraction, the only
+    /// segment that reads them.
+    #[serde(rename = "Fund set", deserialize_with = "optional_text")]
+    pub fund_set: Option<String>,
     /// The line declaring the currency. Absent means the page does not state one.
     #[serde(rename = "Currency set", default, deserialize_with = "optional_text")]
     pub currency_set: Option<String>,
     /// The line carrying the statement's date. Absent means the date comes from elsewhere.
     #[serde(rename = "Date set", default, deserialize_with = "optional_text")]
     pub date_set: Option<String>,
-    #[serde(rename = "Total assets")]
-    pub tot_assets: String,
-    #[serde(rename = "Total liabilities")]
-    pub liabilities: String,
-    #[serde(rename = "Net assets")]
-    pub net_assets: String,
+    #[serde(rename = "Total assets", deserialize_with = "optional_text")]
+    pub tot_assets: Option<String>,
+    #[serde(rename = "Total liabilities", deserialize_with = "optional_text")]
+    pub liabilities: Option<String>,
+    #[serde(rename = "Net assets", deserialize_with = "optional_text")]
+    pub net_assets: Option<String>,
     /// The window of each amount, `dx, dy, width, height`; absent means the engine's default.
     #[serde(
         rename = "Total assets window",
@@ -1237,6 +1546,54 @@ pub struct FundAssetsArgsRow {
 pub struct FundAssetsConfig {
     pub id: ComputedId,
     pub row: FundAssetsArgsRow,
+    pub segments: Segments,
+}
+
+/// Which segment reads each column of the fund-assets table.
+const FUND_ASSETS_COLUMNS: &[SegmentColumn] = &[
+    required("Fund set", PDF_EXTRACT),
+    optional("Currency set", PDF_EXTRACT),
+    optional("Date set", PDF_EXTRACT),
+    required("Total assets", PDF_EXTRACT),
+    required("Total liabilities", PDF_EXTRACT),
+    required("Net assets", PDF_EXTRACT),
+    optional("Total assets window", PDF_EXTRACT),
+    optional("Total liabilities window", PDF_EXTRACT),
+    optional("Net assets window", PDF_EXTRACT),
+    optional("Drop set", PDF_EXTRACT),
+    optional("Drop fund set", PDF_EXTRACT),
+    optional("Table condition", PDF_EXTRACT),
+    optional("Algorithm flags", PDF_EXTRACT),
+    optional("Date regex", TEXT_FILTER),
+    optional("Remove from fund", TEXT_FILTER),
+    optional("Amount cast", DESERIALIZE),
+    optional("Date cast", DESERIALIZE),
+];
+
+impl FundAssetsArgsRow {
+    /// Whether each column named by [`FUND_ASSETS_COLUMNS`] is filled.
+    fn column_is_set(&self, column: &str) -> bool {
+        match column {
+            "Fund set" => self.fund_set.is_some(),
+            "Currency set" => self.currency_set.is_some(),
+            "Date set" => self.date_set.is_some(),
+            "Total assets" => self.tot_assets.is_some(),
+            "Total liabilities" => self.liabilities.is_some(),
+            "Net assets" => self.net_assets.is_some(),
+            "Total assets window" => self.tot_assets_window.is_some(),
+            "Total liabilities window" => self.liabilities_window.is_some(),
+            "Net assets window" => self.net_assets_window.is_some(),
+            "Drop set" => self.drop_set.is_some(),
+            "Drop fund set" => self.drop_fund_set.is_some(),
+            "Table condition" => self.table_condition.is_some(),
+            "Algorithm flags" => self.algorithm_flags.is_some(),
+            "Date regex" => self.date_regex.is_some(),
+            "Remove from fund" => self.remove_from_fund.is_some(),
+            "Amount cast" => self.amount_cast.is_some(),
+            "Date cast" => self.date_cast.is_some(),
+            other => unreachable!("FUND_ASSETS_COLUMNS names an unknown column {other:?}"),
+        }
+    }
 }
 
 /// The fund-assets pipe configurations, in the order they appear.
@@ -1251,7 +1608,8 @@ pub fn get_fund_assets_configs(
     // what a formats repository is, and a missing one is a defect in it; this table arrived after
     // repositories already existed, and a repository whose statements of net assets are all written
     // in Python must not have to grow an empty file to keep loading. It is the same reasoning as the
-    // `Remove from fund` column's `serde(default)`, applied to a whole table.
+    // `Remove from fund` column's `serde(default)`, applied to a whole table. Its partial-pipes
+    // table is required where it is present.
     let path = formats_repo_dir
         .join(STRUCTURED_DIR)
         .join("fund_assets/args.csv");
@@ -1270,6 +1628,13 @@ pub fn get_fund_assets_configs(
         super::fund_assets::FUND_ASSETS_PIPELINE,
         FkRelation::OneToOne,
     )?;
+    let known: HashSet<&ComputedId> = ids.iter().collect();
+    let (_, mut partial) = read_partial_pipes(
+        formats_repo_dir,
+        "fund_assets/partial_pipes.csv",
+        super::fund_assets::FUND_ASSETS_PIPELINE,
+        &known,
+    )?;
 
     // The set is keyed on `(format, pipeline)` and **not** on the whole `ComputedId`, which carries
     // a pipe index: two rows with the same id would otherwise be two pipes of one pipeline, which is
@@ -1277,14 +1642,18 @@ pub fn get_fund_assets_configs(
     // would read the same statement twice. Refused rather than silently resolved either way.
     let mut seen: HashSet<(String, String)> = HashSet::new();
     let mut configs = Vec::with_capacity(rows.len());
-    for (i, (id, row)) in ids.into_iter().zip(rows).enumerate() {
+    for (i, (id, row)) in ids.iter().cloned().zip(rows).enumerate() {
         let line = i + 1;
-        check_line_selection(&path, line, "Fund set", Some(&row.fund_set))?;
+        let segments = Segments::from_row(partial.remove(&id).map(|(_, row)| row).as_ref());
+        check_segment_columns(&path, line, &id, segments, FUND_ASSETS_COLUMNS, |column| {
+            row.column_is_set(column)
+        })?;
+        check_line_selection(&path, line, "Fund set", row.fund_set.as_ref())?;
         check_line_selection(&path, line, "Currency set", row.currency_set.as_ref())?;
         check_line_selection(&path, line, "Date set", row.date_set.as_ref())?;
-        check_line_selection(&path, line, "Total assets", Some(&row.tot_assets))?;
-        check_line_selection(&path, line, "Total liabilities", Some(&row.liabilities))?;
-        check_line_selection(&path, line, "Net assets", Some(&row.net_assets))?;
+        check_line_selection(&path, line, "Total assets", row.tot_assets.as_ref())?;
+        check_line_selection(&path, line, "Total liabilities", row.liabilities.as_ref())?;
+        check_line_selection(&path, line, "Net assets", row.net_assets.as_ref())?;
         check_line_selection(&path, line, "Drop set", row.drop_set.as_ref())?;
         check_line_selection(&path, line, "Drop fund set", row.drop_fund_set.as_ref())?;
         let tabular = row.table_condition == Some(true);
@@ -1304,7 +1673,9 @@ pub fn get_fund_assets_configs(
             "with 'Table condition'",
             tabular,
         )?;
-        let dated = row.date_set.is_some();
+        // `Date set` belongs to the extraction, the regex and the cast to the two segments after it:
+        // with the extraction built elsewhere, whether a date line is read is not this row's to say.
+        let dated = row.date_set.is_some() || !segments.pdf_extract;
         requires(
             &path,
             line,
@@ -1328,7 +1699,7 @@ pub fn get_fund_assets_configs(
                 id: id.to_string(),
             });
         }
-        configs.push(FundAssetsConfig { id, row });
+        configs.push(FundAssetsConfig { id, row, segments });
     }
     tracing::debug!(
         config_count = configs.len(),
@@ -1349,7 +1720,7 @@ mod tests {
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
 
-    /// A formats repository with the five structured CSV files. Each table starts as a header row
+    /// A formats repository with the six structured CSV files. Each table starts as a header row
     /// alone, and the tests add the rows they need.
     struct Repo {
         dir: TempDir,
@@ -1367,22 +1738,24 @@ mod tests {
             repo.write("investments/partial_pipes.csv", PARTIAL_HEADER);
             repo.write("investments/deselection_lists.csv", DESEL_HEADER);
             repo.write("page_classify/args.csv", PAGE_CLASSIFY_HEADER);
+            repo.write("page_classify/partial_pipes.csv", PARTIAL_HEADER);
             repo
         }
 
         fn write(&self, relative: &str, content: &str) -> &Self {
-            fs::write(self.dir.path().join(STRUCTURED_DIR).join(relative), content)
-                .expect("write csv");
+            let path = self.dir.path().join(STRUCTURED_DIR).join(relative);
+            fs::create_dir_all(path.parent().expect("a file inside a table directory"))
+                .expect("table dir");
+            fs::write(path, content).expect("write csv");
             self
         }
 
-        /// Writes the fund-assets table, creating its directory. Not written by `new`, because an
-        /// absent table is legitimate and several tests are about exactly that.
+        /// Writes the fund-assets table, with a partial-pipes table of its header alone. Not
+        /// written by `new`, because an absent table is legitimate and several tests are about
+        /// exactly that.
         fn write_fund_assets(&self, content: &str) -> &Self {
-            let base = self.dir.path().join(STRUCTURED_DIR).join("fund_assets");
-            fs::create_dir_all(&base).expect("fund_assets dir");
-            fs::write(base.join("args.csv"), content).expect("write csv");
-            self
+            self.write("fund_assets/args.csv", content);
+            self.write("fund_assets/partial_pipes.csv", PARTIAL_HEADER)
         }
 
         fn path(&self) -> &Path {
@@ -1406,6 +1779,7 @@ mod tests {
             let base = repo.path().join(STRUCTURED_DIR).join("sfdr");
             fs::create_dir_all(&base).expect("sfdr dir");
             fs::write(base.join("args.csv"), format!("{SFDR_HEADER}{args}")).expect("write args");
+            fs::write(base.join("partial_pipes.csv"), PARTIAL_HEADER).expect("write partial");
             if !prefixes.is_empty() {
                 fs::write(
                     base.join("product_prefixes.csv"),
@@ -1431,7 +1805,7 @@ mod tests {
                 configs[0].id.to_string(),
                 "ANIMA-EN23(sfdr_classification)/0"
             );
-            assert_eq!(configs[0].args.language, "ENGLISH");
+            assert_eq!(configs[0].args.language.as_deref(), Some("ENGLISH"));
             assert_eq!(configs[0].args.product_joined, None);
             assert!(configs[0].prefixes.is_empty());
         }
@@ -1517,6 +1891,7 @@ mod tests {
             let base = repo.path().join(STRUCTURED_DIR).join("sfdr");
             fs::create_dir_all(&base).expect("sfdr dir");
             fs::write(base.join("args.csv"), "ID,Product joined\nANIMA-EN23,\n").expect("write");
+            fs::write(base.join("partial_pipes.csv"), PARTIAL_HEADER).expect("write partial");
             assert!(get_sfdr_configs(repo.path()).is_err());
         }
     }
@@ -1527,10 +1902,10 @@ mod tests {
         const MANCO_HEADER: &str =
             "ID,Label set,Where,Take,Reach,Stop set,After,Before,Among,Also investments manager\n";
 
-        fn load(row: &str) -> Result<Vec<(ComputedId, MancoArgsRow)>, TableError> {
+        fn load(row: &str) -> Result<Vec<MancoConfig>, TableError> {
             let repo = Repo::new();
-            fs::create_dir_all(repo.path().join(STRUCTURED_DIR).join("manco")).expect("manco dir");
             repo.write("manco/args.csv", &format!("{MANCO_HEADER}{row}"));
+            repo.write("manco/partial_pipes.csv", PARTIAL_HEADER);
             get_manco_configs(repo.path())
         }
 
@@ -1652,7 +2027,7 @@ mod tests {
             let configs = get_fund_assets_configs(repo_with(&[Row::minimal()]).path()).unwrap();
             assert_eq!(configs.len(), 1);
             let row = &configs[0].row;
-            assert_eq!(row.fund_set, "ArialMT");
+            assert_eq!(row.fund_set.as_deref(), Some("ArialMT"));
             assert!(row.amount_cast.is_none());
             assert!(row.date_cast.is_none());
             assert!(row.table_condition.is_none());
@@ -2459,9 +2834,9 @@ mod tests {
             );
             let configs = get_page_classify_configs(repo.path()).unwrap();
             assert_eq!(configs.len(), 2);
-            assert_eq!(configs[0].class, "investments");
+            assert_eq!(configs[0].class.as_deref(), Some("investments"));
             assert_eq!(configs[0].header_sets.len(), 2);
-            assert_eq!(configs[1].class, "manco");
+            assert_eq!(configs[1].class.as_deref(), Some("manco"));
             assert_eq!(configs[1].header_sets.len(), 1);
         }
 
@@ -2581,6 +2956,449 @@ mod tests {
                 get_page_classify_configs(repo.path()),
                 Err(TableError::MissingCsv(_))
             ));
+        }
+    }
+
+    /// The partial-pipes table of the four tables that came after `investments`: the same file, the
+    /// same meaning, checked against each table's own map of columns to segments.
+    mod partial_pipes_of_every_table {
+        use super::*;
+
+        /// The segment and the column of a refusal, or a panic naming what came instead.
+        fn disabled(err: TableError) -> (&'static str, &'static str) {
+            match err {
+                TableError::DisabledSegmentConfigured {
+                    segment, column, ..
+                } => (segment, column),
+                other => panic!("expected DisabledSegmentConfigured, got {other}"),
+            }
+        }
+
+        fn required(err: TableError) -> (&'static str, &'static str) {
+            match err {
+                TableError::RequiredCellEmpty {
+                    segment, column, ..
+                } => (segment, column),
+                other => panic!("expected RequiredCellEmpty, got {other}"),
+            }
+        }
+
+        mod segments {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            fn row(pdf_extract: Option<bool>, text_filter: Option<bool>) -> PartialPipesRow {
+                PartialPipesRow {
+                    id: "A-EN24".to_string(),
+                    pdf_extract,
+                    text_filter,
+                    deserialize: None,
+                }
+            }
+
+            #[test]
+            fn no_row_builds_every_segment() {
+                assert_eq!(Segments::from_row(None), Segments::ALL);
+            }
+
+            #[test]
+            fn an_empty_cell_builds_its_segment_and_false_does_not() {
+                let segments = Segments::from_row(Some(&row(Some(false), None)));
+                assert!(!segments.wants(Segment::PdfExtract));
+                assert!(segments.wants(Segment::TextFilter));
+                assert!(segments.wants(Segment::Deserialize));
+            }
+
+            #[test]
+            fn true_is_the_same_as_empty() {
+                assert_eq!(
+                    Segments::from_row(Some(&row(Some(true), Some(true)))),
+                    Segments::ALL
+                );
+            }
+        }
+
+        mod fund_assets {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            const MINIMAL: &str =
+                "A-EN24,ArialMT,Arial-Bold,,Arial-Bold,Arial-Bold,Arial-Bold,,,,,,,,,,\n";
+
+            fn load(args: &str, partial: &str) -> Result<Vec<FundAssetsConfig>, TableError> {
+                let repo = Repo::new();
+                repo.write("fund_assets/args.csv", &format!("{ASSETS_HEADER}{args}"));
+                repo.write(
+                    "fund_assets/partial_pipes.csv",
+                    &format!("{PARTIAL_HEADER}{partial}"),
+                );
+                get_fund_assets_configs(repo.path())
+            }
+
+            #[test]
+            fn every_segment_is_built_when_no_row_says_otherwise() {
+                assert_eq!(load(MINIMAL, "").unwrap()[0].segments, Segments::ALL);
+            }
+
+            #[test]
+            fn a_false_cell_turns_its_segment_off() {
+                let configs = load(MINIMAL, "A-EN24,,FALSE,\n").unwrap();
+                assert!(!configs[0].segments.wants(Segment::TextFilter));
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_may_not_carry_its_anchors() {
+                let err = load(MINIMAL, "A-EN24,FALSE,,\n").unwrap_err();
+                assert_eq!(disabled(err), ("pdf_extract", "Fund set"));
+            }
+
+            /// The four anchors are required by the extraction and by nothing else: with the
+            /// extraction off, a row is its id and whatever the other two segments read.
+            #[test]
+            fn a_disabled_pdf_extract_needs_none_of_its_four_anchors() {
+                let configs =
+                    load("A-EN24,,,,,,,,,,,,,,\\s*[*]+$,float,\n", "A-EN24,FALSE,,\n").unwrap();
+                assert!(!configs[0].segments.wants(Segment::PdfExtract));
+                assert_eq!(configs[0].row.fund_set, None);
+            }
+
+            #[test]
+            fn an_anchor_left_empty_with_the_extraction_on_is_refused() {
+                let err = load(
+                    "A-EN24,ArialMT,Arial-Bold,,Arial-Bold,Arial-Bold,,,,,,,,,,,\n",
+                    "",
+                )
+                .unwrap_err();
+                assert_eq!(required(err), ("pdf_extract", "Net assets"));
+            }
+
+            #[test]
+            fn a_disabled_text_filter_may_not_carry_its_cut() {
+                let row = "A-EN24,ArialMT,Arial-Bold,,Arial-Bold,Arial-Bold,Arial-Bold,,,,,,,,\\s*[*]+$,,\n";
+                let err = load(row, "A-EN24,,FALSE,\n").unwrap_err();
+                assert_eq!(disabled(err), ("text_filter", "Remove from fund"));
+            }
+
+            #[test]
+            fn a_disabled_deserialize_may_not_carry_its_cast() {
+                let row =
+                    "A-EN24,ArialMT,Arial-Bold,,Arial-Bold,Arial-Bold,Arial-Bold,,,,,,,,,float,\n";
+                let err = load(row, "A-EN24,,,FALSE\n").unwrap_err();
+                assert_eq!(disabled(err), ("deserialize", "Amount cast"));
+            }
+
+            /// `Date regex` refines `Date set`, which belongs to the extraction. With the extraction
+            /// off the date line is read by somebody else, and the regex is not orphaned.
+            #[test]
+            fn a_cell_refining_another_segments_cell_is_free_when_that_segment_is_off() {
+                let configs = load("A-EN24,,,,,,,,,,,,,(\\d+),,,\n", "A-EN24,FALSE,,\n").unwrap();
+                assert_eq!(configs[0].row.date_regex.as_deref(), Some("(\\d+)"));
+            }
+
+            #[test]
+            fn and_still_refused_when_that_segment_is_on() {
+                let row =
+                    "A-EN24,ArialMT,Arial-Bold,,Arial-Bold,Arial-Bold,Arial-Bold,,,,,,,(\\d+),,,\n";
+                let err = load(row, "").unwrap_err();
+                assert!(
+                    err.to_string().contains("'Date regex' has an effect only"),
+                    "{err}"
+                );
+            }
+
+            #[test]
+            fn the_table_is_required_beside_the_arguments() {
+                let repo = Repo::new();
+                repo.write("fund_assets/args.csv", &format!("{ASSETS_HEADER}{MINIMAL}"));
+                assert!(matches!(
+                    get_fund_assets_configs(repo.path()),
+                    Err(TableError::MissingCsv(_))
+                ));
+            }
+
+            #[test]
+            fn a_row_for_a_pipe_the_arguments_do_not_declare_is_refused() {
+                assert!(matches!(
+                    load(MINIMAL, "B-EN24,FALSE,,\n"),
+                    Err(TableError::UnmatchedRow { line: 1, .. })
+                ));
+            }
+        }
+
+        mod manco {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            const MANCO_HEADER: &str = "ID,Label set,Where,Take,Reach,Stop set,After,Before,Among,Also investments manager\n";
+
+            fn load(args: &str, partial: &str) -> Result<Vec<MancoConfig>, TableError> {
+                let repo = Repo::new();
+                repo.write("manco/args.csv", &format!("{MANCO_HEADER}{args}"));
+                repo.write(
+                    "manco/partial_pipes.csv",
+                    &format!("{PARTIAL_HEADER}{partial}"),
+                );
+                get_manco_configs(repo.path())
+            }
+
+            #[test]
+            fn every_segment_is_built_when_no_row_says_otherwise() {
+                let configs = load("A-EN24,arialmt,,,,,,,,\n", "").unwrap();
+                assert_eq!(configs[0].segments, Segments::ALL);
+                assert_eq!(configs[0].id.to_string(), "A-EN24(manco)/0");
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_may_not_carry_its_label() {
+                let err = load("A-EN24,arialmt,,,,,,,,\n", "A-EN24,FALSE,,\n").unwrap_err();
+                assert_eq!(disabled(err), ("pdf_extract", "Label set"));
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_needs_no_label() {
+                let configs = load("A-EN24,,,,,,gestione,,,TRUE\n", "A-EN24,FALSE,,\n").unwrap();
+                assert_eq!(configs[0].row.label_set, None);
+            }
+
+            #[test]
+            fn a_label_left_empty_with_the_extraction_on_is_refused() {
+                let err = load("A-EN24,,,,,,gestione,,,\n", "").unwrap_err();
+                assert_eq!(required(err), ("pdf_extract", "Label set"));
+            }
+
+            #[test]
+            fn a_disabled_text_filter_may_not_carry_its_crop() {
+                let err = load("A-EN24,arialmt,,,,,gestione,,,\n", "A-EN24,,FALSE,\n").unwrap_err();
+                assert_eq!(disabled(err), ("text_filter", "After"));
+            }
+
+            #[test]
+            fn a_disabled_deserialize_may_not_declare_the_investment_manager() {
+                let err = load("A-EN24,arialmt,,,,,,,,TRUE\n", "A-EN24,,,FALSE\n").unwrap_err();
+                assert_eq!(disabled(err), ("deserialize", "Also investments manager"));
+            }
+
+            /// `Among` chooses among the lines `Take: all` hands over, and `Take` belongs to the
+            /// extraction: with the extraction elsewhere, what it hands over is not this row's to say.
+            #[test]
+            fn among_is_free_when_the_extraction_is_off() {
+                assert!(load("A-EN24,,,,,,,,most_recent,\n", "A-EN24,FALSE,,\n").is_ok());
+            }
+
+            #[test]
+            fn the_table_is_required_beside_the_arguments() {
+                let repo = Repo::new();
+                repo.write(
+                    "manco/args.csv",
+                    &format!("{MANCO_HEADER}A-EN24,arialmt,,,,,,,,\n"),
+                );
+                assert!(matches!(
+                    get_manco_configs(repo.path()),
+                    Err(TableError::MissingCsv(_))
+                ));
+            }
+        }
+
+        mod sfdr {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            const SFDR_HEADER: &str = "ID,Language,Product joined,Product prepend\n";
+
+            fn load(
+                args: &str,
+                prefixes: &str,
+                partial: &str,
+            ) -> Result<Vec<SfdrConfig>, TableError> {
+                let repo = Repo::new();
+                repo.write("sfdr/args.csv", &format!("{SFDR_HEADER}{args}"));
+                repo.write(
+                    "sfdr/product_prefixes.csv",
+                    &format!("ID,Pattern\n{prefixes}"),
+                );
+                repo.write(
+                    "sfdr/partial_pipes.csv",
+                    &format!("{PARTIAL_HEADER}{partial}"),
+                );
+                get_sfdr_configs(repo.path())
+            }
+
+            #[test]
+            fn every_segment_is_built_when_no_row_says_otherwise() {
+                assert_eq!(
+                    load("A-EN24,ENGLISH,,\n", "", "").unwrap()[0].segments,
+                    Segments::ALL
+                );
+            }
+
+            /// The language is read by both the extraction and the filter, so turning one of them
+            /// off leaves it required by the other.
+            #[test]
+            fn the_language_stays_with_either_of_its_two_segments() {
+                assert!(load("A-EN24,ENGLISH,,\n", "", "A-EN24,FALSE,,\n").is_ok());
+                assert!(load("A-EN24,ENGLISH,,\n", "", "A-EN24,,FALSE,\n").is_ok());
+                let err = load("A-EN24,,,\n", "", "A-EN24,FALSE,,\n").unwrap_err();
+                assert_eq!(required(err), ("text_filter", "Language"));
+            }
+
+            #[test]
+            fn the_language_goes_only_when_both_its_segments_do() {
+                assert!(load("A-EN24,,,\n", "", "A-EN24,FALSE,FALSE,\n").is_ok());
+                let err = load("A-EN24,ENGLISH,,\n", "", "A-EN24,FALSE,FALSE,\n").unwrap_err();
+                assert_eq!(disabled(err).1, "Language");
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_may_not_join_the_product_name() {
+                let err = load("A-EN24,ENGLISH,TRUE,\n", "", "A-EN24,FALSE,,\n").unwrap_err();
+                assert_eq!(disabled(err), ("pdf_extract", "Product joined"));
+            }
+
+            #[test]
+            fn a_disabled_text_filter_may_not_carry_prefixes() {
+                let err = load(
+                    "A-EN24,ENGLISH,,\n",
+                    "A-EN24,Product name: \n",
+                    "A-EN24,,FALSE,\n",
+                )
+                .unwrap_err();
+                assert_eq!(disabled(err), ("text_filter", "Pattern"));
+            }
+
+            #[test]
+            fn the_table_is_required_beside_the_arguments() {
+                let repo = Repo::new();
+                repo.write("sfdr/args.csv", &format!("{SFDR_HEADER}A-EN24,ENGLISH,,\n"));
+                assert!(matches!(
+                    get_sfdr_configs(repo.path()),
+                    Err(TableError::MissingCsv(_))
+                ));
+            }
+        }
+
+        mod page_classify {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            fn load(args: &str, partial: &str) -> Result<Vec<PageClassifyConfig>, TableError> {
+                let repo = Repo::new();
+                repo.write(
+                    "page_classify/args.csv",
+                    &format!("{PAGE_CLASSIFY_HEADER}{args}"),
+                );
+                repo.write(
+                    "page_classify/partial_pipes.csv",
+                    &format!("{PARTIAL_HEADER}{partial}"),
+                );
+                get_page_classify_configs(repo.path())
+            }
+
+            #[test]
+            fn every_segment_is_built_when_no_row_says_otherwise() {
+                assert_eq!(
+                    load("A-EN24/0,,inv\n", "").unwrap()[0].segments,
+                    Segments::ALL
+                );
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_may_not_declare_a_class() {
+                let err = load("A-EN24/0,,inv\n", "A-EN24/0,FALSE,,\n").unwrap_err();
+                assert_eq!(disabled(err), ("pdf_extract", "Class"));
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_may_not_carry_a_header() {
+                let err = load("A-EN24/0,arialmt,\n", "A-EN24/0,FALSE,,\n").unwrap_err();
+                assert_eq!(disabled(err), ("pdf_extract", "Header set"));
+            }
+
+            #[test]
+            fn a_disabled_pdf_extract_needs_no_class() {
+                let configs = load("A-EN24/0,,\n", "A-EN24/0,FALSE,,\n").unwrap();
+                assert_eq!(configs[0].class, None);
+            }
+
+            #[test]
+            fn a_class_left_empty_with_the_extraction_on_is_refused() {
+                let err = load("A-EN24/0,,\n", "").unwrap_err();
+                assert_eq!(required(err), ("pdf_extract", "Class"));
+            }
+
+            /// One pipeline, one filter and one deserializer for all its pipes: two pipes cannot
+            /// want one each way.
+            #[test]
+            fn two_pipes_of_one_pipeline_disagreeing_on_the_filter_are_refused() {
+                let err =
+                    load("A-EN24/0,,inv\nA-EN24/1,,manco\n", "A-EN24/1,,FALSE,\n").unwrap_err();
+                let TableError::ConflictingSegments {
+                    line,
+                    id,
+                    other,
+                    segment,
+                    ..
+                } = err
+                else {
+                    panic!("expected ConflictingSegments, got {err}")
+                };
+                assert_eq!(
+                    (line, id.as_str(), other.as_str(), segment),
+                    (1, "A-EN24()/1", "A-EN24()/0", "text_filter")
+                );
+            }
+
+            #[test]
+            fn and_the_same_for_the_deserializer() {
+                let err =
+                    load("A-EN24/0,,inv\nA-EN24/1,,manco\n", "A-EN24/0,,,FALSE\n").unwrap_err();
+                assert!(
+                    matches!(
+                        err,
+                        TableError::ConflictingSegments {
+                            segment: "deserialize",
+                            ..
+                        }
+                    ),
+                    "{err}"
+                );
+            }
+
+            #[test]
+            fn pipes_agreeing_on_both_may_each_turn_their_own_extraction_off() {
+                let configs = load(
+                    "A-EN24/0,,inv\nA-EN24/1,,\n",
+                    "A-EN24/0,,FALSE,FALSE\nA-EN24/1,FALSE,FALSE,FALSE\n",
+                )
+                .unwrap();
+                assert!(configs[0].segments.wants(Segment::PdfExtract));
+                assert!(!configs[1].segments.wants(Segment::PdfExtract));
+            }
+
+            #[test]
+            fn pipes_of_two_pipelines_need_not_agree() {
+                assert!(
+                    load(
+                        "A-EN24/0,,inv\nA-EN24(other)/0,,manco\n",
+                        "A-EN24(other)/0,,FALSE,\n"
+                    )
+                    .is_ok()
+                );
+            }
+
+            #[test]
+            fn the_table_is_required() {
+                let repo = Repo::new();
+                fs::remove_file(
+                    repo.path()
+                        .join(STRUCTURED_DIR)
+                        .join("page_classify/partial_pipes.csv"),
+                )
+                .unwrap();
+                assert!(matches!(
+                    get_page_classify_configs(repo.path()),
+                    Err(TableError::MissingCsv(_))
+                ));
+            }
         }
     }
 }

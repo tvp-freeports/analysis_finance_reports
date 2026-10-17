@@ -893,3 +893,41 @@ class TestEveryRepositoryKindIsGatedByTheSameFile:
         )
         assert config.branch_class().name in ("prod", "dev", "off")
         assert config.thresholds() == {}
+
+
+#: The header every structured algorithm's partial-pipes table carries.
+PARTIAL_PIPES_HEADER = "ID,pdf_extract,text_filter,deserialize\n"
+
+
+def _seeded_structured_algorithms():
+    """The structured algorithms whose arguments table `init-format-repo` seeds."""
+    headers = json.loads((LIB / "csv_headers.json").read_text())
+    prefix = "content/algorithms/structured/"
+    return sorted(
+        path[len(prefix) :].split("/")[0]
+        for path in headers
+        if path.startswith(prefix) and path.endswith("/args.csv")
+    )
+
+
+class TestEveryStructuredTableHasItsPartialPipes:
+    """The engine refuses a structured arguments table without its `partial_pipes.csv` beside it.
+
+    Read from the seed file, so an algorithm seeded there later is covered without anybody
+    remembering to add it here.
+    """
+
+    def test_the_seed_names_some_structured_algorithm(self):
+        """A guard on the guard: an empty list would make the two tests below pass on nothing."""
+        assert _seeded_structured_algorithms()
+
+    @pytest.mark.parametrize("algorithm", _seeded_structured_algorithms())
+    def test_it_is_seeded_with_the_shared_header(self, algorithm):
+        headers = json.loads((LIB / "csv_headers.json").read_text())
+        path = f"content/algorithms/structured/{algorithm}/partial_pipes.csv"
+        assert headers.get(path) == PARTIAL_PIPES_HEADER
+
+    @pytest.mark.parametrize("algorithm", _seeded_structured_algorithms())
+    def test_it_is_in_the_created_repository(self, repo, algorithm):
+        path = repo / "content/algorithms/structured" / algorithm / "partial_pipes.csv"
+        assert path.read_text(encoding="utf-8") == PARTIAL_PIPES_HEADER

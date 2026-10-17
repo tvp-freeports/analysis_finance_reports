@@ -286,6 +286,11 @@ $ freeports-validate ungrant with "basic check"            # the methodology and
 The last form asks for confirmation, because it removes every grant made under that methodology at
 once.
 
+The files need not exist any more: a path is resolved, not looked up on disk, so a file deleted
+first is ungranted afterwards the way it was granted. A path the document does not hold is warned
+about and skipped; the document is re-signed only if something was removed, and if nothing was the
+command exits with status 1. A path outside the repository is refused before anything is changed.
+
 ## What a methodology says it covers
 
 A methodology page may declare which repository paths it applies to, in an ordinary visible section

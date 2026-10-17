@@ -6,6 +6,7 @@
     "content/algorithms/structured/investments/deselection_lists.csv": "ID,Deselection set\n",
     "content/algorithms/structured/investments/partial_pipes.csv": "ID,pdf_extract,text_filter,deserialize\n",
     "content/algorithms/structured/page_classify/args.csv": "ID,Header set,Class\n",
+    "content/algorithms/structured/page_classify/partial_pipes.csv": "ID,pdf_extract,text_filter,deserialize\n",
     "content/algorithms/semistructured/formats_mapping.csv": "ID,pdf_extract,text_filter,deserialize\n",
     "content/orchestration/algorithms_schedule.csv": "Format name,Page type,Filter next iteration\n",
     "content/orchestration/mapping.csv": "ID,Page type\n",

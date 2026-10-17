@@ -313,7 +313,7 @@ mod tests {
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
 
-    /// A formats repository with the five structured CSV files, all empty but the ones a test fills
+    /// A formats repository with the six structured CSV files, all empty but the ones a test fills
     /// in.
     struct Repo {
         dir: TempDir,
@@ -331,6 +331,7 @@ mod tests {
             repo.write("investments/partial_pipes.csv", PARTIAL_HEADER);
             repo.write("investments/deselection_lists.csv", DESEL_HEADER);
             repo.write("page_classify/args.csv", PAGE_CLASSIFY_HEADER);
+            repo.write("page_classify/partial_pipes.csv", PARTIAL_HEADER);
             repo
         }
 

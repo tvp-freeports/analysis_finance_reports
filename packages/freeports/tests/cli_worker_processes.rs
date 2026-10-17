@@ -104,6 +104,10 @@ impl Fixture {
                 "ID,pdf_extract,text_filter,deserialize\n",
             ),
             (
+                "content/algorithms/structured/page_classify/partial_pipes.csv",
+                "ID,pdf_extract,text_filter,deserialize\n",
+            ),
+            (
                 "content/algorithms/structured/investments/deselection_lists.csv",
                 "ID,Deselection set\n",
             ),
