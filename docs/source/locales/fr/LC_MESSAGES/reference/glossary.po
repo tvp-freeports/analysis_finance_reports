@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -61,17 +61,18 @@ msgstr ""
 #: ../../source/reference/glossary.md:16
 #, python-brace-format
 msgid ""
-"The recipe for one report layout, named for the issuer and the "
-"publication year — `EURIZON-EN23`. A layout is a snapshot, so next year's"
-" report from the same issuer is a different format rather than a "
-"revision. {doc}`../guides/formats/index`."
+"The recipe for one report layout, named for the issuer, the language and "
+"the earliest publication year it reads — `EURIZON-EN23`. The name follows"
+" the recipe, not the document: a later report the same recipe still reads"
+" keeps the name, and only a report that needs a recipe of its own gets a "
+"new one. {doc}`../guides/formats/index`, {doc}`formats/names`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:14
+#: ../../source/reference/glossary.md:15
 msgid "formats repository"
 msgstr ""
 
-#: ../../source/reference/glossary.md:21
+#: ../../source/reference/glossary.md:22
 #, python-brace-format
 msgid ""
 "A repository holding formats, their tests and their validation documents,"
@@ -79,11 +80,11 @@ msgid ""
 "init-format-repo`. {doc}`../guides/formats/repository`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:19
+#: ../../source/reference/glossary.md:20
 msgid "input database"
 msgstr ""
 
-#: ../../source/reference/glossary.md:26
+#: ../../source/reference/glossary.md:27
 #, python-brace-format
 msgid ""
 "A directory of CSV files saying **which companies a run looks for** and "
@@ -92,11 +93,11 @@ msgid ""
 "rather than about parsing PDFs. {doc}`../guides/input-db/index`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:24
+#: ../../source/reference/glossary.md:25
 msgid "bud"
 msgstr ""
 
-#: ../../source/reference/glossary.md:31
+#: ../../source/reference/glossary.md:32
 #, python-brace-format
 msgid ""
 "A fragment of a company name used to recognise it in a report — the part "
@@ -104,11 +105,11 @@ msgid ""
 "/recognising-companies`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:28
+#: ../../source/reference/glossary.md:29
 msgid "target list"
 msgstr ""
 
-#: ../../source/reference/glossary.md:35
+#: ../../source/reference/glossary.md:36
 #, python-brace-format
 msgid ""
 "A named set of companies within an input database. A run needs at least "
@@ -116,11 +117,11 @@ msgid ""
 "/target-lists`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:32
+#: ../../source/reference/glossary.md:33
 msgid "page class"
 msgstr ""
 
-#: ../../source/reference/glossary.md:39
+#: ../../source/reference/glossary.md:40
 #, python-brace-format
 msgid ""
 "What kind of page this is, decided per document before any extraction "
@@ -128,11 +129,11 @@ msgid ""
 "{doc}`design/classification`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:36
+#: ../../source/reference/glossary.md:37
 msgid "schedule"
 msgstr ""
 
-#: ../../source/reference/glossary.md:43
+#: ../../source/reference/glossary.md:44
 #, python-brace-format
 msgid ""
 "The ordered list of work for a run: the classified pages of every "
@@ -140,11 +141,11 @@ msgid ""
 "results filter the next. {doc}`design/schedule`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:40
+#: ../../source/reference/glossary.md:41
 msgid "pipeline"
 msgstr ""
 
-#: ../../source/reference/glossary.md:47
+#: ../../source/reference/glossary.md:48
 #, python-brace-format
 msgid ""
 "What a page of a given class goes through: three {term}`segments "
@@ -152,11 +153,11 @@ msgid ""
 "a *bundle* of them. {doc}`design/segments`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:45
+#: ../../source/reference/glossary.md:46
 msgid "segment"
 msgstr ""
 
-#: ../../source/reference/glossary.md:52
+#: ../../source/reference/glossary.md:53
 #, python-brace-format
 msgid ""
 "One of the three stages of a pipeline, answering one separable question: "
@@ -164,11 +165,11 @@ msgid ""
 "mean. {doc}`design/segments`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:49
+#: ../../source/reference/glossary.md:50
 msgid "promise"
 msgstr ""
 
-#: ../../source/reference/glossary.md:56
+#: ../../source/reference/glossary.md:57
 #, python-brace-format
 msgid ""
 "A placeholder for a value a page genuinely could not know, resolved at "
@@ -176,33 +177,33 @@ msgid ""
 "{doc}`design/promises`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:53
+#: ../../source/reference/glossary.md:54
 msgid "entity"
 msgstr ""
 
-#: ../../source/reference/glossary.md:60
+#: ../../source/reference/glossary.md:61
 #, python-brace-format
 msgid ""
 "What the project models and ultimately writes out — the thing a resolved "
 "extraction becomes. {doc}`design/entities-and-output`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:57
+#: ../../source/reference/glossary.md:58
 msgid "profile"
 msgstr ""
 
-#: ../../source/reference/glossary.md:64
+#: ../../source/reference/glossary.md:65
 #, python-brace-format
 msgid ""
 "A choice of what shape the output takes: which tables are written and "
 "where. {doc}`../guides/user/output`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:61
+#: ../../source/reference/glossary.md:62
 msgid "grant"
 msgstr ""
 
-#: ../../source/reference/glossary.md:68
+#: ../../source/reference/glossary.md:69
 #, python-brace-format
 msgid ""
 "A signed statement that a named {term}`methodology` was applied to a "
@@ -211,11 +212,11 @@ msgid ""
 "{doc}`../guides/grants/index`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:66
+#: ../../source/reference/glossary.md:67
 msgid "methodology"
 msgstr ""
 
-#: ../../source/reference/glossary.md:73
+#: ../../source/reference/glossary.md:74
 #, python-brace-format
 msgid ""
 "A published document describing a protocol under which a grant may be "
@@ -223,11 +224,11 @@ msgid ""
 "value stored in the grant. {doc}`cli/methodology-sources`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:71
+#: ../../source/reference/glossary.md:72
 msgid "validation document"
 msgstr ""
 
-#: ../../source/reference/glossary.md:78
+#: ../../source/reference/glossary.md:79
 #, python-brace-format
 msgid ""
 "One YAML file per contributor, at `<repo>/validation/<name>.yaml`, signed"
@@ -235,11 +236,11 @@ msgid ""
 "repository. {doc}`cli/freeports-validate`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:76
+#: ../../source/reference/glossary.md:77
 msgid "assertion"
 msgstr ""
 
-#: ../../source/reference/glossary.md:83
+#: ../../source/reference/glossary.md:84
 #, python-brace-format
 msgid ""
 "A statement about this software, written as prose, that a person can read"
@@ -248,11 +249,11 @@ msgid ""
 "{doc}`../validation/index`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:81
+#: ../../source/reference/glossary.md:82
 msgid "metric"
 msgstr ""
 
-#: ../../source/reference/glossary.md:88
+#: ../../source/reference/glossary.md:89
 #, python-brace-format
 msgid ""
 "A dotted name, a unit and a cost class, with a minimum in `ci.yaml`. "
@@ -260,15 +261,25 @@ msgid ""
 "{doc}`../guides/devops/ci-yaml`."
 msgstr ""
 
-#: ../../source/reference/glossary.md:85
+#: ../../source/reference/glossary.md:86
 msgid "branch class"
 msgstr ""
 
-#: ../../source/reference/glossary.md:92
+#: ../../source/reference/glossary.md:93
 #, python-brace-format
 msgid ""
 "Which of `dev`, `pre` or `prod` a branch belongs to, derived from its "
 "name at every run and never recorded. It decides what the gate refuses. "
 "{doc}`../guides/devops/the-gate`."
 msgstr ""
+
+#~ msgid ""
+#~ "The recipe for one report layout, "
+#~ "named for the issuer and the "
+#~ "publication year — `EURIZON-EN23`. A "
+#~ "layout is a snapshot, so next "
+#~ "year's report from the same issuer "
+#~ "is a different format rather than "
+#~ "a revision. {doc}`../guides/formats/index`."
+#~ msgstr ""
 

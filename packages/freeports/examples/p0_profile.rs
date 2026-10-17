@@ -295,7 +295,7 @@ fn main() {
             .formats_repo_path
             .as_deref()
             .expect("a formats repo path was given"),
-        &FormatName::new(config.format.clone()),
+        &FormatName::new(config.format.clone().expect("-f was given")),
     )
     .expect("the algorithm must load");
     let d_algorithm = t.elapsed();
@@ -322,7 +322,7 @@ fn main() {
     let document = load_document(
         Path::new(&path),
         spec.name.clone().unwrap_or_default(),
-        config.format.clone(),
+        config.format.clone().expect("-f was given"),
         true,
     )
     .expect("the document must load");

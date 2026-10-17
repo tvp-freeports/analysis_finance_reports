@@ -143,7 +143,7 @@ found:
 
 | Line | Forms |
 |---|---|
-| `algorithm:` | a complete format, then where it was decided: the page as written in the file (`-1` is the last page), the index of the deciding entry, and either the Python pipeline (`Python entry 2, pipeline \`mediolanum\``) or the YAML step key with its position — its index among the entry's steps, then among each level's children; `partial <pattern>` (a partial carries no page); `not classified` |
+| `algorithm:` | a complete format, then where it was decided: the page as written in the file (`-1` is the last page), the index of the deciding entry, and either the Python pipeline (``Python entry 2, pipeline `mediolanum` ``) or the YAML step key with its position — its index among the entry's steps, then among each level's children; `partial <pattern>` (a partial carries no page); `not classified` |
 | `url:` | `<pattern> — <url>`, or `not mapped — <url>` when no row of `url_mapping.csv` matches. Absent when the document has no URL |
 | `sources:` | `agree`, `algorithm only`, `url only`, `disagree, the algorithm wins`, or `neither` |
 
@@ -176,13 +176,14 @@ classification — needs looking at.
 ### Several documents
 
 Several documents given together are taken to be **one input of one format**, as a job of the run
-is. They are combined **source by source first, and the sources are compared afterwards**:
+is — and the run combines them by the same two steps ({doc}`freeports`, "Where the format comes
+from"). They are combined **source by source first, and the sources are compared afterwards**:
 
 1. the algorithm's names of all the documents are combined with each other, and so are the URL's.
    A document with nothing to say for a source is neutral for it. If the names of one source leave
    no format of the repository that fits them all, **the documents disagree**: the command fails
-   (exit `1`), and the error names, for that source, every document's name, numbering the documents
-   from `0` in the order given;
+   (exit `1`), and the error lists what that source said of each document, naming each by the
+   label of its line (`document /home/me/a.pdf is …, document /home/me/b.pdf is …`);
 2. the two combined names are then compared as for a single document: agreeing, they give their
    most specific common name; disagreeing, the algorithm wins with an `ERROR`.
 

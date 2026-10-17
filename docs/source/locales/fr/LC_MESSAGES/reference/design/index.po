@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -71,18 +71,18 @@ msgstr ""
 msgid "a known edge deliberately left as it is, with the reason"
 msgstr ""
 
-#: ../../source/reference/design/index.md:37
+#: ../../source/reference/design/index.md:38
 msgid "The whole algorithm at a glance"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid ""
 "Documents are classified per document, the union is scheduled into steps,"
 " each step runs page classes through pipeline bundles, and the results "
 "resolve against the promise map before the tables are written"
 msgstr ""
 
-#: ../../source/reference/design/index.md:43
+#: ../../source/reference/design/index.md:44
 msgid ""
 "**One run, end to end.** Each document is opened and classified **on its "
 "own**, so that a format's page-class finalizer sees one document's pages."
@@ -94,156 +94,167 @@ msgid ""
 "map at the end, and the whole run writes **one** set of tables."
 msgstr ""
 
-#: ../../source/reference/design/index.md:51
+#: ../../source/reference/design/index.md:52
 msgid ""
 "The two halves of that picture are the two halves of this section. "
 "Everything up to the schedule is about *which pages get processed and in "
 "what order*; everything after it is about *what a page becomes*."
 msgstr ""
 
-#: ../../source/reference/design/index.md:55
+#: ../../source/reference/design/index.md:56
 msgid "What each design page answers"
 msgstr ""
 
-#: ../../source/reference/design/index.md:56
+#: ../../source/reference/design/index.md:57
 msgid ""
 "**The foundations** — the one assumption everything else rests on, and "
 "what it costs."
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "Page"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "Says"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`pages`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid ""
 "the page is the unit of work: the assumption, what follows from it, where"
 " it cedes"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`promises`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "what to do when a page genuinely cannot know something"
 msgstr ""
 
-#: ../../source/reference/design/index.md:63
+#: ../../source/reference/design/index.md:64
 msgid ""
 "**Deciding what to process** — from a pile of PDFs to an ordered list of "
 "work."
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
+#, python-brace-format
+msgid "{doc}`document-classification`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:40
+msgid ""
+"which format a document is: read from its first pages, weighed against "
+"its URL and the configuration"
+msgstr ""
+
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`classification`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "what kind of page is this, and why classifying is itself a pipeline"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`schedule`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "steps, and why a step's output is the next step's filter"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`multidocument`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "several documents in one run: classified apart, scheduled together"
 msgstr ""
 
-#: ../../source/reference/design/index.md:71
+#: ../../source/reference/design/index.md:73
 msgid ""
 "**Processing a page** — the pipeline and the values that travel through "
 "it."
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`segments`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "three segments, why three, and the fourth that is designed but not built"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`blocks`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "`PdfBlock` and `TextBlock`: an open type, a typed value"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`entities-and-output`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "what the project models, and the schema as an invariant of the product"
 msgstr ""
 
-#: ../../source/reference/design/index.md:79
+#: ../../source/reference/design/index.md:81
 msgid ""
 "**Properties of the whole** — things that are true of the engine rather "
 "than of any one part."
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`formats-as-plugins`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "why the recipes live outside the engine, and how three levels merge"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`determinism`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "what order is guaranteed, and what is not"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`parallelism`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "parallelism as a consequence of the page assumption, not an addition"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 #, python-brace-format
 msgid "{doc}`limits`"
 msgstr ""
 
-#: ../../source/reference/design/index.md:39
+#: ../../source/reference/design/index.md:40
 msgid "the accepted limits, stated rather than hidden"
 msgstr ""
 

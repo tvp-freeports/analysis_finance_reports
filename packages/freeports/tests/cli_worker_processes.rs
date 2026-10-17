@@ -44,6 +44,11 @@ impl Fixture {
     /// Un PDF di una pagina con una riga di testo, generato con lo stesso PyMuPDF che il motore
     /// usera' per rileggerlo.
     fn write_pdf(&self, name: &str) -> PathBuf {
+        self.write_pdf_with(name, "Holdings")
+    }
+
+    /// Come [`Fixture::write_pdf`], con la riga di testo scelta.
+    fn write_pdf_with(&self, name: &str, text: &str) -> PathBuf {
         use pyo3::prelude::*;
 
         let path = self.dir.path().join(format!("{name}.pdf"));
@@ -55,7 +60,7 @@ impl Fixture {
             let page = doc
                 .call_method1("new_page", (-1i64, 200.0f64, 300.0f64))
                 .unwrap();
-            page.call_method1("insert_text", ((20.0f64, 50.0f64), "Holdings"))
+            page.call_method1("insert_text", ((20.0f64, 50.0f64), text))
                 .unwrap();
             doc.call_method1("save", (path.to_str().unwrap(),)).unwrap();
             doc.call_method0("close").unwrap();
@@ -123,6 +128,62 @@ impl Fixture {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(path, content).unwrap();
         }
+    }
+
+    /// Fase 11: un repo che classifica i documenti da solo (`Holdings` e' `A-EN24`), un PDF per
+    /// riga col testo dato, e nessun file di batch: li scrive [`Fixture::write_batch`].
+    fn classifying(documents: &[(&str, &str)]) -> Self {
+        let fixture = Self {
+            dir: tempfile::TempDir::new().expect("temp dir"),
+        };
+        fixture.write_repo();
+        std::fs::write(
+            fixture
+                .dir
+                .path()
+                .join("formats_repo/metadata/document_classify.yaml"),
+            "1:\n  A-EN24: {text: '^Holdings$'}\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(fixture.dir.path().join("cwd")).unwrap();
+        for (name, text) in documents {
+            fixture.write_pdf_with(name, text);
+        }
+        std::fs::write(fixture.dir.path().join("config.yaml"), "").unwrap();
+        fixture
+    }
+
+    /// Un file di batch `file`, una riga per coppia (documento, cella `format`, anche vuota).
+    fn write_batch(&self, file: &str, rows: &[(&str, &str)]) {
+        let mut batch = String::from("pdf,format\n");
+        for (name, format) in rows {
+            let pdf = self.dir.path().join(format!("{name}.pdf"));
+            batch.push_str(&format!("{},{}\n", pdf.to_str().unwrap(), format));
+        }
+        std::fs::write(self.dir.path().join(file), batch).unwrap();
+    }
+
+    /// Come [`Fixture::run_args`], sul file di batch `batch`.
+    fn run_batch(&self, batch: &str, out_name: &str, extra: &[&str]) -> (Output, PathBuf) {
+        let out_dir = self.path().join(out_name);
+        std::fs::create_dir_all(&out_dir).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_freeports"))
+            .current_dir(self.cwd())
+            .args(["--batch", self.path().join(batch).to_str().unwrap()])
+            .args([
+                "--formats-directory",
+                self.path().join("formats_repo").to_str().unwrap(),
+            ])
+            .args(["--target-list", "TEST"])
+            .args(["--out", out_dir.to_str().unwrap()])
+            .args([
+                "--config",
+                self.path().join("config.yaml").to_str().unwrap(),
+            ])
+            .args(extra)
+            .output()
+            .expect("the freeports binary must be runnable");
+        (output, out_dir)
     }
 
     fn path(&self) -> &Path {
@@ -678,5 +739,106 @@ mod a_failing_job {
             String::from_utf8_lossy(&output.stderr)
         );
         assert!(out_dir.join("investments.csv").is_file());
+    }
+}
+
+/// Fase 11: il formato risolto **nel job**, cioe' nel figlio quando i job girano in processi
+/// (`agent-memory/DESIGN-phase11-run-integration.md` §6, §8.E2). `--jobs 1` e `--jobs N` restano
+/// la stessa corsa anche quando il formato non e' configurato.
+mod format_detected_in_the_job {
+    use super::*;
+
+    fn assert_success(output: &Output) {
+        assert!(
+            output.status.success(),
+            "the run failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    /// La colonna `format` vuota e la regola YAML: in due processi come in sequenza, e come con la
+    /// colonna piena, gli **stessi byte**.
+    #[test]
+    fn an_empty_format_column_gives_the_same_bytes_as_a_full_one_in_one_process_or_two() {
+        let fixture = Fixture::classifying(&[("first", "Holdings"), ("second", "Holdings")]);
+        fixture.write_batch("empty.csv", &[("first", ""), ("second", "")]);
+        fixture.write_batch("full.csv", &[("first", "A-EN24"), ("second", "A-EN24")]);
+
+        let (full, full_out) = fixture.run_batch("full.csv", "out-full", &["--jobs", "1"]);
+        assert_success(&full);
+        let (sequential, sequential_out) =
+            fixture.run_batch("empty.csv", "out-empty-sequential", &["--jobs", "1"]);
+        assert_success(&sequential);
+        let (parallel, parallel_out) =
+            fixture.run_batch("empty.csv", "out-empty-parallel", &["--jobs", "2"]);
+        assert_success(&parallel);
+
+        for name in ["investments.csv", "funds.csv"] {
+            assert_eq!(
+                read(&full_out.join(name)),
+                read(&sequential_out.join(name)),
+                "{name} differs between the full and the empty format column"
+            );
+            assert_eq!(
+                read(&sequential_out.join(name)),
+                read(&parallel_out.join(name)),
+                "{name} differs between one process and two"
+            );
+        }
+    }
+
+    fn failure_line(output: &Output, job: usize) -> String {
+        let needle = format!("job {job} failed");
+        String::from_utf8_lossy(&output.stderr)
+            .lines()
+            .find(|line| line.contains(&needle))
+            .map(str::to_string)
+            .unwrap_or_else(|| {
+                panic!(
+                    "no failure line for job {job} in:\n{}",
+                    String::from_utf8_lossy(&output.stderr)
+                )
+            })
+    }
+
+    /// Una terza riga che nessuna fonte classifica fallisce **da sola**: uscita `3`, i risultati
+    /// delle altre scritti, e lo stesso messaggio dal ramo sequenziale e dai figli.
+    #[test]
+    fn an_unclassifiable_row_fails_alone_with_the_same_message_in_one_process_or_two() {
+        let fixture = Fixture::classifying(&[
+            ("first", "Holdings"),
+            ("second", "Holdings"),
+            ("third", "Nothing to recognise"),
+        ]);
+        fixture.write_batch("empty.csv", &[("first", ""), ("second", ""), ("third", "")]);
+
+        let (sequential, sequential_out) =
+            fixture.run_batch("empty.csv", "out-sequential", &["--jobs", "1"]);
+        let (parallel, parallel_out) =
+            fixture.run_batch("empty.csv", "out-parallel", &["--jobs", "2"]);
+
+        for (output, out_dir) in [(&sequential, &sequential_out), (&parallel, &parallel_out)] {
+            assert_eq!(
+                output.status.code(),
+                Some(3),
+                "written, but not everything was read:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(out_dir.join("investments.csv").is_file());
+        }
+        let line = failure_line(&sequential, 2);
+        assert!(
+            line.contains("neither the document classification nor the report url determines one"),
+            "{line}"
+        );
+        assert_eq!(
+            line,
+            failure_line(&parallel, 2),
+            "the same failure is reported differently"
+        );
+        assert_eq!(
+            read(&sequential_out.join("investments.csv")),
+            read(&parallel_out.join("investments.csv"))
+        );
     }
 }

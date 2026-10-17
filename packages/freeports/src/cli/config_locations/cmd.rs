@@ -21,6 +21,9 @@
 //! | `--db-directory`/`-I` | input database path | |
 //! | `--formats-directory`/`-F`/`--repo`/`-r` | formats repository path | |
 //!
+//! The `classify` subcommand takes only `-i`, `-F`/`-r`, `--config`, `--no-download` and `-v`/`-q`,
+//! with the same fields; a flag of the run given with it is a usage error.
+//!
 //! Repeatedly: a flag that is absent leaves its field **unset**, never set to a default. Defaults
 //! belong to the defaults tier, and a command line that sets everything would make every other
 //! source unreachable.

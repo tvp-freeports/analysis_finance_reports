@@ -344,7 +344,7 @@ impl Algorithm {
             return pages.iter().map(classify_one).collect();
         };
         // A span does not cross a thread boundary by itself: without re-attaching the caller's,
-        // `Activity` would lose `run/job/document/classify` on exactly the events that need it
+        // `Activity` would lose `job/document/classify` on exactly the events that need it
         // most.
         let parent = tracing::Span::current();
         pool.install(|| {
@@ -596,7 +596,7 @@ impl Algorithm {
             return pages.iter().map(apply_one).collect();
         };
         // As in `classify_each_page`, the caller's span has to be re-attached on each thread, or
-        // `Activity` loses `run/job/document/step/class`.
+        // `Activity` loses `job/document/step/class`.
         let parent = tracing::Span::current();
         pool.install(|| {
             pages

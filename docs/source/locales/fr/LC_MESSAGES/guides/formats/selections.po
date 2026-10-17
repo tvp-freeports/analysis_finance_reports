@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -81,56 +81,122 @@ msgstr ""
 msgid ""
 "The size range is not fussiness: a PDF's nominal 7-point body text is "
 "rarely exactly 7.0, and a range is how you say \"the body face\" rather "
-"than \"this one line\"."
+"than \"this one line\". The same holds across documents of one format: a "
+"title set at 26.00 points in one PDF is 26.03 in the next, and a single "
+"size is matched within a thousandth of a point."
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:26
+#: ../../source/guides/formats/selections.md:28
 msgid "Composing selections, and building one relative to another"
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:27
+#: ../../source/guides/formats/selections.md:29
 msgid ""
 "Selections compose with `&`, which is ordinary conjunction. The useful "
 "part is that they can also be built **relative to another selection**:"
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:34
+#: ../../source/guides/formats/selections.md:36
 msgid ""
 "*\"the region displaced from wherever **that** is\"*. This is how a "
 "layout is described without hard-coding coordinates that change on the "
 "next page — the header moves, and the window moves with it."
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:38
+#: ../../source/guides/formats/selections.md:40
 msgid ""
 "Reaching for absolute coordinates is almost always the wrong first move. "
 "They work on the page you are looking at and fail on the page after it, "
 "and the failure is a silently empty extraction rather than an error."
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:42
-msgid "The compact textual form"
-msgstr ""
-
 #: ../../source/guides/formats/selections.md:44
-msgid ""
-"The same selections appear in the structured CSVs, where there is no "
-"Python to write them in, and are available from Python through "
-"`pdfline_selection_from_str`:"
+msgid "The two forms a configured selection takes"
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:52
+#: ../../source/guides/formats/selections.md:46
+msgid ""
+"A format that writes no Python says the same things in configuration, and"
+" there are two spellings of them. Which to use follows from the medium."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:49
+msgid ""
+"**In YAML — the semistructured level — write the mapping.** It is a key "
+"per condition, and it nests:"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:78
+msgid ""
+"Every key is optional, and the whole mapping may be. A key the mapping "
+"does **not** know is an error rather than a condition quietly dropped, "
+"which matters because a selection stating nothing selects every line of "
+"the page."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:82
+msgid ""
+"**In a CSV cell — the structured level — write the compact form**, "
+"because a cell cannot hold a mapping. It is also what "
+"`pdfline_selection_from_str` takes from Python:"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:93
+msgid ""
+"A side left **empty** is unbounded; writing `0` there is an error, "
+"because a bound of zero and no bound at all are different statements and "
+"only one of them is usually meant. A text anchor goes in quotes, or it "
+"reads as a face name."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:97
+msgid ""
+"The mapping's own keys already intersect, so `all_of` is only for what "
+"they cannot reach: **two criteria of the same kind**, such as two bounds "
+"on one coordinate."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:100
+msgid ""
+"The compact form expresses everything the mapping does except three keys "
+"with no compact spelling: the two **set operations** `any_of` and "
+"`all_of`, and `font_of`. New expressiveness is added to the mapping "
+"first."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:104
+msgid ""
+"`font_of` is the one criterion that cannot be written down, because it is"
+" not a property of the lines being selected but of a line somewhere else "
+"on the same page: *the same face as that heading*. A format reaches for "
+"it when it names no face at all — MEDIOLANUM-ES24.A's portfolio is "
+"typeset in whatever family its column heading happens to use, and writing"
+" the family instead would pin the format to one typesetting of one "
+"document. A page the anchor is not on selects **nothing**, which is the "
+"right reading: a portfolio page without its heading is not a portfolio "
+"page."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:111
 msgid "Anchors are not regular expressions"
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:54
+#: ../../source/guides/formats/selections.md:113
 msgid ""
 "Text anchors are matched **verbatim**, with `^` and `$` meaning start and"
 " end — so prefix, suffix, substring and exact are all expressible, and "
 "nothing else is."
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:57
+#: ../../source/guides/formats/selections.md:116
+msgid ""
+"The line is matched **as the PDF spells it**, without trimming. Many "
+"title lines end in a space — `'SIDERA FUNDS '`, `'CHALLENGE FUNDS '` — "
+"and on those `'^SIDERA FUNDS$'` finds nothing. Unless you have seen the "
+"exact line in `inspect-page`, anchor at the start only."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:120
 #, python-brace-format
 msgid ""
 "That is a deliberate restriction, not a missing feature. Regular "
@@ -141,20 +207,39 @@ msgid ""
 "meaning ({doc}`../../reference/design/segments`)."
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:63
+#: ../../source/guides/formats/selections.md:126
 msgid "Finding out which selection to write"
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:64
+#: ../../source/guides/formats/selections.md:127
 msgid ""
 "The line-set modes of `inspect-page` exist for exactly this, and are the "
 "fastest way to learn what font and size a value is actually set in:"
 msgstr ""
 
-#: ../../source/guides/formats/selections.md:71
+#: ../../source/guides/formats/selections.md:134
 #, python-brace-format
 msgid ""
 "It searches the page for those strings and prints the lines that match, "
 "as that level's selection machinery sees them. {doc}`dev-loop`."
 msgstr ""
+
+#~ msgid ""
+#~ "The size range is not fussiness: a"
+#~ " PDF's nominal 7-point body text is"
+#~ " rarely exactly 7.0, and a range "
+#~ "is how you say \"the body face\""
+#~ " rather than \"this one line\"."
+#~ msgstr ""
+
+#~ msgid "The compact textual form"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The same selections appear in the "
+#~ "structured CSVs, where there is no "
+#~ "Python to write them in, and are"
+#~ " available from Python through "
+#~ "`pdfline_selection_from_str`:"
+#~ msgstr ""
 

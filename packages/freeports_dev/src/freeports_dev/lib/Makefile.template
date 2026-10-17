@@ -276,7 +276,7 @@ test: test-fast ## The per-page suite — the everyday one, and what the commit 
 test-fast: ## The per-page suite: one page of one document at a time (seconds)
 	$(call SUITE,$(FREEPORTS_DEV) test $(REPO) $(FORMAT_ARG) --fast,formats.single_page)
 
-test-slow: ## The whole-document suite: a full extraction run per document (minutes)
+test-slow: ## The whole-document suite: a full extraction run and the classification, per document (minutes)
 	$(call SUITE,$(FREEPORTS_DEV) test $(REPO) $(FORMAT_ARG) --slow,formats.integration)
 
 test-all: test-fast test-slow ## Both suites — before you call a format done

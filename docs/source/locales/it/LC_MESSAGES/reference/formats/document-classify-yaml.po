@@ -1,0 +1,1056 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/formats/document-classify-yaml.md:1
+msgid "The document classification file"
+msgstr "Il file di classificazione del documento"
+
+#: ../../source/reference/formats/document-classify-yaml.md:3
+msgid ""
+"`metadata/document_classify.yaml` lets a formats repository recognise a "
+"document's format from the document itself — from a line of its cover, a "
+"typeface on its title page — rather than from the URL it was downloaded "
+"from. `freeports-dev init-format-repo` creates it with no rules; a file "
+"that is absent, empty or only comments classifies nothing."
+msgstr ""
+"`metadata/document_classify.yaml` permette a un repository di formati di "
+"riconoscere il formato di un documento dal documento stesso — da una riga"
+" della copertina, dal carattere del frontespizio — invece che dall'URL da"
+" cui è stato scaricato. `freeports-dev init-format-repo` lo crea senza "
+"regole; un file assente, vuoto o fatto solo di commenti non classifica "
+"niente."
+
+#: ../../source/reference/formats/document-classify-yaml.md:8
+#, python-brace-format
+msgid ""
+"The grammar follows the format names ({doc}`names`): a name is a path "
+"down a tree, and the file is written as that tree. This page is the "
+"grammar. When the author needs logic the grammar cannot express, the "
+"Python module of {doc}`document-classify-python` runs first and hands "
+"over to this file."
+msgstr ""
+"La grammatica segue i nomi dei formati ({doc}`names`): un nome è un "
+"percorso lungo un albero, e il file si scrive come quell'albero. Questa "
+"pagina è la grammatica. Quando l'autore ha bisogno di una logica che la "
+"grammatica non sa esprimere, il modulo Python di {doc}`document-classify-"
+"python` gira per primo e poi passa la mano a questo file."
+
+#: ../../source/reference/formats/document-classify-yaml.md:12
+msgid "The idea in one example"
+msgstr "L'idea in un esempio"
+
+#: ../../source/reference/formats/document-classify-yaml.md:25
+msgid ""
+"Read it top to bottom. On page 1: if a line begins `FONDI AMUNDI `, the "
+"document is `AMUNDI-IT24` and the search ends. Otherwise, if a line "
+"begins `KAIROS INTERNATIONAL SICAV`, it is `KAIROS-EN23`. Otherwise, if a"
+" line begins `Mediolanum` or `MEDIOLANUM`, it is *some* `MEDIOLANUM` "
+"format — not yet which — and the search goes on inside that block, where "
+"the typeface of the title tells `.A` from `.B`."
+msgstr ""
+"Si legge dall'alto in basso. A pagina 1: se una riga comincia con `FONDI "
+"AMUNDI `, il documento è `AMUNDI-IT24` e la ricerca finisce. Altrimenti, "
+"se una riga comincia con `KAIROS INTERNATIONAL SICAV`, è `KAIROS-EN23`. "
+"Altrimenti, se una riga comincia con `Mediolanum` o `MEDIOLANUM`, è *un "
+"qualche* formato `MEDIOLANUM` — non ancora quale — e la ricerca continua "
+"dentro quel blocco, dove il carattere del titolo distingue `.A` da `.B`."
+
+#: ../../source/reference/formats/document-classify-yaml.md:31
+msgid "Three ideas carry the whole grammar:"
+msgstr "Tre idee reggono tutta la grammatica:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:33
+msgid ""
+"**Pages, then steps, both in the order written.** The first step that "
+"settles a complete name ends the search."
+msgstr ""
+"**Pagine, poi passi, entrambi nell'ordine in cui sono scritti.** Il primo"
+" passo che stabilisce un nome completo chiude la ricerca."
+
+#: ../../source/reference/formats/document-classify-yaml.md:35
+msgid ""
+"**A step may settle only part of a name.** That partial result is kept, "
+"and later steps can only refine it."
+msgstr ""
+"**Un passo può stabilire solo una parte del nome.** Quel risultato "
+"parziale si conserva, e i passi successivi possono soltanto raffinarlo."
+
+#: ../../source/reference/formats/document-classify-yaml.md:37
+msgid ""
+"**Nesting is context.** A step inside `MEDIOLANUM` is looked at only once"
+" the document is known to be a `MEDIOLANUM` one."
+msgstr ""
+"**L'annidamento è contesto.** Un passo dentro `MEDIOLANUM` si guarda solo"
+" quando si sa già che il documento è un `MEDIOLANUM`."
+
+#: ../../source/reference/formats/document-classify-yaml.md:40
+msgid "Pages"
+msgstr "Pagine"
+
+#: ../../source/reference/formats/document-classify-yaml.md:42
+msgid ""
+"The top level lists the pages to look at, each with its steps. A page is "
+"an integer: `1` is the first page, `-1` the last, `-2` the one before it;"
+" there is no page `0`."
+msgstr ""
+"Il primo livello elenca le pagine da guardare, ciascuna con i suoi passi."
+" Una pagina è un intero: `1` è la prima pagina, `-1` l'ultima, `-2` la "
+"penultima; la pagina `0` non esiste."
+
+#: ../../source/reference/formats/document-classify-yaml.md:45
+msgid ""
+"Pages are tried **in the order written**, not in numerical order, and the"
+" search stops at the first page that settles a complete name. That order "
+"is a statement about cost. Turning a page into lines is the expensive "
+"part of classifying, so a file that puts page 1 first, and puts a later "
+"page only where page 1 is not enough, usually reads a single page."
+msgstr ""
+"Le pagine si provano **nell'ordine in cui sono scritte**, non in ordine "
+"numerico, e la ricerca si ferma alla prima pagina che stabilisce un nome "
+"completo. Quell'ordine è una dichiarazione sui costi. Trasformare una "
+"pagina in righe è la parte cara della classificazione, quindi un file che"
+" mette per prima la pagina 1, e aggiunge una pagina successiva solo dove "
+"la 1 non basta, di solito legge una pagina sola."
+
+#: ../../source/reference/formats/document-classify-yaml.md:50
+msgid ""
+"A page the document does not have — page 5 of a four-page document — "
+"gives nothing for that entry, and the search goes on. It is not an error."
+msgstr ""
+"Una pagina che il documento non ha — la pagina 5 di un documento di "
+"quattro pagine — non dà niente per quella voce, e la ricerca prosegue. "
+"Non è un errore."
+
+#: ../../source/reference/formats/document-classify-yaml.md:52
+msgid ""
+"The same page may appear more than once. It is read once per document, "
+"and \"the same\" means the same physical page: on a ten-page document `1`"
+" and `-10` are read once between them."
+msgstr ""
+"La stessa pagina può comparire più volte. Si legge una volta per "
+"documento, e \"la stessa\" vuol dire la stessa pagina fisica: in un "
+"documento di dieci pagine `1` e `-10` si leggono una volta in tutto."
+
+#: ../../source/reference/formats/document-classify-yaml.md:54
+msgid ""
+"Pages `1` and `-1` are the only ones every document has. That matters to "
+"the load-time checks ([below](#what-is-refused-when-the-file-is-loaded))."
+msgstr ""
+"Le pagine `1` e `-1` sono le sole che ogni documento ha. Questo conta per"
+" i controlli al caricamento ([sotto](#what-is-refused-when-the-file-is-"
+"loaded))."
+
+#: ../../source/reference/formats/document-classify-yaml.md:57
+msgid "Steps and their criteria"
+msgstr "I passi e i loro criteri"
+
+#: ../../source/reference/formats/document-classify-yaml.md:59
+msgid ""
+"Under a page comes a sequence of **steps**. A step is a key — a format "
+"name, complete or partial — and a body: the **criteria** a page must meet"
+" for the step to match, and possibly **child steps**."
+msgstr ""
+"Sotto una pagina viene una sequenza di **passi**. Un passo è una chiave —"
+" un nome di formato, completo o parziale — e un corpo: i **criteri** che "
+"una pagina deve soddisfare perché il passo corrisponda, ed eventualmente "
+"dei **passi figli**."
+
+#: ../../source/reference/formats/document-classify-yaml.md:62
+#, python-brace-format
+msgid ""
+"**A criterion is a line selection, written exactly as in the "
+"semistructured level's YAML** — the mapping form of "
+"{doc}`../../guides/formats/selections`, with the same keys (`text`, "
+"`font`, `font_size`, `area`, `window`, `font_of`, `any_of`, `all_of`, "
+"`without`). A criterion is met when it selects at least one line of the "
+"page. Everything that page says holds here, in particular that text "
+"anchors are verbatim strings with `^` and `$`, not regular expressions, "
+"and that sizes are best written as ranges."
+msgstr ""
+"**Un criterio è una selezione di righe, scritta esattamente come nello "
+"YAML del livello semistructured** — la forma a mapping di "
+"{doc}`../../guides/formats/selections`, con le stesse chiavi (`text`, "
+"`font`, `font_size`, `area`, `window`, `font_of`, `any_of`, `all_of`, "
+"`without`). Un criterio è soddisfatto quando seleziona almeno una riga "
+"della pagina. Tutto ciò che dice quella pagina vale anche qui, in "
+"particolare che le ancore del testo sono stringhe letterali con `^` e "
+"`$`, non espressioni regolari, e che le dimensioni conviene scriverle "
+"come intervalli."
+
+#: ../../source/reference/formats/document-classify-yaml.md:69
+msgid "What document classification adds to selections is only this:"
+msgstr ""
+"Ciò che la classificazione del documento aggiunge alle selezioni è solo "
+"questo:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:71
+msgid ""
+"A step's criteria are an **AND**: every one must select a line. The order"
+" among them does not matter. Two criteria of one step are written as a "
+"list, or as one mapping using `all_of`."
+msgstr ""
+"I criteri di un passo sono in **AND**: ognuno deve selezionare una riga. "
+"L'ordine fra loro non conta. Due criteri dello stesso passo si scrivono "
+"come lista, o come un solo mapping con `all_of`."
+
+#: ../../source/reference/formats/document-classify-yaml.md:73
+msgid ""
+"An **OR** is written with `any_of` inside one criterion, or by repeating "
+"the step further down — in which case the order of the two copies matters"
+" like the order of any two steps."
+msgstr ""
+"Un **OR** si scrive con `any_of` dentro un criterio, oppure ripetendo il "
+"passo più in basso — e in quel caso l'ordine delle due copie conta come "
+"l'ordine di due passi qualsiasi."
+
+#: ../../source/reference/formats/document-classify-yaml.md:75
+#, python-brace-format
+msgid ""
+"A criterion that states nothing — `{}`, `{any_of: []}`, a `without` on "
+"its own — is an error. It would select every line, and \"the page has "
+"some text\" is not a fact about a format."
+msgstr ""
+"Un criterio che non dichiara niente — `{}`, `{any_of: []}`, un `without` "
+"da solo — è un errore. Selezionerebbe ogni riga, e \"la pagina ha un po' "
+"di testo\" non è un fatto che riguardi un formato."
+
+#: ../../source/reference/formats/document-classify-yaml.md:78
+msgid "What a step does when it matches"
+msgstr "Che cosa fa un passo quando corrisponde"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "The step's name is"
+msgstr "Il nome del passo è"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "When its criteria match"
+msgstr "Quando i suoi criteri corrispondono"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "**complete** (`KAIROS-EN23`)"
+msgstr "**completo** (`KAIROS-EN23`)"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the document is that format, and the search ends"
+msgstr "il documento è di quel formato, e la ricerca finisce"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "**partial** (`MEDIOLANUM`, `FINECO-EN23@*`)"
+msgstr "**parziale** (`MEDIOLANUM`, `FINECO-EN23@*`)"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"the partial name is kept as the **result so far**, and the search goes on"
+" — into the step's children, then to the steps after it, then to the next"
+" pages — looking for a more complete match"
+msgstr ""
+"il nome parziale si conserva come **risultato provvisorio**, e la ricerca"
+" prosegue — nei figli del passo, poi nei passi che lo seguono, poi nelle "
+"pagine successive — in cerca di una corrispondenza più completa"
+
+#: ../../source/reference/formats/document-classify-yaml.md:85
+msgid ""
+"The result so far is carried from one page to the next. The cover can say"
+" the entity, and the table of contents the variant:"
+msgstr ""
+"Il risultato provvisorio passa da una pagina all'altra. La copertina può "
+"dire l'ente, e l'indice la variante:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:97
+msgid ""
+"If the search ends on a partial name — nothing more complete was found — "
+"that partial name is the outcome, and the formats of the repository it "
+"still allows are the candidates to try."
+msgstr ""
+"Se la ricerca finisce su un nome parziale — non si è trovato niente di "
+"più completo — quel nome parziale è l'esito, e i formati del repository "
+"che ancora ammette sono i candidati da provare."
+
+#: ../../source/reference/formats/document-classify-yaml.md:100
+msgid "Which steps are looked at"
+msgstr "Quali passi si guardano"
+
+#: ../../source/reference/formats/document-classify-yaml.md:102
+msgid ""
+"Once a partial result is held, a step is looked at only if its name "
+"**refines** it: once the document is known to be `MEDIOLANUM`, a step for"
+" `AMUNDI` is skipped, and so is a second `MEDIOLANUM` step, which would "
+"add nothing. The result can only grow more precise; it is never replaced."
+msgstr ""
+"Una volta che si ha un risultato parziale, un passo si guarda solo se il "
+"suo nome lo **raffina**: quando si sa che il documento è `MEDIOLANUM`, un"
+" passo per `AMUNDI` si salta, e così un secondo passo `MEDIOLANUM`, che "
+"non aggiungerebbe niente. Il risultato può solo diventare più preciso; "
+"non viene mai sostituito."
+
+#: ../../source/reference/formats/document-classify-yaml.md:106
+msgid ""
+"That has a consequence worth writing down before writing the file: **a "
+"partial match is sticky.** If a document of another group mentions "
+"`Mediolanum` on its cover — as a distributor, say — then from that moment"
+" no step of any other entity is looked at, on any page. Two habits "
+"contain it:"
+msgstr ""
+"Ne viene una conseguenza da mettere per iscritto prima di scrivere il "
+"file: **una corrispondenza parziale è appiccicosa.** Se un documento di "
+"un altro gruppo cita `Mediolanum` in copertina — come distributore, per "
+"dire — da quel momento nessun passo di un altro ente si guarda più, su "
+"nessuna pagina. Due abitudini la tengono a bada:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:110
+msgid ""
+"write the criteria of a partial step with the care of a complete one — "
+"anchored, specific — because in effect they decide the entity;"
+msgstr ""
+"scrivi i criteri di un passo parziale con la cura di uno completo — "
+"ancorati, specifici — perché di fatto decidono l'ente;"
+
+#: ../../source/reference/formats/document-classify-yaml.md:112
+msgid ""
+"put the partial steps of a page **after** the complete ones, so that a "
+"document a complete step recognises outright never reaches them."
+msgstr ""
+"metti i passi parziali di una pagina **dopo** quelli completi, così un "
+"documento che un passo completo riconosce subito non ci arriva mai."
+
+#: ../../source/reference/formats/document-classify-yaml.md:115
+msgid "Nesting"
+msgstr "Annidamento"
+
+#: ../../source/reference/formats/document-classify-yaml.md:117
+msgid ""
+"A step's body may hold child steps after (or among) its criteria. A "
+"child's key is not a whole name but a **suffix** that continues its "
+"parent's name from the first segment the parent leaves open:"
+msgstr ""
+"Il corpo di un passo può contenere passi figli dopo i suoi criteri (o in "
+"mezzo a essi). La chiave di un figlio non è un nome intero ma un "
+"**suffisso** che continua il nome del padre dal primo segmento che il "
+"padre lascia aperto:"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "The parent ends with"
+msgstr "Il padre finisce con"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "A child key is"
+msgstr "La chiave di un figlio è"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "Example"
+msgstr "Esempio"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the entity"
+msgstr "l'ente"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "language, or language and year, optionally with place and variant"
+msgstr "la lingua, o lingua e anno, eventualmente con luogo e variante"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`MEDIOLANUM` → `EN`, `IT23`, `ES24.*`"
+msgstr "`MEDIOLANUM` → `EN`, `IT23`, `ES24.*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the language"
+msgstr "la lingua"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the year, optionally with place and variant"
+msgstr "l'anno, eventualmente con luogo e variante"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`MEDIOLANUM-EN` → `23`"
+msgstr "`MEDIOLANUM-EN` → `23`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`@*`"
+msgstr "`@*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the place, with or without its `@`"
+msgstr "il luogo, con o senza la sua `@`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`FINECO-EN23@*` → `LUX` or `\"@LUX\"`"
+msgstr "`FINECO-EN23@*` → `LUX` o `\"@LUX\"`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`.*`"
+msgstr "`.*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the variant, with or without its `.`"
+msgstr "la variante, con o senza il suo `.`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`MEDIOLANUM-IT24.*` → `A` or `.A`"
+msgstr "`MEDIOLANUM-IT24.*` → `A` o `.A`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`@*.*`"
+msgstr "`@*.*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"place or variant **with** its separator, since a bare `LUX` could be "
+"either"
+msgstr ""
+"luogo o variante **con** il separatore, perché un `LUX` nudo potrebbe "
+"essere l'uno o l'altra"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`X-EN23@*.*` → `\"@LUX\"`, `.A`"
+msgstr "`X-EN23@*.*` → `\"@LUX\"`, `.A`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the year"
+msgstr "l'anno"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "nothing: a complete name has no children"
+msgstr "niente: un nome completo non ha figli"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`FINECO-EN23` cannot have children; write `FINECO-EN23@*`"
+msgstr "`FINECO-EN23` non può avere figli; si scrive `FINECO-EN23@*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md:129
+msgid ""
+"A child must name a strictly more precise set than its parent, and it may"
+" itself end in `@*` or `.*` and have children of its own."
+msgstr ""
+"Un figlio deve nominare un insieme strettamente più preciso del padre, e "
+"può a sua volta finire con `@*` o `.*` e avere figli propri."
+
+#: ../../source/reference/formats/document-classify-yaml.md:132
+msgid ""
+"**A nested block is context, not a shortcut.** A child is looked at only "
+"once its block has been entered — once the result so far is at least as "
+"precise as the nearest enclosing step that has criteria of its own. Where"
+" no enclosing step has criteria, the top-level key plays that role. So a "
+"generic criterion such as `text: Relazione` under `MEDIOLANUM` can never "
+"fire on an Amundi report, and a child with criteria is context for its "
+"own children in turn. A key with no criteria, which only spells part of "
+"the name, filters nothing: adding or removing one changes no outcome."
+msgstr ""
+"**Un blocco annidato è contesto, non una scorciatoia.** Un figlio si "
+"guarda solo quando si è entrati nel suo blocco — quando il risultato "
+"provvisorio è preciso almeno quanto il passo contenitore più vicino che "
+"ha criteri propri. Dove nessun passo contenitore ha criteri, quel ruolo "
+"lo fa la chiave di primo livello. Così un criterio generico come `text: "
+"Relazione` sotto `MEDIOLANUM` non può mai scattare su una relazione "
+"Amundi, e un figlio con criteri fa a sua volta da contesto ai propri "
+"figli. Una chiave senza criteri, che si limita a scrivere un pezzo del "
+"nome, non filtra niente: aggiungerla o toglierla non cambia nessun esito."
+
+#: ../../source/reference/formats/document-classify-yaml.md:139
+msgid "A step whose criteria fail closes its whole block for that page."
+msgstr ""
+"Un passo i cui criteri falliscono chiude tutto il suo blocco per quella "
+"pagina."
+
+#: ../../source/reference/formats/document-classify-yaml.md:141
+msgid "The unconditional step: `~`"
+msgstr "Il passo incondizionato: `~`"
+
+#: ../../source/reference/formats/document-classify-yaml.md:143
+#, python-brace-format
+msgid ""
+"A step with an empty body — `~`, `[]` or `{}` — has no criteria and "
+"always matches. It is the **otherwise** of a block:"
+msgstr ""
+"Un passo con il corpo vuoto — `~`, `[]` o `{}` — non ha criteri e "
+"corrisponde sempre. È l'**altrimenti** di un blocco:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:154
+msgid ""
+"A format decided this way was decided **by exclusion**, and the engine "
+"says so when it reports the result. The price is that the criteria of the"
+" enclosing step now decide the format on their own for every document on "
+"which `EN24` does not match — choose them with that in mind."
+msgstr ""
+"Un formato deciso così è deciso **per esclusione**, e il motore lo dice "
+"quando riporta il risultato. Il prezzo è che ora i criteri del passo "
+"contenitore decidono da soli il formato per ogni documento su cui `EN24` "
+"non corrisponde — vanno scelti tenendone conto."
+
+#: ../../source/reference/formats/document-classify-yaml.md:158
+msgid ""
+"An unconditional step with a **complete** name at the top level decides "
+"every document still unclassified when it is reached. Every later step "
+"that could only fire on an unclassified document is then dead, and the "
+"load-time check reports each of them ([below](#what-is-refused-when-the-"
+"file-is-loaded))."
+msgstr ""
+"Un passo incondizionato con un nome **completo** al primo livello decide "
+"ogni documento ancora non classificato quando ci si arriva. Ogni passo "
+"successivo che potesse scattare solo su un documento non classificato è "
+"allora morto, e il controllo al caricamento li segnala uno per uno "
+"([sotto](#what-is-refused-when-the-file-is-loaded))."
+
+#: ../../source/reference/formats/document-classify-yaml.md:163
+msgid "The catch-all: `*`"
+msgstr "Il catch-all: `*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md:165
+msgid ""
+"A top-level step whose entity is `*` completes whatever entity has "
+"already been found:"
+msgstr ""
+"Un passo di primo livello il cui ente è `*` completa l'ente già trovato, "
+"qualunque sia:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:173
+msgid ""
+"`*-EN23` reads \"*the entity already found, in English, 2023*\". With "
+"`MEDIOLANUM` held it stands for `MEDIOLANUM-EN23`, and its criteria are "
+"checked only if the repository has that format. If the repository has no "
+"`EN23` for the entity found — or no entity has been found — the step "
+"simply does not fire, and the result so far stands. That is not an error,"
+" at load time or at run time."
+msgstr ""
+"`*-EN23` si legge \"*l'ente già trovato, in inglese, 2023*\". Con "
+"`MEDIOLANUM` in mano sta per `MEDIOLANUM-EN23`, e i suoi criteri si "
+"controllano solo se il repository ha quel formato. Se il repository non "
+"ha un `EN23` per l'ente trovato — o non si è trovato nessun ente — il "
+"passo semplicemente non scatta, e il risultato provvisorio resta com'è. "
+"Non è un errore, né al caricamento né durante l'esecuzione."
+
+#: ../../source/reference/formats/document-classify-yaml.md:178
+msgid ""
+"A catch-all must write at least the language, appears only at the top "
+"level, and has no children. It is an error only when **no entity of the "
+"repository** could complete it — `\"*-DE23\"` in a repository without a "
+"single `…-DE23`, or the slip `\"*-EN32\"` — because then it cannot be "
+"anything but a typo."
+msgstr ""
+"Un catch-all deve scrivere almeno la lingua, sta solo al primo livello e "
+"non ha figli. È un errore solo quando **nessun ente del repository** "
+"potrebbe completarlo — `\"*-DE23\"` in un repository senza un solo "
+"`…-DE23`, o la svista `\"*-EN32\"` — perché allora non può essere altro "
+"che un refuso."
+
+#: ../../source/reference/formats/document-classify-yaml.md:183
+msgid "The verbose form and its shortcuts"
+msgstr "La forma prolissa e le sue abbreviazioni"
+
+#: ../../source/reference/formats/document-classify-yaml.md:185
+msgid ""
+"Everything above is written in the short form. Underneath it there is one"
+" **verbose** form, in which every level is a list:"
+msgstr ""
+"Tutto quanto sopra è scritto nella forma breve. Sotto c'è una sola forma "
+"**prolissa**, in cui ogni livello è una lista:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:197
+msgid ""
+"The verbose form can always be written; each shortcut may be taken when "
+"it is unambiguous."
+msgstr ""
+"La forma prolissa si può sempre scrivere; ogni abbreviazione si può usare"
+" quando non è ambigua."
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "Shortcut"
+msgstr "Abbreviazione"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "Allowed when"
+msgstr "Ammessa quando"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "Read as"
+msgstr "Si legge come"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+#, python-brace-format
+msgid "pages as a mapping, `{1: …, 2: …}`"
+msgstr "le pagine come mapping, `{1: …, 2: …}`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "no page is repeated"
+msgstr "nessuna pagina è ripetuta"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the list of entries, in the same order"
+msgstr "la lista delle voci, nello stesso ordine"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+#, python-brace-format
+msgid "steps as a mapping, `{AMUNDI-IT24: …, KAIROS-EN23: …}`"
+msgstr "i passi come mapping, `{AMUNDI-IT24: …, KAIROS-EN23: …}`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "no step is repeated"
+msgstr "nessun passo è ripetuto"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the list of steps, in the same order"
+msgstr "la lista dei passi, nello stesso ordine"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a body as one mapping mixing selection keys and child keys"
+msgstr ""
+"un corpo come un solo mapping che mescola chiavi di selezione e chiavi di"
+" figli"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "always"
+msgstr "sempre"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"the selection keys form one criterion; the other keys are the children, "
+"in the order written"
+msgstr ""
+"le chiavi di selezione formano un criterio; le altre chiavi sono i figli,"
+" nell'ordine in cui sono scritte"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a body as a single criterion"
+msgstr "un corpo come un solo criterio"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the step has one criterion"
+msgstr "il passo ha un solo criterio"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a list of that one criterion"
+msgstr "una lista con quel solo criterio"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+#, python-brace-format
+msgid "`~`, `[]` or `{}` as a body"
+msgstr "`~`, `[]` o `{}` come corpo"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "—"
+msgstr "—"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "no criteria, no children: the unconditional step"
+msgstr "niente criteri, niente figli: il passo incondizionato"
+
+#: ../../source/reference/formats/document-classify-yaml.md:207
+msgid ""
+"Whether a key is a criterion or a child is decided by the key: selection "
+"keys are lower-case words from the fixed list above, names are not. The "
+"one place the two could meet is a variant named like a selection key "
+"(`text`, `area`) under `.*`; write it with its separator, `.text`, to "
+"make it a child."
+msgstr ""
+"Se una chiave sia un criterio o un figlio lo decide la chiave: le chiavi "
+"di selezione sono parole minuscole dell'elenco fisso qui sopra, i nomi "
+"no. L'unico punto in cui le due cose potrebbero incontrarsi è una "
+"variante che si chiami come una chiave di selezione (`text`, `area`) "
+"sotto `.*`; scrivila con il separatore, `.text`, per farne un figlio."
+
+#: ../../source/reference/formats/document-classify-yaml.md:211
+msgid ""
+"Repeating a step — the OR of two copies of one step — needs the list "
+"form, since a mapping cannot hold the same key twice. \"The same key\" is"
+" judged on the names the keys stand for: `21` and `\"21\"`, `LUX` and "
+"`\"@LUX\"` under `@*`, `A` and `.A` under `.*` are duplicates."
+msgstr ""
+"Ripetere un passo — l'OR di due copie dello stesso passo — richiede la "
+"forma a lista, perché un mapping non può contenere due volte la stessa "
+"chiave. \"La stessa chiave\" si giudica sui nomi che le chiavi "
+"rappresentano: `21` e `\"21\"`, `LUX` e `\"@LUX\"` sotto `@*`, `A` e `.A`"
+" sotto `.*` sono duplicati."
+
+#: ../../source/reference/formats/document-classify-yaml.md:215
+msgid "What the YAML reader does to keys"
+msgstr "Che cosa fa il lettore YAML alle chiavi"
+
+#: ../../source/reference/formats/document-classify-yaml.md:217
+msgid "The file is read as YAML 1.2, and three of its rules meet the grammar:"
+msgstr ""
+"Il file si legge come YAML 1.2, e tre delle sue regole toccano la "
+"grammatica:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:219
+msgid ""
+"**`*` and `@` cannot begin an unquoted key**: `*` starts an alias, `@` is"
+" reserved. Write `\"*-EN23\":` and `\"@LUX\":`."
+msgstr ""
+"**`*` e `@` non possono aprire una chiave senza virgolette**: `*` apre un"
+" alias, `@` è riservato. Si scrive `\"*-EN23\":` e `\"@LUX\":`."
+
+#: ../../source/reference/formats/document-classify-yaml.md:221
+msgid ""
+"**Numbers are read as numbers.** `23:` is an integer and is accepted as a"
+" year (`5:` becomes `05`) or as a variant (`1:` becomes `.1`). But "
+"`24.10:` is the number `24.1`, and `true:` or `null:` are not text: such "
+"keys are refused with the advice to quote them, because the spelling is "
+"already lost. `08:` with a leading zero stays text."
+msgstr ""
+"**I numeri si leggono come numeri.** `23:` è un intero e si accetta come "
+"anno (`5:` diventa `05`) o come variante (`1:` diventa `.1`). Ma `24.10:`"
+" è il numero `24.1`, e `true:` o `null:` non sono testo: chiavi del "
+"genere si rifiutano con il consiglio di metterle fra virgolette, perché "
+"la grafia è già andata persa. `08:`, con lo zero davanti, resta testo."
+
+#: ../../source/reference/formats/document-classify-yaml.md:225
+msgid ""
+"**The order of a mapping is kept.** That is what lets a mapping stand in "
+"for a list."
+msgstr ""
+"**L'ordine di un mapping si conserva.** È ciò che permette a un mapping "
+"di fare le veci di una lista."
+
+#: ../../source/reference/formats/document-classify-yaml.md:227
+msgid "What is refused when the file is loaded"
+msgstr "Che cosa si rifiuta al caricamento del file"
+
+#: ../../source/reference/formats/document-classify-yaml.md:229
+msgid ""
+"The file is checked against `metadata/formats.csv` as soon as the "
+"repository is loaded, before any document is opened. The guarantee is "
+"that **no complete result of the file can be a name the repository does "
+"not declare**, and that no step was written that no document could ever "
+"reach."
+msgstr ""
+"Il file si verifica rispetto a `metadata/formats.csv` appena il "
+"repository viene caricato, prima di aprire qualsiasi documento. La "
+"garanzia è che **nessun risultato completo del file possa essere un nome "
+"che il repository non dichiara**, e che non sia stato scritto nessun "
+"passo che nessun documento potrebbe mai raggiungere."
+
+#: ../../source/reference/formats/document-classify-yaml.md:233
+msgid ""
+"Every message names the file and the place: the page, the enclosing steps"
+" by their full names, and the key —"
+msgstr ""
+"Ogni messaggio nomina il file e il punto: la pagina, i passi contenitori "
+"con i loro nomi completi, e la chiave —"
+
+#: ../../source/reference/formats/document-classify-yaml.md:240
+msgid ""
+"A file with several defects reports all of them, one per line, in file "
+"order, so one correction round fixes them all."
+msgstr ""
+"Un file con più difetti li riporta tutti, uno per riga, nell'ordine del "
+"file, così un solo giro di correzioni li sistema tutti."
+
+#: ../../source/reference/formats/document-classify-yaml.md:243
+msgid "Errors of form"
+msgstr "Errori di forma"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "Message"
+msgstr "Messaggio"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "Caused by"
+msgstr "Causato da"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`a page is an integer, 1-based, negative counted from the end`"
+msgstr "`a page is an integer, 1-based, negative counted from the end`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a page key that is not an integer, including `\"1\"`"
+msgstr "una chiave di pagina che non è un intero, `\"1\"` compreso"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`there is no page 0: pages are 1-based, negative counted from the end`"
+msgstr "`there is no page 0: pages are 1-based, negative counted from the end`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "page `0`"
+msgstr "la pagina `0`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`this page has no steps, so it cannot classify anything`"
+msgstr "`this page has no steps, so it cannot classify anything`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`1: ~`, `1: []`"
+msgstr "`1: ~`, `1: []`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`an element of the list of entries is one page: write several pages as "
+"several elements`"
+msgstr ""
+"`an element of the list of entries is one page: write several pages as "
+"several elements`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+#, python-brace-format
+msgid "`- {1: …, 2: …}` in the verbose form"
+msgstr "`- {1: …, 2: …}` nella forma prolissa"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`an element of a list is one step: write several steps as several "
+"elements`"
+msgstr ""
+"`an element of a list is one step: write several steps as several "
+"elements`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "one list element holding two step keys"
+msgstr "un elemento di lista con due chiavi di passo"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`an element of a list is either a criterion or one step, not both`"
+msgstr "`an element of a list is either a criterion or one step, not both`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "one list element mixing selection keys and a step key"
+msgstr "un elemento di lista che mescola chiavi di selezione e una chiave di passo"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`duplicate key: two keys of this mapping name the same step; write the "
+"steps as a list to repeat one`"
+msgstr ""
+"`duplicate key: two keys of this mapping name the same step; write the "
+"steps as a list to repeat one`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a repeated page or step in a mapping, including `21`/`\"21\"`"
+msgstr "una pagina o un passo ripetuti in un mapping, compresi `21`/`\"21\"`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`not a format pattern: …`"
+msgstr "`not a format pattern: …`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+#, python-brace-format
+msgid "a top-level key that does not read as a name ({doc}`names`)"
+msgstr "una chiave di primo livello che non si legge come nome ({doc}`names`)"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`a child key is a suffix without the hyphen: write 'ES'`"
+msgstr "`a child key is a suffix without the hyphen: write 'ES'`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`-ES` under `MEDIOLANUM`"
+msgstr "`-ES` sotto `MEDIOLANUM`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`this key does not strictly refine its parent '…': …`"
+msgstr "`this key does not strictly refine its parent '…': …`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a child that fills a segment the parent closed, or adds nothing"
+msgstr ""
+"un figlio che riempie un segmento che il padre ha chiuso, o che non "
+"aggiunge niente"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`'FINECO-EN23' is a complete name and cannot have children: write "
+"'FINECO-EN23@*'`"
+msgstr ""
+"`'FINECO-EN23' is a complete name and cannot have children: write "
+"'FINECO-EN23@*'`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "children under a complete name"
+msgstr "figli sotto un nome completo"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`below '@*.*' a key needs its separator: '@' for a location, '.' for a "
+"variant: write '@LUX' or '.LUX'`"
+msgstr ""
+"`below '@*.*' a key needs its separator: '@' for a location, '.' for a "
+"variant: write '@LUX' or '.LUX'`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a bare child key under `@*.*`"
+msgstr "una chiave figlia nuda sotto `@*.*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`this key is not read as text by YAML (a float, a boolean or a null): "
+"quote it`"
+msgstr ""
+"`this key is not read as text by YAML (a float, a boolean or a null): "
+"quote it`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`24.10:`, `true:`, `null:` as a child key"
+msgstr "`24.10:`, `true:`, `null:` come chiave figlia"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`a '*' template is allowed only as a top-level step` / `a '*' template "
+"cannot have children`"
+msgstr ""
+"`a '*' template is allowed only as a top-level step` / `a '*' template "
+"cannot have children`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a misplaced catch-all"
+msgstr "un catch-all fuori posto"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`this criterion states nothing, so it would select every line of the page`"
+msgstr "`this criterion states nothing, so it would select every line of the page`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+#, python-brace-format
+msgid "`{}` and its equivalents as a criterion"
+msgstr "`{}` e i suoi equivalenti come criterio"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`invalid line selection: …`"
+msgstr "`invalid line selection: …`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a criterion the selection grammar refuses"
+msgstr "un criterio che la grammatica delle selezioni rifiuta"
+
+#: ../../source/reference/formats/document-classify-yaml.md:264
+msgid ""
+"When YAML itself refuses the text before the grammar is reached, its "
+"message is passed on, with a hint for the two common cases: `an unquoted "
+"'*' opens a YAML alias: quote a template key, as in \"*-EN23\":` and `'@'"
+" cannot open an unquoted YAML value: quote a location key, as in "
+"\"@LUX\":`."
+msgstr ""
+"Quando è lo YAML stesso a rifiutare il testo prima che si arrivi alla "
+"grammatica, il suo messaggio viene riportato, con un suggerimento per i "
+"due casi comuni: `an unquoted '*' opens a YAML alias: quote a template "
+"key, as in \"*-EN23\":` e `'@' cannot open an unquoted YAML value: quote "
+"a location key, as in \"@LUX\":`."
+
+#: ../../source/reference/formats/document-classify-yaml.md:268
+msgid "Errors against the repository"
+msgstr "Errori rispetto al repository"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`'MEDIOLANUM-IT24' is not a format of formats.csv`"
+msgstr "`'MEDIOLANUM-IT24' is not a format of formats.csv`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"a complete name the repository does not declare — including one it has "
+"only with variants, whose set is written `MEDIOLANUM-IT24.*`"
+msgstr ""
+"un nome completo che il repository non dichiara — compreso uno che ha "
+"solo con delle varianti, il cui insieme si scrive `MEDIOLANUM-IT24.*`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`no format of formats.csv refines the partial '…'`"
+msgstr "`no format of formats.csv refines the partial '…'`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a partial name no format falls under"
+msgstr "un nome parziale sotto cui non ricade nessun formato"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`no entity of formats.csv completes the template '*-DE23'`"
+msgstr "`no entity of formats.csv completes the template '*-DE23'`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "a catch-all nothing could complete"
+msgstr "un catch-all che niente potrebbe completare"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "`no document can reach this step`"
+msgstr "`no document can reach this step`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"a step that, given what can be held when it is visited, is never looked "
+"at — usually a step written after one that always pre-empts it, or a "
+"block with no criteria of its own whose entity nothing before it can find"
+msgstr ""
+"un passo che, dato ciò che si può avere in mano quando lo si visita, non "
+"si guarda mai — di solito un passo scritto dopo uno che lo precede "
+"sempre, o un blocco senza criteri propri il cui ente niente prima di lui "
+"può trovare"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid ""
+"`no document can reach this step: the unconditional step '…' on page 1 "
+"decides every document that gets there first`"
+msgstr ""
+"`no document can reach this step: the unconditional step '…' on page 1 "
+"decides every document that gets there first`"
+
+#: ../../source/reference/formats/document-classify-yaml.md
+msgid "the same, caused by an unconditional complete step before it"
+msgstr "lo stesso, causato da un passo completo incondizionato che lo precede"
+
+#: ../../source/reference/formats/document-classify-yaml.md:278
+msgid ""
+"The reachability check never names a step that some document could reach."
+" It is cautious in the other direction: a step reachable only on "
+"documents long enough to have a given page is counted as reachable. That "
+"is also why an unconditional step closes off what follows it only on "
+"pages `1` and `-1`, which every document has. When the repository has a "
+"Python module, the check assumes the module could hand over any partial "
+"name of the repository, so that a step meant to refine what the module "
+"found is not wrongly reported."
+msgstr ""
+"Il controllo di raggiungibilità non nomina mai un passo che qualche "
+"documento potrebbe raggiungere. È prudente nell'altra direzione: un passo"
+" raggiungibile solo su documenti abbastanza lunghi da avere una certa "
+"pagina si conta come raggiungibile. È anche per questo che un passo "
+"incondizionato chiude ciò che lo segue solo sulle pagine `1` e `-1`, che "
+"ogni documento ha. Quando il repository ha un modulo Python, il controllo"
+" assume che il modulo possa passare qualunque nome parziale del "
+"repository, così un passo pensato per raffinare ciò che il modulo ha "
+"trovato non viene segnalato a torto."
+
+#: ../../source/reference/formats/document-classify-yaml.md:285
+msgid "A fuller example"
+msgstr "Un esempio più completo"
+
+#: ../../source/reference/formats/document-classify-yaml.md:287
+msgid ""
+"Excerpts from the rules written for the formats of "
+"`analysis_finance_reports_formats`, which show the grammar on real "
+"covers:"
+msgstr ""
+"Estratti dalle regole scritte per i formati di "
+"`analysis_finance_reports_formats`, che mostrano la grammatica su "
+"copertine vere:"
+
+#: ../../source/reference/formats/document-classify-yaml.md:322
+msgid ""
+"Two things it shows that a first file tends to get wrong. `FINECO-"
+"EN23@IR` and `FINECO-EN23@LUX` are two leaves rather than a `FINECO-"
+"EN23@*` block, because their covers share no text that could serve as the"
+" block's own criterion — and a block without one is entered only once "
+"something has already found `FINECO-EN23@*`, which here nothing would. "
+"And the same step appears on three pages because some covers of that "
+"format are images: an entry that finds nothing costs one page read, an "
+"entry left out costs a document that is never classified."
+msgstr ""
+"Due cose che mostra, e che un primo file tende a sbagliare. `FINECO-"
+"EN23@IR` e `FINECO-EN23@LUX` sono due foglie e non un blocco `FINECO-"
+"EN23@*`, perché le loro copertine non hanno un testo in comune che possa "
+"fare da criterio proprio del blocco — e in un blocco che non ne ha si "
+"entra solo quando qualcosa ha già trovato `FINECO-EN23@*`, cosa che qui "
+"non farebbe niente. E lo stesso passo compare su tre pagine perché alcune"
+" copertine di quel formato sono immagini: una voce che non trova niente "
+"costa la lettura di una pagina, una voce omessa costa un documento che "
+"non viene mai classificato."
+

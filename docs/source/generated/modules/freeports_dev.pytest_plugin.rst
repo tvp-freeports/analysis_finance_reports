@@ -11,12 +11,14 @@ freeports\_dev.pytest\_plugin
    
       pytest_collect_directory
       pytest_collect_file
+      pytest_configure
    
    .. rubric:: Classes
 
    .. autosummary::
    
       AlgorithmCache
+      ClassificationTest
       CsvCache
       DeserializeTest
       DocumentCache

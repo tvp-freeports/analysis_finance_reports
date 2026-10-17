@@ -1,0 +1,309 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:2
+msgid "freeports.standard\\_funcs.pdf\\_extract"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractAssetsStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractAssetsStandard>`\\ "
+"\\(fund\\_set\\, ...\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractAssetsStandard:1
+msgid "The pipe for the fund-assets blocks."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractCurrencyConstant "
+"<freeports.standard_funcs.pdf_extract.PdfExtractCurrencyConstant>`\\ "
+"\\(currency\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractCurrencyConstant:1
+msgid "A currency known in advance, without looking at the page at all."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractCurrencyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractCurrencyStandard>`\\ "
+"\\(selection\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractCurrencyStandard:1
+msgid "The pipe extracting the currency statement."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractDocClassifyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractDocClassifyStandard>`\\ "
+"\\(selections\\, ...\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+"The document classifier: the page says the document is of `pattern` if "
+"**every** selection finds something."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractFundStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractFundStandard>`\\ "
+"\\(selection\\, \\*\\[\\, join\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractFundStandard:1
+msgid "The pipe extracting the fund name."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractInvestmentsStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractInvestmentsStandard>`\\ "
+"\\(body\\_set\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractInvestmentsStandard:1
+msgid "The pipe for the investments table."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractLabelledValueStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractLabelledValueStandard>`\\"
+" \\(label\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractLabelledValueStandard:1
+msgid ""
+"`PdfExtractLabelledValueStandard(label, block_type, name, *, …)` — "
+"*un'etichetta dichiara un valore lì accanto*."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractManagmentCompanyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractManagmentCompanyStandard>`\\"
+" \\(selection\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractManagmentCompanyStandard:1
+msgid "`PdfExtractManagmentCompanyStandard(selection)` — la società di gestione."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractPageClassifyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractPageClassifyStandard>`\\ "
+"\\(header\\_sets\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractPageClassifyStandard:1
+msgid ""
+"The page classifier: classifies the page if **every** header selection "
+"finds something."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractSectionStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractSectionStandard>`\\ "
+"\\(heading\\, ...\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractSectionStandard:1
+msgid ""
+"`PdfExtractSectionStandard(heading, block_type, name, *, family=None, "
+"bottom=None, body=None, include_heading=False, rows=None, "
+"entry_gap=None)` — un'intestazione apre una sezione."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractSfdrSignStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractSfdrSignStandard>`\\ "
+"\\(question\\, labels\\, \\*\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:23:<autosummary>:1
+#: of pdf_extract.PdfExtractSfdrSignStandard:1
+msgid ""
+"`PdfExtractSfdrSignStandard(question, labels, *, fallback_labels=None, "
+"title=None, signs=None, ticked=None, blank=None, marks_by_font=None)` — "
+"*il segno nella casella, assegnato per posizione*."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:25
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:28:<autosummary>:1
+msgid ""
+":py:obj:`AssetsColumn "
+"<freeports.standard_funcs.pdf_extract.AssetsColumn>`\\ \\(anchor\\[\\, "
+"vec\\, mult\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:28:<autosummary>:1
+#: freeports.standard_funcs.pdf_extract.AssetsColumn:1 of
+msgid "The Python shim of one numeric column of the assets pipe."
+msgstr ""
+
+#: ../../docstring freeports.standard_funcs.pdf_extract.AssetsColumn:3 of
+msgid ""
+"A column is an anchor plus the search window hung off it, and the three "
+"belong together: the window is measured in multiples of *that* anchor's "
+"bounding box, so a vector without its anchor means nothing. Grouping them"
+" is what lets the assets pipe take three column arguments instead of nine"
+" loose ones."
+msgstr ""
+
+#: ../../docstring freeports.standard_funcs.pdf_extract.AssetsColumn:8 of
+msgid ""
+"The defaults are the native constructor's, and they are the shape of the "
+"common case: the number sits on the label's own row, to its right."
+msgstr ""
+
+#: ../../docstring freeports.standard_funcs.pdf_extract.AssetsColumn:11 of
+msgid ""
+"The Python selection is kept beside the native one so that the `anchor` "
+"getter can hand back what was passed in: the native form is an either-or "
+"type the shim cannot rebuild from."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractAssetsStandard:3
+msgid ""
+"Each of the three numeric columns is one [`PyAssetsColumn`], which is "
+"what the native type has always been: an anchor and the window hung off "
+"it. The signature used to spell the three apart into nine flat keywords "
+"and regroup them here, which meant a format could pass a vector to one "
+"column and a multiplier to another without anything noticing."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractDocClassifyStandard:1
+msgid ""
+"The document classifier: the page says the document is of `pattern` if "
+"**every** selection finds something. `pattern` is a (possibly partial) "
+"format name; one that does not read as a pattern is a `ValueError` "
+"carrying the reason."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractFundStandard:3
+msgid ""
+"`join` makes the block **every** selected line joined by that separator, "
+"in reading order, instead of the first one — `join=\" \"` for a title "
+"split where a long dash falls, `join=\"\"` for one split inside a word. "
+"Absent, the pipe takes the first line, which is what every format writing"
+" the name on one line wants and what this pipe has always done."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractFundStandard:8
+msgid ""
+"It is a keyword and not a second function because the two are the same "
+"algorithm with a parameter: a formats repository had written the joining "
+"variant as a Python shim of its own — nine lines of geometry plus the "
+"reading order and the squeezing — and the only thing it changed was this."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractInvestmentsStandard:3
+msgid ""
+"**A divergence absorbed here:** two of the selections are accepted and "
+"ignored. That is not an oversight — they were never used on this side "
+"either, the currency and the management company arriving from sibling "
+"pipes. The native type, having no compatibility constraint, does not have"
+" them at all, but author modules still pass them, so the Python signature"
+" must still accept them."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractLabelledValueStandard:4
+msgid ""
+"Three positional arguments, and every keyword optional: the defaults are "
+"the label's own line, the first match and no further constraint, which is"
+" the shape twenty-one formats of the reference collection write the "
+"management company in. See "
+"[`crate::formats_utils::pdf_extract::labelled_value`] for what each "
+"placement means and for what `reach` and `across` are measured in."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractLabelledValueStandard:10
+msgid ""
+"`reach` and `across` are separate keywords rather than one `window` tuple"
+" so that a format can set the one it needs and leave the other at the "
+"default its placement carries — the two have different defaults for "
+"`BELOW` and for `RIGHT`, and a tuple would force both to be written."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractSectionStandard:4
+msgid ""
+"`family` omesso significa *la prossima riga con la stessa coppia (font, "
+"corpo) dell'intestazione*, che è il difetto misurato; passarne una "
+"selezione lo sostituisce, ed è il caso di AMUNDI-EN24 p510, dove "
+"intestazioni e righe hanno la stessa tipografia. `bottom` accetta una "
+"selezione o un'ordinata. `rows`, se dato, chiede le coordinate di tabella"
+" nei metadati: `True` scopre le colonne, una `TableConfig` le dichiara."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractSfdrSignStandard:5
+msgid ""
+"Two positional arguments and every keyword optional: the question's "
+"anchor and the pair of answer labels, affirmative first. See "
+"[`crate::formats_utils::pdf_extract::sfdr_sign`] for what each recognizer"
+" looks for, and why the tick characters have to be named rather than "
+"guessed."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractSfdrSignStandard:10
+msgid ""
+"`ticked`, `blank` and `marks_by_font` **add to** the measured table "
+"rather than replacing it, so a format that meets a new typography "
+"declares only what is new."
+msgstr ""
+

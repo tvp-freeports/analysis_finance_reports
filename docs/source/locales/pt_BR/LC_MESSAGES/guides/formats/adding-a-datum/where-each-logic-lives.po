@@ -1,0 +1,197 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:1
+msgid "Where each logic lives"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:3
+msgid ""
+"A format's reading is split across three segments, and the split is not a"
+" matter of taste. Putting a piece of reasoning in the wrong one is the "
+"easiest mistake to make in this whole area, and the one that costs most "
+"later, because the misplacement is invisible until a second document "
+"arrives."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "Segment"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "What belongs to it"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "What it is handed"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "`pdf_extract`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid ""
+"**layout and geometry**: which lines, which column, which band, which "
+"cell continues which"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "the page's lines, and nothing else"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "`text_filter`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid ""
+"**all the interpretation of the text**: what a word means, which entity a"
+" name is, what to keep"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "the blocks the first segment made"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "`deserialize`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "**only the casts**: a string to a number, a string to a date"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md
+msgid "the blocks the second segment kept"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:13
+msgid "The rule, in one sentence each"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:15
+msgid ""
+"**`pdf_extract` may not know what anything means.** It does not know "
+"which companies are of interest, which sub-funds the job has seen, or "
+"what a word says. It knows where things are."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:18
+msgid ""
+"**`text_filter` may not look at the page.** It never sees a line, a "
+"coordinate or a font: it sees blocks. Everything that is *where* has "
+"already been decided."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:21
+msgid ""
+"**`deserialize` may not decide anything.** `1.234` to `1234`, "
+"`15/03/2029` to a date. If a conversion needs to know which convention "
+"the page uses, the convention is a **parameter** of the cast and not a "
+"branch in it."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:25
+msgid "Why it is drawn there"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:27
+msgid ""
+"Because the two halves vary independently. A report that changes its "
+"typesetting between two years changes its geometry and not its "
+"vocabulary; a report translated into another language changes its "
+"vocabulary and not its geometry. Code that mixes them has to be rewritten"
+" for either."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:31
+msgid ""
+"The clearest evidence is a datum written in several ways by one issuer. "
+"When a report states its sub-fund renamings as prose in one document and "
+"as a dated list in another, the **text_filter** changes and the "
+"`pdf_extract` does not: both documents hand over the same section of the "
+"same page, and what differs is what the sentences say. Had the reading of"
+" the sentence been written into the extraction, there would now be two "
+"extractions of one section."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:37
+msgid "Three decisions, and where each one went"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:39
+msgid ""
+"These are measured cases, and each of them could plausibly have gone into"
+" a different segment."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:41
+msgid ""
+"**A name that wrapped.** A table cell too long for its column arrives as "
+"two lines with their own coordinates. Putting them back together is "
+"*layout*: it happens in `pdf_extract`, and the pieces are joined with "
+"**nothing** between them, because a generator breaking at a word boundary"
+" leaves the space at the end of the first piece and breaking inside a "
+"word leaves none — the page already says how they meet."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:47
+msgid ""
+"**A table row whose first column is empty.** Note 16 of one report lists "
+"two delegates for one sub-fund, the second on a row of its own with the "
+"fund column blank — a cell spanning two rows. Repeating the fund on that "
+"row is reading the **layout**, so it is `pdf_extract`. Without it the "
+"second delegate vanishes silently, which is the failure this whole "
+"division is meant to make visible."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:53
+msgid ""
+"**A liability printed in brackets.** `(21,301)` is not a negative number:"
+" it is a typographic convention for a deduction, and the output schema "
+"wants the magnitude because it checks that liabilities plus net assets "
+"make the total. Reading it is therefore neither geometry nor meaning but "
+"a **convention of the cast** — `Amount cast: int + magnitude` — and the "
+"brackets come off before the conversion, which is the only way the "
+"conversion can happen at all."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:59
+msgid "The one that is always tempting, and always wrong"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:61
+msgid ""
+"Where a datum is hard to isolate, it is tempting to extract generously "
+"and let the `text_filter` throw away the excess — it is going to filter "
+"against the funds of interest anyway, so the noise will not reach the "
+"output."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/where-each-logic-lives.md:65
+msgid ""
+"It will not reach the output *of this run*. It will reach the output of a"
+" run with a different target list, which is the run the next person "
+"makes. The filter is a safety net, not an anchor: find an honest anchor "
+"first, and let the filter stand behind it."
+msgstr ""
+

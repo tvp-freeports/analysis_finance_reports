@@ -1,0 +1,161 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:2
+msgid "freeports\\_dev.classification\\_check"
+msgstr ""
+
+#: freeports_dev.classification_check:1 of
+msgid ""
+"The document-classification test of a formats repository: is each test "
+"report recognised as the format whose folder it sits in?"
+msgstr ""
+
+#: freeports_dev.classification_check:4 of
+msgid ""
+"Phase 13 of ``agent-memory/PLAN-document-classification.md``. One test "
+"per document (:class:`freeports_dev.pytest_plugin.ReportVariant`), named "
+"``test_classification``. It passes when the engine classifies the "
+"document as the folder's format, or does not classify it at all, or stops"
+" at a partial that the folder's format refines; it fails when the "
+"document is classified as another format, when a partial excludes the "
+"folder's format, and when the classifier errs."
+msgstr ""
+
+#: freeports_dev.classification_check:10 of
+msgid ""
+"The engine is asked through ``freeports classify`` (one subprocess per "
+"document) and its default one-line-per-document output is parsed: there "
+"is no Python entry point for document classification, and adding one is "
+"not this package's call."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:13:<autosummary>:1
+msgid ""
+":py:obj:`DOCUMENT_LABEL "
+"<freeports_dev.classification_check.DOCUMENT_LABEL>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:13:<autosummary>:1
+#: freeports_dev.classification_check.DOCUMENT_LABEL:1 of
+msgid ""
+"The label given to the one document passed to ``freeports classify`` "
+"(``-i <path>:report``), so that the output line to read is ``report: "
+"<outcome>`` whatever the path looks like."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:15
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:21:<autosummary>:1
+msgid ""
+":py:obj:`classification_failure "
+"<freeports_dev.classification_check.classification_failure>`\\ "
+"\\(folder\\_format\\, outcome\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:21:<autosummary>:1
+#: freeports_dev.classification_check.classification_failure:1 of
+msgid ""
+"``None`` when ``outcome`` is acceptable for a document under "
+"``folder_format``, otherwise the message the failing test reports."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:21:<autosummary>:1
+msgid ""
+":py:obj:`classify_document "
+"<freeports_dev.classification_check.classify_document>`\\ "
+"\\(pdf\\_path\\, repo\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:21:<autosummary>:1
+#: freeports_dev.classification_check.classify_document:1 of
+msgid ""
+"Run ``freeports classify`` on one document against ``repo`` and return "
+"its outcome."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:21:<autosummary>:1
+msgid ""
+":py:obj:`parse_classify_output "
+"<freeports_dev.classification_check.parse_classify_output>`\\ "
+"\\(stdout\\[\\, label\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:21:<autosummary>:1
+#: freeports_dev.classification_check.parse_classify_output:1 of
+msgid ""
+"The outcome on the ``<label>: …`` line of ``freeports classify``'s "
+"default output."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:23
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:27:<autosummary>:1
+msgid ""
+":py:obj:`ClassifyOutcome "
+"<freeports_dev.classification_check.ClassifyOutcome>`\\ \\(kind\\, "
+"format\\, candidates\\, ...\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:27:<autosummary>:1
+#: freeports_dev.classification_check.ClassifyOutcome:1 of
+msgid "What ``freeports classify`` said about one document."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:29
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:32:<autosummary>:1
+msgid ""
+":py:obj:`ClassifyOutputError "
+"<freeports_dev.classification_check.ClassifyOutputError>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.classification_check.rst:32:<autosummary>:1
+#: freeports_dev.classification_check.ClassifyOutputError:1 of
+msgid ""
+"``freeports classify`` printed nothing this module can read for the "
+"document."
+msgstr ""
+
+#: freeports_dev.classification_check.classify_document:3 of
+msgid ""
+"Raises :class:`ClassifyOutputError` (carrying the command's stderr) when "
+"the command fails without printing an outcome for the document — a "
+"classifier that does not load, for one."
+msgstr ""
+
+#: freeports_dev.classification_check.parse_classify_output:3 of
+msgid ""
+"Raises :class:`ClassifyOutputError` when there is no such line or it is "
+"not one of the four forms (complete, possibly ``(by exclusion)``; "
+"``partial P — candidates: …``; ``not classified``; ``error: …``)."
+msgstr ""
+

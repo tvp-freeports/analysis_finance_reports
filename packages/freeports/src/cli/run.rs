@@ -165,9 +165,13 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
 /// Resolves the configurations, runs each job, concatenates the results in order, and writes the
 /// total.
 ///
-/// Opens the outermost span, so that every nested one — and any error each logs at its own boundary
-/// — carries the run's context. No error is re-logged here: each step already logs its own failure
-/// once, closest to where it happened.
+/// Opens **no** span of its own: the outermost one is each job's `job[…]`. A `run` span above it
+/// would carry no field, and it would make the command line's `Activity` column differ from the one
+/// `freeports.cli.run_job` writes — the entry point of the format repositories' integration tests,
+/// which has no run around its single job — and from the one a worker process writes, which has
+/// none either. With it, a reference `.log.csv` produced by the command line could never pass the
+/// test that compares it. No error is re-logged here: each step already logs its own failure once,
+/// closest to where it happened.
 ///
 /// # A job that fails does not cost the run
 ///
@@ -180,9 +184,6 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
 /// nine empty files of a batch in which every job failed is worse than not writing, because an
 /// empty table and a table nobody could fill look the same on disk.
 pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<RunCompleteness, CliError> {
-    let span = tracing::info_span!("run");
-    let _guard = span.enter();
-
     let configs = resolve_configs(args)?;
     // The first moment at which the whole configuration is known, and therefore the first at which
     // either log can be settled. Both were deliberately left open until here: until this line the
@@ -242,7 +243,7 @@ fn report_failures(configs: &[FreeportsConfig], failures: &[JobFailure]) {
             job = index,
             format = configs
                 .get(index)
-                .map(|c| c.format.as_str())
+                .map(|c| c.format.as_deref().unwrap_or("<not configured>"))
                 .unwrap_or("<unknown>"),
             "job {index} failed: {failure}"
         );
@@ -507,7 +508,7 @@ mod tests {
                     name: Some("a".to_string()),
                 }],
                 target_lists: vec!["TEST".to_string()],
-                format: "FMT".to_string(),
+                format: Some("FMT".to_string()),
                 out_path: PathBuf::from("/tmp/out"),
                 out_profile: OutStructureMode::Regular,
                 out_flags: OutFlags::default(),
@@ -639,7 +640,7 @@ mod tests {
                     })
                     .collect(),
                 target_lists: vec!["TEST".to_string()],
-                format: "FMT".to_string(),
+                format: Some("FMT".to_string()),
                 out_path: PathBuf::from("/tmp/out"),
                 out_profile: OutStructureMode::Regular,
                 out_flags: OutFlags::default(),
@@ -777,8 +778,106 @@ mod tests {
             ]);
             let configs = resolve_configs(args).unwrap();
             assert_eq!(configs.len(), 2);
-            assert_eq!(configs[0].format, "A-EN24");
-            assert_eq!(configs[1].format, "B-EN24");
+            assert_eq!(configs[0].format.as_deref(), Some("A-EN24"));
+            assert_eq!(configs[1].format.as_deref(), Some("B-EN24"));
+        }
+
+        /// Phase 11, D1: a row without a format no longer stops the resolution — the job detects
+        /// its format from its documents. A row with one keeps it.
+        #[test]
+        fn a_batch_row_without_a_format_resolves_to_a_config_without_one() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf = dir.path().join("report.pdf");
+            std::fs::write(&pdf, b"%PDF-1.4").unwrap();
+            std::fs::create_dir_all(dir.path().join("metadata")).unwrap();
+            std::fs::write(
+                dir.path().join("metadata/formats.csv"),
+                "Name,Locale,Year,Country,Version\nA,EN,24,,\n",
+            )
+            .unwrap();
+            // Nothing mapped: today's `detect_format` would have stopped the run on row 2.
+            std::fs::write(
+                dir.path().join("metadata/url_mapping.csv"),
+                "Format name,Url\n",
+            )
+            .unwrap();
+            let config_path = empty_config_file(dir.path());
+
+            let batch_csv = dir.path().join("jobs.csv");
+            std::fs::write(
+                &batch_csv,
+                format!(
+                    "format,pdf\nA-EN24,{path}\n,{path}\n",
+                    path = pdf.to_str().unwrap()
+                ),
+            )
+            .unwrap();
+
+            let args = parse(&[
+                "--batch",
+                batch_csv.to_str().unwrap(),
+                "--formats-directory",
+                dir.path().to_str().unwrap(),
+                "--target-list",
+                "TEST",
+                "--config",
+                config_path.to_str().unwrap(),
+            ]);
+            let configs = resolve_configs(args).expect("a row without a format is valid");
+            assert_eq!(configs.len(), 2);
+            assert_eq!(configs[0].format.as_deref(), Some("A-EN24"));
+            assert_eq!(configs[1].format, None);
+        }
+
+        /// The same without the `format` column at all.
+        #[test]
+        fn a_batch_without_a_format_column_resolves_to_configs_without_one() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf = dir.path().join("report.pdf");
+            std::fs::write(&pdf, b"%PDF-1.4").unwrap();
+            let config_path = empty_config_file(dir.path());
+
+            let batch_csv = dir.path().join("jobs.csv");
+            std::fs::write(
+                &batch_csv,
+                format!("pdf\n{path}\n{path}\n", path = pdf.to_str().unwrap()),
+            )
+            .unwrap();
+
+            let args = parse(&[
+                "--batch",
+                batch_csv.to_str().unwrap(),
+                "--target-list",
+                "TEST",
+                "--config",
+                config_path.to_str().unwrap(),
+            ]);
+            let configs = resolve_configs(args).expect("no format column is valid");
+            assert_eq!(configs.len(), 2);
+            assert!(configs.iter().all(|c| c.format.is_none()), "{configs:?}");
+        }
+
+        /// A non-batch invocation without `--format` resolves too: the job detects it.
+        #[test]
+        fn a_non_batch_invocation_without_a_format_resolves_to_a_config_without_one() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf = dir.path().join("report.pdf");
+            std::fs::write(&pdf, b"%PDF-1.4").unwrap();
+            let config_path = empty_config_file(dir.path());
+            let args = parse(&[
+                "--input",
+                pdf.to_str().unwrap(),
+                "--target-list",
+                "TEST",
+                "--config",
+                config_path.to_str().unwrap(),
+            ]);
+            let configs = resolve_configs(args).expect("no format is valid");
+            assert_eq!(configs.len(), 1);
+            assert_eq!(configs[0].format, None);
         }
 
         #[test]
@@ -852,59 +951,9 @@ mod tests {
             );
         }
 
-        #[test]
-        fn an_unknown_format_surfaces_as_cli_error_job() {
-            let _scope = EnvScope::new();
-            let dir = tempfile::tempdir().unwrap();
-            let pdf = dir.path().join("report.pdf");
-            std::fs::write(&pdf, b"%PDF-1.4").unwrap();
-            std::fs::create_dir_all(dir.path().join("metadata")).unwrap();
-            std::fs::write(
-                dir.path().join("metadata/formats.csv"),
-                "Name,Locale,Year,Country,Version\n",
-            )
-            .unwrap();
-            std::fs::write(
-                dir.path().join("metadata/url_mapping.csv"),
-                "Format name,Url\n",
-            )
-            .unwrap();
-            let config_path = empty_config_file(dir.path());
-
-            let args = parse(&[
-                "--input",
-                pdf.to_str().unwrap(),
-                "--format",
-                "DOES-NOT-EXIST",
-                "--formats-directory",
-                dir.path().to_str().unwrap(),
-                "--target-list",
-                "TEST",
-                "--config",
-                config_path.to_str().unwrap(),
-                // The output path is not decorative here: this is the only test in this module that
-                // gets *past* configuration resolution, and so the only one where the CSV
-                // destination is settled. Without it the path takes its default — the working
-                // directory, which for a test binary is the package root — and the suite would
-                // leave a header-only log there on every run.
-                "--out",
-                dir.path().join("out").to_str().unwrap(),
-            ]);
-            // The one job of this run is the only one there is, so its failure leaves nothing to
-            // write and the run itself fails — with the job's own message, verbatim. A *batch* in
-            // which this job were one of many would instead write the others and exit with 3.
-            let result = execute(args, &test_log_handle());
-            match result {
-                Err(CliError::Worker(failure)) => {
-                    assert_eq!(failure.index(), 0);
-                    assert_eq!(
-                        failure.to_string(),
-                        "unknown format 'DOES-NOT-EXIST'; the repository declares 0 format(s)"
-                    );
-                }
-                other => panic!("got {other:?}"),
-            }
-        }
+        // `an_unknown_format_surfaces_as_cli_error_job` moved to `python_boundary`: with the job
+        // of phase 11 the document is opened before the algorithm is loaded, so it needs a real
+        // PDF (`agent-memory/DESIGN-phase11-run-integration.md` §8.D3).
     }
 
     /// One real end-to-end test: resolution, job, and writing to disk. It touches Python, with the
@@ -1134,6 +1183,220 @@ mod tests {
                 !out_dir.join("investments.csv").exists(),
                 "six empty tables are worse than none"
             );
+        }
+
+        /// D3, adapted for phase 11 (was in `error_propagation`, with a `%PDF-1.4` file that does
+        /// not open): the job now opens its documents **before** loading the algorithm, so the
+        /// document must be a real PDF for the unknown format to be what fails. The message is the
+        /// same as before.
+        #[test]
+        fn an_unknown_format_surfaces_as_cli_error_job() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf = dir.path().join("report.pdf");
+            build_minimal_pdf(&pdf);
+            std::fs::create_dir_all(dir.path().join("metadata")).unwrap();
+            std::fs::write(
+                dir.path().join("metadata/formats.csv"),
+                "Name,Locale,Year,Country,Version\n",
+            )
+            .unwrap();
+            std::fs::write(
+                dir.path().join("metadata/url_mapping.csv"),
+                "Format name,Url\n",
+            )
+            .unwrap();
+            let config_path = empty_config_file(dir.path());
+
+            let args = parse(&[
+                "--input",
+                pdf.to_str().unwrap(),
+                "--format",
+                "DOES-NOT-EXIST",
+                "--formats-directory",
+                dir.path().to_str().unwrap(),
+                "--target-list",
+                "TEST",
+                "--config",
+                config_path.to_str().unwrap(),
+                // Gets past configuration resolution, so the CSV destination is settled: without
+                // `--out` the suite would leave a header-only log in the package root.
+                "--out",
+                dir.path().join("out").to_str().unwrap(),
+            ]);
+            // The one job of this run is the only one there is, so its failure leaves nothing to
+            // write and the run itself fails — with the job's own message, verbatim.
+            let result = execute(args, &test_log_handle());
+            match result {
+                Err(CliError::Worker(failure)) => {
+                    assert_eq!(failure.index(), 0);
+                    assert_eq!(
+                        failure.to_string(),
+                        "unknown format 'DOES-NOT-EXIST'; the repository declares 0 format(s)"
+                    );
+                }
+                other => panic!("got {other:?}"),
+            }
+        }
+
+        /// Phase 11: the format resolved in the job, seen from the run
+        /// (`agent-memory/DESIGN-phase11-run-integration.md` §5, §8.D).
+        mod format_resolved_in_the_job {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// `execute` with every event it emits, under the engine tests' `SERIAL` lock. Taken
+            /// after `EnvScope`'s lock and never while attached to Python.
+            fn execute_captured(
+                args: CliArgs,
+            ) -> (
+                Result<RunCompleteness, CliError>,
+                Vec<crate::core::tracing_setup::capture::Record>,
+            ) {
+                let handle = test_log_handle();
+                let _guard = crate::core::doc_classify::tests::SERIAL
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                let mut result = None;
+                let records = crate::core::tracing_setup::capture::events(|| {
+                    tracing::callsite::rebuild_interest_cache();
+                    result = Some(execute(args, &handle));
+                });
+                (result.expect("execute ran"), records)
+            }
+
+            /// D2: a batch whose second row has no format and a document nothing classifies. The
+            /// first row is written, the second fails alone, the run says `NotEverything`, and the
+            /// failure is reported with `format = "<not configured>"`.
+            #[test]
+            fn a_row_that_cannot_settle_its_format_costs_only_its_own_job() {
+                let _scope = EnvScope::new();
+                let dir = tempfile::tempdir().unwrap();
+                let pdf_path = dir.path().join("report.pdf");
+                build_minimal_pdf(&pdf_path);
+                let repo = write_minimal_repo(dir.path());
+
+                let batch = dir.path().join("batch.csv");
+                std::fs::write(
+                    &batch,
+                    format!(
+                        "pdf,format\n{path}:Sound,A-EN24\n{path}:Unknown,\n",
+                        path = pdf_path.to_str().unwrap()
+                    ),
+                )
+                .unwrap();
+
+                let out_dir = dir.path().join("out");
+                let config_path = empty_config_file(dir.path());
+                let args = parse(&[
+                    "--batch",
+                    batch.to_str().unwrap(),
+                    "--formats-directory",
+                    repo.to_str().unwrap(),
+                    "--target-list",
+                    "TEST",
+                    "--out",
+                    out_dir.to_str().unwrap(),
+                    "--config",
+                    config_path.to_str().unwrap(),
+                    "--workers",
+                    "1",
+                ]);
+
+                let (result, records) = execute_captured(args);
+                assert_eq!(
+                    result.expect("one job failing on its format must not fail the run"),
+                    RunCompleteness::NotEverything
+                );
+                assert!(out_dir.join("investments.csv").is_file());
+                assert!(out_dir.join("funds.csv").is_file());
+                let failures: Vec<_> = records
+                    .iter()
+                    .filter(|r| {
+                        r.level == Some(tracing::Level::ERROR)
+                            && r.message.starts_with("job 1 failed")
+                    })
+                    .collect();
+                assert_eq!(failures.len(), 1, "{records:?}");
+                assert_eq!(failures[0].field("format"), Some("<not configured>"));
+                assert!(
+                    failures[0].message.contains(
+                        "neither the document classification nor the report url determines one"
+                    ),
+                    "{}",
+                    failures[0].message
+                );
+            }
+
+            /// D4: the only job of a non-batch run cannot settle its format — exit `1`, with the
+            /// message of `JobFormatError::Undetermined`.
+            #[test]
+            fn a_non_batch_run_without_a_format_on_an_unclassifiable_document_fails() {
+                let _scope = EnvScope::new();
+                let dir = tempfile::tempdir().unwrap();
+                let pdf_path = dir.path().join("report.pdf");
+                build_minimal_pdf(&pdf_path);
+                let repo = write_minimal_repo(dir.path());
+                let config_path = empty_config_file(dir.path());
+                let args = parse(&[
+                    "--input",
+                    pdf_path.to_str().unwrap(),
+                    "--formats-directory",
+                    repo.to_str().unwrap(),
+                    "--target-list",
+                    "TEST",
+                    "--out",
+                    dir.path().join("out").to_str().unwrap(),
+                    "--config",
+                    config_path.to_str().unwrap(),
+                ]);
+
+                match execute(args, &test_log_handle()) {
+                    Err(CliError::Worker(failure)) => {
+                        assert_eq!(failure.index(), 0);
+                        assert_eq!(
+                            failure.to_string(),
+                            "no format was configured, and neither the document classification nor the report url determines one"
+                        );
+                    }
+                    other => panic!("got {other:?}"),
+                }
+            }
+
+            /// And the happy half of the same: no `--format`, a repository whose YAML classifies
+            /// the document, the run writes as with `--format A-EN24`.
+            #[test]
+            fn a_non_batch_run_without_a_format_on_a_classified_document_writes_the_results() {
+                let _scope = EnvScope::new();
+                let dir = tempfile::tempdir().unwrap();
+                let pdf_path = dir.path().join("report.pdf");
+                build_minimal_pdf(&pdf_path);
+                let repo = write_minimal_repo(dir.path());
+                std::fs::write(
+                    repo.join("metadata/document_classify.yaml"),
+                    "1:\n  A-EN24: {text: '^Holdings$'}\n",
+                )
+                .unwrap();
+                let out_dir = dir.path().join("out");
+                let config_path = empty_config_file(dir.path());
+                let args = parse(&[
+                    "--input",
+                    pdf_path.to_str().unwrap(),
+                    "--formats-directory",
+                    repo.to_str().unwrap(),
+                    "--target-list",
+                    "TEST",
+                    "--out",
+                    out_dir.to_str().unwrap(),
+                    "--config",
+                    config_path.to_str().unwrap(),
+                ]);
+
+                let completeness =
+                    execute(args, &test_log_handle()).expect("the format comes from the document");
+                assert_eq!(completeness, RunCompleteness::Everything);
+                assert!(out_dir.join("investments.csv").is_file());
+            }
         }
     }
 }

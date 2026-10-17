@@ -1,4 +1,4 @@
-﻿freeports\_dev.create\_test\_page
+freeports\_dev.create\_test\_page
 =================================
 
 .. automodule:: freeports_dev.create_test_page

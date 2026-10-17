@@ -119,7 +119,7 @@ $ freeports-dev test --all                   # both halves
 $ make test                                  # the same, in the repository you are working on
 ```
 
-Two kinds of test with very different costs:
+Three kinds of test with very different costs:
 
 **Per-page tests** replay one page through one segment against its fixture. Fast, run constantly,
 and they tell you *which segment of which page* changed.
@@ -130,6 +130,11 @@ says the format works — the per-page fixtures can all pass while the schedule,
 resolution or the deduplication are wrong. It is `--slow`, or `make test-slow`, and it is **not** in
 the default run: a command that leaves it out says so in its last line, and `make ci-check` reports
 a suite nobody ran at this commit as `NOT RUN` rather than as a pass.
+
+**The classification test** runs `freeports classify` on each `report.pdf` and passes when the
+report is recognised as the format of its folder, or not recognised at all; recognised as another
+format fails. Slow, marked `classification_tests`, and part of `--slow` with the whole-document test.
+It is what tells you that a rule in `metadata/document_classify.yaml` has become too broad.
 
 ```{important}
 `out/**` is the repository's **specification**, not a snapshot. If a run diverges from it, the

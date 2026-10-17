@@ -21,6 +21,7 @@ $ pip install packages/freeports_dev packages/freeports_validate
 :hidden:
 
 freeports
+freeports-classify
 freeports-dev
 freeports-validate
 methodology-sources
@@ -31,6 +32,7 @@ coverage-report
 | Page | Is |
 |---|---|
 | {doc}`freeports` | every option of the extraction command, with its default and its validation |
+| {doc}`freeports-classify` | `freeports classify`: which format a document is, without extracting it |
 | {doc}`freeports-dev` | the format author's loop: inspect, freeze, test, and creating a repository |
 | {doc}`freeports-validate` | keys, validation documents, granting, and checking what a repository claims |
 | {doc}`methodology-sources` | how a methodology name is resolved into a body of text |

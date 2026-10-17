@@ -626,8 +626,10 @@ impl DeserializePipe for DeserializerManagmentCompanyStandard {
 /// produces is indistinguishable, in the output, from one the report stated — so the `.log.csv`
 /// says where it came from.
 ///
-/// Once per block, not once per pipe as [`PdfExtractCurrencyConstant`] does: each block imposes a
+/// Once per block, like [`PdfExtractCurrencyConstant`] once per page: each block imposes a
 /// **different** company, so each is its own fact.
+///
+/// [`PdfExtractCurrencyConstant`]: crate::formats_utils::pdf_extract::standard_funcs::PdfExtractCurrencyConstant
 pub struct DeserializerInvestmentsManagerFromManco;
 
 impl DeserializerInvestmentsManagerFromManco {

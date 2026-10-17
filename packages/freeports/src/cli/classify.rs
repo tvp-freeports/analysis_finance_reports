@@ -154,10 +154,16 @@ pub fn execute(args: ClassifyArgs, log_handle: &LogHandle) -> Result<RunComplete
         .collect();
     remove_temp_files(temp_files);
 
-    let readable: Vec<(usize, DocumentSources)> = documents
+    // Each readable document with its label: the label is how `ConflictingFormats` names it (user
+    // decision of 2026-10-17), the same text as its line on stdout.
+    let readable: Vec<(String, DocumentSources)> = documents
         .iter()
-        .enumerate()
-        .filter_map(|(index, document)| Some((index, document.outcome.as_ref().ok()?.clone())))
+        .filter_map(|document| {
+            Some((
+                document.label.clone(),
+                document.outcome.as_ref().ok()?.clone(),
+            ))
+        })
         .collect();
     let mut report = ClassifyReport {
         formats: classifier.formats().to_vec(),
@@ -179,15 +185,10 @@ pub fn execute(args: ClassifyArgs, log_handle: &LogHandle) -> Result<RunComplete
             count: report.documents.len(),
         }));
     }
-    let sources: Vec<DocumentSources> = readable.iter().map(|(_, s)| s.clone()).collect();
-    match combine_documents(&sources, &report.formats) {
+    match combine_documents(&readable, &report.formats) {
         Ok(combined) => report.combined = Some(combined),
-        Err(mut conflict) => {
+        Err(conflict) => {
             print!("{}", render(&report, config.verbosity));
-            // Back to the positions the user gave the documents in, unreadable ones included.
-            for (index, _) in &mut conflict.found {
-                *index = readable[*index].0;
-            }
             return Err(logged(ClassifyError::Conflicting(conflict)));
         }
     }
@@ -259,8 +260,9 @@ fn remove_temp_files(temp_files: Vec<PathBuf>) {
     }
 }
 
-/// The spec's `name` if any, otherwise its path, otherwise its URL.
-fn label(spec: &DocumentSpec) -> String {
+/// The spec's `name` if any, otherwise its path, otherwise its URL. Also how the run names the
+/// documents of a job in [`ConflictingFormats`] (phase 11).
+pub(crate) fn label(spec: &DocumentSpec) -> String {
     spec.name
         .clone()
         .or_else(|| spec.path.as_ref().map(|path| path.display().to_string()))

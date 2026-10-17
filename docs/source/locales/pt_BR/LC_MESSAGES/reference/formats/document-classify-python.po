@@ -1,0 +1,614 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/formats/document-classify-python.md:1
+msgid "The document classification module"
+msgstr "O módulo de classificação do documento"
+
+#: ../../source/reference/formats/document-classify-python.md:3
+#, python-brace-format
+msgid ""
+"When recognising a format takes more than the grammar of {doc}`document-"
+"classify-yaml` can say — a computation over the lines of a page, a rule "
+"that depends on the page count — the author writes it in Python. The "
+"module is optional, nothing creates it, and it runs **before** the YAML "
+"file."
+msgstr ""
+"Quando reconhecer um formato exige mais do que a gramática de {doc"
+"}`document-classify-yaml` consegue dizer — um cálculo sobre as linhas de "
+"uma página, uma regra que depende do número de páginas — o autor escreve "
+"isso em Python. O módulo é opcional, nada o cria, e ele roda **antes** do"
+" arquivo YAML."
+
+#: ../../source/reference/formats/document-classify-python.md:7
+msgid "Where it lives"
+msgstr "Onde fica"
+
+#: ../../source/reference/formats/document-classify-python.md:9
+msgid ""
+"One of two layouts, as for every piece of author Python in a formats "
+"repository:"
+msgstr ""
+"Em um de dois layouts, como todo Python de autor num repositório de "
+"formatos:"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Layout"
+msgstr "Layout"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "When"
+msgstr "Quando"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`metadata/document_classify.py`"
+msgstr "`metadata/document_classify.py`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the logic fits in one file"
+msgstr "a lógica cabe em um arquivo"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`metadata/document_classify/__init__.py`, with any other files beside it"
+msgstr "`metadata/document_classify/__init__.py`, com outros arquivos ao lado"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "it does not"
+msgstr "não cabe"
+
+#: ../../source/reference/formats/document-classify-python.md:16
+msgid "Both present is an error, because which one is meant cannot be guessed:"
+msgstr "Ter os dois é erro, porque não há como adivinhar qual deles se quer:"
+
+#: ../../source/reference/formats/document-classify-python.md:22
+msgid ""
+"Neither present is not an error: the repository simply has no custom "
+"classification. While the module is imported, `content/templates/` is on "
+"the import path, so code shared with the formats can be shared with the "
+"classifier too."
+msgstr ""
+"Não ter nenhum não é erro: o repositório simplesmente não tem "
+"classificação personalizada. Enquanto o módulo é importado, "
+"`content/templates/` está no caminho de import, então o código "
+"compartilhado com os formatos pode ser compartilhado também com o "
+"classificador."
+
+#: ../../source/reference/formats/document-classify-python.md:26
+msgid "What it must define"
+msgstr "O que ele precisa definir"
+
+#: ../../source/reference/formats/document-classify-python.md:28
+msgid "A variable `document_classifier`: a list of `(page, pipeline)` pairs."
+msgstr "Uma variável `document_classifier`: uma lista de pares `(page, pipeline)`."
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Element"
+msgstr "Elemento"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Is"
+msgstr "É"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the page"
+msgstr "a página"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a non-zero integer — `1` the first page, `-1` the last"
+msgstr "um inteiro diferente de zero — `1` a primeira página, `-1` a última"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the pipeline"
+msgstr "o pipeline"
+
+#: ../../source/reference/formats/document-classify-python.md
+#, python-brace-format
+msgid ""
+"any object, or mapping, with `pdf_extract`, `text_filter` and "
+"`deserialize`, each a callable or an iterable of callables — the same "
+"contract, by shape, as the `pipelines` of a format module "
+"({doc}`../../guides/formats/advanced/unstructured`)"
+msgstr ""
+"qualquer objeto, ou mapping, com `pdf_extract`, `text_filter` e "
+"`deserialize`, cada um um callable ou um iterável de callables — o mesmo "
+"contrato, pela forma, dos `pipelines` de um módulo de formato "
+"({doc}`../../guides/formats/advanced/unstructured`)"
+
+#: ../../source/reference/formats/document-classify-python.md:43
+msgid ""
+"The entries are tried in the order written, and the search stops at the "
+"first one that settles a complete name. A page is turned into lines once "
+"per document however many entries name it, and a page the document does "
+"not have gives nothing for its entry. This is the same discipline as the "
+"YAML file's pages, for the same reason: reading a page is the cost, so "
+"the cheapest test goes first."
+msgstr ""
+"As entradas são tentadas na ordem em que foram escritas, e a busca para "
+"na primeira que determina um nome completo. Uma página vira linhas uma "
+"vez por documento, quantas entradas a nomeiem, e uma página que o "
+"documento não tem não dá nada para a entrada dela. É a mesma disciplina "
+"das páginas do arquivo YAML, pelo mesmo motivo: o custo é ler uma página,"
+" então o teste mais barato vem primeiro."
+
+#: ../../source/reference/formats/document-classify-python.md:48
+msgid "An empty list is allowed and is the same as having no module."
+msgstr "Uma lista vazia é permitida e equivale a não ter módulo."
+
+#: ../../source/reference/formats/document-classify-python.md:50
+msgid "What a pipeline must produce"
+msgstr "O que um pipeline precisa produzir"
+
+#: ../../source/reference/formats/document-classify-python.md:52
+msgid ""
+"A pipeline's deserializers return a **string or `None`**. The `None`s are"
+" dropped and equal strings merged; what remains must be nothing — no "
+"classification from this entry — or **one** string. Two different strings"
+" from one pipeline are an error, not a choice between them."
+msgstr ""
+"Os desserializadores de um pipeline devolvem uma **string ou `None`**. Os"
+" `None` são descartados e strings iguais são fundidas; o que sobra "
+"precisa ser nada — nenhuma classificação vinda desta entrada — ou **uma**"
+" string. Duas strings diferentes do mesmo pipeline são erro, não uma "
+"escolha entre elas."
+
+#: ../../source/reference/formats/document-classify-python.md:56
+#, python-brace-format
+msgid ""
+"The string is a format name, complete or partial ({doc}`names`), and it "
+"is checked when it is produced against `metadata/formats.csv`, just as "
+"the YAML's names are checked at load time. A complete name the repository"
+" does not declare, or a partial one that no format falls under, is an "
+"error."
+msgstr ""
+"A string é um nome de formato, completo ou parcial ({doc}`names`), e é "
+"verificada contra o `metadata/formats.csv` no momento em que é produzida,"
+" assim como os nomes do YAML são verificados no carregamento. Um nome "
+"completo que o repositório não declara, ou um parcial sob o qual não cai "
+"nenhum formato, é erro."
+
+#: ../../source/reference/formats/document-classify-python.md:60
+msgid "What happens to a result follows the same rules as a YAML step:"
+msgstr "O que acontece com um resultado segue as mesmas regras de um passo YAML:"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "The pipeline returns"
+msgstr "O pipeline devolve"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Given the result so far"
+msgstr "Em relação ao resultado até aqui"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Outcome"
+msgstr "Resultado"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a complete name"
+msgstr "um nome completo"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "that refines it"
+msgstr "que o refina"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the document is that format; the search ends"
+msgstr "o documento é desse formato; a busca termina"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a partial name"
+msgstr "um nome parcial"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "that strictly refines it"
+msgstr "que o refina estritamente"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "it becomes the result so far, and the search goes on"
+msgstr "vira o resultado até aqui, e a busca segue"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "any name"
+msgstr "um nome qualquer"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "that adds nothing to it"
+msgstr "que não acrescenta nada a ele"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "ignored, logged at debug level"
+msgstr "ignorado, registrado no nível debug"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid ""
+"that contradicts it, or cannot be reconciled with it without losing part "
+"of either"
+msgstr ""
+"que o contradiz, ou que não se concilia com ele sem perder parte de um "
+"dos dois"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid ""
+"ignored, with a **warning** naming the entry, the page, the name and the "
+"result so far"
+msgstr ""
+"ignorado, com um **warning** que nomeia a entrada, a página, o nome e o "
+"resultado até aqui"
+
+#: ../../source/reference/formats/document-classify-python.md:69
+msgid ""
+"The warning is there because two of the author's own pipelines "
+"disagreeing is a fault in the module, and it should be seen without "
+"stopping the classification."
+msgstr ""
+"O warning existe porque dois pipelines do próprio autor discordando é um "
+"defeito do módulo, e isso precisa aparecer sem parar a classificação."
+
+#: ../../source/reference/formats/document-classify-python.md:72
+msgid ""
+"The one rule of the YAML file the module does **not** have is nesting: "
+"there are no blocks, so no pipeline waits for another to have matched. A "
+"pipeline meant to fire only inside one entity repeats that entity's test "
+"itself."
+msgstr ""
+"A única regra do arquivo YAML que o módulo **não** tem é o aninhamento: "
+"não há blocos, então nenhum pipeline espera outro ter casado. Um pipeline"
+" que só deve disparar dentro de uma entidade repete ele mesmo o teste "
+"dessa entidade."
+
+#: ../../source/reference/formats/document-classify-python.md:76
+msgid "Python first, then the YAML"
+msgstr "Primeiro o Python, depois o YAML"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "The module's search ends with"
+msgstr "A busca do módulo termina com"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Then"
+msgstr "Então"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "that is the result; the YAML file does not run"
+msgstr "esse é o resultado; o arquivo YAML não roda"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid ""
+"the YAML file runs **starting from that partial name**, and can only "
+"refine it"
+msgstr "o arquivo YAML roda **a partir desse nome parcial**, e só pode refiná-lo"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "nothing"
+msgstr "nada"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the YAML file runs from nothing, as if there were no module"
+msgstr "o arquivo YAML roda do zero, como se não houvesse módulo"
+
+#: ../../source/reference/formats/document-classify-python.md:84
+msgid ""
+"The middle row is what makes the two worth combining. A module can do the"
+" one hard thing — say, tell the entity from a computation no selection "
+"expresses — and leave the rest to the YAML blocks for that entity, which "
+"are entered exactly as if a YAML step had found it."
+msgstr ""
+"É a linha do meio que faz valer a pena combinar os dois. Um módulo pode "
+"fazer a única coisa difícil — digamos, reconhecer a entidade com um "
+"cálculo que nenhuma seleção expressa — e deixar o resto para os blocos "
+"YAML dessa entidade, nos quais se entra exatamente como se um passo YAML "
+"a tivesse encontrado."
+
+#: ../../source/reference/formats/document-classify-python.md:88
+msgid "The YAML, redone in Python"
+msgstr "O YAML, refeito em Python"
+
+#: ../../source/reference/formats/document-classify-python.md:90
+msgid ""
+"Each top-level step of the YAML file is exactly a pipeline made of three "
+"standard pipes, which are available from Python so that the declarative "
+"behaviour can be reproduced and extended:"
+msgstr ""
+"Cada passo de primeiro nível do arquivo YAML é exatamente um pipeline "
+"feito de três pipes padrão, disponíveis no Python para que o "
+"comportamento declarativo possa ser reproduzido e estendido:"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Segment"
+msgstr "Segmento"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Pipe"
+msgstr "Pipe"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Does"
+msgstr "Faz"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`pdf_extract`"
+msgstr "`pdf_extract`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`PdfExtractDocClassifyStandard(selections, pattern)`"
+msgstr "`PdfExtractDocClassifyStandard(selections, pattern)`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid ""
+"gives `pattern` if **every** selection finds a line; with no selections, "
+"always gives it"
+msgstr ""
+"dá `pattern` se **toda** seleção encontra uma linha; sem seleções, sempre"
+" o dá"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`text_filter`"
+msgstr "`text_filter`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`TextFilterDocClassifyStandard()`"
+msgstr "`TextFilterDocClassifyStandard()`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "merges what the page gave, refusing two different names"
+msgstr "funde o que a página deu, recusando dois nomes diferentes"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`deserialize`"
+msgstr "`deserialize`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`DeserializerDocClassifyStandard()`"
+msgstr "`DeserializerDocClassifyStandard()`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "returns the name, or `None`"
+msgstr "devolve o nome, ou `None`"
+
+#: ../../source/reference/formats/document-classify-python.md:99
+msgid ""
+"`selections` is one `PdfLineSelection` or a list of them; `pattern` is a "
+"name, complete or partial, and one that does not read as a name is a "
+"`ValueError` when the pipe is built."
+msgstr ""
+"`selections` é uma `PdfLineSelection` ou uma lista delas; `pattern` é um "
+"nome, completo ou parcial, e um que não se lê como nome dá `ValueError` "
+"quando o pipe é construído."
+
+#: ../../source/reference/formats/document-classify-python.md:102
+msgid "These YAML steps"
+msgstr "Estes passos YAML"
+
+#: ../../source/reference/formats/document-classify-python.md:114
+msgid "are, in Python:"
+msgstr "em Python são:"
+
+#: ../../source/reference/formats/document-classify-python.md:141
+msgid "Three things the translation shows:"
+msgstr "Três coisas que a tradução mostra:"
+
+#: ../../source/reference/formats/document-classify-python.md:143
+msgid ""
+"**A sequence of steps is the same page repeated in the list.** Page 1 "
+"appears twice and is read once."
+msgstr ""
+"**Uma sequência de passos é a mesma página repetida na lista.** A página "
+"1 aparece duas vezes e é lida uma vez."
+
+#: ../../source/reference/formats/document-classify-python.md:145
+msgid ""
+"**One pipeline per step, not one pipeline per page.** Putting both page-1"
+" pipes in one pipeline would make a document that matches both an error, "
+"where the YAML would take the first."
+msgstr ""
+"**Um pipeline por passo, não um pipeline por página.** Pôr os dois pipes "
+"da página 1 num só pipeline tornaria erro um documento que casa com os "
+"dois, onde o YAML ficaria com o primeiro."
+
+#: ../../source/reference/formats/document-classify-python.md:147
+msgid ""
+"**The block became two plain entries, and lost its guard.** In the YAML, "
+"the page-2 block is entered only once `ASTERIA` has been found. The "
+"Python entries have no such condition: on a document where page 1 found "
+"nothing, a page-2 line `Asteria Funds` in Century Gothic Bold makes it "
+"`ASTERIA-EN24` on its own; where page 1 found another entity, the match "
+"contradicts it and is ignored with a warning. When the root's test is on "
+"the same page as the child's, repeating it in the child's selections "
+"restores the guard. When it is on another page, the simpler course is to "
+"stop the module at the partial name and leave the block to the YAML, "
+"which starts from it."
+msgstr ""
+"**O bloco virou duas entradas simples, e perdeu a guarda.** No YAML, só "
+"se entra no bloco da página 2 depois que `ASTERIA` foi encontrado. As "
+"entradas Python não têm essa condição: num documento em que a página 1 "
+"não encontrou nada, uma linha da página 2 `Asteria Funds` em Century "
+"Gothic Bold basta sozinha para torná-lo `ASTERIA-EN24`; onde a página 1 "
+"encontrou outra entidade, a correspondência a contradiz e é ignorada com "
+"um warning. Quando o teste da raiz está na mesma página que o do filho, "
+"repeti-lo nas seleções do filho restaura a guarda. Quando está em outra "
+"página, o caminho mais simples é parar o módulo no nome parcial e deixar "
+"o bloco para o YAML, que parte dali."
+
+#: ../../source/reference/formats/document-classify-python.md:155
+msgid ""
+"An unconditional step — the YAML's `~` — is `step(\"ASTERIA-EN23\")`, "
+"with no selections. A `PdfLineSelection` union, `a | b`, is the YAML's "
+"`any_of`."
+msgstr ""
+"Um passo incondicional — o `~` do YAML — é `step(\"ASTERIA-EN23\")`, sem "
+"seleções. Uma união de `PdfLineSelection`, `a | b`, é o `any_of` do YAML."
+
+#: ../../source/reference/formats/document-classify-python.md:158
+#, python-brace-format
+msgid ""
+"Any of the three pipes can be replaced by the author's own callable, with"
+" the signatures of {doc}`../../guides/formats/advanced/unstructured`, as "
+"long as the deserializer still returns a string or `None`. That is the "
+"point of exposing them: the standard pipes are a starting point, not a "
+"ceiling."
+msgstr ""
+"Qualquer um dos três pipes pode ser trocado por um callable do autor, com"
+" as assinaturas de {doc}`../../guides/formats/advanced/unstructured`, "
+"desde que o desserializador continue devolvendo uma string ou `None`. É "
+"esse o sentido de expô-los: os pipes padrão são um ponto de partida, não "
+"um teto."
+
+#: ../../source/reference/formats/document-classify-python.md:163
+msgid "What is refused"
+msgstr "O que é recusado"
+
+#: ../../source/reference/formats/document-classify-python.md:165
+msgid "When the module is loaded:"
+msgstr "Quando o módulo é carregado:"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Message (after the module's path)"
+msgstr "Mensagem (depois do caminho do módulo)"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Caused by"
+msgstr "Causado por"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`failed to import the document classification module: …`"
+msgstr "`failed to import the document classification module: …`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the module raised while being imported"
+msgstr "o módulo levantou uma exceção durante o import"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`the module defines no 'document_classifier'`"
+msgstr "`the module defines no 'document_classifier'`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "the variable is missing"
+msgstr "a variável não existe"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid ""
+"`'document_classifier' must be a list of (page, pipeline) pairs, found a "
+"…`"
+msgstr ""
+"`'document_classifier' must be a list of (page, pipeline) pairs, found a "
+"…`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "it is not a list or tuple"
+msgstr "não é lista nem tupla"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`document_classifier[i] must be a (page, pipeline) pair, found …`"
+msgstr "`document_classifier[i] must be a (page, pipeline) pair, found …`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "an entry is not a pair"
+msgstr "uma entrada não é um par"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`document_classifier[i]: the page must be an integer, found …`"
+msgstr "`document_classifier[i]: the page must be an integer, found …`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a page that is not an `int` (a `bool` does not count)"
+msgstr "uma página que não é `int` (um `bool` não conta)"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid ""
+"`document_classifier[i]: page 0 does not exist (pages are 1-based, "
+"negative ones count from the end)`"
+msgstr ""
+"`document_classifier[i]: page 0 does not exist (pages are 1-based, "
+"negative ones count from the end)`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "page `0`"
+msgstr "a página `0`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`document_classifier[i]: the value is not a pipeline (it has no '…')`"
+msgstr "`document_classifier[i]: the value is not a pipeline (it has no '…')`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a pipeline missing one of the three segments"
+msgstr "um pipeline a que falta um dos três segmentos"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`document_classifier[i]: the pipeline has no pipe in …`"
+msgstr "`document_classifier[i]: the pipeline has no pipe in …`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a segment left empty, so the pipeline could never produce anything"
+msgstr ""
+"um segmento deixado vazio, de modo que o pipeline nunca poderia produzir "
+"nada"
+
+#: ../../source/reference/formats/document-classify-python.md:178
+msgid ""
+"When a document is classified, each error names the entry, its pipeline "
+"and its page:"
+msgstr ""
+"Quando um documento é classificado, cada erro nomeia a entrada, o "
+"pipeline dela e a página:"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "Message ends with"
+msgstr "A mensagem termina com"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`gave two different formats: '…' and '…'`"
+msgstr "`gave two different formats: '…' and '…'`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "one pipeline producing two names"
+msgstr "um pipeline que produz dois nomes"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`returned …, not a document class`"
+msgstr "`returned …, not a document class`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a deserializer returning something other than a string or `None`"
+msgstr "um desserializador que devolve algo que não é string nem `None`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`gave '…', which is not a format of the repository`"
+msgstr "`gave '…', which is not a format of the repository`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a complete name `formats.csv` does not declare"
+msgstr "um nome completo que o `formats.csv` não declara"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "`gave '…', which no format of the repository refines`"
+msgstr "`gave '…', which no format of the repository refines`"
+
+#: ../../source/reference/formats/document-classify-python.md
+msgid "a partial name no format falls under"
+msgstr "um nome parcial sob o qual não cai nenhum formato"
+
+#: ../../source/reference/formats/document-classify-python.md:187
+msgid ""
+"Any of these stops the classification of that document, as does a page "
+"that cannot be read."
+msgstr ""
+"Qualquer um deles interrompe a classificação daquele documento, assim "
+"como uma página que não pode ser lida."
+

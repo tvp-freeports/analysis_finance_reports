@@ -40,15 +40,15 @@ def _repo_or_exit(config):
 #: repository they have just cloned. Two names for the same selection is how they come apart.
 TEST_SELECTIONS = {
     "fast": (
-        "not integration_tests",
+        "not integration_tests and not classification_tests",
         "formats.single_page",
         "the per-page tests: one page of one document at a time",
         "The whole-document tests did not run here: `freeports-dev test --slow`, or --all for both.",
     ),
     "slow": (
-        "integration_tests",
+        "integration_tests or classification_tests",
         "formats.integration",
-        "the whole-document tests: a full extraction run per document",
+        "the whole-document tests: a full extraction run, and the document's classification, per document",
         "The per-page tests did not run here: `freeports-dev test --fast`, or --all for both.",
     ),
     "all": (None, None, "every test in this repository", None),

@@ -2,6 +2,9 @@
 
 *Implemented.* Before any extraction, every page is assigned a **page class** — or nothing.
 
+This is the classification of *pages*, within a format already settled. Which format a document is
+in the first place is decided before it, by {doc}`document-classification`.
+
 ## Classification is itself a pipeline
 
 The same machinery as extraction, run for a different purpose. A format author classifies pages

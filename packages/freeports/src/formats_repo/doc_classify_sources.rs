@@ -3,8 +3,8 @@
 //!
 //! Normative text: §1.5 (the relations) and §7 (the combination of the sources) of
 //! `agent-memory/SPEC-document-classification.md`; the design is
-//! `agent-memory/DESIGN-phase10-classify.md` §3. The `classify` subcommand uses it now; the run
-//! (phase 11) will add the configuration on top of [`SourcesFormat`].
+//! `agent-memory/DESIGN-phase10-classify.md` §3. The `classify` subcommand and the run both use it;
+//! the run adds the configuration on top of [`SourcesFormat`] with [`resolve_job_format`].
 //!
 //! One rule for every pair of patterns — source against source, document against document: two
 //! patterns **agree** when they are compatible in the repository
@@ -73,8 +73,7 @@ impl DocumentSources {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UrlSource {
     pub url: String,
-    /// `None` if no row of `url_mapping.csv` matches, or if the table cannot be read (a `WARN`, as
-    /// `detect_format` does today).
+    /// `None` if no row of `url_mapping.csv` matches, or if the table cannot be read (a `WARN`).
     pub pattern: Option<FormatPattern>,
 }
 
@@ -102,10 +101,7 @@ pub fn document_sources(
     let algorithm = classifier
         .classify(&document)
         .map_err(DocumentSourcesError::Classify)?;
-    let url = url.map(|url| UrlSource {
-        url: url.to_string(),
-        pattern: url_pattern(formats_repo_dir, classifier.formats(), url),
-    });
+    let url = url.map(|url| url_source(formats_repo_dir, classifier.formats(), url));
     Ok(DocumentSources { algorithm, url })
 }
 
@@ -197,18 +193,26 @@ pub fn resolve_sources(
 /// document without a pattern for that source is neutral; an empty meet is
 /// [`ConflictingFormats`]); then [`resolve_sources`] between the two folded patterns (user decision
 /// Q1, 2026-10-11). Logs **one** `ERROR` when the two sources disagree, naming both patterns.
+///
+/// Each document comes with its **label** — the spec's name, otherwise its path, otherwise its URL,
+/// as `freeports classify` prints it — which is how [`ConflictingFormats`] names the documents
+/// (user decision of 2026-10-17: labels, not indices).
 pub fn combine_documents(
-    documents: &[DocumentSources],
+    documents: &[(String, DocumentSources)],
     formats: &[String],
 ) -> Result<SourcesFormat, ConflictingFormats> {
     let algorithm = fold_source(
         Source::Algorithm,
-        documents.iter().map(DocumentSources::algorithm_pattern),
+        documents
+            .iter()
+            .map(|(label, sources)| (label, sources.algorithm_pattern())),
         formats,
     )?;
     let url = fold_source(
         Source::Url,
-        documents.iter().map(DocumentSources::url_pattern),
+        documents
+            .iter()
+            .map(|(label, sources)| (label, sources.url_pattern())),
         formats,
     )?;
     let combined = resolve_sources(algorithm.as_ref(), url.as_ref(), formats);
@@ -218,7 +222,7 @@ pub fn combine_documents(
         tracing::error!(
             algorithm = %algorithm,
             url = %url,
-            "the algorithm and the url disagree on the format, the algorithm's is taken"
+            "the algorithm and the url disagree on the format"
         );
     }
     Ok(combined)
@@ -228,12 +232,11 @@ pub fn combine_documents(
 /// is the intersection of their expansions, so the order of the documents does not matter.
 fn fold_source<'a>(
     by: Source,
-    patterns: impl Iterator<Item = Option<&'a FormatPattern>>,
+    patterns: impl Iterator<Item = (&'a String, Option<&'a FormatPattern>)>,
     formats: &[String],
 ) -> Result<Option<FormatPattern>, ConflictingFormats> {
-    let found: Vec<(usize, FormatPattern)> = patterns
-        .enumerate()
-        .filter_map(|(index, pattern)| pattern.map(|pattern| (index, pattern.clone())))
+    let found: Vec<(String, FormatPattern)> = patterns
+        .filter_map(|(label, pattern)| pattern.map(|pattern| (label.clone(), pattern.clone())))
         .collect();
     let Some(((_, first), rest)) = found.split_first() else {
         return Ok(None);
@@ -257,16 +260,173 @@ fn fold_source<'a>(
 #[error("documents disagree on the {by} format: {}", found_list(found))]
 pub struct ConflictingFormats {
     pub by: Source,
-    /// (index of the document, pattern) of **every** document that source classified.
-    pub found: Vec<(usize, FormatPattern)>,
+    /// (label of the document, pattern) of **every** document that source classified, in the
+    /// order given.
+    pub found: Vec<(String, FormatPattern)>,
 }
 
-fn found_list(found: &[(usize, FormatPattern)]) -> String {
+fn found_list(found: &[(String, FormatPattern)]) -> String {
     found
         .iter()
-        .map(|(index, pattern)| format!("document {index} is {pattern}"))
+        .map(|(label, pattern)| format!("document {label} is {pattern}"))
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+// ------------------------------------------------------------------------------------------------
+// Phase 11: the run's priority, configuration > algorithm > url
+// (`agent-memory/DESIGN-phase11-run-integration.md` §2.2, §4)
+// ------------------------------------------------------------------------------------------------
+
+/// Where the format a job runs came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormatOrigin {
+    Configuration,
+    Algorithm,
+    Url,
+    AlgorithmAndUrl,
+}
+
+/// The format a job runs, and where it came from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JobFormat {
+    /// Always a complete format name.
+    pub format: String,
+    pub origin: FormatOrigin,
+}
+
+/// Why no format could be settled for a job without a configured one.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum JobFormatError {
+    #[error(
+        "no format was configured, and neither the document classification nor the report url determines one"
+    )]
+    Undetermined,
+    #[error(
+        "the format is only partly determined, {pattern}: set it explicitly; the candidates are {}",
+        candidates.join(", ")
+    )]
+    Partial {
+        pattern: FormatPattern,
+        candidates: Vec<String>,
+    },
+}
+
+/// The run's priority, configuration > algorithm > url, on top of what [`combine_documents`]
+/// found. Logs the configuration crossings (design §4) and the detected format; never the
+/// algorithm–url crossing, which [`combine_documents`] already logged.
+pub fn resolve_job_format(
+    configured: Option<&str>,
+    sources: &SourcesFormat,
+    formats: &[String],
+) -> Result<JobFormat, JobFormatError> {
+    match configured {
+        Some(configured) => {
+            check_configured(configured, sources, formats);
+            Ok(JobFormat {
+                format: configured.to_string(),
+                origin: FormatOrigin::Configuration,
+            })
+        }
+        None => detected_format(sources, formats),
+    }
+}
+
+impl FormatOrigin {
+    /// How the `by` field of the run's events names it.
+    fn by(self) -> &'static str {
+        match self {
+            FormatOrigin::Configuration => "configuration",
+            FormatOrigin::Algorithm => "algorithm",
+            FormatOrigin::Url => "url",
+            FormatOrigin::AlgorithmAndUrl => "algorithm and url",
+        }
+    }
+}
+
+/// Crossings 2 and 3: one `WARN` per source the configured format does not meet in the
+/// repository. A configured format that is not even a pattern meets nothing; its real error comes
+/// later, from `Algorithm::load`.
+fn check_configured(configured: &str, sources: &SourcesFormat, formats: &[String]) {
+    let pattern = configured.parse::<FormatPattern>().ok();
+    let agrees = |source: &FormatPattern| {
+        pattern
+            .as_ref()
+            .is_some_and(|pattern| pattern.meet_in_repo(source, formats).is_some())
+    };
+    let mut contradicted = false;
+    if let Some(algorithm) = sources.algorithm.as_ref().filter(|a| !agrees(a)) {
+        contradicted = true;
+        tracing::warn!(
+            configured,
+            algorithm = %algorithm,
+            "the configured format differs from the one the document classification finds; the configured one is used"
+        );
+    }
+    if let Some(url) = sources.url.as_ref().filter(|u| !agrees(u)) {
+        contradicted = true;
+        tracing::warn!(
+            configured,
+            url = %url,
+            "the configured format differs from the one the report url maps to; the configured one is used"
+        );
+    }
+    let answering = match (&sources.algorithm, &sources.url) {
+        (None, None) => None,
+        (Some(_), None) => Some(FormatOrigin::Algorithm),
+        (None, Some(_)) => Some(FormatOrigin::Url),
+        (Some(_), Some(_)) => Some(FormatOrigin::AlgorithmAndUrl),
+    };
+    if let Some(by) = answering
+        && !contradicted
+    {
+        tracing::debug!(
+            configured,
+            by = by.by(),
+            "configured format confirmed by the document"
+        );
+    }
+}
+
+/// Crossing 4: no configured format, so the documents' — complete, or an error of the job, which
+/// the job logs once.
+fn detected_format(
+    sources: &SourcesFormat,
+    formats: &[String],
+) -> Result<JobFormat, JobFormatError> {
+    match sources.outcome(formats) {
+        FormatOutcome::Complete(format) => {
+            let origin = match sources.agreement {
+                Agreement::AlgorithmOnly | Agreement::Disagree => FormatOrigin::Algorithm,
+                Agreement::UrlOnly => FormatOrigin::Url,
+                Agreement::Agree => FormatOrigin::AlgorithmAndUrl,
+                Agreement::Neither => unreachable!("a resolved format comes from a source"),
+            };
+            tracing::info!(format = %format, by = origin.by(), "format detected");
+            Ok(JobFormat {
+                format: format.to_string(),
+                origin,
+            })
+        }
+        FormatOutcome::Partial {
+            pattern,
+            candidates,
+        } => Err(JobFormatError::Partial {
+            pattern,
+            candidates,
+        }),
+        FormatOutcome::None => Err(JobFormatError::Undetermined),
+    }
+}
+
+/// What the url says, alone: [`document_sources`] uses it, and the job uses it for a document
+/// whose classification failed with a configured format (D5: the classification counts as
+/// nothing, the url still counts).
+pub(crate) fn url_source(formats_repo_dir: &Path, formats: &[String], url: &str) -> UrlSource {
+    UrlSource {
+        url: url.to_string(),
+        pattern: url_pattern(formats_repo_dir, formats, url),
+    }
 }
 
 #[cfg(test)]
@@ -348,6 +508,16 @@ mod tests {
     /// A document only its URL classifies.
     fn url_only(url: &str) -> DocumentSources {
         with_url(DocClassification::Unclassified, Some(url))
+    }
+
+    /// The documents of a set, each labelled `doc<i>.pdf` by its position: the labels
+    /// [`ConflictingFormats`] names them by.
+    fn labelled(documents: &[DocumentSources]) -> Vec<(String, DocumentSources)> {
+        documents
+            .iter()
+            .enumerate()
+            .map(|(i, sources)| (format!("doc{i}.pdf"), sources.clone()))
+            .collect()
     }
 
     /// Every event `f` emits, under the engine tests' `SERIAL` lock (see it in
@@ -564,7 +734,7 @@ mod tests {
         fn combine(documents: &[DocumentSources]) -> Result<SourcesFormat, ConflictingFormats> {
             // Under the lock: it may log, and an event in flight while another test captures is
             // the race `SERIAL` exists for.
-            captured(|| combine_documents(documents, &formats())).0
+            captured(|| combine_documents(&labelled(documents), &formats())).0
         }
 
         #[test]
@@ -667,8 +837,40 @@ mod tests {
                 error,
                 ConflictingFormats {
                     by: Source::Algorithm,
-                    found: vec![(0, p("AMUNDI-EN24")), (2, p("EURIZON-EN23"))],
+                    found: vec![
+                        ("doc0.pdf".to_string(), p("AMUNDI-EN24")),
+                        ("doc2.pdf".to_string(), p("EURIZON-EN23")),
+                    ],
                 }
+            );
+        }
+
+        /// The labels in the error are the ones the caller gave, not positions.
+        #[test]
+        fn the_error_carries_the_labels_given_by_the_caller() {
+            let documents = vec![
+                (
+                    "Amundi".to_string(),
+                    algorithm_only(complete("AMUNDI-EN24")),
+                ),
+                (
+                    "Blank".to_string(),
+                    algorithm_only(DocClassification::Unclassified),
+                ),
+                (
+                    "/x/eurizon.pdf".to_string(),
+                    algorithm_only(complete("EURIZON-EN23")),
+                ),
+            ];
+            let error = captured(|| combine_documents(&documents, &formats()))
+                .0
+                .unwrap_err();
+            assert_eq!(
+                error.found,
+                vec![
+                    ("Amundi".to_string(), p("AMUNDI-EN24")),
+                    ("/x/eurizon.pdf".to_string(), p("EURIZON-EN23")),
+                ]
             );
         }
 
@@ -679,7 +881,10 @@ mod tests {
                 error,
                 ConflictingFormats {
                     by: Source::Url,
-                    found: vec![(0, p("AMUNDI-EN24")), (1, p("EURIZON-EN23"))],
+                    found: vec![
+                        ("doc0.pdf".to_string(), p("AMUNDI-EN24")),
+                        ("doc1.pdf".to_string(), p("EURIZON-EN23")),
+                    ],
                 }
             );
         }
@@ -698,9 +903,9 @@ mod tests {
             assert_eq!(
                 error.found,
                 vec![
-                    (0, p("MEDIOLANUM")),
-                    (1, p("MEDIOLANUM-IT24.A")),
-                    (2, p("MEDIOLANUM-IT24.B")),
+                    ("doc0.pdf".to_string(), p("MEDIOLANUM")),
+                    ("doc1.pdf".to_string(), p("MEDIOLANUM-IT24.A")),
+                    ("doc2.pdf".to_string(), p("MEDIOLANUM-IT24.B")),
                 ]
             );
         }
@@ -798,7 +1003,7 @@ mod tests {
         fn a_disagreement_of_the_sources_is_one_error_naming_both_patterns() {
             let (combined, records) = captured(|| {
                 combine_documents(
-                    &[with_url(complete("AMUNDI-EN24"), Some("EURIZON-EN23"))],
+                    &labelled(&[with_url(complete("AMUNDI-EN24"), Some("EURIZON-EN23"))]),
                     &formats(),
                 )
             });
@@ -810,11 +1015,34 @@ mod tests {
             assert!(text.contains("EURIZON-EN23"), "{text}");
         }
 
+        /// Phase 11, §4.3: in the run with a configured format the algorithm does not win, so the
+        /// `ERROR` says only that the two disagree — whoever decides says so on its own.
+        #[test]
+        fn the_disagreement_error_does_not_say_who_wins() {
+            let (_, records) = captured(|| {
+                combine_documents(
+                    &labelled(&[with_url(complete("AMUNDI-EN24"), Some("EURIZON-EN23"))]),
+                    &formats(),
+                )
+            });
+            let errors = at(&records, tracing::Level::ERROR);
+            assert_eq!(errors.len(), 1, "{records:?}");
+            let message = &errors[0].message;
+            assert!(
+                message.contains("the algorithm and the url disagree on the format"),
+                "{message}"
+            );
+            assert!(!message.contains("taken"), "{message}");
+            assert!(!message.contains("wins"), "{message}");
+            assert_eq!(errors[0].field("algorithm"), Some("AMUNDI-EN24"));
+            assert_eq!(errors[0].field("url"), Some("EURIZON-EN23"));
+        }
+
         #[test]
         fn an_agreement_is_neither_an_error_nor_a_warning() {
             let (combined, records) = captured(|| {
                 combine_documents(
-                    &[with_url(complete("MEDIOLANUM-IT24.A"), Some("MEDIOLANUM"))],
+                    &labelled(&[with_url(complete("MEDIOLANUM-IT24.A"), Some("MEDIOLANUM"))]),
                     &formats(),
                 )
             });
@@ -829,7 +1057,10 @@ mod tests {
         #[test]
         fn a_single_source_is_neither_an_error_nor_a_warning() {
             let (_, records) = captured(|| {
-                combine_documents(&[algorithm_only(complete("AMUNDI-EN24"))], &formats())
+                combine_documents(
+                    &labelled(&[algorithm_only(complete("AMUNDI-EN24"))]),
+                    &formats(),
+                )
             });
             assert!(
                 at(&records, tracing::Level::ERROR).is_empty(),
@@ -844,19 +1075,64 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
+        fn conflict(found: &[(&str, &str)]) -> ConflictingFormats {
+            ConflictingFormats {
+                by: Source::Url,
+                found: found
+                    .iter()
+                    .map(|(label, pattern)| (label.to_string(), p(pattern)))
+                    .collect(),
+            }
+        }
+
         #[test]
         fn it_names_the_source_and_every_pattern_found() {
-            let message = ConflictingFormats {
-                by: Source::Url,
-                found: vec![(0, p("AMUNDI-EN24")), (3, p("EURIZON-EN23"))],
-            }
-            .to_string();
+            let message =
+                conflict(&[("a.pdf", "AMUNDI-EN24"), ("d.pdf", "EURIZON-EN23")]).to_string();
             assert!(
                 message.starts_with("documents disagree on the url format"),
                 "{message}"
             );
             assert!(message.contains("AMUNDI-EN24"), "{message}");
             assert!(message.contains("EURIZON-EN23"), "{message}");
+        }
+
+        /// User decision of 2026-10-17: the documents are named by their label (the path or the
+        /// name given with `-i`, as `classify` prints them), each beside its own pattern.
+        #[test]
+        fn it_names_every_document_by_its_label_beside_its_pattern() {
+            let message = conflict(&[
+                ("/reports/amundi.pdf", "AMUNDI-EN24"),
+                ("Eurizon 2023", "EURIZON-EN23"),
+            ])
+            .to_string();
+            assert!(
+                message.contains("/reports/amundi.pdf is AMUNDI-EN24"),
+                "{message}"
+            );
+            assert!(
+                message.contains("Eurizon 2023 is EURIZON-EN23"),
+                "{message}"
+            );
+        }
+
+        /// No position: the old wording `document 0 is …` is gone.
+        #[test]
+        fn it_does_not_name_documents_by_index() {
+            let message =
+                conflict(&[("a.pdf", "AMUNDI-EN24"), ("b.pdf", "EURIZON-EN23")]).to_string();
+            assert!(!message.contains("document 0"), "{message}");
+            assert!(!message.contains("document 1"), "{message}");
+        }
+
+        /// The labels follow the order of the documents, whatever it is.
+        #[test]
+        fn the_labels_come_in_the_order_of_the_documents() {
+            let message =
+                conflict(&[("zeta.pdf", "AMUNDI-EN24"), ("alpha.pdf", "EURIZON-EN23")]).to_string();
+            let zeta = message.find("zeta.pdf").expect("zeta named");
+            let alpha = message.find("alpha.pdf").expect("alpha named");
+            assert!(zeta < alpha, "{message}");
         }
 
         #[test]
@@ -923,6 +1199,539 @@ mod tests {
                 resolve(Some("AMUNDI-EN24"), Some("EURIZON-EN23")).outcome(&formats()),
                 FormatOutcome::Complete(p("AMUNDI-EN24"))
             );
+        }
+    }
+
+    /// Phase 11, [`resolve_job_format`]: the run's priority — configuration > algorithm > url — on
+    /// top of the job's combined [`SourcesFormat`], and the events of the crossings
+    /// (`agent-memory/DESIGN-phase11-run-integration.md` §2.2, §4, §8.B).
+    mod job_format {
+        use super::*;
+
+        /// The job's combined sources, as [`combine_documents`] would give them.
+        fn sources(algorithm: Option<&str>, url: Option<&str>) -> SourcesFormat {
+            resolve(algorithm, url)
+        }
+
+        /// [`resolve_job_format`] against the fixture's formats, with every event it emits.
+        fn job(
+            configured: Option<&str>,
+            algorithm: Option<&str>,
+            url: Option<&str>,
+        ) -> (Result<JobFormat, JobFormatError>, Vec<Record>) {
+            let combined = sources(algorithm, url);
+            captured(|| resolve_job_format(configured, &combined, &formats()))
+        }
+
+        fn configured(format: &str) -> JobFormat {
+            JobFormat {
+                format: format.to_string(),
+                origin: FormatOrigin::Configuration,
+            }
+        }
+
+        /// The events at `INFO` or above: `INFO`, `WARN`, `ERROR`.
+        fn at_info_or_above(records: &[Record]) -> Vec<&Record> {
+            records
+                .iter()
+                .filter(|r| {
+                    matches!(
+                        r.level,
+                        Some(tracing::Level::INFO | tracing::Level::WARN | tracing::Level::ERROR)
+                    )
+                })
+                .collect()
+        }
+
+        /// A configured format and no source: nothing to compare, nothing to say.
+        mod configured_without_sources {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_configured_format_is_taken() {
+                let (result, _) = job(Some("AMUNDI-EN24"), None, None);
+                assert_eq!(result, Ok(configured("AMUNDI-EN24")));
+            }
+
+            #[test]
+            fn nothing_is_logged_at_info_or_above() {
+                let (_, records) = job(Some("AMUNDI-EN24"), None, None);
+                assert!(at_info_or_above(&records).is_empty(), "{records:?}");
+            }
+        }
+
+        /// A configured format that every present source confirms: a `DEBUG`, nothing louder.
+        mod configured_and_confirmed {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_configured_format_is_taken() {
+                let (result, _) = job(
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                );
+                assert_eq!(result, Ok(configured("AMUNDI-EN24")));
+            }
+
+            #[test]
+            fn there_is_no_warning_and_no_error() {
+                let (_, records) = job(
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                );
+                assert!(at(&records, tracing::Level::WARN).is_empty(), "{records:?}");
+                assert!(
+                    at(&records, tracing::Level::ERROR).is_empty(),
+                    "{records:?}"
+                );
+            }
+
+            #[test]
+            fn one_debug_event_confirms_the_configured_format() {
+                let (_, records) = job(
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                );
+                let confirmations: Vec<&Record> = at(&records, tracing::Level::DEBUG)
+                    .into_iter()
+                    .filter(|r| {
+                        r.message
+                            .contains("configured format confirmed by the document")
+                    })
+                    .collect();
+                assert_eq!(confirmations.len(), 1, "{records:?}");
+            }
+
+            /// §1.5: agreeing is being compatible in the repository, not being equal. A partial
+            /// the configured format refines confirms it.
+            #[test]
+            fn a_partial_algorithm_the_configured_format_refines_is_no_warning() {
+                let (result, records) = job(Some("MEDIOLANUM-IT24.A"), Some("MEDIOLANUM"), None);
+                assert_eq!(result, Ok(configured("MEDIOLANUM-IT24.A")));
+                assert!(at(&records, tracing::Level::WARN).is_empty(), "{records:?}");
+            }
+
+            #[test]
+            fn a_partial_url_the_configured_format_refines_is_no_warning() {
+                let (result, records) = job(Some("MEDIOLANUM-IT24.B"), None, Some("MEDIOLANUM-IT"));
+                assert_eq!(result, Ok(configured("MEDIOLANUM-IT24.B")));
+                assert!(at(&records, tracing::Level::WARN).is_empty(), "{records:?}");
+            }
+        }
+
+        /// The configuration against a source that says something else: the configuration wins,
+        /// with a `WARN` that no setting silences (crossings 2 and 3 of §4).
+        mod configured_and_contradicted {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn an_algorithm_disagreeing_is_one_warning_naming_both_and_the_configured_one_wins() {
+                let (result, records) = job(Some("AMUNDI-EN24"), Some("EURIZON-EN23"), None);
+                assert_eq!(result, Ok(configured("AMUNDI-EN24")));
+                let warnings = at(&records, tracing::Level::WARN);
+                assert_eq!(warnings.len(), 1, "{records:?}");
+                assert_eq!(warnings[0].field("configured"), Some("AMUNDI-EN24"));
+                assert_eq!(warnings[0].field("algorithm"), Some("EURIZON-EN23"));
+                assert!(
+                    warnings[0].message.contains("document classification"),
+                    "{}",
+                    warnings[0].message
+                );
+                assert!(
+                    warnings[0].message.contains("the configured one is used"),
+                    "{}",
+                    warnings[0].message
+                );
+            }
+
+            #[test]
+            fn a_url_disagreeing_is_one_warning_naming_both_and_the_configured_one_wins() {
+                let (result, records) = job(Some("AMUNDI-EN24"), None, Some("EURIZON-EN23"));
+                assert_eq!(result, Ok(configured("AMUNDI-EN24")));
+                let warnings = at(&records, tracing::Level::WARN);
+                assert_eq!(warnings.len(), 1, "{records:?}");
+                assert_eq!(warnings[0].field("configured"), Some("AMUNDI-EN24"));
+                assert_eq!(warnings[0].field("url"), Some("EURIZON-EN23"));
+                assert!(
+                    warnings[0].message.contains("report url"),
+                    "{}",
+                    warnings[0].message
+                );
+                assert!(
+                    warnings[0].message.contains("the configured one is used"),
+                    "{}",
+                    warnings[0].message
+                );
+            }
+
+            /// The message of today's `detect_format` is gone: crossing 3 replaces it.
+            #[test]
+            fn the_old_selected_format_message_is_not_used() {
+                let (_, records) = job(Some("AMUNDI-EN24"), None, Some("EURIZON-EN23"));
+                assert!(
+                    !records
+                        .iter()
+                        .any(|r| r.message.contains("selected format is different")),
+                    "{records:?}"
+                );
+            }
+
+            /// Two different facts, two lines: and since algorithm and url agree with each other,
+            /// no `ERROR`.
+            #[test]
+            fn both_sources_disagreeing_are_two_warnings_and_no_error() {
+                let (result, records) = job(
+                    Some("AMUNDI-EN24"),
+                    Some("EURIZON-EN23"),
+                    Some("EURIZON-EN23"),
+                );
+                assert_eq!(result, Ok(configured("AMUNDI-EN24")));
+                let warnings = at(&records, tracing::Level::WARN);
+                assert_eq!(warnings.len(), 2, "{records:?}");
+                assert!(
+                    warnings
+                        .iter()
+                        .any(|w| w.field("algorithm") == Some("EURIZON-EN23")),
+                    "{records:?}"
+                );
+                assert!(
+                    warnings
+                        .iter()
+                        .any(|w| w.field("url") == Some("EURIZON-EN23")),
+                    "{records:?}"
+                );
+                assert!(
+                    at(&records, tracing::Level::ERROR).is_empty(),
+                    "{records:?}"
+                );
+            }
+
+            /// One source agreeing does not excuse the other.
+            #[test]
+            fn one_source_agreeing_and_one_disagreeing_is_one_warning_for_the_disagreeing_one() {
+                let (_, records) = job(
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                    Some("EURIZON-EN23"),
+                );
+                let warnings = at(&records, tracing::Level::WARN);
+                assert_eq!(warnings.len(), 1, "{records:?}");
+                assert_eq!(warnings[0].field("url"), Some("EURIZON-EN23"));
+                assert_eq!(warnings[0].field("algorithm"), None);
+            }
+
+            #[test]
+            fn an_incompatible_partial_algorithm_is_a_warning() {
+                let (result, records) = job(Some("MEDIOLANUM-IT24.A"), Some("MEDIOLANUM-EN"), None);
+                assert_eq!(result, Ok(configured("MEDIOLANUM-IT24.A")));
+                assert_eq!(at(&records, tracing::Level::WARN).len(), 1, "{records:?}");
+            }
+
+            /// R10: compatible in the abstract, but the meet is not a format of the repository.
+            #[test]
+            fn a_configured_format_outside_the_repository_disagrees_with_a_compatible_partial() {
+                let (result, records) = job(Some("MEDIOLANUM-IT24.Z"), Some("MEDIOLANUM"), None);
+                assert_eq!(result, Ok(configured("MEDIOLANUM-IT24.Z")));
+                assert_eq!(at(&records, tracing::Level::WARN).len(), 1, "{records:?}");
+            }
+
+            /// Not even a pattern: it disagrees with every source that answered, and is still the
+            /// format of the job — the real error comes from `Algorithm::load`, as today.
+            #[test]
+            fn a_configured_format_that_is_not_a_pattern_disagrees_with_the_algorithm() {
+                assert!(
+                    "DOES-NOT-EXIST".parse::<FormatPattern>().is_err(),
+                    "the fixture relies on DOES-NOT-EXIST not being a pattern"
+                );
+                let (result, records) = job(Some("DOES-NOT-EXIST"), Some("AMUNDI-EN24"), None);
+                assert_eq!(result, Ok(configured("DOES-NOT-EXIST")));
+                assert_eq!(at(&records, tracing::Level::WARN).len(), 1, "{records:?}");
+            }
+
+            #[test]
+            fn a_configured_format_that_is_not_a_pattern_and_no_source_says_nothing() {
+                let (result, records) = job(Some("DOES-NOT-EXIST"), None, None);
+                assert_eq!(result, Ok(configured("DOES-NOT-EXIST")));
+                assert!(at_info_or_above(&records).is_empty(), "{records:?}");
+            }
+
+            /// The algorithm–url crossing is `combine_documents`' to log, already: never twice.
+            #[test]
+            fn algorithm_and_url_disagreeing_with_each_other_is_no_error_here() {
+                let (_, records) = job(
+                    Some("AMUNDI-EN24"),
+                    Some("AMUNDI-EN24"),
+                    Some("EURIZON-EN23"),
+                );
+                assert!(
+                    at(&records, tracing::Level::ERROR).is_empty(),
+                    "{records:?}"
+                );
+            }
+        }
+
+        /// No configured format: the documents' format, or an error of the job (crossing 4).
+        mod detected {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn a_complete_algorithm_is_the_format_by_the_algorithm() {
+                let (result, _) = job(None, Some("AMUNDI-EN24"), None);
+                assert_eq!(
+                    result,
+                    Ok(JobFormat {
+                        format: "AMUNDI-EN24".to_string(),
+                        origin: FormatOrigin::Algorithm,
+                    })
+                );
+            }
+
+            #[test]
+            fn a_format_detected_by_the_algorithm_is_one_info_event_saying_by_what() {
+                let (_, records) = job(None, Some("AMUNDI-EN24"), None);
+                let detected: Vec<&Record> = at(&records, tracing::Level::INFO)
+                    .into_iter()
+                    .filter(|r| r.message.contains("format detected"))
+                    .collect();
+                assert_eq!(detected.len(), 1, "{records:?}");
+                assert_eq!(detected[0].field("format"), Some("AMUNDI-EN24"));
+                assert_eq!(detected[0].field("by"), Some("algorithm"));
+                assert!(at(&records, tracing::Level::WARN).is_empty(), "{records:?}");
+            }
+
+            #[test]
+            fn the_url_alone_is_the_format_by_the_url() {
+                let (result, records) = job(None, None, Some("EURIZON-EN23"));
+                assert_eq!(
+                    result,
+                    Ok(JobFormat {
+                        format: "EURIZON-EN23".to_string(),
+                        origin: FormatOrigin::Url,
+                    })
+                );
+                assert!(
+                    at(&records, tracing::Level::INFO)
+                        .iter()
+                        .any(|r| r.message.contains("format detected")
+                            && r.field("by") == Some("url")),
+                    "{records:?}"
+                );
+            }
+
+            #[test]
+            fn agreeing_sources_are_the_format_by_both() {
+                let (result, records) = job(None, Some("AMUNDI-EN24"), Some("AMUNDI-EN24"));
+                assert_eq!(
+                    result,
+                    Ok(JobFormat {
+                        format: "AMUNDI-EN24".to_string(),
+                        origin: FormatOrigin::AlgorithmAndUrl,
+                    })
+                );
+                assert!(
+                    at(&records, tracing::Level::INFO).iter().any(|r| {
+                        r.message.contains("format detected")
+                            && r.field("by") == Some("algorithm and url")
+                    }),
+                    "{records:?}"
+                );
+            }
+
+            /// The url completes a partial of the algorithm: their meet, by both.
+            #[test]
+            fn a_complete_url_completing_a_partial_algorithm_is_their_meet_by_both() {
+                let (result, _) = job(None, Some("MEDIOLANUM-IT24.*"), Some("MEDIOLANUM-IT24.B"));
+                assert_eq!(
+                    result,
+                    Ok(JobFormat {
+                        format: "MEDIOLANUM-IT24.B".to_string(),
+                        origin: FormatOrigin::AlgorithmAndUrl,
+                    })
+                );
+            }
+
+            /// Disagreeing sources: the algorithm wins, and the `ERROR` is `combine_documents`'
+            /// (already emitted), not this function's.
+            #[test]
+            fn disagreeing_sources_are_the_algorithms_format_and_no_error_here() {
+                let (result, records) = job(None, Some("AMUNDI-EN24"), Some("EURIZON-EN23"));
+                assert_eq!(
+                    result,
+                    Ok(JobFormat {
+                        format: "AMUNDI-EN24".to_string(),
+                        origin: FormatOrigin::Algorithm,
+                    })
+                );
+                assert!(
+                    at(&records, tracing::Level::ERROR).is_empty(),
+                    "{records:?}"
+                );
+            }
+
+            /// The run executes no partial: an error with the candidates, in `formats.csv` order.
+            #[test]
+            fn a_partial_is_an_error_with_the_candidates_in_formats_csv_order() {
+                let formats: Vec<String> =
+                    ["MEDIOLANUM-IT24.B", "AMUNDI-EN24", "MEDIOLANUM-IT24.A"]
+                        .iter()
+                        .map(|f| f.to_string())
+                        .collect();
+                let combined = resolve_sources(Some(&p("MEDIOLANUM-IT24.*")), None, &formats);
+                let (result, _) = captured(|| resolve_job_format(None, &combined, &formats));
+                assert_eq!(
+                    result,
+                    Err(JobFormatError::Partial {
+                        pattern: p("MEDIOLANUM-IT24.*"),
+                        candidates: vec![
+                            "MEDIOLANUM-IT24.B".to_string(),
+                            "MEDIOLANUM-IT24.A".to_string(),
+                        ],
+                    })
+                );
+            }
+
+            /// Plan §2: no automatic attempt, even with a single candidate.
+            #[test]
+            fn a_partial_with_a_single_candidate_is_still_an_error() {
+                let (result, _) = job(None, Some("MEDIOLANUM-EN"), None);
+                assert_eq!(
+                    result,
+                    Err(JobFormatError::Partial {
+                        pattern: p("MEDIOLANUM-EN"),
+                        candidates: vec!["MEDIOLANUM-EN23".to_string()],
+                    })
+                );
+            }
+
+            #[test]
+            fn nothing_from_any_source_is_undetermined() {
+                let (result, _) = job(None, None, None);
+                assert_eq!(result, Err(JobFormatError::Undetermined));
+            }
+
+            /// The error is logged once, by the job (`job failed: …`): not here as well.
+            #[test]
+            fn the_errors_are_not_logged_here() {
+                for (algorithm, url) in [(None, None), (Some("MEDIOLANUM-IT24.*"), None)] {
+                    let (result, records) = job(None, algorithm, url);
+                    assert!(result.is_err(), "{algorithm:?} {url:?}");
+                    assert!(
+                        at(&records, tracing::Level::ERROR).is_empty(),
+                        "{records:?}"
+                    );
+                    assert!(at(&records, tracing::Level::WARN).is_empty(), "{records:?}");
+                }
+            }
+        }
+
+        /// [`JobFormatError`]: the messages `main` prints for a job that cannot settle its format.
+        mod job_format_error_message {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn undetermined_says_no_source_determines_the_format() {
+                assert_eq!(
+                    JobFormatError::Undetermined.to_string(),
+                    "no format was configured, and neither the document classification nor the report url determines one"
+                );
+            }
+
+            #[test]
+            fn partial_names_the_pattern_and_lists_every_candidate() {
+                let message = JobFormatError::Partial {
+                    pattern: p("MEDIOLANUM-IT24.*"),
+                    candidates: vec![
+                        "MEDIOLANUM-IT24.A".to_string(),
+                        "MEDIOLANUM-IT24.B".to_string(),
+                    ],
+                }
+                .to_string();
+                assert!(message.contains("MEDIOLANUM-IT24.*"), "{message}");
+                assert!(message.contains("set it explicitly"), "{message}");
+                assert!(
+                    message.contains("MEDIOLANUM-IT24.A, MEDIOLANUM-IT24.B"),
+                    "{message}"
+                );
+            }
+        }
+    }
+
+    /// Phase 11, [`url_source`]: what the url says alone, for the job's documents whose
+    /// classification failed with a configured format (D5). No Python: only the CSV tables.
+    mod url_source_alone {
+        use super::*;
+        use pretty_assertions::assert_eq;
+        use std::fs;
+
+        use crate::formats_repo::metadata::METADATA_DIR;
+
+        const URL_FORMATS_CSV: &str = "Name,Locale,Year,Country,Version\n\
+                                       AMUNDI,EN,24,,\n\
+                                       EURIZON,EN,23,,\n";
+
+        fn repo(url_mapping: Option<&str>) -> tempfile::TempDir {
+            let dir = tempfile::TempDir::new().unwrap();
+            let metadata = dir.path().join(METADATA_DIR);
+            fs::create_dir_all(&metadata).unwrap();
+            fs::write(metadata.join("formats.csv"), URL_FORMATS_CSV).unwrap();
+            if let Some(mapping) = url_mapping {
+                fs::write(metadata.join("url_mapping.csv"), mapping).unwrap();
+            }
+            dir
+        }
+
+        fn url_formats() -> Vec<String> {
+            vec!["AMUNDI-EN24".to_string(), "EURIZON-EN23".to_string()]
+        }
+
+        const MAPPING: &str = "Format name,Url\nAMUNDI-EN24,https://amundi.example/\n";
+
+        #[test]
+        fn a_mapped_url_gives_its_pattern() {
+            let repo = repo(Some(MAPPING));
+            let url = "https://amundi.example/2024/report.pdf";
+            let (source, _) = captured(|| url_source(repo.path(), &url_formats(), url));
+            assert_eq!(
+                source,
+                UrlSource {
+                    url: url.to_string(),
+                    pattern: Some(p("AMUNDI-EN24")),
+                }
+            );
+        }
+
+        #[test]
+        fn an_unmapped_url_is_kept_without_a_pattern() {
+            let repo = repo(Some(MAPPING));
+            let url = "https://elsewhere.example/report.pdf";
+            let (source, records) = captured(|| url_source(repo.path(), &url_formats(), url));
+            assert_eq!(
+                source,
+                UrlSource {
+                    url: url.to_string(),
+                    pattern: None,
+                }
+            );
+            assert!(at(&records, tracing::Level::WARN).is_empty(), "{records:?}");
+        }
+
+        /// As in [`document_sources`]: an unreadable mapping costs the url source, with a warning.
+        #[test]
+        fn an_unreadable_url_mapping_is_one_warning_and_no_pattern() {
+            let repo = repo(None);
+            let url = "https://amundi.example/report.pdf";
+            let (source, records) = captured(|| url_source(repo.path(), &url_formats(), url));
+            assert_eq!(source.pattern, None);
+            assert_eq!(source.url, url);
+            assert_eq!(at(&records, tracing::Level::WARN).len(), 1, "{records:?}");
         }
     }
 

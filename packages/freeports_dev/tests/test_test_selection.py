@@ -85,17 +85,26 @@ class TestWhatEachFlagSelects:
     def test_the_default_is_the_fast_half(self, monkeypatch, repo, pytest_arguments):
         """The same default `make test` has: `test` is an alias of `test-fast` in both places."""
         run(monkeypatch, repo)
-        assert pytest_arguments[0][-2:] == ["-m", "not integration_tests"]
+        assert pytest_arguments[0][-2:] == [
+            "-m",
+            "not integration_tests and not classification_tests",
+        ]
 
     def test_fast_is_the_per_page_tests(self, monkeypatch, repo, pytest_arguments):
         run(monkeypatch, repo, "--fast")
-        assert pytest_arguments[0][-2:] == ["-m", "not integration_tests"]
+        assert pytest_arguments[0][-2:] == [
+            "-m",
+            "not integration_tests and not classification_tests",
+        ]
 
     def test_slow_is_the_whole_document_tests(
         self, monkeypatch, repo, pytest_arguments
     ):
         run(monkeypatch, repo, "--slow")
-        assert pytest_arguments[0][-2:] == ["-m", "integration_tests"]
+        assert pytest_arguments[0][-2:] == [
+            "-m",
+            "integration_tests or classification_tests",
+        ]
 
     def test_all_deselects_nothing(self, monkeypatch, repo, pytest_arguments):
         run(monkeypatch, repo, "--all")
@@ -147,7 +156,11 @@ class TestASelectionOfYourOwn:
     ):
         """`-x` says nothing about which tests were asked for, so the selection still applies."""
         run(monkeypatch, repo, "--", "-x")
-        assert pytest_arguments[0][-3:] == ["-m", "not integration_tests", "-x"]
+        assert pytest_arguments[0][-3:] == [
+            "-m",
+            "not integration_tests and not classification_tests",
+            "-x",
+        ]
 
 
 class TestASuiteWithNothingInItHasNotFailed:

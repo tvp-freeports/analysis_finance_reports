@@ -1,0 +1,191 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:2
+msgid "freeports\\_dev.probe"
+msgstr ""
+
+#: freeports_dev.probe:1 of
+msgid "Ready-made probes: small scripts that ask one question of a document."
+msgstr ""
+
+#: freeports_dev.probe:3 of
+msgid ""
+"A probe is what one writes before a format exists -- *what kind of "
+"document is this*, *what sits under the management company label* -- to "
+"find out whether an assumption holds on more than one report. The ones "
+"general enough to be useful to the next format author ship in ``probes/``"
+" next to this module; directories of one's own, named with "
+"``dev.probes_dirs``, are searched first."
+msgstr ""
+
+#: freeports_dev.probe:8 of
+msgid "Two decisions are held here."
+msgstr ""
+
+#: freeports_dev.probe:10 of
+msgid ""
+"**The tool never imports a probe.** Describing one reads its docstring "
+"with :mod:`ast`; running one starts it as a separate process with the "
+"tool's own interpreter. So a probe is an independent file with no "
+"interface to honour beyond \"a docstring, arguments first, documents "
+"last\", and a broken probe breaks only itself."
+msgstr ""
+
+#: freeports_dev.probe:15 of
+msgid ""
+"**A substitution is always visible.** A probe of one's own with the name "
+"of a shipped one takes its place -- that is how a probe is improved "
+"before it is published -- and the listing says so."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:13:<autosummary>:1
+msgid ":py:obj:`SHIPPED_DIR <freeports_dev.probe.SHIPPED_DIR>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:13:<autosummary>:1
+#: freeports_dev.probe.SHIPPED_DIR:1 of
+msgid "The probes that ship with the tool."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:15
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ""
+":py:obj:`command_for <freeports_dev.probe.command_for>`\\ \\(probe\\, "
+"arguments\\, documents\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.command_for:1 of
+msgid ""
+"The process to start: the probe, run by the interpreter the tool itself "
+"runs under."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ":py:obj:`discover <freeports_dev.probe.discover>`\\ \\(own\\_dirs\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.discover:1 of
+msgid ""
+"Every probe by name: one's own directories first, in the order given, "
+"then the shipped ones."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ""
+":py:obj:`find_probe <freeports_dev.probe.find_probe>`\\ \\(probes\\, "
+"spelling\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.find_probe:1 of
+msgid "A probe by name, written with or without ``probe_`` and ``.py``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ""
+":py:obj:`format_listing <freeports_dev.probe.format_listing>`\\ "
+"\\(probes\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.format_listing:1 of
+msgid ""
+"One line per probe: the name, the question, and where it comes from if it"
+" is not shipped."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ""
+":py:obj:`run <freeports_dev.probe.run>`\\ \\(probe\\, arguments\\, "
+"documents\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.run:1 of
+msgid "Run a probe, letting its output through; returns its exit status."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ""
+":py:obj:`split_arguments <freeports_dev.probe.split_arguments>`\\ "
+"\\(words\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.split_arguments:1 of
+msgid ""
+"The probe's own arguments and the documents, split at the first word that"
+" is an existing path."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+msgid ":py:obj:`summary_of <freeports_dev.probe.summary_of>`\\ \\(path\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:25:<autosummary>:1
+#: freeports_dev.probe.summary_of:1 of
+msgid "The first line of a probe's docstring, read without executing the file."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:27
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:31:<autosummary>:1
+msgid ""
+":py:obj:`Probe <freeports_dev.probe.Probe>`\\ \\(name\\, path\\, "
+"origin\\, summary\\[\\, hides\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:33
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:36:<autosummary>:1
+msgid ":py:obj:`ProbeError <freeports_dev.probe.ProbeError>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.probe.rst:36:<autosummary>:1
+#: freeports_dev.probe.ProbeError:1 of
+msgid "A probe that cannot be found or a command line that cannot be split."
+msgstr ""
+
+#: freeports_dev.probe.Probe.hides:1 of
+msgid "The probe of the same name this one stands in for, if any."
+msgstr ""
+
+#: freeports_dev.probe.split_arguments:3 of
+msgid ""
+"Arguments come first and documents last, which is the one convention "
+"every probe follows; it lets the split be made without knowing anything "
+"about the probe."
+msgstr ""
+

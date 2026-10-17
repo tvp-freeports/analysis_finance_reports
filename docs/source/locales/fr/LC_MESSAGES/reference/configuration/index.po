@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -174,35 +174,39 @@ msgid ""
 msgstr ""
 
 #: ../../source/reference/configuration/index.md:87
-msgid "**detect the format**, where none was given;"
-msgstr ""
-
-#: ../../source/reference/configuration/index.md:88
 #, python-brace-format
 msgid "**validate the document specifiers** ({doc}`../../guides/user/documents`);"
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:89
+#: ../../source/reference/configuration/index.md:88
 msgid ""
 "**set the archive flag**, which must come before the next step because it"
 " can change the output path;"
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:91
+#: ../../source/reference/configuration/index.md:90
 msgid "**check that the output path's parent exists**;"
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:92
+#: ../../source/reference/configuration/index.md:91
 msgid ""
 "**check the single-file profile's path**, appending `out.csv` where "
 "needed."
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:94
-msgid "Unknown means error, everywhere"
+#: ../../source/reference/configuration/index.md:93
+#, python-brace-format
+msgid ""
+"The format is not on the list. It is settled later, by each job, against "
+"its own documents — the configured one, if any, is only the strongest of "
+"three sources ({doc}`options`, `format`)."
 msgstr ""
 
 #: ../../source/reference/configuration/index.md:96
+msgid "Unknown means error, everywhere"
+msgstr ""
+
+#: ../../source/reference/configuration/index.md:98
 msgid ""
 "An unknown YAML key, an unknown sub-key of `parallelism` or `out_flags`, "
 "an unknown batch column: all are explicit errors. A misspelled setting "
@@ -210,7 +214,7 @@ msgid ""
 "user is left believing it took effect."
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:100
+#: ../../source/reference/configuration/index.md:102
 msgid ""
 "The rule also refuses settings that were *considered and never "
 "implemented*. `out_flags: compressed:` is rejected even though "
@@ -218,18 +222,18 @@ msgid ""
 "make an option that does not exist look active."
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:104
+#: ../../source/reference/configuration/index.md:106
 msgid "The one setting that arrives in two moments: verbosity"
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:106
+#: ../../source/reference/configuration/index.md:108
 msgid ""
 "All four sources work, and verbosity is the only setting that cannot be "
 "applied all at once — which is worth understanding, because it has one "
 "visible consequence."
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:109
+#: ../../source/reference/configuration/index.md:111
 msgid ""
 "Logging has to be running before the configuration is resolved: resolving"
 " it is one of the things that can fail, and a failure nobody can see is "
@@ -241,7 +245,7 @@ msgid ""
 " resolved value."
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:117
+#: ../../source/reference/configuration/index.md:119
 msgid ""
 "The consequence: a configuration file cannot govern what was logged "
 "before the configuration file was read. Raising the verbosity opens the "
@@ -253,7 +257,7 @@ msgid ""
 "the only answer there was."
 msgstr ""
 
-#: ../../source/reference/configuration/index.md:125
+#: ../../source/reference/configuration/index.md:127
 msgid ""
 "Worker child processes have no such split: they resolve nothing and are "
 "handed the resolved verbosity inside their request, so a parent and its "
@@ -289,5 +293,8 @@ msgstr ""
 #~ "Today the verbosity of the process "
 #~ "you are watching can only be set"
 #~ " with `-v` and `-q`."
+#~ msgstr ""
+
+#~ msgid "**detect the format**, where none was given;"
 #~ msgstr ""
 

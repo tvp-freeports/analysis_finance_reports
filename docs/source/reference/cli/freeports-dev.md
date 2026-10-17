@@ -270,9 +270,12 @@ and a CI job needs nothing else.
 Two kinds of test live there and they cost very different amounts. The per-page tests are fast, and
 they are what you run every few minutes while working. The whole-document test replays the entire
 report and compares the output tables against `tests/formats/<FORMAT>/out/`; it is slow, it is
-marked `integration_tests`, and it is the one that actually says the format works. That marker is
-what `--fast` and `--slow` select on, and the flag is the one spelling of it — the marker string
-itself never needs to be written out by hand.
+marked `integration_tests`, and it is the one that actually says the format works. Next to it, every
+report variant also gets a classification test, marked `classification_tests`: it runs `freeports
+classify` on `report.pdf` and passes when the report is recognised as the format of its folder, or
+not recognised at all — recognised as another format is a failure. It opens the PDF, so it is slow
+too. Those two markers are what `--fast` and `--slow` select on (`--slow` takes both), and the flag
+is the one spelling of them — the marker strings never need to be written out by hand.
 
 ```{important}
 `tests/formats/<FORMAT>/out/**` is the repository's specification, not a snapshot. When a run

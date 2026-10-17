@@ -1,0 +1,87 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/rust-api.rst:3
+msgid "Rust API"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:5
+msgid ""
+"The engine is a Rust crate; its API is documented by **rustdoc**, "
+"generated from the crate's own doc-comments. It is published alongside "
+"this site rather than transcribed into ``.rst``: a hand-written copy of "
+"the Rust API would go stale within a week."
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:9
+msgid ""
+"`Open the rustdoc for the freeports crate "
+"<../rustdoc/freeports/index.html>`_"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:13
+msgid ""
+"The link resolves only in a published build, where ``cargo doc`` output "
+"has been copied into the site. To produce it locally, run ``make "
+"rustdoc`` in ``docs/`` before ``make html``, or read it directly with "
+"``cargo doc --open`` from ``packages/freeports``."
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:18
+msgid "Who needs which"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:24
+msgid "If you are"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:25
+msgid "Read"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:26
+msgid "developing the crate"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:27
+msgid "rustdoc, module by module"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:28
+msgid "writing a format"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:29
+msgid ""
+"the Python API in :doc:`python-api`, plus "
+":doc:`../guides/formats/writing-a-format`"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:30
+msgid "evaluating the project"
+msgstr ""
+
+#: ../../source/generated/rust-api.rst:31
+msgid ""
+"the :doc:`overview <../overview/index>`, and the :doc:`validation section"
+" <../validation/index>` it summarises"
+msgstr ""
+

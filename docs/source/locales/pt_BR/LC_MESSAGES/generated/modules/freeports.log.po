@@ -1,0 +1,163 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.log.rst:2
+msgid "freeports.log"
+msgstr ""
+
+#: ../../docstring freeports.log:1 of
+msgid ""
+"`freeports.log` — the five levels a format's algorithm writes with, plus "
+"the one settled helper. See `crate::python::log`."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`debug <freeports.log.debug>`\\ \\(message\\, \\*\\[\\, "
+"coord\\_ref\\_1\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid "What the author of the format needs while writing it."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`error <freeports.log.error>`\\ \\(message\\, \\*\\[\\, "
+"coord\\_ref\\_1\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+"Something the extraction got wrong and did not silently absorb — an "
+"accounting equation that does not balance, a row that had to be dropped."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`info <freeports.log.info>`\\ \\(message\\, \\*\\[\\, "
+"coord\\_ref\\_1\\, coord\\_ref\\_2\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid "The course of the extraction, for someone watching the run."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`trace <freeports.log.trace>`\\ \\(message\\, \\*\\[\\, "
+"coord\\_ref\\_1\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid "The finest detail, for a page that has stopped adding up."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`warn <freeports.log.warn>`\\ \\(message\\, \\*\\[\\, "
+"coord\\_ref\\_1\\, coord\\_ref\\_2\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+"Something a reader of the data must know: a value imposed rather than "
+"read, an assignment deduced from an ambiguity, something seen on the page"
+" and not modelled."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`warn_imposed <freeports.log.warn_imposed>`\\ \\(\\*\\, field\\, "
+"value\\, reason\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.log.rst:17:<autosummary>:1
+#: log.warn_imposed:1 of
+msgid "A value the engine decided instead of reading, said in one fixed wording."
+msgstr ""
+
+#: ../../docstring log.debug:1 of
+msgid ""
+"What the author of the format needs while writing it. Visible with `-vv`,"
+" and in `freeports.log.jsonl` at `-vvv`."
+msgstr ""
+
+#: ../../docstring log.debug:3 log.error:5 log.info:3 log.trace:3 log.warn:3 of
+msgid ""
+"The four coordinates are keyword-only and optional; report, page and "
+"activity come from the engine's spans and must not be passed."
+msgstr ""
+
+#: ../../docstring log.error:1 of
+msgid ""
+"Something the extraction got wrong and did not silently absorb — an "
+"accounting equation that does not balance, a row that had to be dropped. "
+"Reaches `.log.csv`."
+msgstr ""
+
+#: ../../docstring log.error:3 of
+msgid ""
+"It does **not** fail the pipe: raising an exception is how a pipe fails, "
+"and keeping the two apart is what lets an algorithm report a bad row "
+"without losing the page."
+msgstr ""
+
+#: ../../docstring log.info:1 of
+msgid ""
+"The course of the extraction, for someone watching the run. Never reaches"
+" `.log.csv`."
+msgstr ""
+
+#: ../../docstring log.trace:1 of
+msgid ""
+"The finest detail, for a page that has stopped adding up. Visible only at"
+" `-vvv`, where it also lands in `freeports.log.jsonl`."
+msgstr ""
+
+#: ../../docstring log.warn:1 of
+msgid ""
+"Something a reader of the data must know: a value imposed rather than "
+"read, an assignment deduced from an ambiguity, something seen on the page"
+" and not modelled. Reaches `.log.csv`."
+msgstr ""
+
+#: ../../docstring log.warn_imposed:3 of
+msgid ""
+"The free-text functions above are the point of this module, and this one "
+"is the counterweight: a recurring warning written by hand each time "
+"becomes ten phrasings of one fact, and then nobody can find it in the "
+"`.log.csv`. This is the only such helper that exists, because it is the "
+"only wording the rules have already settled. The next one is added when a"
+" phrasing has actually repeated itself, not in anticipation of it."
+msgstr ""
+
+#: ../../docstring log.warn_imposed:9 of
+msgid ""
+"`field` fills `Second coord ref`, the column that says which field a row "
+"is about."
+msgstr ""
+

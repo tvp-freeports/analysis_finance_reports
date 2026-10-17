@@ -46,8 +46,8 @@ Step by step:
    [below](#naming-a-new-format). The format that came closest in the search is the one to copy from.
 
 When the repository's own classification gets part of the way — it knows the entity and the
-language but cannot tell the variant — the engine's `classify` command prints that partial name
-together with the formats of the repository it still allows. That list *is* step 2 or 3 of this
+language but cannot tell the variant — the engine's {doc}`classify <../cli/freeports-classify>`
+command prints that partial name together with the formats of the repository it still allows. That list *is* step 2 or 3 of this
 heuristic, already worked out for you.
 
 ## The segments

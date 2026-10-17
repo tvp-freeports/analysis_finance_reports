@@ -1,9 +1,10 @@
 //! Entry point of the `freeports` binary.
 //!
 //! Four steps and no domain logic: parse the arguments, bring logging up *before* anything else
-//! can want to log, hand over to `cli::run::execute`, map its answer onto an exit code.
-//! Everything else — resolving the configuration, running the jobs, writing the results — lives
-//! in `cli::run`, so that an embedding program can do the same work without going through `main`.
+//! can want to log, hand over to `cli::run::execute` — or to `cli::classify::execute` for the
+//! `classify` subcommand — and map its answer onto an exit code. Everything else — resolving the
+//! configuration, running the jobs, writing the results — lives in `cli::run` and `cli::classify`,
+//! so that an embedding program can do the same work without going through `main`.
 //!
 //! # The three exit codes
 //!
@@ -20,6 +21,11 @@
 //! Rows and pages skipped do **not** raise the code: they are contained at their own level, happen
 //! on ordinary runs by the dozen, and already have their own end-of-run summary. See
 //! [`RunCompleteness`](freeports::cli::run::RunCompleteness).
+//!
+//! `classify` keeps the same table: `0` when every document was read — "not classified", a partial
+//! result and the algorithm disagreeing with the URL included —, `1` for an illegal configuration, a
+//! classifier that will not load, documents that disagree with each other or no readable document,
+//! `3` when some documents could be read and some could not.
 
 use clap::Parser;
 

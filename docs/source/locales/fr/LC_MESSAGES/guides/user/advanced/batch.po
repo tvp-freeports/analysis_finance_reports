@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -69,7 +69,9 @@ msgid "`format`"
 msgstr ""
 
 #: ../../source/guides/user/advanced/batch.md
-msgid "the format for this row"
+msgid ""
+"the format for this row — optional: left empty, the job detects it from "
+"its documents"
 msgstr ""
 
 #: ../../source/guides/user/advanced/batch.md
@@ -273,4 +275,7 @@ msgid ""
 "right and is incomplete: each row extracts what its own file contains, "
 "and the information that only exists across the files is simply absent."
 msgstr ""
+
+#~ msgid "the format for this row"
+#~ msgstr ""
 

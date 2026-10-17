@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-15 08:04+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -26,15 +26,28 @@ msgstr "Il comando `freeports`"
 #: ../../source/reference/cli/freeports.md:3
 #, python-brace-format
 msgid ""
-"Every option, what it sets, and what happens when it is left out. The same settings "
-"are reachable from three other sources — see {doc}`../configuration/index` — and this"
-" page is the command-line view of them."
+"Every option, what it sets, and what happens when it is left out. The "
+"same settings are reachable from three other sources — see "
+"{doc}`../configuration/index` — and this page is the command-line view of"
+" them."
 msgstr ""
-"Ogni opzione, che cosa imposta, e che cosa succede quando la si lascia fuori. Le "
-"stesse impostazioni si raggiungono da altre tre sorgenti — vedi "
-"{doc}`../configuration/index` — e questa pagina ne è la vista dalla riga di comando."
+"Ogni opzione, che cosa imposta, e che cosa succede quando la si lascia "
+"fuori. Le stesse impostazioni si raggiungono da altre tre sorgenti — vedi"
+" {doc}`../configuration/index` — e questa pagina ne è la vista dalla riga"
+" di comando."
 
 #: ../../source/reference/cli/freeports.md:7
+#, python-brace-format
+msgid ""
+"`freeports` has one subcommand, `classify`, which reports the format of "
+"documents without extracting anything: {doc}`freeports-classify`. "
+"Everything on this page is the command without it."
+msgstr ""
+"`freeports` ha un sottocomando, `classify`, che riporta il formato dei "
+"documenti senza estrarre niente: {doc}`freeports-classify`. Tutto ciò che"
+" sta in questa pagina riguarda il comando senza sottocomando."
+
+#: ../../source/reference/cli/freeports.md:10
 msgid "Every option at a glance"
 msgstr "Ogni opzione a colpo d'occhio"
 
@@ -71,8 +84,8 @@ msgid "the format"
 msgstr "il formato"
 
 #: ../../source/reference/cli/freeports.md
-msgid "infer it from a URL, or fail"
-msgstr "deducilo da un URL, oppure fallisci"
+msgid "detect it from the documents, or the job fails"
+msgstr "ricavarlo dai documenti, o il job fallisce"
 
 #: ../../source/reference/cli/freeports.md
 msgid "`--formats-directory`, `--repo`, `-F`, `-r`"
@@ -158,7 +171,8 @@ msgstr "un file per relazione e formato"
 msgid "*nothing said* — likewise"
 msgstr "*non detto* — idem"
 
-#: ../../source/reference/cli/freeports.md ../../source/reference/cli/freeports.md:110
+#: ../../source/reference/cli/freeports.md
+#: ../../source/reference/cli/freeports.md:178
 msgid "`--no-download`"
 msgstr "`--no-download`"
 
@@ -182,7 +196,8 @@ msgstr "il CSV di lotto"
 msgid "not in batch mode"
 msgstr "non in modalità a lotti"
 
-#: ../../source/reference/cli/freeports.md ../../source/reference/cli/freeports.md:122
+#: ../../source/reference/cli/freeports.md
+#: ../../source/reference/cli/freeports.md:190
 msgid "`--config`"
 msgstr "`--config`"
 
@@ -238,456 +253,906 @@ msgstr "la verbosità, contata"
 msgid "warnings only"
 msgstr "solo avvisi"
 
-#: ../../source/reference/cli/freeports.md:33
+#: ../../source/reference/cli/freeports.md:36
 msgid "Documents and format"
 msgstr "Documenti e formato"
 
-#: ../../source/reference/cli/freeports.md:35
+#: ../../source/reference/cli/freeports.md:38
 msgid "`--input` / `--report` / `-i`"
 msgstr "`--input` / `--report` / `-i`"
 
-#: ../../source/reference/cli/freeports.md:37
+#: ../../source/reference/cli/freeports.md:40
 #, python-brace-format
 msgid ""
-"Repeatable, and takes several values after one occurrence. Each value is a **document"
-" specifier** in the `<url>:<path>:<name>` grammar — "
-"{doc}`../../guides/user/documents` is that grammar in full, including how a `:` "
-"inside a value is quoted and what `save_pdf` does in each case."
+"Repeatable, and takes several values after one occurrence. Each value is "
+"a **document specifier** in the `<url>:<path>:<name>` grammar — "
+"{doc}`../../guides/user/documents` is that grammar in full, including how"
+" a `:` inside a value is quoted and what `save_pdf` does in each case."
 msgstr ""
-"Ripetibile, e prende più valori dopo una sola occorrenza. Ogni valore è uno "
-"**specificatore di documento** nella grammatica `<url>:<path>:<name>` — "
-"{doc}`../../guides/user/documents` è quella grammatica per esteso, compreso come si "
-"mette fra virgolette un `:` dentro un valore e che cosa fa `save_pdf` in ciascun "
-"caso."
-
-#: ../../source/reference/cli/freeports.md:46
-msgid ""
-"Giving none from this source leaves the field **unset** rather than empty, so a "
-"configuration file or the environment can still supply the documents."
-msgstr ""
-"Non darne nessuno da questa sorgente lascia il campo **non impostato** anziché vuoto,"
-" così che un file di configurazione o l'ambiente possano comunque fornire i "
-"documenti."
+"Ripetibile, e prende più valori dopo una sola occorrenza. Ogni valore è "
+"uno **specificatore di documento** nella grammatica `<url>:<path>:<name>`"
+" — {doc}`../../guides/user/documents` è quella grammatica per esteso, "
+"compreso come si mette fra virgolette un `:` dentro un valore e che cosa "
+"fa `save_pdf` in ciascun caso."
 
 #: ../../source/reference/cli/freeports.md:49
+msgid ""
+"Giving none from this source leaves the field **unset** rather than "
+"empty, so a configuration file or the environment can still supply the "
+"documents."
+msgstr ""
+"Non darne nessuno da questa sorgente lascia il campo **non impostato** "
+"anziché vuoto, così che un file di configurazione o l'ambiente possano "
+"comunque fornire i documenti."
+
+#: ../../source/reference/cli/freeports.md:52
 msgid "`--format` / `-f`"
 msgstr "`--format` / `-f`"
 
-#: ../../source/reference/cli/freeports.md:51
-msgid ""
-"The format name, as `metadata/formats.csv` of the repository synthesises it — "
-"`EURIZON-EN23`, `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`."
-msgstr ""
-"Il nome del formato, così come lo sintetizza il `metadata/formats.csv` del repository"
-" — `EURIZON-EN23`, `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`."
-
 #: ../../source/reference/cli/freeports.md:54
+#, python-brace-format
 msgid ""
-"Omit it and the engine tries to infer it from the URL of each document, using the repository's `url_mapping.csv`: the longest matching prefix wins, then the row with the more specific name, then the row that comes first. Inference works only for documents that *have* a URL. Two documents inferring **different** formats is an error rather than a choice made silently. Giving `-f` explicitly while inference also succeeds and disagrees is a warning, not an error: you were explicit, so you win, but you are told."
+"The format name, as `metadata/formats.csv` of the repository synthesises "
+"it — `EURIZON-EN23`, `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`. It is "
+"optional: left out, each job settles its format from its own documents. "
+"{doc}`../design/document-classification` explains why the run works this "
+"way; this section is what it does."
 msgstr ""
-"Omettilo e il motore prova a dedurlo dall'URL di ciascun documento, usando l'`url_mapping.csv` del repository: vince il prefisso più lungo che corrisponde, poi la riga con il nome più specifico, poi la riga che viene prima. La deduzione funziona solo per i documenti che un URL ce l'*hanno*. Due documenti che deducono formati **diversi** sono un errore anziché una scelta fatta in silenzio. Dare `-f` esplicitamente mentre anche la deduzione riesce ed è in disaccordo è un avviso, non un errore: sei stato esplicito, quindi vinci, ma te lo si dice."
+"Il nome del formato, come lo compone `metadata/formats.csv` del "
+"repository — `EURIZON-EN23`, `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`. È "
+"facoltativo: se manca, ogni job stabilisce il suo formato dai propri "
+"documenti. {doc}`../design/document-classification` spiega perché "
+"l'esecuzione funziona così; questa sezione dice che cosa fa."
 
-#: ../../source/reference/cli/freeports.md:60
-msgid "Where things live"
-msgstr "Dove stanno le cose"
+#: ../../source/reference/cli/freeports.md:59
+msgid "Where the format comes from"
+msgstr "Da dove viene il formato"
 
-#: ../../source/reference/cli/freeports.md:62
-msgid "`--formats-directory` / `--repo` / `-F` / `-r`"
-msgstr "`--formats-directory` / `--repo` / `-F` / `-r`"
+#: ../../source/reference/cli/freeports.md:61
+msgid ""
+"A job settles its format after its documents are resolved and before the "
+"format's recipe is loaded, from three sources in a fixed priority:"
+msgstr ""
+"Un job stabilisce il suo formato dopo aver risolto i documenti e prima di"
+" caricare la ricetta del formato, da tre fonti in una priorità fissa:"
 
 #: ../../source/reference/cli/freeports.md:64
 #, python-brace-format
 msgid ""
-"The formats repository. Note that the two tooling commands read a **differently "
-"named** variable for the same thing — `FREEPORTS_FORMATS_REPO`, not "
-"`FREEPORTS_FORMATS_REPO_PATH`; see {doc}`index`."
+"**the configuration** — `-f`, or `format` from any other source "
+"({doc}`../configuration/options`);"
 msgstr ""
-"Il repository di formati. Nota che i due comandi di servizio leggono per la stessa "
-"cosa una variabile **con un nome diverso** — `FREEPORTS_FORMATS_REPO`, non "
-"`FREEPORTS_FORMATS_REPO_PATH`; vedi {doc}`index`."
+"**la configurazione** — `-f`, o `format` da qualunque altra sorgente "
+"({doc}`../configuration/options`);"
+
+#: ../../source/reference/cli/freeports.md:65
+#, python-brace-format
+msgid ""
+"**the document classification** — the repository's "
+"`metadata/document_classify.yaml` and Python module ({doc}`../formats"
+"/document-classify-yaml`, {doc}`../formats/document-classify-python`), "
+"applied to the first pages of each document;"
+msgstr ""
+"**la classificazione del documento** — `metadata/document_classify.yaml` "
+"e il modulo Python del repository ({doc}`../formats/document-classify-"
+"yaml`, {doc}`../formats/document-classify-python`), applicati alle prime "
+"pagine di ogni documento;"
 
 #: ../../source/reference/cli/freeports.md:68
+#, python-brace-format
+msgid ""
+"**the URL** — the repository's `url_mapping.csv`, applied to the URL of "
+"each document that has one: the longest matching prefix wins, then the "
+"row with the more specific name, then the row that comes first. A row may"
+" give a partial name ({doc}`../formats/names`), which narrows the format "
+"without settling it; another source then has to complete it."
+msgstr ""
+"**l'URL** — `url_mapping.csv` del repository, applicato all'URL di ogni "
+"documento che ne ha uno: vince il prefisso più lungo che corrisponde, poi"
+" la riga con il nome più specifico, poi la riga che viene prima. Una riga"
+" può dare un nome parziale ({doc}`../formats/names`), che restringe il "
+"formato senza stabilirlo; è allora un'altra fonte a doverlo completare."
+
+#: ../../source/reference/cli/freeports.md:73
+msgid ""
+"The classification **runs even when the format is configured**: that is "
+"how the run can tell you that the format you gave is not the one the "
+"document looks like. It costs roughly 0.1–0.2 s per job."
+msgstr ""
+"La classificazione **gira anche quando il formato è configurato**: è così"
+" che l'esecuzione può dirti che il formato che hai dato non è quello che "
+"il documento sembra. Costa all'incirca 0,1–0,2 s per job."
+
+#: ../../source/reference/cli/freeports.md:76
+#, python-brace-format
+msgid ""
+"The two document sources are combined exactly as `freeports classify` "
+"combines them ({doc}`freeports-classify`, \"How the two sources "
+"combine\"): two names agree when some format of the repository falls "
+"under both, and the result is the most precise name both allow. The "
+"documents of one job are combined source by source first, then the two "
+"sources compared."
+msgstr ""
+"Le due fonti del documento si combinano esattamente come le combina "
+"`freeports classify` ({doc}`freeports-classify`, \"Come si combinano le "
+"due fonti\"): due nomi concordano quando qualche formato del repository "
+"ricade sotto entrambi, e il risultato è il nome più preciso che entrambi "
+"ammettono. I documenti di uno stesso job si combinano prima fonte per "
+"fonte, poi si confrontano le due fonti."
+
+#: ../../source/reference/cli/freeports.md:81
+#, python-brace-format
+msgid ""
+"The job runs only with a **complete** format. A partial one — "
+"`MEDIOLANUM-IT24.*`, say — fails the job, and the error lists the formats"
+" it still allows; run `freeports classify` on the document, or see "
+"{doc}`../formats/names`, to choose one, then give it with `-f`."
+msgstr ""
+"Il job gira solo con un formato **completo**. Uno parziale — poniamo "
+"`MEDIOLANUM-IT24.*` — fa fallire il job, e l'errore elenca i formati che "
+"ancora ammette; per sceglierne uno lancia `freeports classify` sul "
+"documento, o vedi {doc}`../formats/names`, poi daglielo con `-f`."
+
+#: ../../source/reference/cli/freeports.md:85
+msgid "When the sources cross"
+msgstr "Quando le fonti si incrociano"
+
+#: ../../source/reference/cli/freeports.md:87
+msgid ""
+"Every crossing is logged once per job, at the level below. The `WARN` "
+"lines are not something a setting can switch off, and since `.log.csv` "
+"always records `WARN` and above, they are there even under `-qq`."
+msgstr ""
+"Ogni incrocio si registra una volta per job, al livello indicato sotto. "
+"Le righe `WARN` non sono qualcosa che un'impostazione possa spegnere, e "
+"siccome `.log.csv` registra sempre da `WARN` in su, ci sono anche con "
+"`-qq`."
+
+#: ../../source/reference/cli/freeports.md
+msgid "What happens"
+msgstr "Che cosa succede"
+
+#: ../../source/reference/cli/freeports.md
+msgid "Logged"
+msgstr "Nel log"
+
+#: ../../source/reference/cli/freeports.md
+msgid "The job"
+msgstr "Il job"
+
+#: ../../source/reference/cli/freeports.md
+msgid "a format is configured, and the sources that answer agree with it"
+msgstr "un formato è configurato, e le fonti che rispondono concordano con esso"
+
+#: ../../source/reference/cli/freeports.md
+msgid "`DEBUG` *configured format confirmed by the document*"
+msgstr "`DEBUG` *configured format confirmed by the document*"
+
+#: ../../source/reference/cli/freeports.md
+msgid "runs with the configured format"
+msgstr "gira con il formato configurato"
+
+#: ../../source/reference/cli/freeports.md
+msgid "a format is configured, and the classification disagrees with it"
+msgstr "un formato è configurato, e la classificazione non concorda"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`WARN` *the configured format differs from the one the document "
+"classification finds; the configured one is used*"
+msgstr ""
+"`WARN` *the configured format differs from the one the document "
+"classification finds; the configured one is used*"
+
+#: ../../source/reference/cli/freeports.md
+msgid "a format is configured, and the URL disagrees with it"
+msgstr "un formato è configurato, e l'URL non concorda"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`WARN` *… differs from the one the report url maps to; the configured one"
+" is used*"
+msgstr ""
+"`WARN` *… differs from the one the report url maps to; the configured one"
+" is used*"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the classification and the URL disagree with each other"
+msgstr "la classificazione e l'URL sono in disaccordo fra loro"
+
+#: ../../source/reference/cli/freeports.md
+msgid "`ERROR` *the algorithm and the url disagree on the format*"
+msgstr "`ERROR` *the algorithm and the url disagree on the format*"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"runs with the configured format if there is one, otherwise with the "
+"classification's"
+msgstr ""
+"gira con il formato configurato se c'è, altrimenti con quello della "
+"classificazione"
+
+#: ../../source/reference/cli/freeports.md
+msgid "no format configured, and the sources settle a complete one"
+msgstr "nessun formato configurato, e le fonti ne stabiliscono uno completo"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`INFO` *format detected*, with `by` = `algorithm`, `url` or `algorithm "
+"and url`"
+msgstr ""
+"`INFO` *format detected*, con `by` = `algorithm`, `url` o `algorithm and "
+"url`"
+
+#: ../../source/reference/cli/freeports.md
+msgid "runs with that format"
+msgstr "gira con quel formato"
+
+#: ../../source/reference/cli/freeports.md
+msgid "no format configured, and only a partial one is settled"
+msgstr "nessun formato configurato, e se ne stabilisce solo uno parziale"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the job's error, listing the candidates"
+msgstr "l'errore del job, che elenca i candidati"
+
+#: ../../source/reference/cli/freeports.md
+msgid "fails"
+msgstr "fallisce"
+
+#: ../../source/reference/cli/freeports.md
+msgid "no format configured, and no source says anything"
+msgstr "nessun formato configurato, e nessuna fonte dice niente"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"the job's error: *no format was configured, and neither the document "
+"classification nor the report url determines one*"
+msgstr ""
+"l'errore del job: *no format was configured, and neither the document "
+"classification nor the report url determines one*"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the documents of the job disagree with each other on one source"
+msgstr "i documenti del job sono in disaccordo fra loro su una fonte"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"the job's error, naming what that source said of each document by its "
+"label"
+msgstr ""
+"l'errore del job, che riporta che cosa quella fonte ha detto di ciascun "
+"documento, nominandolo con la sua etichetta"
+
+#: ../../source/reference/cli/freeports.md
+msgid "fails, configured format or not"
+msgstr "fallisce, con o senza formato configurato"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the classification recognises a document"
+msgstr "la classificazione riconosce un documento"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`INFO` *document classified as '…'* in that document's span, with the "
+"page and the step or pipeline; *… by exclusion* when the step is the "
+"unconditional *otherwise* of a block"
+msgstr ""
+"`INFO` *document classified as '…'* nello span di quel documento, con la "
+"pagina e il passo o la pipeline; *… by exclusion* quando il passo è "
+"l'*altrimenti* incondizionato di un blocco"
+
+#: ../../source/reference/cli/freeports.md
+msgid "—"
+msgstr "—"
+
+#: ../../source/reference/cli/freeports.md:103
+msgid ""
+"When both sources disagree with a configured format, both `WARN` lines "
+"are written: they are two different facts."
+msgstr ""
+"Quando entrambe le fonti sono in disaccordo con un formato configurato, "
+"si scrivono tutte e due le righe `WARN`: sono due fatti diversi."
+
+#: ../../source/reference/cli/freeports.md:106
+msgid ""
+"Classification can also **break**, and what that costs depends on whether"
+" there is a format to fall back on:"
+msgstr ""
+"La classificazione può anche **rompersi**, e quanto costa dipende da se "
+"c'è un formato su cui ripiegare:"
+
+#: ../../source/reference/cli/freeports.md
+msgid "What breaks"
+msgstr "Che cosa si rompe"
+
+#: ../../source/reference/cli/freeports.md
+msgid "With a configured format"
+msgstr "Con un formato configurato"
+
+#: ../../source/reference/cli/freeports.md
+msgid "Without one"
+msgstr "Senza"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"the repository's classification will not load (an invalid "
+"`document_classify.yaml`, a module that will not import, a rule refused "
+"at load time)"
+msgstr ""
+"la classificazione del repository non si carica (un "
+"`document_classify.yaml` non valido, un modulo che non si importa, una "
+"regola rifiutata al caricamento)"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`ERROR` *… could not be loaded, the configured format is used unchecked*;"
+" the job runs, checked against neither source"
+msgstr ""
+"`ERROR` *… could not be loaded, the configured format is used unchecked*;"
+" il job gira, senza confronto con nessuna delle due fonti"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the job fails with the load error"
+msgstr "il job fallisce con l'errore di caricamento"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"a document's classification fails at run time (a page that will not "
+"convert, a Python pipeline giving two names, a name that does not exist)"
+msgstr ""
+"la classificazione di un documento fallisce durante l'esecuzione (una "
+"pagina che non si converte, una pipeline Python che dà due nomi, un nome "
+"che non esiste)"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`ERROR` in that document's span; its classification counts as nothing, "
+"its URL still counts, and the job runs"
+msgstr ""
+"`ERROR` nello span di quel documento; la sua classificazione vale niente,"
+" il suo URL conta ancora, e il job gira"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the job fails, naming the document"
+msgstr "il job fallisce, nominando il documento"
+
+#: ../../source/reference/cli/freeports.md
+msgid "`url_mapping.csv` cannot be read, or a row is refused"
+msgstr "`url_mapping.csv` non si legge, o una riga è rifiutata"
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`WARN` *cannot detect format from this report url*; the URL counts as "
+"nothing"
+msgstr "`WARN` *cannot detect format from this report url*; l'URL vale niente"
+
+#: ../../source/reference/cli/freeports.md
+msgid "the same"
+msgstr "lo stesso"
+
+#: ../../source/reference/cli/freeports.md:115
+msgid ""
+"The run never falls back on the URL alone when the classification is "
+"broken: an author's rules that fail are not evidence for anything else."
+msgstr ""
+"L'esecuzione non ripiega mai sul solo URL quando la classificazione è "
+"rotta: regole d'autore che falliscono non sono un indizio di nient'altro."
+
+#: ../../source/reference/cli/freeports.md:118
+msgid ""
+"A job that cannot settle its format costs **that job**. In a batch the "
+"other rows run and the run exits `3`; a run in which no job succeeds "
+"exits `1` ([below](#what-the-exit-status-says))."
+msgstr ""
+"Un job che non riesce a stabilire il suo formato costa **quel job**. In "
+"un lotto le altre righe girano e l'esecuzione esce con `3`; un'esecuzione"
+" in cui nessun job riesce esce con `1` ([sotto](#what-the-exit-status-"
+"says))."
+
+#: ../../source/reference/cli/freeports.md:122
+msgid ""
+"Without a configured format, the events of settling it are logged under a"
+" bare `job` span — `job/document[<name>]` in the `Activity` column of "
+"`.log.csv` — because the format is not known yet. From the moment it is "
+"settled, events are under `job[<format>]` as usual. With `-f`, every "
+"event is under `job[<format>]` from the start."
+msgstr ""
+"Senza un formato configurato, gli eventi del suo accertamento si "
+"registrano sotto uno span `job` nudo — `job/document[<name>]` nella "
+"colonna `Activity` di `.log.csv` — perché il formato non è ancora noto. "
+"Dal momento in cui è stabilito, gli eventi stanno sotto `job[<format>]` "
+"come al solito. Con `-f`, ogni evento sta sotto `job[<format>]` fin "
+"dall'inizio."
+
+#: ../../source/reference/cli/freeports.md:128
+msgid "Where things live"
+msgstr "Dove stanno le cose"
+
+#: ../../source/reference/cli/freeports.md:130
+msgid "`--formats-directory` / `--repo` / `-F` / `-r`"
+msgstr "`--formats-directory` / `--repo` / `-F` / `-r`"
+
+#: ../../source/reference/cli/freeports.md:132
+#, python-brace-format
+msgid ""
+"The formats repository. From the environment it is "
+"`FREEPORTS_FORMATS_REPO_PATH`, and `freeports-dev` and `freeports-"
+"validate` read the same variable and accept the same four spellings on "
+"their command lines; see {doc}`index`."
+msgstr ""
+"Il repository di formati. Dall'ambiente è `FREEPORTS_FORMATS_REPO_PATH`, "
+"e `freeports-dev` e `freeports-validate` leggono la stessa variabile e "
+"accettano le stesse quattro grafie sulla riga di comando; vedi "
+"{doc}`index`."
+
+#: ../../source/reference/cli/freeports.md:136
 msgid "`--db-directory` / `-I`"
 msgstr "`--db-directory` / `-I`"
 
-#: ../../source/reference/cli/freeports.md:70
+#: ../../source/reference/cli/freeports.md:138
 msgid "The input database."
 msgstr "Il database di ingresso."
 
-#: ../../source/reference/cli/freeports.md:72
+#: ../../source/reference/cli/freeports.md:140
 msgid "`--target-list` / `-T`"
 msgstr "`--target-list` / `-T`"
 
-#: ../../source/reference/cli/freeports.md:74
+#: ../../source/reference/cli/freeports.md:142
 msgid ""
-"Repeatable, and takes several values after one occurrence. **This is the check that "
-"runs first**: a configuration with no target list from any source is rejected before "
-"a single PDF is opened."
+"Repeatable, and takes several values after one occurrence. **This is the "
+"check that runs first**: a configuration with no target list from any "
+"source is rejected before a single PDF is opened."
 msgstr ""
-"Ripetibile, e prende più valori dopo una sola occorrenza. **È questo il controllo che"
-" gira per primo**: una configurazione senza alcuna lista bersaglio da nessuna "
-"sorgente è rifiutata prima che sia aperto un solo PDF."
+"Ripetibile, e prende più valori dopo una sola occorrenza. **È questo il "
+"controllo che gira per primo**: una configurazione senza alcuna lista "
+"bersaglio da nessuna sorgente è rifiutata prima che sia aperto un solo "
+"PDF."
 
-#: ../../source/reference/cli/freeports.md:77
+#: ../../source/reference/cli/freeports.md:145
 msgid ""
-"From the environment the value is taken **whole** and never split, so a list whose "
-"name contains a comma still works."
+"From the environment the value is taken **whole** and never split, so a "
+"list whose name contains a comma still works."
 msgstr ""
-"Dall'ambiente il valore è preso **per intero** e mai diviso, quindi una lista il cui "
-"nome contiene una virgola funziona comunque."
+"Dall'ambiente il valore è preso **per intero** e mai diviso, quindi una "
+"lista il cui nome contiene una virgola funziona comunque."
 
-#: ../../source/reference/cli/freeports.md:80
+#: ../../source/reference/cli/freeports.md:148
 msgid "Output"
 msgstr "Risultati"
 
-#: ../../source/reference/cli/freeports.md:82
+#: ../../source/reference/cli/freeports.md:150
 msgid "`--out` / `-o`"
 msgstr "`--out` / `-o`"
 
-#: ../../source/reference/cli/freeports.md:84
+#: ../../source/reference/cli/freeports.md:152
 msgid ""
 "Where results go. A directory for `regular` and `structured`; a file for "
-"`single_file` — and if the path does not end in `.csv` under that profile, `out.csv` "
-"is appended to it."
+"`single_file` — and if the path does not end in `.csv` under that "
+"profile, `out.csv` is appended to it."
 msgstr ""
-"Dove vanno i risultati. Una cartella per `regular` e `structured`; un file per "
-"`single_file` — e se sotto quel profilo il percorso non finisce in `.csv`, gli viene "
-"aggiunto `out.csv`."
+"Dove vanno i risultati. Una cartella per `regular` e `structured`; un "
+"file per `single_file` — e se sotto quel profilo il percorso non finisce "
+"in `.csv`, gli viene aggiunto `out.csv`."
 
-#: ../../source/reference/cli/freeports.md:87
+#: ../../source/reference/cli/freeports.md:155
 #, python-brace-format
 msgid ""
-"The **parent** must exist; the directory itself need not. Defaults to the working "
-"directory resolved to an absolute path, not to the literal `.` — see "
-"{doc}`../configuration/options`."
+"The **parent** must exist; the directory itself need not. Defaults to the"
+" working directory resolved to an absolute path, not to the literal `.` —"
+" see {doc}`../configuration/options`."
 msgstr ""
-"Il **genitore** deve esistere; la cartella stessa no. Il valore predefinito è la "
-"cartella di lavoro risolta in un percorso assoluto, non il letterale `.` — vedi "
-"{doc}`../configuration/options`."
+"Il **genitore** deve esistere; la cartella stessa no. Il valore "
+"predefinito è la cartella di lavoro risolta in un percorso assoluto, non "
+"il letterale `.` — vedi {doc}`../configuration/options`."
 
-#: ../../source/reference/cli/freeports.md:90
+#: ../../source/reference/cli/freeports.md:158
 msgid ""
-"A path ending in `.tar.gz` switches the archive flag on and the suffix is stripped, "
-"so `-o results.tar.gz` and `-o results -z` mean the same thing."
+"A path ending in `.tar.gz` switches the archive flag on and the suffix is"
+" stripped, so `-o results.tar.gz` and `-o results -z` mean the same "
+"thing."
 msgstr ""
-"Un percorso che finisce in `.tar.gz` accende l'opzione di archivio e il suffisso "
-"viene tolto, quindi `-o results.tar.gz` e `-o results -z` vogliono dire la stessa "
-"cosa."
+"Un percorso che finisce in `.tar.gz` accende l'opzione di archivio e il "
+"suffisso viene tolto, quindi `-o results.tar.gz` e `-o results -z` "
+"vogliono dire la stessa cosa."
 
-#: ../../source/reference/cli/freeports.md:93
+#: ../../source/reference/cli/freeports.md:161
 msgid "`--out-profile` / `-P`"
 msgstr "`--out-profile` / `-P`"
 
-#: ../../source/reference/cli/freeports.md:95
+#: ../../source/reference/cli/freeports.md:163
 #, python-brace-format
 msgid ""
 "`regular` (default), `single_file`, or `structured`, case-insensitively. "
 "{doc}`../../guides/user/output` says what each writes."
 msgstr ""
-"`regular` (predefinito), `single_file`, oppure `structured`, senza distinzione fra "
-"maiuscole e minuscole. {doc}`../../guides/user/output` dice che cosa scrive ciascuno."
+"`regular` (predefinito), `single_file`, oppure `structured`, senza "
+"distinzione fra maiuscole e minuscole. {doc}`../../guides/user/output` "
+"dice che cosa scrive ciascuno."
 
-#: ../../source/reference/cli/freeports.md:98
+#: ../../source/reference/cli/freeports.md:166
 msgid "`--archive` / `-z` and `--separate-out`"
 msgstr "`--archive` / `-z` e `--separate-out`"
 
-#: ../../source/reference/cli/freeports.md:100
+#: ../../source/reference/cli/freeports.md:168
 msgid ""
-"Two independent flags: a compressed sibling of the output, and one CSV per `(report, "
-"format)` pair for the two tables that carry them."
+"Two independent flags: a compressed sibling of the output, and one CSV "
+"per `(report, format)` pair for the two tables that carry them."
 msgstr ""
-"Due opzioni indipendenti: una copia compressa accanto ai risultati, e un CSV per "
-"ciascuna coppia `(relazione, formato)` per le due tabelle che le portano."
+"Due opzioni indipendenti: una copia compressa accanto ai risultati, e un "
+"CSV per ciascuna coppia `(relazione, formato)` per le due tabelle che le "
+"portano."
 
-#: ../../source/reference/cli/freeports.md:104
+#: ../../source/reference/cli/freeports.md:172
 msgid ""
-"Both flags can only be switched **on** from the command line. Present means true; "
-"absent means *nothing said*, not false — otherwise every command line would silently "
-"switch off what a configuration file had turned on. To turn one off, say so where "
-"`false` can be written: `FREEPORTS_ARCHIVE=false`, or `archive: false` in the file."
+"Both flags can only be switched **on** from the command line. Present "
+"means true; absent means *nothing said*, not false — otherwise every "
+"command line would silently switch off what a configuration file had "
+"turned on. To turn one off, say so where `false` can be written: "
+"`FREEPORTS_ARCHIVE=false`, or `archive: false` in the file."
 msgstr ""
-"Dalla riga di comando entrambe le opzioni si possono solo **accendere**. Presente "
-"significa vero; assente significa *non detto*, non falso — altrimenti ogni riga di "
-"comando spegnerebbe in silenzio ciò che un file di configurazione aveva acceso. Per "
-"spegnerne una, dillo dove si può scrivere `false`: `FREEPORTS_ARCHIVE=false`, oppure "
-"`archive: false` nel file."
+"Dalla riga di comando entrambe le opzioni si possono solo **accendere**. "
+"Presente significa vero; assente significa *non detto*, non falso — "
+"altrimenti ogni riga di comando spegnerebbe in silenzio ciò che un file "
+"di configurazione aveva acceso. Per spegnerne una, dillo dove si può "
+"scrivere `false`: `FREEPORTS_ARCHIVE=false`, oppure `archive: false` nel "
+"file."
 
-#: ../../source/reference/cli/freeports.md:112
+#: ../../source/reference/cli/freeports.md:180
 msgid ""
-"Sets `save_pdf` to false. Despite its name it does **not** suppress the download — it"
-" suppresses *keeping* the downloaded file on disk. Absent leaves the field unset; the"
-" default, from the defaults tier, is to keep."
+"Sets `save_pdf` to false. Despite its name it does **not** suppress the "
+"download — it suppresses *keeping* the downloaded file on disk. Absent "
+"leaves the field unset; the default, from the defaults tier, is to keep."
 msgstr ""
-"Imposta `save_pdf` a falso. Nonostante il nome **non** impedisce lo scaricamento — "
-"impedisce di *conservare* sul disco il file scaricato. Assente lascia il campo non "
-"impostato, e il livello dei valori predefiniti dice di conservarlo."
+"Imposta `save_pdf` a falso. Nonostante il nome **non** impedisce lo "
+"scaricamento — impedisce di *conservare* sul disco il file scaricato. "
+"Assente lascia il campo non impostato, e il livello dei valori "
+"predefiniti dice di conservarlo."
 
-#: ../../source/reference/cli/freeports.md:116
+#: ../../source/reference/cli/freeports.md:184
 msgid "Batch and configuration"
 msgstr "Lotti e configurazione"
 
-#: ../../source/reference/cli/freeports.md:118
+#: ../../source/reference/cli/freeports.md:186
 msgid "`--batch` / `-b`"
 msgstr "`--batch` / `-b`"
 
-#: ../../source/reference/cli/freeports.md:120
+#: ../../source/reference/cli/freeports.md:188
 #, python-brace-format
 msgid "A CSV, one job per row. {doc}`../../guides/user/advanced/batch`."
 msgstr "Un CSV, un job per riga. {doc}`../../guides/user/advanced/batch`."
 
-#: ../../source/reference/cli/freeports.md:124
+#: ../../source/reference/cli/freeports.md:192
 #, python-brace-format
 msgid ""
-"Use this configuration file instead of searching the three standard tiers. "
-"{doc}`../configuration/config_file`."
+"Use this configuration file instead of searching the three standard "
+"tiers. {doc}`../configuration/config_file`."
 msgstr ""
-"Usa questo file di configurazione anziché cercare nei tre livelli standard. "
-"{doc}`../configuration/config_file`."
+"Usa questo file di configurazione anziché cercare nei tre livelli "
+"standard. {doc}`../configuration/config_file`."
 
-#: ../../source/reference/cli/freeports.md:127
+#: ../../source/reference/cli/freeports.md:195
 msgid "Parallelism"
 msgstr "Parallelismo"
 
-#: ../../source/reference/cli/freeports.md:129
+#: ../../source/reference/cli/freeports.md:197
 msgid ""
-"`--workers` / `-j` is the default for **both** levels; `--jobs` and `--pages` "
-"override one each. Each takes a positive integer **or** the word `auto`, and `auto` "
-"is a value you can write, not merely the absence of one — it is how a level is put "
-"back to automatic after a configuration file has pinned it to a number."
+"`--workers` / `-j` is the default for **both** levels; `--jobs` and "
+"`--pages` override one each. Each takes a positive integer **or** the "
+"word `auto`, and `auto` is a value you can write, not merely the absence "
+"of one — it is how a level is put back to automatic after a configuration"
+" file has pinned it to a number."
 msgstr ""
-"`--workers` / `-j` è il valore predefinito di **entrambi** i livelli; `--jobs` e "
-"`--pages` ne scavalcano uno ciascuna. Ciascuna prende un intero positivo **oppure** "
-"la parola `auto`, e `auto` è un valore che si può scrivere, non semplicemente "
-"l'assenza di un valore — è il modo in cui si rimette un livello su automatico dopo "
-"che un file di configurazione l'ha fissato a un numero."
+"`--workers` / `-j` è il valore predefinito di **entrambi** i livelli; "
+"`--jobs` e `--pages` ne scavalcano uno ciascuna. Ciascuna prende un "
+"intero positivo **oppure** la parola `auto`, e `auto` è un valore che si "
+"può scrivere, non semplicemente l'assenza di un valore — è il modo in cui"
+" si rimette un livello su automatico dopo che un file di configurazione "
+"l'ha fissato a un numero."
 
-#: ../../source/reference/cli/freeports.md:134
+#: ../../source/reference/cli/freeports.md:202
 #, python-brace-format
 msgid ""
-"Zero and negative values are a typed error naming the option you mistyped, not a "
-"generic message about a concept. {doc}`../../guides/user/advanced/parallelism`."
+"Zero and negative values are a typed error naming the option you "
+"mistyped, not a generic message about a concept. "
+"{doc}`../../guides/user/advanced/parallelism`."
 msgstr ""
-"Zero e i valori negativi sono un errore tipizzato che nomina l'opzione che hai "
-"sbagliato a scrivere, non un messaggio generico su un concetto. "
+"Zero e i valori negativi sono un errore tipizzato che nomina l'opzione "
+"che hai sbagliato a scrivere, non un messaggio generico su un concetto. "
 "{doc}`../../guides/user/advanced/parallelism`."
 
-#: ../../source/reference/cli/freeports.md:137
+#: ../../source/reference/cli/freeports.md:205
 msgid "Verbosity: `-v` and `-q`"
 msgstr "Verbosità: `-v` e `-q`"
 
-#: ../../source/reference/cli/freeports.md:138
+#: ../../source/reference/cli/freeports.md:206
 msgid ""
-"`-v` and `-q` are **counted** and are **independent dials**, not opposed flags: the "
-"net of the two counts is added to the default and clamped, so no combination is an "
-"error and `-vv -q` is legal."
+"`-v` and `-q` are **counted** and are **independent dials**, not opposed "
+"flags: the net of the two counts is added to the default and clamped, so "
+"no combination is an error and `-vv -q` is legal."
 msgstr ""
-"`-v` e `-q` sono **contate** e sono **due manopole indipendenti**, non opzioni "
-"contrapposte: il saldo netto dei due conteggi si somma al valore predefinito e viene "
-"poi riportato dentro i limiti, quindi nessuna combinazione è un errore e `-vv -q` è "
-"lecito."
+"`-v` e `-q` sono **contate** e sono **due manopole indipendenti**, non "
+"opzioni contrapposte: il saldo netto dei due conteggi si somma al valore "
+"predefinito e viene poi riportato dentro i limiti, quindi nessuna "
+"combinazione è un errore e `-vv -q` è lecito."
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "Flags"
 msgstr "Opzioni"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "Level"
 msgstr "Livello"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "none"
 msgstr "nessuna"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "warnings"
 msgstr "avvisi"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-q`"
 msgstr "`-q`"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "errors only"
 msgstr "solo errori"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-qq` or more"
 msgstr "`-qq` o più"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "silent"
 msgstr "silenzio"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-v`"
 msgstr "`-v`"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "info"
 msgstr "info"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-vv`"
 msgstr "`-vv`"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "debug"
 msgstr "debug"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-vvv` or more"
 msgstr "`-vvv` o più"
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "trace"
 msgstr "trace"
 
-#: ../../source/reference/cli/freeports.md:151
+#: ../../source/reference/cli/freeports.md:219
 #, python-brace-format
 msgid ""
-"`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key set the same dial,"
-" and both work — but they are inside a configuration that cannot be read until "
-"logging is already running, so they take effect the moment it resolves rather than "
-"from the first line. See {doc}`../configuration/index` for the one consequence."
+"`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key set "
+"the same dial, and both work — but they are inside a configuration that "
+"cannot be read until logging is already running, so they take effect the "
+"moment it resolves rather than from the first line. See "
+"{doc}`../configuration/index` for the one consequence."
 msgstr ""
-"`FREEPORTS_VERBOSITY` e la chiave `verbosity` del file di configurazione agiscono "
-"sulla stessa manopola, e funzionano entrambe — ma stanno dentro una configurazione "
-"che non si può leggere finché il logging non è già in piedi, quindi entrano in vigore"
-" nel momento in cui essa si risolve anziché dalla prima riga. Vedi "
-"{doc}`../configuration/index` per l'unica conseguenza."
+"`FREEPORTS_VERBOSITY` e la chiave `verbosity` del file di configurazione "
+"agiscono sulla stessa manopola, e funzionano entrambe — ma stanno dentro "
+"una configurazione che non si può leggere finché il logging non è già in "
+"piedi, quindi entrano in vigore nel momento in cui essa si risolve "
+"anziché dalla prima riga. Vedi {doc}`../configuration/index` per l'unica "
+"conseguenza."
 
-#: ../../source/reference/cli/freeports.md:157
+#: ../../source/reference/cli/freeports.md:225
 msgid "What the exit status says"
 msgstr "Che cosa dice lo stato di uscita"
 
-#: ../../source/reference/cli/freeports.md:159
+#: ../../source/reference/cli/freeports.md:227
 #, python-brace-format
 msgid ""
-"A run ends in one of **three** states, and the exit status distinguishes all three. "
-"Two would not be enough, for the same reason `freeports-validate check-grants` needs "
-"three ({doc}`freeports-validate`): *everything I read was fine* and *I read "
-"everything and it was fine* are different sentences."
+"A run ends in one of **three** states, and the exit status distinguishes "
+"all three. Two would not be enough, for the same reason `freeports-"
+"validate check-grants` needs three ({doc}`freeports-validate`): "
+"*everything I read was fine* and *I read everything and it was fine* are "
+"different sentences."
 msgstr ""
-"Un'esecuzione finisce in uno di **tre** stati, e lo stato di uscita li distingue "
-"tutti e tre. Due non basterebbero, per lo stesso motivo per cui a `freeports-validate"
-" check-grants` ne servono tre ({doc}`freeports-validate`): *tutto ciò che ho letto "
-"andava bene* e *ho letto tutto e andava bene* sono frasi diverse."
+"Un'esecuzione finisce in uno di **tre** stati, e lo stato di uscita li "
+"distingue tutti e tre. Due non basterebbero, per lo stesso motivo per cui"
+" a `freeports-validate check-grants` ne servono tre ({doc}`freeports-"
+"validate`): *tutto ciò che ho letto andava bene* e *ho letto tutto e "
+"andava bene* sono frasi diverse."
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "Exit"
 msgstr "Uscita"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "What it means"
 msgstr "Che cosa significa"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "`0`"
 msgstr "`0`"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "every document of every job was read, and the results were written"
 msgstr "ogni documento di ogni job è stato letto, e i risultati sono stati scritti"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "`1`"
 msgstr "`1`"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "the run produced nothing: an illegal configuration, or no job succeeded"
 msgstr ""
-"l'esecuzione non ha prodotto niente: una configurazione illecita, oppure nessun job è"
-" riuscito"
+"l'esecuzione non ha prodotto niente: una configurazione illecita, oppure "
+"nessun job è riuscito"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "`3`"
 msgstr "`3`"
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid ""
-"the results were written, and **not everything was read** — jobs or documents were "
-"skipped"
+"the results were written, and **not everything was read** — jobs or "
+"documents were skipped"
 msgstr ""
-"i risultati sono stati scritti, e **non è stato letto tutto** — sono stati saltati "
-"dei job o dei documenti"
+"i risultati sono stati scritti, e **non è stato letto tutto** — sono "
+"stati saltati dei job o dei documenti"
 
-#: ../../source/reference/cli/freeports.md:170
+#: ../../source/reference/cli/freeports.md:238
 msgid ""
-"`3` is deliberately the same number `freeports-validate` uses for the same idea. Two "
-"commands of one suite must not ask you to remember two tables."
+"`3` is deliberately the same number `freeports-validate` uses for the "
+"same idea. Two commands of one suite must not ask you to remember two "
+"tables."
 msgstr ""
-"`3` è deliberatamente lo stesso numero che `freeports-validate` usa per la stessa "
-"idea. Due comandi della stessa suite non devono chiederti di ricordare due tabelle."
+"`3` è deliberatamente lo stesso numero che `freeports-validate` usa per "
+"la stessa idea. Due comandi della stessa suite non devono chiederti di "
+"ricordare due tabelle."
 
-#: ../../source/reference/cli/freeports.md:173
+#: ../../source/reference/cli/freeports.md:241
 msgid "What does *not* raise it"
 msgstr "Che cosa *non* lo alza"
 
-#: ../../source/reference/cli/freeports.md:175
+#: ../../source/reference/cli/freeports.md:243
 #, python-brace-format
 msgid ""
-"Rows and pages skipped do not. They are contained at their own level, they happen on "
-"ordinary runs by the dozen — a page whose layout a format does not cover, a row whose"
-" value will not parse — and they are already summarised in their own end-of-run event"
-" and listed one by one in `.log.csv` ({doc}`../../guides/user/logging`). A run that "
-"skipped four hundred rows and read every document it was given exits `0`."
+"Rows and pages skipped do not. They are contained at their own level, "
+"they happen on ordinary runs by the dozen — a page whose layout a format "
+"does not cover, a row whose value will not parse — and they are already "
+"summarised in their own end-of-run event and listed one by one in "
+"`.log.csv` ({doc}`../../guides/user/logging`). A run that skipped four "
+"hundred rows and read every document it was given exits `0`."
 msgstr ""
-"Le righe e le pagine saltate no. Sono contenute al proprio livello, capitano a "
-"dozzine nelle esecuzioni ordinarie — una pagina il cui layout un formato non copre, "
-"una riga del cui valore non si riesce a fare il parsing — e sono già riassunte in un "
-"evento di fine esecuzione tutto loro ed elencate una per una nel `.log.csv` "
-"({doc}`../../guides/user/logging`). Un'esecuzione che ha saltato quattrocento righe e"
-" ha letto ogni documento che le è stato dato esce con `0`."
+"Le righe e le pagine saltate no. Sono contenute al proprio livello, "
+"capitano a dozzine nelle esecuzioni ordinarie — una pagina il cui layout "
+"un formato non copre, una riga del cui valore non si riesce a fare il "
+"parsing — e sono già riassunte in un evento di fine esecuzione tutto loro"
+" ed elencate una per una nel `.log.csv` "
+"({doc}`../../guides/user/logging`). Un'esecuzione che ha saltato "
+"quattrocento righe e ha letto ogni documento che le è stato dato esce con"
+" `0`."
 
-#: ../../source/reference/cli/freeports.md:181
+#: ../../source/reference/cli/freeports.md:249
 msgid ""
-"The line is drawn at **what was not read at all**: a job that failed produced nothing"
-" for any of its documents, and a document that would not open produced nothing at "
-"all. Those are pieces of the batch that are simply absent from the output, and no "
-"amount of reading the results would reveal it."
+"The line is drawn at **what was not read at all**: a job that failed "
+"produced nothing for any of its documents, and a document that would not "
+"open produced nothing at all. Those are pieces of the batch that are "
+"simply absent from the output, and no amount of reading the results would"
+" reveal it."
 msgstr ""
-"La linea è tracciata su **ciò che non è stato letto affatto**: un job fallito non ha "
-"prodotto niente per nessuno dei propri documenti, e un documento che non si è aperto "
-"non ha prodotto proprio niente. Quelli sono pezzi del lotto semplicemente assenti dai"
-" risultati, e nessuna lettura dei risultati lo rivelerebbe."
+"La linea è tracciata su **ciò che non è stato letto affatto**: un job "
+"fallito non ha prodotto niente per nessuno dei propri documenti, e un "
+"documento che non si è aperto non ha prodotto proprio niente. Quelli sono"
+" pezzi del lotto semplicemente assenti dai risultati, e nessuna lettura "
+"dei risultati lo rivelerebbe."
 
-#: ../../source/reference/cli/freeports.md:186
+#: ../../source/reference/cli/freeports.md:254
 msgid ""
-"A failing job no longer costs the run. A batch of 904 jobs in which two fail writes "
-"the other 902 and exits `3`; only a run in which *nothing* was produced exits `1` "
-"without writing, because nine empty tables and nine tables nobody could fill look the"
-" same on disk."
+"A failing job no longer costs the run. A batch of 904 jobs in which two "
+"fail writes the other 902 and exits `3`; only a run in which *nothing* "
+"was produced exits `1` without writing, because nine empty tables and "
+"nine tables nobody could fill look the same on disk."
 msgstr ""
-"Un job fallito non costa più l'esecuzione. Un lotto di 904 job in cui due falliscono "
-"scrive gli altri 902 ed esce con `3`; solo un'esecuzione in cui non è stato prodotto "
-"*niente* esce con `1` senza scrivere, perché sul disco nove tabelle vuote e nove "
-"tabelle che nessuno ha potuto riempire si assomigliano."
+"Un job fallito non costa più l'esecuzione. Un lotto di 904 job in cui due"
+" falliscono scrive gli altri 902 ed esce con `3`; solo un'esecuzione in "
+"cui non è stato prodotto *niente* esce con `1` senza scrivere, perché sul"
+" disco nove tabelle vuote e nove tabelle che nessuno ha potuto riempire "
+"si assomigliano."
 
-#: ../../source/reference/cli/freeports.md:191
+#: ../../source/reference/cli/freeports.md:259
 msgid "`--internal-worker`, the one hidden option"
 msgstr "`--internal-worker`, l'unica opzione nascosta"
 
-#: ../../source/reference/cli/freeports.md:192
+#: ../../source/reference/cli/freeports.md:260
 msgid ""
-"`--internal-worker` exists and is hidden from `--help` on purpose. It is not a user "
-"interface but the channel between two copies of the same binary: a parent running the"
-" jobs of a batch in child processes passes it to itself, naming a request file inside"
-" a temporary directory that disappears when the run ends. Running it by hand makes no"
-" sense."
+"`--internal-worker` exists and is hidden from `--help` on purpose. It is "
+"not a user interface but the channel between two copies of the same "
+"binary: a parent running the jobs of a batch in child processes passes it"
+" to itself, naming a request file inside a temporary directory that "
+"disappears when the run ends. Running it by hand makes no sense."
 msgstr ""
-"`--internal-worker` esiste ed è nascosta da `--help` apposta. Non è un'interfaccia "
-"utente ma il canale fra due copie dello stesso binario: un padre che esegue i job di "
-"un lotto in processi figli la passa a sé stesso, nominando un file di richiesta "
-"dentro una cartella temporanea che sparisce alla fine dell'esecuzione. Eseguirla a "
-"mano non ha senso."
+"`--internal-worker` esiste ed è nascosta da `--help` apposta. Non è "
+"un'interfaccia utente ma il canale fra due copie dello stesso binario: un"
+" padre che esegue i job di un lotto in processi figli la passa a sé "
+"stesso, nominando un file di richiesta dentro una cartella temporanea che"
+" sparisce alla fine dell'esecuzione. Eseguirla a mano non ha senso."
 
 #~ msgid ""
-#~ "Verbosity is today the one setting the "
-#~ "command line has a monopoly on. "
-#~ "`FREEPORTS_VERBOSITY` and the configuration file's "
-#~ "`verbosity` key are parsed, validated and "
-#~ "merged, but never reach the logging setup "
-#~ "of the parent process — see the warning"
-#~ " in {doc}`../configuration/index`."
+#~ "Verbosity is today the one setting "
+#~ "the command line has a monopoly "
+#~ "on. `FREEPORTS_VERBOSITY` and the "
+#~ "configuration file's `verbosity` key are "
+#~ "parsed, validated and merged, but never"
+#~ " reach the logging setup of the "
+#~ "parent process — see the warning "
+#~ "in {doc}`../configuration/index`."
 #~ msgstr ""
+
+#~ msgid "infer it from a URL, or fail"
+#~ msgstr "deducilo da un URL, oppure fallisci"
+
+#~ msgid ""
+#~ "The format name, as `metadata/formats.csv` "
+#~ "of the repository synthesises it — "
+#~ "`EURIZON-EN23`, `FINECO-EN23@LUX`, "
+#~ "`MEDIOLANUM-IT24.A`."
+#~ msgstr ""
+#~ "Il nome del formato, così come lo"
+#~ " sintetizza il `metadata/formats.csv` del "
+#~ "repository — `EURIZON-EN23`, `FINECO-"
+#~ "EN23@LUX`, `MEDIOLANUM-IT24.A`."
+
+#~ msgid ""
+#~ "Omit it and the engine tries to"
+#~ " infer it from the URL of each"
+#~ " document, using the repository's "
+#~ "`url_mapping.csv`: the longest matching prefix"
+#~ " wins, then the row with the "
+#~ "more specific name, then the row "
+#~ "that comes first. Inference works only"
+#~ " for documents that *have* a URL. "
+#~ "Two documents inferring **different** formats"
+#~ " is an error rather than a "
+#~ "choice made silently. Giving `-f` "
+#~ "explicitly while inference also succeeds "
+#~ "and disagrees is a warning, not an"
+#~ " error: you were explicit, so you "
+#~ "win, but you are told."
+#~ msgstr ""
+#~ "Omettilo e il motore prova a "
+#~ "dedurlo dall'URL di ciascun documento, "
+#~ "usando l'`url_mapping.csv` del repository: "
+#~ "vince il prefisso più lungo che "
+#~ "corrisponde, poi la riga con il "
+#~ "nome più specifico, poi la riga "
+#~ "che viene prima. La deduzione funziona"
+#~ " solo per i documenti che un "
+#~ "URL ce l'*hanno*. Due documenti che "
+#~ "deducono formati **diversi** sono un "
+#~ "errore anziché una scelta fatta in "
+#~ "silenzio. Dare `-f` esplicitamente mentre "
+#~ "anche la deduzione riesce ed è in"
+#~ " disaccordo è un avviso, non un "
+#~ "errore: sei stato esplicito, quindi "
+#~ "vinci, ma te lo si dice."
+
+#~ msgid ""
+#~ "The formats repository. Note that the"
+#~ " two tooling commands read a "
+#~ "**differently named** variable for the "
+#~ "same thing — `FREEPORTS_FORMATS_REPO`, not "
+#~ "`FREEPORTS_FORMATS_REPO_PATH`; see {doc}`index`."
+#~ msgstr ""
+#~ "Il repository di formati. Nota che "
+#~ "i due comandi di servizio leggono "
+#~ "per la stessa cosa una variabile "
+#~ "**con un nome diverso** — "
+#~ "`FREEPORTS_FORMATS_REPO`, non "
+#~ "`FREEPORTS_FORMATS_REPO_PATH`; vedi {doc}`index`."
 

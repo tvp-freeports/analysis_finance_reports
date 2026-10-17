@@ -1,0 +1,810 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/cli/freeports-classify.md:1
+msgid "`freeports classify`"
+msgstr "`freeports classify`"
+
+#: ../../source/reference/cli/freeports-classify.md:3
+#, python-brace-format
+msgid ""
+"`freeports classify` answers one question: *which format is this "
+"document?* It reads the formats repository's document classification "
+"({doc}`../formats/document-classify-yaml`, {doc}`../formats/document-"
+"classify-python`) and its `url_mapping.csv`, applies them to the "
+"documents it is given, and prints what they say. It extracts nothing, "
+"writes no output tables, and leaves no `.log.csv` behind."
+msgstr ""
+"`freeports classify` responde a uma pergunta só: *de que formato é este "
+"documento?* Ele lê a classificação do documento do repositório de "
+"formatos ({doc}`../formats/document-classify-yaml`, {doc}`../formats"
+"/document-classify-python`) e o `url_mapping.csv` dele, aplica os dois "
+"aos documentos que recebe e imprime o que dizem. Não extrai nada, não "
+"escreve tabelas de saída e não deixa nenhum `.log.csv` para trás."
+
+#: ../../source/reference/cli/freeports-classify.md:14
+#, python-brace-format
+msgid ""
+"It is a **subcommand**: `classify` comes right after `freeports`, before "
+"any option. Without it, `freeports` is the extraction command of "
+"{doc}`freeports`, unchanged."
+msgstr ""
+"É um **subcomando**: `classify` vem logo depois de `freeports`, antes de "
+"qualquer opção. Sem ele, `freeports` é o comando de extração de "
+"{doc}`freeports`, sem mudanças."
+
+#: ../../source/reference/cli/freeports-classify.md:17
+msgid "Every option at a glance"
+msgstr "Todas as opções num relance"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "Option"
+msgstr "Opção"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "Sets"
+msgstr "Define"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "Absent means"
+msgstr "Ausente quer dizer"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`--input`, `--report`, `-i`"
+msgstr "`--input`, `--report`, `-i`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "the documents"
+msgstr "os documentos"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "no document from this source"
+msgstr "nenhum documento vindo desta via"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`--formats-directory`, `--repo`, `-F`, `-r`"
+msgstr "`--formats-directory`, `--repo`, `-F`, `-r`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "the formats repository"
+msgstr "o repositório de formatos"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "unset — the command fails"
+msgstr "não definido — o comando falha"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`--config`"
+msgstr "`--config`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "use this configuration file"
+msgstr "use este arquivo de configuração"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "search the three tiers"
+msgstr "procure nos três níveis"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`--no-download`"
+msgstr "`--no-download`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "do not **keep** a downloaded PDF"
+msgstr "não **guardar** um PDF baixado"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "*nothing said* — the default is to keep"
+msgstr "*nada dito* — o padrão é guardar"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`-v`, `-q`"
+msgstr "`-v`, `-q`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "verbosity, counted"
+msgstr "a verbosidade, contada"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "warnings only"
+msgstr "só avisos"
+
+#: ../../source/reference/cli/freeports-classify.md:31
+#, python-brace-format
+msgid ""
+"Each option means exactly what it means for the extraction command, with "
+"the same spellings and the same grammar — the details are in "
+"{doc}`freeports`, and are not repeated here."
+msgstr ""
+"Cada opção quer dizer exatamente o que quer dizer para o comando de "
+"extração, com as mesmas grafias e a mesma gramática — os detalhes estão "
+"em {doc}`freeports` e não se repetem aqui."
+
+#: ../../source/reference/cli/freeports-classify.md:34
+msgid ""
+"The options of the run that have nothing to do with recognising a format "
+"— `-f`, `-T`, `-I`, `-o`, `-P`, `-z`, `--separate-out`, `-b`, `-j`, "
+"`--jobs`, `--pages` — are not offered: `classify --help` does not list "
+"them, and giving one is a command-line error rather than an option "
+"quietly ignored. The same holds the other way round: `freeports -f X "
+"classify …` is refused. And since a subcommand is only recognised in "
+"first position, `freeports -i a.pdf classify` is **not** a classification"
+" — it is a run with two documents, `a.pdf` and a file called `classify`."
+msgstr ""
+"As opções da execução que nada têm a ver com reconhecer um formato — "
+"`-f`, `-T`, `-I`, `-o`, `-P`, `-z`, `--separate-out`, `-b`, `-j`, "
+"`--jobs`, `--pages` — não são oferecidas: `classify --help` não as lista,"
+" e passar uma é erro de linha de comando, não uma opção ignorada em "
+"silêncio. O mesmo vale ao contrário: `freeports -f X classify …` é "
+"recusado. E como um subcomando só é reconhecido na primeira posição, "
+"`freeports -i a.pdf classify` **não** é uma classificação — é uma "
+"execução com dois documentos, `a.pdf` e um arquivo chamado `classify`."
+
+#: ../../source/reference/cli/freeports-classify.md:41
+msgid "Where its settings come from"
+msgstr "De onde vêm as configurações dele"
+
+#: ../../source/reference/cli/freeports-classify.md:43
+#, python-brace-format
+msgid ""
+"`classify` resolves its configuration exactly as the run does: **command "
+"line, then environment, then configuration file, then a default** "
+"({doc}`../configuration/index`). It reads five settings from those tiers "
+"and no others:"
+msgstr ""
+"`classify` resolve a configuração exatamente como a execução: **linha de "
+"comando, depois ambiente, depois arquivo de configuração, depois um "
+"padrão** ({doc}`../configuration/index`). Desses níveis ele lê cinco "
+"configurações e nenhuma outra:"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "Setting"
+msgstr "Configuração"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "Command line"
+msgstr "Linha de comando"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "Environment"
+msgstr "Ambiente"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`reports`"
+msgstr "`reports`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`-i`"
+msgstr "`-i`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`FREEPORTS_REPORTS`, or `FREEPORTS_URL` / `FREEPORTS_PDF`"
+msgstr "`FREEPORTS_REPORTS`, ou `FREEPORTS_URL` / `FREEPORTS_PDF`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`formats_repo_path`"
+msgstr "`formats_repo_path`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`-F`"
+msgstr "`-F`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`FREEPORTS_FORMATS_REPO_PATH`"
+msgstr "`FREEPORTS_FORMATS_REPO_PATH`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`save_pdf`"
+msgstr "`save_pdf`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`FREEPORTS_SAVE_PDF`"
+msgstr "`FREEPORTS_SAVE_PDF`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`verbosity`"
+msgstr "`verbosity`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`FREEPORTS_VERBOSITY`"
+msgstr "`FREEPORTS_VERBOSITY`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`config_file`"
+msgstr "`config_file`"
+
+#: ../../source/reference/cli/freeports-classify.md
+msgid "`FREEPORTS_CONFIG_FILE`"
+msgstr "`FREEPORTS_CONFIG_FILE`"
+
+#: ../../source/reference/cli/freeports-classify.md:55
+msgid ""
+"Every other setting is **ignored without error**, wherever it is set. A "
+"configuration file written for the run, with its `format`, `target_lists`"
+" and `out_path`, works unchanged for `classify`; so does a shell that "
+"exports `FREEPORTS_FORMAT` or `FREEPORTS_BATCH_FILE`. In particular a "
+"`format` set somewhere does not influence the answer — the point of the "
+"command is to find the format, not to be told it. There are no settings "
+"specific to `classify`."
+msgstr ""
+"Toda outra configuração é **ignorada sem erro**, onde quer que esteja. Um"
+" arquivo de configuração escrito para a execução, com o `format`, os "
+"`target_lists` e o `out_path` dele, funciona sem mudança para o "
+"`classify`; o mesmo vale para um shell que exporta `FREEPORTS_FORMAT` ou "
+"`FREEPORTS_BATCH_FILE`. Em particular, um `format` definido em algum "
+"lugar não influencia a resposta — o objetivo do comando é descobrir o "
+"formato, não ser informado dele. Não há configurações específicas do "
+"`classify`."
+
+#: ../../source/reference/cli/freeports-classify.md:61
+msgid ""
+"Two settings must end up with a value: at least one document, and the "
+"formats repository. Missing either is a configuration error (exit `1`)."
+msgstr ""
+"Duas configurações precisam terminar com um valor: pelo menos um "
+"documento, e o repositório de formatos. Faltar qualquer uma é erro de "
+"configuração (saída `1`)."
+
+#: ../../source/reference/cli/freeports-classify.md:64
+msgid "Documents"
+msgstr "Documentos"
+
+#: ../../source/reference/cli/freeports-classify.md:66
+#, python-brace-format
+msgid ""
+"Documents are given with `-i`, in the same `<url>:<path>:<name>` grammar "
+"as the run ({doc}`../../guides/user/documents`). Several may be given, "
+"and a directory expands to the PDFs in it."
+msgstr ""
+"Os documentos se passam com `-i`, na mesma gramática "
+"`<url>:<path>:<name>` da execução ({doc}`../../guides/user/documents`). "
+"Pode-se passar vários, e um diretório se expande nos PDFs que contém."
+
+#: ../../source/reference/cli/freeports-classify.md:70
+msgid ""
+"**A document given by URL is fetched as in the run, and kept as in the "
+"run.** `save_pdf` is on by default, so a URL with no path is downloaded "
+"to `report.pdf` in the working directory and stays there; a URL with a "
+"path is downloaded to that path. `--no-download` (or `save_pdf: false`) "
+"turns this off: the download then goes to a temporary file, which is "
+"removed before the command ends."
+msgstr ""
+"**Um documento passado por URL é baixado como na execução, e guardado "
+"como na execução.** `save_pdf` vem ligado por padrão, então um URL sem "
+"caminho é baixado para `report.pdf` no diretório de trabalho e fica lá; "
+"um URL com caminho é baixado para esse caminho. `--no-download` (ou "
+"`save_pdf: false`) desliga isso: o download vai então para um arquivo "
+"temporário, que é removido antes de o comando terminar."
+
+#: ../../source/reference/cli/freeports-classify.md:76
+msgid ""
+"When the path a document would be saved to **already exists as a file**, "
+"that file is read and nothing is downloaded. A `report.pdf` left in the "
+"working directory by an earlier run is therefore classified in place of "
+"the URL, and two URL-only documents in one command both end up reading "
+"the same `./report.pdf`. Give each URL its own path (`-i "
+"\"https://…/a.pdf:a.pdf\"`), or pass `--no-download`."
+msgstr ""
+"Quando o caminho em que um documento seria salvo **já existe como "
+"arquivo**, esse arquivo é lido e nada é baixado. Um `report.pdf` deixado "
+"no diretório de trabalho por uma execução anterior é, portanto, "
+"classificado no lugar do URL, e dois documentos só com URL no mesmo "
+"comando acabam os dois lendo o mesmo `./report.pdf`. Dê a cada URL o "
+"próprio caminho (`-i \"https://…/a.pdf:a.pdf\"`), ou passe `--no-"
+"download`."
+
+#: ../../source/reference/cli/freeports-classify.md:83
+msgid "What it prints"
+msgstr "O que ele imprime"
+
+#: ../../source/reference/cli/freeports-classify.md:85
+#, python-brace-format
+msgid ""
+"The answer goes to **standard output**, at every verbosity — even `-qq` "
+"prints it, since it is the product of the command, not a diagnostic. The "
+"log goes to standard error, governed by `-v` and `-q` as in the run "
+"({doc}`freeports`)."
+msgstr ""
+"A resposta vai para a **saída padrão**, em qualquer verbosidade — até "
+"`-qq` a imprime, porque ela é o produto do comando, não um diagnóstico. O"
+" log vai para a saída de erro, governado por `-v` e `-q` como na execução"
+" ({doc}`freeports`)."
+
+#: ../../source/reference/cli/freeports-classify.md:89
+msgid "One line per document"
+msgstr "Uma linha por documento"
+
+#: ../../source/reference/cli/freeports-classify.md:91
+msgid ""
+"Each document gets one line, labelled with its **name** — by default the "
+"name is the absolute path of a local file, or the URL; a name given in "
+"the specifier replaces it."
+msgstr ""
+"Cada documento ganha uma linha, rotulada com o **nome** dele — por "
+"padrão, o nome é o caminho absoluto de um arquivo local, ou o URL; um "
+"nome dado no especificador o substitui."
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "Line"
+msgstr "Linha"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "Means"
+msgstr "Quer dizer"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`<format>`"
+msgstr "`<format>`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "a complete format"
+msgstr "um formato completo"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`<format> (by exclusion)`"
+msgstr "`<format> (by exclusion)`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+#, python-brace-format
+msgid ""
+"a complete format decided by an unconditional step: the document never "
+"said it, it is the *otherwise* of a block ({doc}`../formats/document-"
+"classify-yaml`, \"The unconditional step\")"
+msgstr ""
+"um formato completo decidido por um passo incondicional: o documento "
+"nunca o disse, é o *senão* de um bloco ({doc}`../formats/document-"
+"classify-yaml`, \"O passo incondicional\")"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`partial <pattern> — candidates: …`"
+msgstr "`partial <pattern> — candidates: …`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"only a partial name could be established; the candidates are the formats "
+"of the repository it still allows, in `formats.csv` order"
+msgstr ""
+"só foi possível determinar um nome parcial; os candidatos são os formatos"
+" do repositório que ele ainda admite, na ordem do `formats.csv`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`not classified`"
+msgstr "`not classified`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "neither the classification nor the URL says anything"
+msgstr "nem a classificação nem o URL dizem nada"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`error: …`"
+msgstr "`error: …`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"the document could not be read: the download failed, the file would not "
+"open, or the classification failed at run time on it"
+msgstr ""
+"o documento não pôde ser lido: o download falhou, o arquivo não abriu, ou"
+" a classificação falhou nele durante a execução"
+
+#: ../../source/reference/cli/freeports-classify.md:110
+#, python-brace-format
+msgid ""
+"A partial is not a failure: it is exactly how far the repository's rules "
+"can see, and the candidate list is where to start trying formats by hand "
+"— see {doc}`../formats/names`, \"I have a document: which format do I "
+"use?\". A partial with a single candidate is still printed as a partial; "
+"the command never picks a format the sources did not name."
+msgstr ""
+"Um parcial não é uma falha: é exatamente até onde as regras do "
+"repositório conseguem enxergar, e a lista de candidatos é o ponto de "
+"partida para tentar formatos à mão — veja {doc}`../formats/names`, "
+"\"Tenho um documento: que formato eu uso?\". Um parcial com um único "
+"candidato continua sendo impresso como parcial; o comando nunca escolhe "
+"um formato que as fontes não nomearam."
+
+#: ../../source/reference/cli/freeports-classify.md:115
+msgid ""
+"The line is the result of **both sources for that document** — the "
+"classification and, if the document has a URL, `url_mapping.csv` — "
+"combined as described [below](#how-the-two-sources-combine)."
+msgstr ""
+"A linha é o resultado de **ambas as fontes para aquele documento** — a "
+"classificação e, se o documento tem URL, o `url_mapping.csv` — combinadas"
+" como descrito [mais abaixo](#how-the-two-sources-combine)."
+
+#: ../../source/reference/cli/freeports-classify.md:118
+msgid "The `format:` line"
+msgstr "A linha `format:`"
+
+#: ../../source/reference/cli/freeports-classify.md:120
+msgid ""
+"With more than one document, a last line gives the format of the set, in "
+"the same forms:"
+msgstr ""
+"Com mais de um documento, uma última linha dá o formato do conjunto, nas "
+"mesmas formas:"
+
+#: ../../source/reference/cli/freeports-classify.md:128
+msgid ""
+"It is the format of the documents that could be read: a document on an "
+"`error:` line is left out of it (and a warning on standard error says "
+"so). It is absent when the documents disagree with each other, and when "
+"none of them could be read."
+msgstr ""
+"É o formato dos documentos que puderam ser lidos: um documento numa linha"
+" `error:` fica de fora (e um aviso na saída de erro diz isso). Ela não "
+"aparece quando os documentos discordam entre si, nem quando nenhum deles "
+"pôde ser lido."
+
+#: ../../source/reference/cli/freeports-classify.md:132
+msgid "The detail, with `-v`"
+msgstr "O detalhe, com `-v`"
+
+#: ../../source/reference/cli/freeports-classify.md:134
+msgid ""
+"From `-v` on, each readable document's line is followed by indented lines"
+" saying what each source found:"
+msgstr ""
+"A partir de `-v`, a linha de cada documento legível é seguida de linhas "
+"recuadas dizendo o que cada fonte encontrou:"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "Forms"
+msgstr "Formas"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`algorithm:`"
+msgstr "`algorithm:`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"a complete format, then where it was decided: the page as written in the "
+"file (`-1` is the last page), the index of the deciding entry, and either"
+" the Python pipeline (``Python entry 2, pipeline `mediolanum` ``) or the "
+"YAML step key with its position — its index among the entry's steps, then"
+" among each level's children; `partial <pattern>` (a partial carries no "
+"page); `not classified`"
+msgstr ""
+"um formato completo, depois onde foi decidido: a página como está escrita"
+" no arquivo (`-1` é a última página), o índice da entrada que decidiu, e "
+"ou o pipeline Python (``Python entry 2, pipeline `mediolanum` ``) ou a "
+"chave do passo YAML com a posição dela — o índice entre os passos da "
+"entrada, depois entre os filhos de cada nível; `partial <pattern>` (um "
+"parcial não traz página); `not classified`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`url:`"
+msgstr "`url:`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"`<pattern> — <url>`, or `not mapped — <url>` when no row of "
+"`url_mapping.csv` matches. Absent when the document has no URL"
+msgstr ""
+"`<pattern> — <url>`, ou `not mapped — <url>` quando nenhuma linha do "
+"`url_mapping.csv` casa. Ausente quando o documento não tem URL"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`sources:`"
+msgstr "`sources:`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"`agree`, `algorithm only`, `url only`, `disagree, the algorithm wins`, or"
+" `neither`"
+msgstr ""
+"`agree`, `algorithm only`, `url only`, `disagree, the algorithm wins`, ou"
+" `neither`"
+
+#: ../../source/reference/cli/freeports-classify.md:150
+msgid ""
+"A document on an `error:` line has no detail: the message is already on "
+"its line. `-vv` and `-vvv` add nothing to standard output, only to the "
+"log."
+msgstr ""
+"Um documento numa linha `error:` não tem detalhe: a mensagem já está na "
+"linha dele. `-vv` e `-vvv` não acrescentam nada à saída padrão, só ao "
+"log."
+
+#: ../../source/reference/cli/freeports-classify.md:153
+msgid "How the two sources combine"
+msgstr "Como as duas fontes se combinam"
+
+#: ../../source/reference/cli/freeports-classify.md:155
+msgid ""
+"The **algorithm** is the repository's document classification; the "
+"**URL** is `url_mapping.csv` applied to the document's URL. Either may "
+"give a complete format, a partial name, or nothing."
+msgstr ""
+"O **algoritmo** é a classificação do documento do repositório; o **URL** "
+"é o `url_mapping.csv` aplicado ao URL do documento. Qualquer um dos dois "
+"pode dar um formato completo, um nome parcial ou nada."
+
+#: ../../source/reference/cli/freeports-classify.md:158
+msgid ""
+"Two names **agree** when some format of the repository falls under both. "
+"When they agree the result is the most specific name both allow, which "
+"may be more specific than either:"
+msgstr ""
+"Dois nomes **concordam** quando algum formato do repositório cai sob os "
+"dois. Quando concordam, o resultado é o nome mais específico que ambos "
+"admitem, que pode ser mais específico que cada um deles:"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "Algorithm"
+msgstr "Algoritmo"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "URL"
+msgstr "URL"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "Result"
+msgstr "Resultado"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.A`"
+msgstr "`MEDIOLANUM-IT24.A`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "—"
+msgstr "—"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.A`, algorithm only"
+msgstr "`MEDIOLANUM-IT24.A`, só o algoritmo"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.B`"
+msgstr "`MEDIOLANUM-IT24.B`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.B`, URL only"
+msgstr "`MEDIOLANUM-IT24.B`, só o URL"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM`"
+msgstr "`MEDIOLANUM`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.A`: the complete name refines the partial"
+msgstr "`MEDIOLANUM-IT24.A`: o nome completo refina o parcial"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.*`"
+msgstr "`MEDIOLANUM-IT24.*`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.B`: the URL completes the algorithm's partial"
+msgstr "`MEDIOLANUM-IT24.B`: o URL completa o parcial do algoritmo"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`X-IT23@LUX.*`"
+msgstr "`X-IT23@LUX.*`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`X-IT23@*.B`"
+msgstr "`X-IT23@*.B`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`X-IT23@LUX.B` if the repository has it; otherwise they disagree"
+msgstr "`X-IT23@LUX.B` se o repositório o tem; senão, discordam"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`EURIZON-EN23`"
+msgstr "`EURIZON-EN23`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`MEDIOLANUM-IT24.A`: they disagree, and **the algorithm wins**"
+msgstr "`MEDIOLANUM-IT24.A`: discordam, e **vence o algoritmo**"
+
+#: ../../source/reference/cli/freeports-classify.md:170
+msgid ""
+"A disagreement between the two sources is **not** a failure of the "
+"command. The algorithm read the document; the URL only says where it came"
+" from, and a mapping that has fallen behind is the likelier mistake. So "
+"the algorithm's answer is printed, an `ERROR` naming both patterns goes "
+"to standard error, and the exit status is still `0`. The `ERROR` is the "
+"signal that `url_mapping.csv` — or the classification — needs looking at."
+msgstr ""
+"Uma discordância entre as duas fontes **não** é falha do comando. O "
+"algoritmo leu o documento; o URL só diz de onde ele veio, e um mapeamento"
+" que ficou para trás é o erro mais provável. Por isso a resposta do "
+"algoritmo é impressa, um `ERROR` que nomeia os dois padrões vai para a "
+"saída de erro, e o código de saída continua `0`. O `ERROR` é o sinal de "
+"que o `url_mapping.csv` — ou a classificação — precisa ser revisto."
+
+#: ../../source/reference/cli/freeports-classify.md:176
+msgid "Several documents"
+msgstr "Vários documentos"
+
+#: ../../source/reference/cli/freeports-classify.md:178
+#, python-brace-format
+msgid ""
+"Several documents given together are taken to be **one input of one "
+"format**, as a job of the run is — and the run combines them by the same "
+"two steps ({doc}`freeports`, \"Where the format comes from\"). They are "
+"combined **source by source first, and the sources are compared "
+"afterwards**:"
+msgstr ""
+"Vários documentos passados juntos são tomados como **uma entrada só, de "
+"um formato só**, como é um job da execução — e a execução os combina "
+"pelas mesmas duas etapas ({doc}`freeports`, \"De onde vem o formato\"). "
+"Eles se combinam **primeiro fonte por fonte, e só depois as fontes são "
+"comparadas**:"
+
+#: ../../source/reference/cli/freeports-classify.md:182
+msgid ""
+"the algorithm's names of all the documents are combined with each other, "
+"and so are the URL's. A document with nothing to say for a source is "
+"neutral for it. If the names of one source leave no format of the "
+"repository that fits them all, **the documents disagree**: the command "
+"fails (exit `1`), and the error lists what that source said of each "
+"document, naming each by the label of its line (`document /home/me/a.pdf "
+"is …, document /home/me/b.pdf is …`);"
+msgstr ""
+"os nomes que o algoritmo deu a todos os documentos se combinam entre si, "
+"e o mesmo com os do URL. Um documento que não tem nada a dizer para uma "
+"fonte é neutro para ela. Se os nomes de uma fonte não deixam nenhum "
+"formato do repositório que sirva para todos, **os documentos discordam**:"
+" o comando falha (saída `1`), e o erro lista o que aquela fonte disse de "
+"cada documento, nomeando cada um pelo rótulo da sua linha (`document "
+"/home/me/a.pdf is …, document /home/me/b.pdf is …`);"
+
+#: ../../source/reference/cli/freeports-classify.md:187
+msgid ""
+"the two combined names are then compared as for a single document: "
+"agreeing, they give their most specific common name; disagreeing, the "
+"algorithm wins with an `ERROR`."
+msgstr ""
+"os dois nomes combinados são então comparados como para um documento só: "
+"concordando, dão o nome comum mais específico; discordando, vence o "
+"algoritmo com um `ERROR`."
+
+#: ../../source/reference/cli/freeports-classify.md:190
+msgid ""
+"The order of the documents does not change the outcome. The order of the "
+"two steps can: if one document is recognised only by the algorithm as `X`"
+" and another only by its URL as an incompatible `Y`, the documents do not"
+" disagree with each other — each source has a single opinion — but the "
+"two sources disagree, so `X` wins with an `ERROR` and the command exits "
+"`0`."
+msgstr ""
+"A ordem dos documentos não muda o resultado. A ordem das duas etapas, "
+"sim: se um documento é reconhecido só pelo algoritmo como `X` e outro só "
+"pelo URL como um `Y` incompatível, os documentos não discordam entre si —"
+" cada fonte tem uma opinião só — mas as duas fontes discordam, então "
+"vence `X` com um `ERROR` e o comando sai com `0`."
+
+#: ../../source/reference/cli/freeports-classify.md:195
+msgid ""
+"When the documents disagree, their own lines are still printed — they are"
+" what tells you which document is the odd one out — and only the "
+"`format:` line is missing."
+msgstr ""
+"Quando os documentos discordam, as linhas deles continuam sendo impressas"
+" — são elas que mostram qual documento é o diferente — e só falta a linha"
+" `format:`."
+
+#: ../../source/reference/cli/freeports-classify.md:198
+msgid "What the exit status says"
+msgstr "O que o código de saída diz"
+
+#: ../../source/reference/cli/freeports-classify.md:200
+#, python-brace-format
+msgid ""
+"The same three codes as the run, with the same meanings "
+"({doc}`freeports`):"
+msgstr ""
+"Os mesmos três códigos da execução, com os mesmos significados "
+"({doc}`freeports`):"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "Exit"
+msgstr "Saída"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "What it means"
+msgstr "O que quer dizer"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`0`"
+msgstr "`0`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"every document was read and its outcome printed — including `not "
+"classified`, a partial, and an algorithm overruling the URL"
+msgstr ""
+"todo documento foi lido e o resultado dele impresso — inclusive `not "
+"classified`, um parcial e um algoritmo que prevalece sobre o URL"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`1`"
+msgstr "`1`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid ""
+"nothing usable: an illegal configuration (an invalid specifier, a path "
+"that does not exist, no document, no formats repository), a "
+"classification that will not load, documents that disagree with each "
+"other, or no document readable at all"
+msgstr ""
+"nada aproveitável: uma configuração inválida (um especificador inválido, "
+"um caminho que não existe, nenhum documento, nenhum repositório de "
+"formatos), uma classificação que não carrega, documentos que discordam "
+"entre si, ou nenhum documento legível"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "`3`"
+msgstr "`3`"
+
+#: ../../source/reference/cli/freeports-classify.md:75
+msgid "some documents were read and some were not — their lines say `error:`"
+msgstr ""
+"alguns documentos foram lidos e outros não — as linhas deles dizem "
+"`error:`"
+
+#: ../../source/reference/cli/freeports-classify.md:208
+msgid ""
+"`not classified` exits `0` on purpose. The command did its job: it read "
+"the document and reports that the repository's rules do not recognise it."
+" Whether that is a problem is for the caller to decide from the printed "
+"line, not from the status."
+msgstr ""
+"`not classified` sai com `0` de propósito. O comando fez o trabalho dele:"
+" leu o documento e informa que as regras do repositório não o reconhecem."
+" Se isso é um problema, quem chamou decide pela linha impressa, não pelo "
+"código de saída."
+
+#: ../../source/reference/cli/freeports-classify.md:212
+#, python-brace-format
+msgid ""
+"A classification that will not load — an error in "
+"`document_classify.yaml` or in the Python module ({doc}`../formats"
+"/document-classify-yaml`, \"What is refused when the file is loaded\") — "
+"fails before any document is read, and prints nothing on standard output."
+msgstr ""
+"Uma classificação que não carrega — um erro no `document_classify.yaml` "
+"ou no módulo Python ({doc}`../formats/document-classify-yaml`, \"O que é "
+"recusado no carregamento do arquivo\") — falha antes de qualquer "
+"documento ser lido, e não imprime nada na saída padrão."
+
+#: ../../source/reference/cli/freeports-classify.md:216
+msgid "Logging"
+msgstr "Log"
+
+#: ../../source/reference/cli/freeports-classify.md:218
+#, python-brace-format
+msgid ""
+"The log follows the same rules as the run's "
+"({doc}`../../guides/user/logging`), with one difference: `classify` has "
+"no output directory, so it never writes a `.log.csv`. At `-vvv` the "
+"`freeports.log.jsonl` trace goes to the working directory, as it does for"
+" the run."
+msgstr ""
+"O log segue as mesmas regras do log da execução "
+"({doc}`../../guides/user/logging`), com uma diferença: `classify` não tem"
+" diretório de saída, então nunca escreve um `.log.csv`. Em `-vvv` o "
+"rastro `freeports.log.jsonl` vai para o diretório de trabalho, como na "
+"execução."
+

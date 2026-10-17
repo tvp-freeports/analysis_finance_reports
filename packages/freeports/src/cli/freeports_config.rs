@@ -4,11 +4,13 @@
 //! it cannot. The validations, **in this order** because the order matters:
 //!
 //! 1. require the target lists — a pure presence check, so it fails fast;
-//! 2. detect the format, where none was given;
-//! 3. validate the document specs;
-//! 4. set the compression flag, which must come before the next rule, since it can change the output path;
-//! 5. check that the output path's parent exists;
-//! 6. check the single-file profile's path.
+//! 2. validate the document specs;
+//! 3. set the compression flag, which must come before the next rule, since it can change the output path;
+//! 4. check that the output path's parent exists;
+//! 5. check the single-file profile's path.
+//!
+//! The format is **not** resolved here: [`FreeportsConfig::format`] is the configured one, if any,
+//! and the job resolves the format it runs against its documents (`cli::job`, phase 11).
 //!
 //! # Two known ambiguities, left as they are
 //!
@@ -24,7 +26,6 @@ use crate::cli::parallelism_config::{ParallelismConfig, Workers};
 use crate::cli::partial_config::MergedConfig;
 use crate::core::tracing_setup::Verbosity;
 use crate::core::tracing_setup::log_error;
-use crate::formats_repo::metadata::{get_formats, url_to_format};
 use crate::output::routines::write::{OutFlags, OutStructureMode};
 
 /// A resolved configuration crosses a process boundary to a worker job, as JSON — the only reason
@@ -34,7 +35,10 @@ pub struct FreeportsConfig {
     pub verbosity: Verbosity,
     pub reports: Vec<DocumentSpec>,
     pub target_lists: Vec<String>,
-    pub format: String,
+    /// The configured format, if any source set it: the highest priority of the three. **Not**
+    /// the format the job runs: that is resolved inside the job, against the documents
+    /// (`cli::job`), and may come from the document classification or the report url.
+    pub format: Option<String>,
     pub out_path: PathBuf,
     pub out_profile: OutStructureMode,
     pub out_flags: OutFlags,
@@ -52,10 +56,6 @@ pub struct FreeportsConfig {
 pub enum FreeportsConfigError {
     #[error("no target list was specified by any configuration source")]
     NoTargetLists,
-    #[error("a format must be specified explicitly, or detectable from a report url")]
-    NoFormatSpecifiedOrDetected,
-    #[error("conflicting formats detected across report urls: {detected:?}")]
-    ConflictingDetectedFormats { detected: Vec<String> },
     #[error("report at index {specifier_index} specifies neither a url nor a path")]
     InputNotSpecified {
         specifier_index: usize,
@@ -70,69 +70,6 @@ pub enum FreeportsConfigError {
     DocumentParentDirectoryDoesNotExist { path: PathBuf },
     #[error("out path parent directory {} does not exist", path.display())]
     OutPathParentDoesNotExist { path: PathBuf },
-}
-
-fn detect_format(
-    reports: &[DocumentSpec],
-    explicit: Option<&str>,
-    formats_repo_path: Option<&std::path::Path>,
-) -> Result<String, FreeportsConfigError> {
-    let mut detected: Option<String> = None;
-    if let Some(repo) = formats_repo_path {
-        let format_names = get_formats(repo).map_err(|e| {
-            // The specific reason `get_formats` failed (e.g. a malformed `formats.csv`) is lost
-            // once folded into `NoFormatSpecifiedOrDetected`, which reads as "you didn't specify a
-            // format" even when one was given explicitly and only detection failed.
-            tracing::warn!(error = log_error(&e), formats_repo = %repo.display(), "cannot read known formats, format detection is unavailable: {e}");
-            FreeportsConfigError::NoFormatSpecifiedOrDetected
-        })?;
-        for report in reports {
-            let Some(url) = &report.url else { continue };
-            // Phase 9 makes the URL mapping's result a possibly partial pattern; combining it with
-            // the other sources is phase 11's (§7). Until then it is compared by its text.
-            match url_to_format(repo, &format_names, url)
-                .map(|found| found.map(|pattern| pattern.to_string()))
-            {
-                Ok(Some(found)) => match &detected {
-                    None => detected = Some(found),
-                    Some(current) if *current != found => {
-                        return Err(FreeportsConfigError::ConflictingDetectedFormats {
-                            detected: vec![current.clone(), found],
-                        });
-                    }
-                    Some(_) => {}
-                },
-                Ok(None) => {}
-                Err(e) => tracing::warn!(
-                    error = log_error(&e),
-                    url,
-                    "cannot detect format from this report url: {e}"
-                ),
-            }
-        }
-    }
-
-    if let Some(detected) = &detected {
-        if let Some(explicit) = explicit {
-            if explicit != detected {
-                tracing::warn!(
-                    explicit,
-                    detected = detected.as_str(),
-                    "selected format is different from the detected one"
-                );
-            }
-            return Ok(explicit.to_string());
-        }
-        tracing::info!(
-            format = detected.as_str(),
-            "format detected from report url"
-        );
-        return Ok(detected.clone());
-    }
-
-    explicit
-        .map(str::to_string)
-        .ok_or(FreeportsConfigError::NoFormatSpecifiedOrDetected)
 }
 
 /// A path with no extension is treated as a directory even when it does not exist yet, which is
@@ -316,7 +253,7 @@ fn set_compress_flag(out_path: PathBuf, mut out_flags: OutFlags) -> (PathBuf, Ou
 pub fn validate(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfigError> {
     let result = validate_impl(merged);
     match &result {
-        Ok(config) => tracing::debug!(format = %config.format, "configuration validated"),
+        Ok(config) => tracing::debug!(format = ?config.format, "configuration validated"),
         Err(e) => tracing::error!(error = log_error(e), "cannot validate configuration: {e}"),
     }
     result
@@ -333,17 +270,10 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
     let reports = values.reports.unwrap_or_default();
     let save_pdf = values.save_pdf.unwrap_or(true);
 
-    // 2. `detect_format`.
-    let format = detect_format(
-        &reports,
-        values.format.as_deref(),
-        values.formats_repo_path.as_deref(),
-    )?;
-
-    // 3. `validate_document_specs`.
+    // 2. `validate_document_specs`.
     let reports = validate_document_specs(reports, save_pdf)?;
 
-    // 4. `set_compress_flag` -- must come before 5: it can change the output path.
+    // 3. `set_compress_flag` -- must come before 4: it can change the output path.
     let out_path = values.out_path.unwrap_or_else(|| PathBuf::from("."));
     // The two flags travel through the merge as separate fields and are only put back together
     // here, where a resolved configuration is what is being built.
@@ -353,7 +283,7 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
     };
     let (out_path, out_flags) = set_compress_flag(out_path, out_flags);
 
-    // 5. `out_path_exists`.
+    // 4. `out_path_exists`.
     let parent_exists = match out_path.parent() {
         Some(p) if p.as_os_str().is_empty() => true,
         Some(p) => p.is_dir(),
@@ -363,7 +293,7 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
         return Err(FreeportsConfigError::OutPathParentDoesNotExist { path: out_path });
     }
 
-    // 6. `out_path_single_file`.
+    // 5. `out_path_single_file`.
     let out_profile = values.out_profile.unwrap_or(OutStructureMode::Regular);
     let out_path = if out_profile == OutStructureMode::SingleFile
         && !out_path.to_string_lossy().ends_with(".csv")
@@ -377,7 +307,7 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
         verbosity: values.verbosity.unwrap_or(Verbosity::Warn),
         reports,
         target_lists,
-        format,
+        format: values.format,
         out_path,
         out_profile,
         out_flags,
@@ -596,9 +526,35 @@ mod tests {
         #[test]
         fn non_ascii_names_and_formats_survive() {
             let mut config = expect_ok(ValidConfig::new());
-            config.format = "FONDO-ITALIÀ-24".to_string();
+            config.format = Some("FONDO-ITALIÀ-24".to_string());
             config.target_lists = vec!["società bersaglio".to_string(), "日本".to_string()];
             assert_eq!(round_trip(&config), config);
+        }
+
+        /// Phase 11: a configuration without a format crosses as `null`, and comes back without
+        /// one — not as an empty string, which the job would take for a configured format.
+        #[test]
+        fn an_absent_format_survives_as_absent() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.format = None;
+            let restored = round_trip(&config);
+            assert_eq!(restored.format, None);
+            assert_eq!(restored, config);
+        }
+
+        #[test]
+        fn a_present_format_survives_unchanged() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.format = Some("MEDIOLANUM-IT24.A".to_string());
+            assert_eq!(round_trip(&config), config);
+        }
+
+        #[test]
+        fn an_absent_format_is_serialized_as_null() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.format = None;
+            let json: serde_json::Value = serde_json::to_value(&config).unwrap();
+            assert_eq!(json["format"], serde_json::Value::Null);
         }
     }
 
@@ -648,87 +604,17 @@ mod tests {
         }
     }
 
-    mod detect_format {
+    /// Phase 11: validation does not resolve the format any more. It carries the configured one, if
+    /// any, and the job resolves the rest against its documents (`agent-memory/DESIGN-phase11-run-
+    /// integration.md` §2.1, §8.A).
+    mod the_format_is_carried_not_resolved {
         use super::*;
+        use pretty_assertions::assert_eq;
 
-        fn repo_with_one_url_mapped_format(dir: &std::path::Path) -> PathBuf {
+        /// A formats repository whose `url_mapping.csv` maps `https://example.com/a` to `A-EN24`
+        /// and `https://example.com/b` to `B-EN24`.
+        fn repo_with_url_mapped_formats(dir: &std::path::Path) -> PathBuf {
             let repo = dir.join("formats_repo");
-            std::fs::create_dir_all(repo.join("metadata")).unwrap();
-            std::fs::write(
-                repo.join("metadata/formats.csv"),
-                "Name,Locale,Year,Country,Version\nA,EN,24,,\n",
-            )
-            .unwrap();
-            std::fs::write(
-                repo.join("metadata/url_mapping.csv"),
-                "Format name,Url\nA-EN24,https://example.com/a\n",
-            )
-            .unwrap();
-            repo
-        }
-
-        #[test]
-        fn no_format_specified_and_no_formats_repo_to_detect_from_is_an_error() {
-            let mut config = ValidConfig::new();
-            config.merged.values.format = None;
-            let result = validate(config.merged);
-            assert!(
-                matches!(
-                    result,
-                    Err(FreeportsConfigError::NoFormatSpecifiedOrDetected)
-                ),
-                "got {result:?}"
-            );
-        }
-
-        #[test]
-        fn explicit_format_with_no_formats_repo_path_never_touches_the_formats_repo() {
-            // formats_repo_path stays None: if `detect_format` tried to read it regardless, this
-            // would fail with an I/O-ish error instead of succeeding.
-            let config = ValidConfig::new();
-            assert_eq!(config.merged.values.format.as_deref(), Some("FMT"));
-            assert_eq!(config.merged.values.formats_repo_path, None);
-            assert!(validate(config.merged).is_ok());
-        }
-
-        #[test]
-        fn detected_from_a_single_url_is_used_when_format_is_unspecified() {
-            let mut config = ValidConfig::new();
-            let repo = repo_with_one_url_mapped_format(config.dir());
-            config.merged.values.format = None;
-            config.merged.values.formats_repo_path = Some(repo);
-            config.merged.values.reports = Some(vec![DocumentSpec {
-                url: Some("https://example.com/a/report.pdf".to_string()),
-                path: None,
-                name: Some("r".to_string()),
-            }]);
-            let result = expect_ok(config);
-            assert_eq!(result.format, "A-EN24");
-        }
-
-        #[test]
-        fn detected_format_different_from_the_explicit_one_is_a_warning_not_an_error_explicit_wins()
-        {
-            let mut config = ValidConfig::new();
-            let repo = repo_with_one_url_mapped_format(config.dir());
-            config.merged.values.format = Some("EXPLICIT-FMT".to_string());
-            config.merged.values.formats_repo_path = Some(repo);
-            config.merged.values.reports = Some(vec![DocumentSpec {
-                url: Some("https://example.com/a/report.pdf".to_string()),
-                path: None,
-                name: Some("r".to_string()),
-            }]);
-            let result = expect_ok(config);
-            assert_eq!(
-                result.format, "EXPLICIT-FMT",
-                "the explicit format must win over the detected one"
-            );
-        }
-
-        #[test]
-        fn urls_detected_to_different_formats_is_a_conflict_error() {
-            let mut config = ValidConfig::new();
-            let repo = config.dir().join("formats_repo");
             std::fs::create_dir_all(repo.join("metadata")).unwrap();
             std::fs::write(
                 repo.join("metadata/formats.csv"),
@@ -740,27 +626,130 @@ mod tests {
                 "Format name,Url\nA-EN24,https://example.com/a\nB-EN24,https://example.com/b\n",
             )
             .unwrap();
+            repo
+        }
+
+        fn url_spec(url: &str, name: &str) -> DocumentSpec {
+            DocumentSpec {
+                url: Some(url.to_string()),
+                path: None,
+                name: Some(name.to_string()),
+            }
+        }
+
+        #[test]
+        fn no_format_is_valid_and_stays_absent() {
+            let mut config = ValidConfig::new();
+            config.merged.values.format = None;
+            assert_eq!(expect_ok(config).format, None);
+        }
+
+        /// Not even a formats repository is needed: there is nothing to detect here.
+        #[test]
+        fn no_format_and_no_formats_repo_path_is_valid() {
+            let mut config = ValidConfig::new();
+            config.merged.values.format = None;
+            config.merged.values.formats_repo_path = None;
+            let result = validate(config.merged);
+            assert!(result.is_ok(), "got {result:?}");
+            assert_eq!(result.unwrap().format, None);
+        }
+
+        #[test]
+        fn a_configured_format_is_carried_as_it_is() {
+            let config = ValidConfig::new();
+            assert_eq!(config.merged.values.format.as_deref(), Some("FMT"));
+            assert_eq!(expect_ok(config).format, Some("FMT".to_string()));
+        }
+
+        /// formats_repo_path stays None: had validation read the repository, it could not have.
+        #[test]
+        fn a_configured_format_never_touches_the_formats_repo() {
+            let config = ValidConfig::new();
+            assert_eq!(config.merged.values.formats_repo_path, None);
+            assert_eq!(expect_ok(config).format, Some("FMT".to_string()));
+        }
+
+        /// A configured format the repository does not know is still carried: it is the job's
+        /// (`Algorithm::load`) to refuse it, as today.
+        #[test]
+        fn a_configured_format_the_repository_does_not_know_is_still_carried() {
+            let mut config = ValidConfig::new();
+            let repo = repo_with_url_mapped_formats(config.dir());
+            config.merged.values.formats_repo_path = Some(repo);
+            config.merged.values.format = Some("NOT-IN-THE-REPO-EN24".to_string());
+            assert_eq!(
+                expect_ok(config).format,
+                Some("NOT-IN-THE-REPO-EN24".to_string())
+            );
+        }
+
+        /// The detection from the URL is gone from validation: a mapped URL and no format give no
+        /// format here. The job detects it.
+        #[test]
+        fn a_mapped_url_does_not_fill_in_the_format() {
+            let mut config = ValidConfig::new();
+            let repo = repo_with_url_mapped_formats(config.dir());
+            config.merged.values.format = None;
+            config.merged.values.formats_repo_path = Some(repo);
+            config.merged.values.reports =
+                Some(vec![url_spec("https://example.com/a/report.pdf", "r")]);
+            assert_eq!(expect_ok(config).format, None);
+        }
+
+        /// Nor does it overwrite or second-guess a configured one.
+        #[test]
+        fn a_mapped_url_does_not_replace_a_configured_format() {
+            let mut config = ValidConfig::new();
+            let repo = repo_with_url_mapped_formats(config.dir());
+            config.merged.values.format = Some("B-EN24".to_string());
+            config.merged.values.formats_repo_path = Some(repo);
+            config.merged.values.reports =
+                Some(vec![url_spec("https://example.com/a/report.pdf", "r")]);
+            assert_eq!(expect_ok(config).format, Some("B-EN24".to_string()));
+        }
+
+        /// Two URLs mapped to different formats are no longer a validation error: documents that
+        /// disagree are the job's to report (`JobError::ConflictingFormats`).
+        #[test]
+        fn urls_mapped_to_different_formats_are_valid() {
+            let mut config = ValidConfig::new();
+            let repo = repo_with_url_mapped_formats(config.dir());
             config.merged.values.format = None;
             config.merged.values.formats_repo_path = Some(repo);
             config.merged.values.reports = Some(vec![
-                DocumentSpec {
-                    url: Some("https://example.com/a/x.pdf".to_string()),
-                    path: None,
-                    name: Some("a".to_string()),
-                },
-                DocumentSpec {
-                    url: Some("https://example.com/b/y.pdf".to_string()),
-                    path: None,
-                    name: Some("b".to_string()),
-                },
+                url_spec("https://example.com/a/x.pdf", "a"),
+                url_spec("https://example.com/b/y.pdf", "b"),
             ]);
             let result = validate(config.merged);
+            assert!(result.is_ok(), "got {result:?}");
+            assert_eq!(result.unwrap().format, None);
+        }
+
+        /// No event above `DEBUG` from validation about the format: the warnings of the format are
+        /// the job's now.
+        #[test]
+        fn validation_emits_no_warning_about_the_format() {
+            let mut config = ValidConfig::new();
+            let repo = repo_with_url_mapped_formats(config.dir());
+            config.merged.values.format = Some("B-EN24".to_string());
+            config.merged.values.formats_repo_path = Some(repo);
+            config.merged.values.reports =
+                Some(vec![url_spec("https://example.com/a/report.pdf", "r")]);
+            let _guard = crate::core::doc_classify::tests::SERIAL
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let mut result = None;
+            let records = crate::core::tracing_setup::capture::events(|| {
+                tracing::callsite::rebuild_interest_cache();
+                result = Some(validate(config.merged));
+            });
+            assert!(result.unwrap().is_ok());
             assert!(
-                matches!(
-                    result,
-                    Err(FreeportsConfigError::ConflictingDetectedFormats { .. })
-                ),
-                "got {result:?}"
+                !records
+                    .iter()
+                    .any(|r| matches!(r.level, Some(tracing::Level::WARN | tracing::Level::ERROR))),
+                "{records:?}"
             );
         }
     }

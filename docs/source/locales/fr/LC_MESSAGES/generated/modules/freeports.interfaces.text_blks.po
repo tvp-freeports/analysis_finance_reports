@@ -1,0 +1,70 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.interfaces.text_blks.rst:2
+msgid "freeports.interfaces.text\\_blks"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.interfaces.text_blks.rst:9
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.interfaces.text_blks.rst:13:<autosummary>:1
+msgid ""
+":py:obj:`OneTextBlockType "
+"<freeports.interfaces.text_blks.OneTextBlockType>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.interfaces.text_blks.rst:13:<autosummary>:1
+#: freeports.interfaces.OneTextBlockType:1 of
+msgid "Shim Python dell'enum `OneTextBlockType` del riferimento."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.interfaces.text_blks.rst:13:<autosummary>:1
+msgid ""
+":py:obj:`ResultStandardFiltering "
+"<freeports.interfaces.text_blks.ResultStandardFiltering>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.interfaces.text_blks.rst:13:<autosummary>:1
+#: freeports.interfaces.ResultStandardFiltering:1 of
+msgid "Shim Python dell'enum `ResultStandardFiltering` del riferimento."
+msgstr ""
+
+#: ../../docstring freeports.interfaces.text_blks.OneTextBlockType.value:1
+#: freeports.interfaces.text_blks.ResultStandardFiltering.value:1 of
+msgid ""
+"it is the string that ends up as a block's type, and what author code "
+"compares against."
+msgstr ""
+
+#: ../../docstring freeports.interfaces.text_blks.OneTextBlockType.value
+#: freeports.interfaces.text_blks.ResultStandardFiltering.value of
+msgid "type"
+msgstr ""
+
+#: ../../docstring freeports.interfaces.text_blks.OneTextBlockType.value:4
+#: freeports.interfaces.text_blks.ResultStandardFiltering.value:4 of
+msgid "The value is the name itself"
+msgstr ""
+

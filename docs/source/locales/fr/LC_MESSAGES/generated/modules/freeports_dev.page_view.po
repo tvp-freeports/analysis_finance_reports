@@ -1,0 +1,515 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:2
+msgid "freeports\\_dev.page\\_view"
+msgstr ""
+
+#: freeports_dev.page_view:1 of
+msgid ""
+"Showing a page on a terminal: the lines as a table, the images as "
+"pictures."
+msgstr ""
+
+#: freeports_dev.page_view:3 of
+msgid ""
+"A page is not drawable on a terminal and an image is. That asymmetry is "
+"the whole design of this module, and the two halves below follow from it."
+msgstr ""
+
+#: freeports_dev.page_view:7 of
+msgid "Why the page is not drawn"
+msgstr ""
+
+#: freeports_dev.page_view:9 of
+msgid ""
+"Mapping the page box onto a character grid fails in three separate ways "
+"at once. Two lines can overlap and a cell holds one character. A 6pt "
+"caption and a 24pt heading occupy the same cell height, so the one visual"
+" cue a reader would actually use is the one the grid destroys. And the "
+"metadata that makes a line *selectable* -- its font, its corpus, its box "
+"-- does not fit beside the text it describes, so a drawing either omits "
+"it or is mostly metadata. A picture wrong in all three ways is worse than"
+" none, because it is read as though it were right."
+msgstr ""
+
+#: freeports_dev.page_view:16 of
+msgid ""
+"So the geometry is **reported**, not imitated: one row per line, with the"
+" numbers. Three things make that readable rather than merely honest."
+msgstr ""
+
+#: freeports_dev.page_view:19 of
+msgid ""
+"**The font legend.** A page carries three to eight distinct (font, "
+"corpus) pairs across several hundred lines. Naming each pair once in a "
+"header and tagging its lines with a letter costs a few rows and returns "
+"the whole terminal width to the text. The header is not a tax either: it "
+"is precisely what one needs in order to write a "
+":class:`PdfLineSelection`, which is why one is reading the page at all."
+msgstr ""
+
+#: freeports_dev.page_view:25 of
+msgid ""
+"**Overlap is signalled, not drawn.** A line whose box meets another's is "
+"marked. Where the two sit relative to each other is already in their "
+"coordinates; that they collide is the part a reader would otherwise have "
+"to discover by arithmetic."
+msgstr ""
+
+#: freeports_dev.page_view:29 of
+msgid ""
+"**Reading order is the caller's choice.** Many pages of these reports "
+"carry two tables side by side, and ordering by ordinate alone interleaves"
+" them into nonsense: row one of the left table, row one of the right, row"
+" two of the left. Top-to-bottom is a default, not a truth, so the column-"
+"major and banded orders exist for the pages it lies about."
+msgstr ""
+
+#: freeports_dev.page_view:35 of
+msgid "Why the images are drawn"
+msgstr ""
+
+#: freeports_dev.page_view:37 of
+msgid ""
+"An image has no competing text to collide with and no corpus to "
+"misrepresent, and at twenty columns a tick mark is already recognisable. "
+"The one thing that must be got right is *which* pixels: the bytes "
+"embedded in the page dictionary are frequently not what a reader sees -- "
+"in these reports a tick mark is stored as a solid black rectangle whose "
+"shape lives in a separate mask the dictionary does not carry. What is "
+"previewed is therefore the **rendered page region**, mask and "
+"transparency already applied. The functions here take grey levels and "
+"know nothing about where they came from, which is what keeps that "
+"decision in one place, at the caller."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+msgid ":py:obj:`INK_RAMP <freeports_dev.page_view.INK_RAMP>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+msgid "Grey levels map onto these, lightest first."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+msgid ":py:obj:`ROW_TOLERANCE <freeports_dev.page_view.ROW_TOLERANCE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+msgid ""
+"How far apart two lines may start, vertically, and still be one row of "
+"one table."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+msgid ":py:obj:`COLUMN_TOLERANCE <freeports_dev.page_view.COLUMN_TOLERANCE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+#: freeports_dev.page_view.COLUMN_TOLERANCE:1 of
+msgid "The same, for grouping lines into columns when reading column-major."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+msgid ":py:obj:`CELL_ASPECT <freeports_dev.page_view.CELL_ASPECT>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:16:<autosummary>:1
+#: freeports_dev.page_view.CELL_ASPECT:1 of
+msgid ""
+"A character cell is about twice as tall as it is wide, so a preview "
+"halves its rows to keep an image from coming out stretched."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:18
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`ascii_preview <freeports_dev.page_view.ascii_preview>`\\ "
+"\\(gray\\, width\\, height\\[\\, cols\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.ascii_preview:1 of
+msgid ""
+"`gray` — row-major grey levels, 0 black to 255 white — as rows of "
+"characters."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`document_image_counts "
+"<freeports_dev.page_view.document_image_counts>`\\ \\(document\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.document_image_counts:1 of
+msgid "How many times each image digest occurs in the whole document."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ":py:obj:`font_legend <freeports_dev.page_view.font_legend>`\\ \\(lines\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.font_legend:1 of
+msgid ""
+"The distinct (font, corpus) pairs of `lines`, tagged in order of first "
+"appearance."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ":py:obj:`ink_ratio <freeports_dev.page_view.ink_ratio>`\\ \\(gray\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.ink_ratio:1 of
+msgid "How dark `gray` is on average, 0 for white and 1 for black."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`legend_tags <freeports_dev.page_view.legend_tags>`\\ "
+"\\(entries\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.legend_tags:1 of
+msgid "The legend keyed by (font, rounded corpus), for looking a line's tag up."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`nearest_line <freeports_dev.page_view.nearest_line>`\\ "
+"\\(bbox\\, lines\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.nearest_line:1 of
+msgid "The single line closest to `bbox`, or ``None`` when the page has no text."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`nearest_lines <freeports_dev.page_view.nearest_lines>`\\ "
+"\\(bbox\\, lines\\[\\, count\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.nearest_lines:1 of
+msgid "The `count` lines closest to `bbox`, nearest first."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`overlapping_indices "
+"<freeports_dev.page_view.overlapping_indices>`\\ \\(lines\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.overlapping_indices:1 of
+msgid "The indices of the lines whose box meets another line's box."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`page_images <freeports_dev.page_view.page_images>`\\ "
+"\\(page\\_dict\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.page_images:1 of
+msgid "The raster images of a page, read exactly as the engine reads them."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`reading_order <freeports_dev.page_view.reading_order>`\\ "
+"\\(lines\\[\\, order\\, columns\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.reading_order:1 of
+msgid "`lines` in the order asked for."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`render_images <freeports_dev.page_view.render_images>`\\ "
+"\\(pdf\\_page\\, page\\_dict\\, lines\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.render_images:1 of
+msgid "The page's raster images as rows of terminal output."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`render_lines <freeports_dev.page_view.render_lines>`\\ "
+"\\(lines\\[\\, order\\, columns\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.render_lines:1 of
+msgid "The page as rows of text: a font legend, a header, then one row per line."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`rendered_gray <freeports_dev.page_view.rendered_gray>`\\ "
+"\\(pdf\\_page\\, bbox\\[\\, dpi\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.rendered_gray:1 of
+msgid ""
+"The page region under `bbox`, rendered to grey levels: what a reader "
+"actually sees there."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`resample <freeports_dev.page_view.resample>`\\ \\(gray\\, "
+"width\\, height\\, cols\\, rows\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.resample:1 of
+msgid "`gray` reduced to `cols` × `rows` by averaging each source block."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ""
+":py:obj:`show_codepoints <freeports_dev.page_view.show_codepoints>`\\ "
+"\\(text\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.show_codepoints:1 of
+msgid "`text` with every non-printable-ASCII character replaced by ``<U+XXXX>``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+msgid ":py:obj:`stored_size <freeports_dev.page_view.stored_size>`\\ \\(image\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:37:<autosummary>:1
+#: freeports_dev.page_view.stored_size:1 of
+msgid ""
+"The stored image's size in pixels, as ``\"13x13 px\"``, or ``\"? px\"`` "
+"if it will not decode."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:39
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:43:<autosummary>:1
+msgid ""
+":py:obj:`FontEntry <freeports_dev.page_view.FontEntry>`\\ \\(tag\\, "
+"font\\_name\\, font\\_size\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:43:<autosummary>:1
+#: freeports_dev.page_view.FontEntry:1 of
+msgid "One row of the legend: a tag, and the (font, corpus) pair it stands for."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:43:<autosummary>:1
+msgid ""
+":py:obj:`NearestText <freeports_dev.page_view.NearestText>`\\ \\(line\\, "
+"direction\\, distance\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.page_view.rst:43:<autosummary>:1
+#: freeports_dev.page_view.NearestText:1 of
+msgid ""
+"The line closest to a box, which direction it lies in, and how far away "
+"it is."
+msgstr ""
+
+#: freeports_dev.page_view.INK_RAMP:1 of
+msgid ""
+"Grey levels map onto these, lightest first. Ten steps is as much as a "
+"terminal font distinguishes."
+msgstr ""
+
+#: freeports_dev.page_view.ROW_TOLERANCE:1 of
+msgid ""
+"How far apart two lines may start, vertically, and still be one row of "
+"one table. Corpora in these documents arrive with a long decimal tail, "
+"and 231.9 and 232.0 are one row."
+msgstr ""
+
+#: freeports_dev.page_view.ascii_preview:3 of
+msgid ""
+"The row count is derived from the aspect ratio and then halved, because a"
+" character cell is about twice as tall as it is wide and an un-halved "
+"preview comes out stretched."
+msgstr ""
+
+#: freeports_dev.page_view.document_image_counts:3 of
+msgid ""
+"A whole-document walk, so it is asked for rather than assumed: on a "
+"report of eleven hundred pages it is seconds, and the per-page count "
+"answers most questions."
+msgstr ""
+
+#: freeports_dev.page_view.font_legend:3 of
+msgid ""
+"First appearance rather than alphabetical order, so that re-reading a "
+"page after an edit does not renumber every tag because one line changed "
+"font."
+msgstr ""
+
+#: freeports_dev.page_view.ink_ratio:3 of
+msgid ""
+"A cheap answer to \"is this box ticked\", which is the question most "
+"often asked of a small image in these documents."
+msgstr ""
+
+#: freeports_dev.page_view.nearest_lines:3 of
+msgid ""
+"What an image *means* is whatever is written beside it: the tick mark of "
+"an SFDR form is identified by the ``Yes`` or ``No`` it sits next to, "
+"never by its own appearance."
+msgstr ""
+
+#: freeports_dev.page_view.nearest_lines:6 of
+msgid ""
+"More than one, because the nearest line is often not the informative one."
+" A tick in a form sits a few points below its section heading and a dozen"
+" points left of its own label, so the single closest line is the heading "
+"— true, and not what was being asked. Three lines cost three rows and "
+"take the guessing out of it."
+msgstr ""
+
+#: freeports_dev.page_view.nearest_lines:11 of
+msgid ""
+"The direction is decided by which gap is the larger, so a label on the "
+"same row as the image reads as ``left`` or ``right`` even when it is also"
+" very slightly higher."
+msgstr ""
+
+#: freeports_dev.page_view.overlapping_indices:3 of
+msgid ""
+"Boxes that merely touch along an edge do not count: adjacent cells of a "
+"table share a boundary by construction, and marking every one of them "
+"would mark the whole page."
+msgstr ""
+
+#: freeports_dev.page_view.page_images:3 of
+msgid ""
+"Through the engine's own extractor rather than by walking the dictionary "
+"here, so that an image this tool shows is an image a pipe can see — "
+"including the degenerate boxes the engine drops."
+msgstr ""
+
+#: freeports_dev.page_view.reading_order:3 of
+msgid ""
+"`order` is ``\"y\"`` -- top to bottom, then left to right -- or "
+"``\"x\"``, which reads each column of the page down before moving right. "
+"`columns` splits the page into that many vertical bands and finishes each"
+" band before starting the next, which is what a page carrying two tables "
+"side by side needs: ordering such a page by ordinate alone interleaves "
+"the two tables' rows."
+msgstr ""
+
+#: freeports_dev.page_view.reading_order:8 of
+msgid ""
+"An order this function does not know is an error, not a fallback to the "
+"default. A sort order silently replaced by another is a page read in an "
+"order nobody chose."
+msgstr ""
+
+#: freeports_dev.page_view.render_images:3 of
+msgid ""
+"Each image gets its box, its size on the page and in pixels, its digest "
+"with how often that same digest occurs, the nearest text with the "
+"direction it lies in, and a preview of the rendered region with its ink "
+"ratio."
+msgstr ""
+
+#: freeports_dev.page_view.render_images:7 of
+msgid ""
+"The digest is there because it answers the first question one has about a"
+" small repeated image: the five marks of an SFDR form on one page turn "
+"out to be one image used five times, and a single column of output says "
+"so. The nearest text is there because it is what the image *means*: a "
+"tick is identified by the ``Yes`` or ``No`` beside it, never by its own "
+"appearance."
+msgstr ""
+
+#: freeports_dev.page_view.render_lines:3 of
+msgid ""
+"Returns the rows rather than printing them, so the caller decides where "
+"they go and the arrangement can be tested without capturing output."
+msgstr ""
+
+#: freeports_dev.page_view.rendered_gray:3 of
+msgid ""
+"**Not** the bytes the page dictionary carries for the image. Those are "
+"frequently not the picture: in these reports a tick mark is stored as a "
+"solid black rectangle whose shape lives in a separate mask the dictionary"
+" does not carry, so previewing the stored bytes shows a black square for "
+"every tick on the page. Rendering the region applies the mask, the "
+"transparency and anything drawn over or under it, which is the only "
+"definition of \"what is there\" that matches the person checking the PDF "
+"by eye."
+msgstr ""
+
+#: freeports_dev.page_view.resample:3 of
+msgid ""
+"Averaging rather than sampling: a tick mark one pixel wide disappears "
+"entirely from a preview that picks one source pixel per output cell, and "
+"disappearing is the one failure a preview must not have."
+msgstr ""
+
+#: freeports_dev.page_view.show_codepoints:3 of
+msgid ""
+"This is what tells a box glyph from a letter. A checkbox in these reports"
+" is sometimes ``U+2612``, sometimes ``U+26AB`` in a symbol font, and on a"
+" terminal both are a smudge or a replacement square."
+msgstr ""
+
+#: freeports_dev.page_view.stored_size:3 of
+msgid ""
+"Worth a column of its own beside the box: a 13-pixel image drawn into a "
+"9-point box is a glyph scaled up, and one drawn into a 200-point box is a"
+" scan. That ratio is the first thing that tells you which kind of thing "
+"you are looking at."
+msgstr ""
+
+#: freeports_dev.page_view.stored_size:7 of
+msgid ""
+"A failure to decode is reported and not raised. Some stored streams are "
+"not standalone images at all, and the point of this view is to look at a "
+"page one does not yet understand."
+msgstr ""
+

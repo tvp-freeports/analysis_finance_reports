@@ -118,7 +118,15 @@ there is nothing to compare against. Generate it deliberately, **after reading i
 it is the format's specification and not a snapshot.
 
 ```{note}
-There is no command that regenerates a whole-document reference output. `make-tests` does the
-per-page fixtures only. Reference outputs are not rewritten as a side effect of other work —
-regenerate only when those rows changing **is** the work, and read the diff before keeping it.
+`make-tests` does the per-page fixtures only. A whole-document reference output is written by the
+command line, run from inside the formats repository with every input the test uses named
+explicitly — the repository, its own input database, the `TEST` list, and the document named
+`report`, which is what the test calls it:
+
+    freeports -f <FORMAT> -i tests/formats/<FORMAT>/report.pdf:report -F . -I tests/input_db \
+      -T TEST -o tests/formats/<FORMAT>/out
+
+The result is byte for byte what the test computes, `.log.csv` included. Reference outputs are not
+rewritten as a side effect of other work — regenerate only when those rows changing **is** the
+work, and read the diff before keeping it.
 ```

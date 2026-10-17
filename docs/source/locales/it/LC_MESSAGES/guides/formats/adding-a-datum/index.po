@@ -1,0 +1,143 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/adding-a-datum/index.md:1
+msgid "Adding a datum to a format"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:3
+msgid "*I have a format, and a datum I want it to extract. What do I do?*"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:5
+#, python-brace-format
+msgid ""
+"{doc}`../writing-a-format` answers the larger question — a report nothing"
+" supports, to a passing suite. This area answers the smaller one that "
+"comes up far more often: the format exists, it reads its holdings, and "
+"now the statement of net assets has to come out of it too."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:9
+msgid ""
+"The five steps are always the same, and they are in this order for a "
+"reason."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "Step"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "1. find the pages that carry the datum, and read one"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+#, python-brace-format
+msgid "{doc}`finding-and-reading`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "2. decide which segment each part of the reading belongs to"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+#, python-brace-format
+msgid "{doc}`where-each-logic-lives`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "3. write it at the most constrained level that holds"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+#, python-brace-format
+msgid "{doc}`choosing-a-level`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "4. freeze it, one test per **recipe**"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+#, python-brace-format
+msgid "{doc}`recipes-and-tests`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+msgid "5. when it holds, see whether the level can go up"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:11
+#, python-brace-format
+msgid "{doc}`choosing-a-level` again"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:30
+msgid "The one habit that matters more than the rest"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:32
+msgid ""
+"**Every rule you write down says how many pages it was measured on, and "
+"the number travels with it.**"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:35
+msgid ""
+"This is not a style preference. A format is a claim about a layout, and a"
+" layout is only knowable by looking: an anchor read off the page in front"
+" of you is a hypothesis, and the difference between a hypothesis and a "
+"rule is a count. The project has paid for the difference more than once, "
+"and the cheapest of those lessons is on the next page."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:40
+msgid ""
+"The commands that produce the count are two, and neither of them is the "
+"test suite:"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:47
+msgid ""
+"The first says where a text occurs before any format exists; the second "
+"says how the format classifies every page of the document once one does. "
+"Between them they turn *\"it works on page 25\"* into *\"it holds on 983 "
+"pages of 1 261, and the 80 it leaves out are these\"*."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:51
+msgid "What this area assumes you have read"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/index.md:53
+#, python-brace-format
+msgid ""
+"{doc}`../selections`, because almost everything written in these steps is"
+" a selection, and {doc}`../dev-loop`, because every measurement here is "
+"one of its four commands. The levels themselves — what a row, a YAML "
+"block and a Python module can each say — are {doc}`../advanced/index`."
+msgstr ""
+

@@ -93,7 +93,7 @@ mod tests {
             verbosity: Verbosity::Warn,
             reports: vec![],
             target_lists: vec![],
-            format: "FMT".to_string(),
+            format: Some("FMT".to_string()),
             out_path: dir.to_path_buf(),
             out_profile: profile,
             out_flags: OutFlags::default(),

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -86,6 +86,16 @@ msgid "freezes one page's current behaviour as JSON fixtures"
 msgstr ""
 
 #: ../../source/reference/cli/freeports-dev.md
+msgid "`probe list`, `probe run`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"ready-made questions to ask a document before a format exists — see "
+"[below](probe-subcommand)"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
 msgid "`test`"
 msgstr ""
 
@@ -93,7 +103,7 @@ msgstr ""
 msgid "runs the repository's tests through pytest"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:14
+#: ../../source/reference/cli/freeports-dev.md:15
 #, python-brace-format
 msgid ""
 "They are meant to be used in that order the first time and in the "
@@ -102,11 +112,11 @@ msgid ""
 "a real format, and this page is the reference for the options."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:18
+#: ../../source/reference/cli/freeports-dev.md:19
 msgid "Creating an empty repository"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:25
+#: ../../source/reference/cli/freeports-dev.md:26
 #, python-brace-format
 msgid ""
 "`init-format-repo` writes `package.yaml`, the `metadata/` tables, the "
@@ -116,11 +126,11 @@ msgid ""
 "{doc}`../../guides/formats/repository` for what each generated file is."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:31
+#: ../../source/reference/cli/freeports-dev.md:32
 msgid "The README, the report and the hook"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:33
+#: ../../source/reference/cli/freeports-dev.md:34
 msgid ""
 "It also writes everything a repository needs to *show* what it has been "
 "vouched for, because the alternative is that each of those files gets "
@@ -207,7 +217,7 @@ msgstr ""
 msgid "names the Makefile target that is the commit gate"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:48
+#: ../../source/reference/cli/freeports-dev.md:49
 msgid ""
 "All nine are then **filled straight away**, by running the command once —"
 " so a repository never starts life with three broken images and six empty"
@@ -219,7 +229,7 @@ msgid ""
 "files to fill."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:55
+#: ../../source/reference/cli/freeports-dev.md:56
 msgid ""
 "**The hook runs one thing**: `make pre-commit` on a `dev` branch, `make "
 "ci-full` on a `prod` one. What the gate consists of is decided in the "
@@ -231,7 +241,7 @@ msgid ""
 "run rewrote, and the verdict."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:62
+#: ../../source/reference/cli/freeports-dev.md:63
 msgid ""
 "**No report can refuse a commit**, on any branch. The gate collects once,"
 " renders the artefacts, and the hook `git add`s the ones it actually "
@@ -243,7 +253,7 @@ msgid ""
 "still has to be able to commit."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:69
+#: ../../source/reference/cli/freeports-dev.md:70
 #, python-brace-format
 msgid ""
 "To change what the gate does, edit the `Makefile` — `make help` lists "
@@ -251,7 +261,7 @@ msgid ""
 "them may refuse and on which branch."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:72
+#: ../../source/reference/cli/freeports-dev.md:73
 #, python-brace-format
 msgid ""
 "`setup-input-db` copies a minimal input database into `tests/input_db/`, "
@@ -262,7 +272,7 @@ msgid ""
 "{doc}`../../guides/input-db/index`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:77
+#: ../../source/reference/cli/freeports-dev.md:78
 #, python-brace-format
 msgid ""
 "`init-input-db` is the other half of that sentence and is not part of "
@@ -273,7 +283,7 @@ msgid ""
 "db/index`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:82
+#: ../../source/reference/cli/freeports-dev.md:83
 msgid "`inspect-document` — which page is what"
 msgstr ""
 
@@ -318,7 +328,7 @@ msgstr ""
 msgid "the shared options; see {doc}`../configuration/dev-and-validate`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:98
+#: ../../source/reference/cli/freeports-dev.md:99
 msgid ""
 "Run this before anything else. A page that should be `investments` and "
 "comes back `unclassified` is a classification problem, and nothing "
@@ -327,7 +337,7 @@ msgid ""
 " an afternoon."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:102
+#: ../../source/reference/cli/freeports-dev.md:103
 msgid ""
 "`--page` narrows what is **printed**, not what is classified: the whole "
 "document is classified either way. A format may supply a finalizer that "
@@ -337,7 +347,7 @@ msgid ""
 "page classified in its document, and the isolated one is the wrong one."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:108
+#: ../../source/reference/cli/freeports-dev.md:109
 msgid "`inspect-page` — what the engine sees, stage by stage"
 msgstr ""
 
@@ -389,7 +399,7 @@ msgstr ""
 msgid "which lists those test companies come from. Default `TEST`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:126
+#: ../../source/reference/cli/freeports-dev.md:127
 msgid ""
 "The modes fall into three families, and choosing the right family is most"
 " of the skill:"
@@ -467,7 +477,7 @@ msgstr ""
 msgid "learn what font, size and band a value is actually set in"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:136
+#: ../../source/reference/cli/freeports-dev.md:137
 msgid ""
 "The first three are the diagnosis: running them in order tells you *which"
 " of the three segments* is wrong, which is a much smaller question than "
@@ -475,14 +485,248 @@ msgid ""
 "before writing a selection at all:"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:144
+#: ../../source/reference/cli/freeports-dev.md:145
 msgid ""
 "`--page-type` matters even in the pipeline modes: it is what decides "
 "which pipeline the page is fed through, so inspecting a page as the wrong"
 " class shows you a correct answer to the wrong question."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:147
+#: ../../source/reference/cli/freeports-dev.md:149
+msgid "`probe` — ready-made questions to ask a document"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:151
+msgid ""
+"Before a format exists there is nothing for `inspect-page` to run, and "
+"the first questions are about the documents themselves: *what kind of "
+"report is this*, *where are the totals*, *who manages the investments*. A"
+" **probe** is a small script that asks one such question of one or more "
+"PDFs and prints what it found, with pages, positions and fonts. A few "
+"ship with the tool."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Probe"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "The question"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Its own arguments"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`doc_kind`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"what kind of document is this, and does it carry the SFDR periodic "
+"disclosure?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "—"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`assets`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"where are the total assets, liabilities and net assets, and does the "
+"accounting equation hold?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`en` or `it`, the label profile"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`manco`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"what is printed under or beside the management company label, with its "
+"period of office?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`--max-pages N`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`inv_managers`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "is an investment manager declared, and are there exceptions per sub-fund?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`sfdr_title`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"which SFDR article does each disclosure declare, by its title and by its "
+"tick mark?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`--summary`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:171
+msgid ""
+"`probe list` prints the same questions, read from each probe's docstring;"
+" `python <probe>.py` with no document prints the full description, "
+"including the **known limits** of that probe."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`NAME`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "the probe, with or without its `probe_` prefix"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "the probe's arguments, then `PDF-OR-DIR…`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the probe's own arguments **first**, then the documents; a directory is "
+"walked to the bottom"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "also run on the reports under `tests/formats/<FORMAT>/` of the repository"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`--probes-dir`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"a directory of probes of your own, searched before the shipped ones; "
+"repeatable. Also `dev.probes_dirs`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:182
+msgid ""
+"**What a probe answers is a lead, not a result.** Probes are deliberately"
+" rough: they take the first match, and the first match in a financial "
+"report is often the table of contents. A probe that says `-` has not "
+"proven that something is absent, only that it did not find it the way it "
+"looks; and a probe that finds a value has found *a* value, which the page"
+" still has to confirm. Their use is to tell you, across several reports "
+"of the same format at once, whether an anchor holds — which is the "
+"question that decides whether a format can be written at all."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:189
+msgid ""
+"**The tool's own options may appear anywhere**, before or after the "
+"probe's name; everything else after the name goes to the probe, in its "
+"order. The documents start at the first word that names an existing file "
+"or directory, and nothing may follow them."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:193
+msgid "Writing a probe of your own"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:195
+msgid ""
+"A probe is **one independent file** named `probe_<question>.py`. Put it "
+"in a directory and name the directory with `--probes-dir` or "
+"`dev.probes_dirs`; it then appears in `probe list`, and if it has the "
+"name of a shipped probe it stands in for it — `list` says so."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Rule"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Why"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"no probe imports another; depend only on `pymupdf` and "
+"`freeports.utils.pdf_extract`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the tool runs each probe as its own process and never imports it, so a "
+"probe is a file you can add, copy or delete without touching anything "
+"else"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "read lines with `pdflines_from_pagedict`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the lines have to be the ones the engine sees, with the same extraction "
+"flags"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the **first line of the docstring** is the question; a `Usage:` section "
+"and the known limits follow"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"it is what `probe list` shows, and what a person reads before trusting "
+"the output"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the probe's own options first, the documents last; do not use `-f`, `-r`,"
+" `-F`, `-I`, `--config` or `--probes-dir`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"that order is how the tool tells them apart, and those options belong to "
+"the tool"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "with no document, print the docstring and exit with 2"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`python probe_x.py` alone should explain itself"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"one block of output per document, starting with the path; `-` for \"not "
+"found\""
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "several reports side by side are the point"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:208
 msgid "`make-tests` — freeze a page"
 msgstr ""
 
@@ -550,7 +794,7 @@ msgstr ""
 msgid "do not print the results while generating"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:164
+#: ../../source/reference/cli/freeports-dev.md:225
 msgid ""
 "It writes the three per-page fixtures — the PDF blocks, the text blocks, "
 "the results — as JSON under `tests/formats/<FORMAT>/pages/`, after "
@@ -560,7 +804,7 @@ msgid ""
 "test will then defend it."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:169
+#: ../../source/reference/cli/freeports-dev.md:230
 msgid ""
 "`--noconfirm` is for regenerating fixtures you have already reviewed, not"
 " for generating new ones. As with the engine's boolean flags, the flag "
@@ -569,7 +813,7 @@ msgid ""
 "write `false` there — an absent flag says nothing, it does not say no."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:174
+#: ../../source/reference/cli/freeports-dev.md:235
 msgid "`test` — run the repository's tests"
 msgstr ""
 
@@ -603,7 +847,7 @@ msgstr ""
 msgid "narrow the run to one format"
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:193
+#: ../../source/reference/cli/freeports-dev.md:254
 msgid ""
 "**The three selections are the Makefile's three targets**: `--fast` is "
 "`make test-fast`, `--slow` is `make test-slow`, `--all` is `make test-"
@@ -616,7 +860,7 @@ msgid ""
 "for."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:200
+#: ../../source/reference/cli/freeports-dev.md:261
 msgid ""
 "A run that leaves half the suite out **says so in its last line**. And a "
 "selection that matched nothing is not a failure: a repository with no "
@@ -624,7 +868,7 @@ msgid ""
 "nothing there to fail."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:204
+#: ../../source/reference/cli/freeports-dev.md:265
 msgid ""
 "It is pytest, with the `freeports_dev` plugin doing the collection: a "
 "directory named like a format in `metadata/formats.csv` becomes a test "
@@ -633,19 +877,24 @@ msgid ""
 "pytest's own and a CI job needs nothing else."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:209
+#: ../../source/reference/cli/freeports-dev.md:270
 msgid ""
 "Two kinds of test live there and they cost very different amounts. The "
 "per-page tests are fast, and they are what you run every few minutes "
 "while working. The whole-document test replays the entire report and "
 "compares the output tables against `tests/formats/<FORMAT>/out/`; it is "
 "slow, it is marked `integration_tests`, and it is the one that actually "
-"says the format works. That marker is what `--fast` and `--slow` select "
-"on, and the flag is the one spelling of it — the marker string itself "
-"never needs to be written out by hand."
+"says the format works. Next to it, every report variant also gets a "
+"classification test, marked `classification_tests`: it runs `freeports "
+"classify` on `report.pdf` and passes when the report is recognised as the"
+" format of its folder, or not recognised at all — recognised as another "
+"format is a failure. It opens the PDF, so it is slow too. Those two "
+"markers are what `--fast` and `--slow` select on (`--slow` takes both), "
+"and the flag is the one spelling of them — the marker strings never need "
+"to be written out by hand."
 msgstr ""
 
-#: ../../source/reference/cli/freeports-dev.md:217
+#: ../../source/reference/cli/freeports-dev.md:281
 msgid ""
 "`tests/formats/<FORMAT>/out/**` is the repository's specification, not a "
 "snapshot. When a run diverges from it, the assumption is that the engine "
@@ -654,4 +903,23 @@ msgid ""
 "turn a red test green — and it is also what the grants of the next "
 "section are *about*."
 msgstr ""
+
+#~ msgid ""
+#~ "Two kinds of test live there and"
+#~ " they cost very different amounts. "
+#~ "The per-page tests are fast, and"
+#~ " they are what you run every "
+#~ "few minutes while working. The whole-"
+#~ "document test replays the entire report"
+#~ " and compares the output tables "
+#~ "against `tests/formats/<FORMAT>/out/`; it is "
+#~ "slow, it is marked `integration_tests`, "
+#~ "and it is the one that actually"
+#~ " says the format works. That marker"
+#~ " is what `--fast` and `--slow` select"
+#~ " on, and the flag is the one"
+#~ " spelling of it — the marker "
+#~ "string itself never needs to be "
+#~ "written out by hand."
+#~ msgstr ""
 

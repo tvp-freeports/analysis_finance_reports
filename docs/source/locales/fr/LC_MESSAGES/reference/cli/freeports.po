@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-15 08:04+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -33,6 +33,14 @@ msgid ""
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md:7
+#, python-brace-format
+msgid ""
+"`freeports` has one subcommand, `classify`, which reports the format of "
+"documents without extracting anything: {doc}`freeports-classify`. "
+"Everything on this page is the command without it."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:10
 msgid "Every option at a glance"
 msgstr ""
 
@@ -69,7 +77,7 @@ msgid "the format"
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md
-msgid "infer it from a URL, or fail"
+msgid "detect it from the documents, or the job fails"
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md
@@ -157,7 +165,7 @@ msgid "*nothing said* — likewise"
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md
-#: ../../source/reference/cli/freeports.md:110
+#: ../../source/reference/cli/freeports.md:178
 msgid "`--no-download`"
 msgstr ""
 
@@ -182,7 +190,7 @@ msgid "not in batch mode"
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md
-#: ../../source/reference/cli/freeports.md:122
+#: ../../source/reference/cli/freeports.md:190
 msgid "`--config`"
 msgstr ""
 
@@ -238,15 +246,15 @@ msgstr ""
 msgid "warnings only"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:33
+#: ../../source/reference/cli/freeports.md:36
 msgid "Documents and format"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:35
+#: ../../source/reference/cli/freeports.md:38
 msgid "`--input` / `--report` / `-i`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:37
+#: ../../source/reference/cli/freeports.md:40
 #, python-brace-format
 msgid ""
 "Repeatable, and takes several values after one occurrence. Each value is "
@@ -255,92 +263,375 @@ msgid ""
 " a `:` inside a value is quoted and what `save_pdf` does in each case."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:46
+#: ../../source/reference/cli/freeports.md:49
 msgid ""
 "Giving none from this source leaves the field **unset** rather than "
 "empty, so a configuration file or the environment can still supply the "
 "documents."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:49
+#: ../../source/reference/cli/freeports.md:52
 msgid "`--format` / `-f`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:51
+#: ../../source/reference/cli/freeports.md:54
+#, python-brace-format
 msgid ""
 "The format name, as `metadata/formats.csv` of the repository synthesises "
-"it — `EURIZON-EN23`, `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`."
+"it — `EURIZON-EN23`, `FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`. It is "
+"optional: left out, each job settles its format from its own documents. "
+"{doc}`../design/document-classification` explains why the run works this "
+"way; this section is what it does."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:54
+#: ../../source/reference/cli/freeports.md:59
+msgid "Where the format comes from"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:61
 msgid ""
-"Omit it and the engine tries to infer it from the URL of each document, "
-"using the repository's `url_mapping.csv`; the first matching prefix wins."
-" Inference works only for documents that *have* a URL. Two documents "
-"inferring **different** formats is an error rather than a choice made "
-"silently. Giving `-f` explicitly while inference also succeeds and "
-"disagrees is a warning, not an error: you were explicit, so you win, but "
-"you are told."
-msgstr ""
-
-#: ../../source/reference/cli/freeports.md:60
-msgid "Where things live"
-msgstr ""
-
-#: ../../source/reference/cli/freeports.md:62
-msgid "`--formats-directory` / `--repo` / `-F` / `-r`"
+"A job settles its format after its documents are resolved and before the "
+"format's recipe is loaded, from three sources in a fixed priority:"
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md:64
 #, python-brace-format
 msgid ""
-"The formats repository. Note that the two tooling commands read a "
-"**differently named** variable for the same thing — "
-"`FREEPORTS_FORMATS_REPO`, not `FREEPORTS_FORMATS_REPO_PATH`; see "
-"{doc}`index`."
+"**the configuration** — `-f`, or `format` from any other source "
+"({doc}`../configuration/options`);"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:65
+#, python-brace-format
+msgid ""
+"**the document classification** — the repository's "
+"`metadata/document_classify.yaml` and Python module ({doc}`../formats"
+"/document-classify-yaml`, {doc}`../formats/document-classify-python`), "
+"applied to the first pages of each document;"
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md:68
+#, python-brace-format
+msgid ""
+"**the URL** — the repository's `url_mapping.csv`, applied to the URL of "
+"each document that has one: the longest matching prefix wins, then the "
+"row with the more specific name, then the row that comes first. A row may"
+" give a partial name ({doc}`../formats/names`), which narrows the format "
+"without settling it; another source then has to complete it."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:73
+msgid ""
+"The classification **runs even when the format is configured**: that is "
+"how the run can tell you that the format you gave is not the one the "
+"document looks like. It costs roughly 0.1–0.2 s per job."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:76
+#, python-brace-format
+msgid ""
+"The two document sources are combined exactly as `freeports classify` "
+"combines them ({doc}`freeports-classify`, \"How the two sources "
+"combine\"): two names agree when some format of the repository falls "
+"under both, and the result is the most precise name both allow. The "
+"documents of one job are combined source by source first, then the two "
+"sources compared."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:81
+#, python-brace-format
+msgid ""
+"The job runs only with a **complete** format. A partial one — "
+"`MEDIOLANUM-IT24.*`, say — fails the job, and the error lists the formats"
+" it still allows; run `freeports classify` on the document, or see "
+"{doc}`../formats/names`, to choose one, then give it with `-f`."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:85
+msgid "When the sources cross"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:87
+msgid ""
+"Every crossing is logged once per job, at the level below. The `WARN` "
+"lines are not something a setting can switch off, and since `.log.csv` "
+"always records `WARN` and above, they are there even under `-qq`."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "What happens"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "Logged"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "The job"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "a format is configured, and the sources that answer agree with it"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "`DEBUG` *configured format confirmed by the document*"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "runs with the configured format"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "a format is configured, and the classification disagrees with it"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`WARN` *the configured format differs from the one the document "
+"classification finds; the configured one is used*"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "a format is configured, and the URL disagrees with it"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`WARN` *… differs from the one the report url maps to; the configured one"
+" is used*"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the classification and the URL disagree with each other"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "`ERROR` *the algorithm and the url disagree on the format*"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"runs with the configured format if there is one, otherwise with the "
+"classification's"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "no format configured, and the sources settle a complete one"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`INFO` *format detected*, with `by` = `algorithm`, `url` or `algorithm "
+"and url`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "runs with that format"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "no format configured, and only a partial one is settled"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the job's error, listing the candidates"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "fails"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "no format configured, and no source says anything"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"the job's error: *no format was configured, and neither the document "
+"classification nor the report url determines one*"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the documents of the job disagree with each other on one source"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"the job's error, naming what that source said of each document by its "
+"label"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "fails, configured format or not"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the classification recognises a document"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`INFO` *document classified as '…'* in that document's span, with the "
+"page and the step or pipeline; *… by exclusion* when the step is the "
+"unconditional *otherwise* of a block"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "—"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:103
+msgid ""
+"When both sources disagree with a configured format, both `WARN` lines "
+"are written: they are two different facts."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:106
+msgid ""
+"Classification can also **break**, and what that costs depends on whether"
+" there is a format to fall back on:"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "What breaks"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "With a configured format"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "Without one"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"the repository's classification will not load (an invalid "
+"`document_classify.yaml`, a module that will not import, a rule refused "
+"at load time)"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`ERROR` *… could not be loaded, the configured format is used unchecked*;"
+" the job runs, checked against neither source"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the job fails with the load error"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"a document's classification fails at run time (a page that will not "
+"convert, a Python pipeline giving two names, a name that does not exist)"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`ERROR` in that document's span; its classification counts as nothing, "
+"its URL still counts, and the job runs"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the job fails, naming the document"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "`url_mapping.csv` cannot be read, or a row is refused"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid ""
+"`WARN` *cannot detect format from this report url*; the URL counts as "
+"nothing"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md
+msgid "the same"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:115
+msgid ""
+"The run never falls back on the URL alone when the classification is "
+"broken: an author's rules that fail are not evidence for anything else."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:118
+msgid ""
+"A job that cannot settle its format costs **that job**. In a batch the "
+"other rows run and the run exits `3`; a run in which no job succeeds "
+"exits `1` ([below](#what-the-exit-status-says))."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:122
+msgid ""
+"Without a configured format, the events of settling it are logged under a"
+" bare `job` span — `job/document[<name>]` in the `Activity` column of "
+"`.log.csv` — because the format is not known yet. From the moment it is "
+"settled, events are under `job[<format>]` as usual. With `-f`, every "
+"event is under `job[<format>]` from the start."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:128
+msgid "Where things live"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:130
+msgid "`--formats-directory` / `--repo` / `-F` / `-r`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:132
+#, python-brace-format
+msgid ""
+"The formats repository. From the environment it is "
+"`FREEPORTS_FORMATS_REPO_PATH`, and `freeports-dev` and `freeports-"
+"validate` read the same variable and accept the same four spellings on "
+"their command lines; see {doc}`index`."
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:136
 msgid "`--db-directory` / `-I`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:70
+#: ../../source/reference/cli/freeports.md:138
 msgid "The input database."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:72
+#: ../../source/reference/cli/freeports.md:140
 msgid "`--target-list` / `-T`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:74
+#: ../../source/reference/cli/freeports.md:142
 msgid ""
 "Repeatable, and takes several values after one occurrence. **This is the "
 "check that runs first**: a configuration with no target list from any "
 "source is rejected before a single PDF is opened."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:77
+#: ../../source/reference/cli/freeports.md:145
 msgid ""
 "From the environment the value is taken **whole** and never split, so a "
 "list whose name contains a comma still works."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:80
+#: ../../source/reference/cli/freeports.md:148
 msgid "Output"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:82
+#: ../../source/reference/cli/freeports.md:150
 msgid "`--out` / `-o`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:84
+#: ../../source/reference/cli/freeports.md:152
 msgid ""
 "Where results go. A directory for `regular` and `structured`; a file for "
 "`single_file` — and if the path does not end in `.csv` under that "
 "profile, `out.csv` is appended to it."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:87
+#: ../../source/reference/cli/freeports.md:155
 #, python-brace-format
 msgid ""
 "The **parent** must exist; the directory itself need not. Defaults to the"
@@ -348,35 +639,35 @@ msgid ""
 " see {doc}`../configuration/options`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:90
+#: ../../source/reference/cli/freeports.md:158
 msgid ""
 "A path ending in `.tar.gz` switches the archive flag on and the suffix is"
 " stripped, so `-o results.tar.gz` and `-o results -z` mean the same "
 "thing."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:93
+#: ../../source/reference/cli/freeports.md:161
 msgid "`--out-profile` / `-P`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:95
+#: ../../source/reference/cli/freeports.md:163
 #, python-brace-format
 msgid ""
 "`regular` (default), `single_file`, or `structured`, case-insensitively. "
 "{doc}`../../guides/user/output` says what each writes."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:98
+#: ../../source/reference/cli/freeports.md:166
 msgid "`--archive` / `-z` and `--separate-out`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:100
+#: ../../source/reference/cli/freeports.md:168
 msgid ""
 "Two independent flags: a compressed sibling of the output, and one CSV "
 "per `(report, format)` pair for the two tables that carry them."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:104
+#: ../../source/reference/cli/freeports.md:172
 msgid ""
 "Both flags can only be switched **on** from the command line. Present "
 "means true; absent means *nothing said*, not false — otherwise every "
@@ -385,38 +676,38 @@ msgid ""
 "`FREEPORTS_ARCHIVE=false`, or `archive: false` in the file."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:112
+#: ../../source/reference/cli/freeports.md:180
 msgid ""
 "Sets `save_pdf` to false. Despite its name it does **not** suppress the "
 "download — it suppresses *keeping* the downloaded file on disk. Absent "
 "leaves the field unset; the default, from the defaults tier, is to keep."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:116
+#: ../../source/reference/cli/freeports.md:184
 msgid "Batch and configuration"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:118
+#: ../../source/reference/cli/freeports.md:186
 msgid "`--batch` / `-b`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:120
+#: ../../source/reference/cli/freeports.md:188
 #, python-brace-format
 msgid "A CSV, one job per row. {doc}`../../guides/user/advanced/batch`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:124
+#: ../../source/reference/cli/freeports.md:192
 #, python-brace-format
 msgid ""
 "Use this configuration file instead of searching the three standard "
 "tiers. {doc}`../configuration/config_file`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:127
+#: ../../source/reference/cli/freeports.md:195
 msgid "Parallelism"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:129
+#: ../../source/reference/cli/freeports.md:197
 msgid ""
 "`--workers` / `-j` is the default for **both** levels; `--jobs` and "
 "`--pages` override one each. Each takes a positive integer **or** the "
@@ -425,7 +716,7 @@ msgid ""
 " file has pinned it to a number."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:134
+#: ../../source/reference/cli/freeports.md:202
 #, python-brace-format
 msgid ""
 "Zero and negative values are a typed error naming the option you "
@@ -433,74 +724,74 @@ msgid ""
 "{doc}`../../guides/user/advanced/parallelism`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:137
+#: ../../source/reference/cli/freeports.md:205
 msgid "Verbosity: `-v` and `-q`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:138
+#: ../../source/reference/cli/freeports.md:206
 msgid ""
 "`-v` and `-q` are **counted** and are **independent dials**, not opposed "
 "flags: the net of the two counts is added to the default and clamped, so "
 "no combination is an error and `-vv -q` is legal."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "Flags"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "Level"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "none"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "warnings"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-q`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "errors only"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-qq` or more"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "silent"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-v`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "info"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-vv`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "debug"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "`-vvv` or more"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:103
+#: ../../source/reference/cli/freeports.md:171
 msgid "trace"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:151
+#: ../../source/reference/cli/freeports.md:219
 #, python-brace-format
 msgid ""
 "`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key set "
@@ -510,11 +801,11 @@ msgid ""
 "{doc}`../configuration/index` for the one consequence."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:157
+#: ../../source/reference/cli/freeports.md:225
 msgid "What the exit status says"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:159
+#: ../../source/reference/cli/freeports.md:227
 #, python-brace-format
 msgid ""
 "A run ends in one of **three** states, and the exit status distinguishes "
@@ -524,52 +815,52 @@ msgid ""
 "different sentences."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "Exit"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "What it means"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "`0`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "every document of every job was read, and the results were written"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "`1`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "the run produced nothing: an illegal configuration, or no job succeeded"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid "`3`"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:150
+#: ../../source/reference/cli/freeports.md:218
 msgid ""
 "the results were written, and **not everything was read** — jobs or "
 "documents were skipped"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:170
+#: ../../source/reference/cli/freeports.md:238
 msgid ""
 "`3` is deliberately the same number `freeports-validate` uses for the "
 "same idea. Two commands of one suite must not ask you to remember two "
 "tables."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:173
+#: ../../source/reference/cli/freeports.md:241
 msgid "What does *not* raise it"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:175
+#: ../../source/reference/cli/freeports.md:243
 #, python-brace-format
 msgid ""
 "Rows and pages skipped do not. They are contained at their own level, "
@@ -580,7 +871,7 @@ msgid ""
 "hundred rows and read every document it was given exits `0`."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:181
+#: ../../source/reference/cli/freeports.md:249
 msgid ""
 "The line is drawn at **what was not read at all**: a job that failed "
 "produced nothing for any of its documents, and a document that would not "
@@ -589,7 +880,7 @@ msgid ""
 " reveal it."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:186
+#: ../../source/reference/cli/freeports.md:254
 msgid ""
 "A failing job no longer costs the run. A batch of 904 jobs in which two "
 "fail writes the other 902 and exits `3`; only a run in which *nothing* "
@@ -597,11 +888,11 @@ msgid ""
 "nine tables nobody could fill look the same on disk."
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:191
+#: ../../source/reference/cli/freeports.md:259
 msgid "`--internal-worker`, the one hidden option"
 msgstr ""
 
-#: ../../source/reference/cli/freeports.md:192
+#: ../../source/reference/cli/freeports.md:260
 msgid ""
 "`--internal-worker` exists and is hidden from `--help` on purpose. It is "
 "not a user interface but the channel between two copies of the same "
@@ -619,5 +910,39 @@ msgstr ""
 #~ " reach the logging setup of the "
 #~ "parent process — see the warning "
 #~ "in {doc}`../configuration/index`."
+#~ msgstr ""
+
+#~ msgid "infer it from a URL, or fail"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The format name, as `metadata/formats.csv` "
+#~ "of the repository synthesises it — "
+#~ "`EURIZON-EN23`, `FINECO-EN23@LUX`, "
+#~ "`MEDIOLANUM-IT24.A`."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Omit it and the engine tries to"
+#~ " infer it from the URL of each"
+#~ " document, using the repository's "
+#~ "`url_mapping.csv`; the first matching prefix"
+#~ " wins. Inference works only for "
+#~ "documents that *have* a URL. Two "
+#~ "documents inferring **different** formats is"
+#~ " an error rather than a choice "
+#~ "made silently. Giving `-f` explicitly "
+#~ "while inference also succeeds and "
+#~ "disagrees is a warning, not an "
+#~ "error: you were explicit, so you "
+#~ "win, but you are told."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The formats repository. Note that the"
+#~ " two tooling commands read a "
+#~ "**differently named** variable for the "
+#~ "same thing — `FREEPORTS_FORMATS_REPO`, not "
+#~ "`FREEPORTS_FORMATS_REPO_PATH`; see {doc}`index`."
 #~ msgstr ""
 

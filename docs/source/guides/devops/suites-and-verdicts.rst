@@ -54,7 +54,7 @@ Every row carries the command that runs it, and every message about a suite quot
 that says something is stale without saying how to un-stale it is a verdict people route around.
 
 **Every row is a** ``make`` **target, in whichever repository the suite belongs to.** The
-alternative is quoting the selection itself — ``freeports-dev test -- -m 'not integration_tests'`` —
+alternative is quoting the selection itself — ``freeports-dev test -- -m 'not integration_tests and not classification_tests'`` —
 in the hook, in this table and in the repository's own documentation, which is three copies of one
 decision, and the failure mode of three copies is that a fourth reader invents a fifth. The
 selection has one spelling, ``--fast`` / ``--slow``, in the command that owns it, and the target is

@@ -386,7 +386,7 @@ mod format_precedence {
             config_file.to_str().unwrap(),
         ]);
         let mut configs = resolve_configs(args).unwrap();
-        assert_eq!(configs.remove(0).format, "B-EN24");
+        assert_eq!(configs.remove(0).format.as_deref(), Some("B-EN24"));
     }
 
     #[test]
@@ -396,7 +396,7 @@ mod format_precedence {
         scope.set("FREEPORTS_FORMAT", "B-EN24");
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "format: B-EN24\n");
         let config = fixture.resolve(&[], &config_file); // base_args sets --format A-EN24
-        assert_eq!(config.format, "A-EN24");
+        assert_eq!(config.format.as_deref(), Some("A-EN24"));
     }
 }
 
@@ -694,7 +694,7 @@ mod batch_file_precedence {
         ]);
         let configs = resolve_configs(args).unwrap();
         assert_eq!(configs.len(), 1, "the cmd batch file has a single row");
-        assert_eq!(configs[0].format, "A-EN24");
+        assert_eq!(configs[0].format.as_deref(), Some("A-EN24"));
     }
 }
 
@@ -873,7 +873,7 @@ mod tooling_sections {
             "validate:\n  key_id: DEADBEEF\n",
         );
         let config = fixture.resolve(&[], &config_file);
-        assert_eq!(config.format, "A-EN24");
+        assert_eq!(config.format.as_deref(), Some("A-EN24"));
     }
 
     /// Il rifiuto delle chiavi sconosciute arriva **dentro** le sezioni: e' l'unica ragione per cui

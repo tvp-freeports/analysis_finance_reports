@@ -1326,7 +1326,7 @@ impl TextFilterSfdrSignStandard {
                 tracing::warn!(
                     fund = fund_name,
                     "SFDR article discarded: \"{fund_name}\" is not a fund this report's investments \
-                     name, so this annex is not this document's (`R30`)"
+                     name, so this annex belongs to another document"
                 );
                 return Ok(Vec::new());
             }

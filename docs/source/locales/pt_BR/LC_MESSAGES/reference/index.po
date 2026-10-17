@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pt_BR\n"
@@ -25,26 +25,27 @@ msgstr "Referência, por assunto"
 
 #: ../../source/reference/index.md:3
 msgid ""
-"This is the **topic** axis of the documentation: audience-independent, complete, and "
-"the place every guide points at rather than repeating. A page here answers *what does"
-" this do*, for every option and every setting, without caring who is asking or what "
-"they are trying to achieve."
+"This is the **topic** axis of the documentation: audience-independent, "
+"complete, and the place every guide points at rather than repeating. A "
+"page here answers *what does this do*, for every option and every "
+"setting, without caring who is asking or what they are trying to achieve."
 msgstr ""
-"Este é o eixo por **assunto** da documentação: independente de quem lê, completo, e o"
-" lugar para onde todo guia aponta em vez de repetir. Uma página daqui responde a *o "
-"que isto faz*, para cada opção e cada ajuste, sem se importar com quem pergunta nem "
-"com o que essa pessoa quer conseguir."
+"Este é o eixo por **assunto** da documentação: independente de quem lê, "
+"completo, e o lugar para onde todo guia aponta em vez de repetir. Uma "
+"página daqui responde a *o que isto faz*, para cada opção e cada ajuste, "
+"sem se importar com quem pergunta nem com o que essa pessoa quer "
+"conseguir."
 
 #: ../../source/reference/index.md:7
 #, python-brace-format
 msgid ""
-"If you want to know which of these you need, you are asking a guide's question: "
-"{doc}`../guides/index`."
+"If you want to know which of these you need, you are asking a guide's "
+"question: {doc}`../guides/index`."
 msgstr ""
-"Se você quer saber de qual delas precisa, está fazendo uma pergunta de guia: "
-"{doc}`../guides/index`."
+"Se você quer saber de qual delas precisa, está fazendo uma pergunta de "
+"guia: {doc}`../guides/index`."
 
-#: ../../source/reference/index.md:22
+#: ../../source/reference/index.md:23
 msgid "What each part covers"
 msgstr "O que cada parte cobre"
 
@@ -81,11 +82,24 @@ msgstr "{doc}`design/index`"
 
 #: ../../source/reference/index.md:10
 msgid ""
-"the algorithm, chapter by chapter, with each claim marked implemented, planned or "
-"accepted limit"
+"the algorithm, chapter by chapter, with each claim marked implemented, "
+"planned or accepted limit"
 msgstr ""
-"o algoritmo, capítulo a capítulo, com cada afirmação marcada como implementada, "
-"prevista ou limite aceito"
+"o algoritmo, capítulo a capítulo, com cada afirmação marcada como "
+"implementada, prevista ou limite aceito"
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`formats/index`"
+msgstr "{doc}`formats/index`"
+
+#: ../../source/reference/index.md:10
+msgid ""
+"how formats are named, and the two files that let a repository recognise "
+"a document's format"
+msgstr ""
+"como os formatos recebem nome, e os dois arquivos que permitem a um "
+"repositório reconhecer o formato de um documento"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
@@ -93,8 +107,12 @@ msgid "{doc}`../validation/index`"
 msgstr "{doc}`../validation/index`"
 
 #: ../../source/reference/index.md:10
-msgid "the published methodologies themselves — hashed artefacts, not ordinary prose"
-msgstr "as próprias metodologias publicadas — artefatos cujo hash conta, não prosa comum"
+msgid ""
+"the published methodologies themselves — hashed artefacts, not ordinary "
+"prose"
+msgstr ""
+"as próprias metodologias publicadas — artefatos cujo hash conta, não "
+"prosa comum"
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
@@ -114,31 +132,34 @@ msgstr "{doc}`misc`"
 msgid "whatever a section has not been written for yet"
 msgstr "tudo aquilo para o que ainda não se escreveu uma seção"
 
-#: ../../source/reference/index.md:32
+#: ../../source/reference/index.md:34
 msgid "Two things to know about this column"
 msgstr "Duas coisas a saber sobre esta coluna"
 
-#: ../../source/reference/index.md:33
+#: ../../source/reference/index.md:35
 msgid ""
-"**A reference page does not advise.** It says what an option does and stops. \"Which "
-"of these do I want\" is answered in the guide you came from — deliberately, because "
-"the answer differs by reader and the option does not."
+"**A reference page does not advise.** It says what an option does and "
+"stops. \"Which of these do I want\" is answered in the guide you came "
+"from — deliberately, because the answer differs by reader and the option "
+"does not."
 msgstr ""
-"**Uma página de referência não aconselha.** Ela diz o que uma opção faz e para por "
-"aí. \"Qual destas eu quero\" se responde no guia de onde você veio — de propósito, "
-"porque a resposta muda de leitor para leitor e a opção não."
+"**Uma página de referência não aconselha.** Ela diz o que uma opção faz e"
+" para por aí. \"Qual destas eu quero\" se responde no guia de onde você "
+"veio — de propósito, porque a resposta muda de leitor para leitor e a "
+"opção não."
 
-#: ../../source/reference/index.md:37
+#: ../../source/reference/index.md:39
 #, python-brace-format
 msgid ""
-"**The validation pages are not editable prose.** They are content-addressed: their "
-"hashes are recorded in signed grants, here and in other repositories, and their "
-"published URLs are what those grants resolve. Correcting a typo in one invalidates "
-"every grant that cites it. See {doc}`../guides/institutional/why-trust-a-grant`."
-msgstr ""
-"**As páginas de validação não são prosa editável.** Elas são endereçadas pelo "
-"conteúdo: os hashes delas ficam registrados em avais assinados, aqui e em outros "
-"repositórios, e as URLs publicadas delas são o que esses avais resolvem. Corrigir um "
-"erro de digitação numa delas invalida todo aval que a cita. Veja "
+"**The validation pages are not editable prose.** They are content-"
+"addressed: their hashes are recorded in signed grants, here and in other "
+"repositories, and their published URLs are what those grants resolve. "
+"Correcting a typo in one invalidates every grant that cites it. See "
 "{doc}`../guides/institutional/why-trust-a-grant`."
+msgstr ""
+"**As páginas de validação não são prosa editável.** Elas são endereçadas "
+"pelo conteúdo: os hashes delas ficam registrados em avais assinados, aqui"
+" e em outros repositórios, e as URLs publicadas delas são o que esses "
+"avais resolvem. Corrigir um erro de digitação numa delas invalida todo "
+"aval que a cita. Veja {doc}`../guides/institutional/why-trust-a-grant`."
 

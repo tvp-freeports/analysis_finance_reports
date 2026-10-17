@@ -11,7 +11,7 @@
 //!
 //! # The two directions
 //!
-//! - **outbound** ([`WorkerRequest`]): the job's **already resolved and validated** configuration, plus the paths the child is to use. The child does not redo the resolution: doing so would read the environment and the configuration files again, and could resolve something other than what the parent decided;
+//! - **outbound** ([`WorkerRequest`]): the job's **already resolved and validated** configuration, plus the paths the child is to use. The child does not redo the resolution: doing so would read the environment and the configuration files again, and could resolve something other than what the parent decided. Everything is resolved but the format, which the job resolves against its documents, in the child as in the sequential loop (`cli::job`);
 //! - **inbound** ([`WorkerReport`]): the job's results, or its error.
 //!
 //! # A failed job is not a failed child
@@ -490,7 +490,7 @@ mod tests {
                 name: Some("a".to_string()),
             }],
             target_lists: vec!["TEST".to_string()],
-            format: "FMT".to_string(),
+            format: Some("FMT".to_string()),
             out_path: PathBuf::from("/tmp/out"),
             out_profile: OutStructureMode::Regular,
             out_flags: OutFlags::default(),
@@ -562,6 +562,20 @@ mod tests {
             write_request(&path, &request()).unwrap();
             let restored = read_request(&path).unwrap().config;
             assert_eq!(restored, config());
+        }
+
+        /// Phase 11: a job without a configured format reaches the child without one — it resolves
+        /// the format there, against its documents — and not as an empty string.
+        #[test]
+        fn a_configuration_without_a_format_crosses_without_one() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("request.json");
+            let mut original = request();
+            original.config.format = None;
+            write_request(&path, &original).unwrap();
+            let restored = read_request(&path).unwrap();
+            assert_eq!(restored.config.format, None);
+            assert_eq!(restored, original);
         }
     }
 

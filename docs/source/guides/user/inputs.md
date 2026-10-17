@@ -23,9 +23,11 @@ $ freeports-dev init-format-repo ~/work/my-formats
 
 That gives you a skeleton that supports no format yet. {doc}`../formats/index` is how you add one.
 
-The repository is also what makes `--format` optional: it carries a mapping from URL prefixes to
-format names, so a document downloaded from a known address is read without being told which format
-it is. There is no such inference for a local file — a path carries no evidence of who published it.
+The repository is also what makes `--format` optional. Its document classification recognises a
+format from the first pages of a document, local file or download alike, and its mapping from URL
+prefixes to format names recognises a document downloaded from a known address. How the two are
+weighed against each other, and against a format you do give, is in
+{doc}`../../reference/cli/freeports`.
 
 ## The input database
 

@@ -1,0 +1,303 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:1
+msgid "Choosing a level, and raising it later"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:3
+msgid ""
+"A datum can be written at three levels — a row of a spreadsheet, a block "
+"of YAML, or Python — and they **sum** rather than exclude one another, by"
+" pipeline name. The question is never \"which level is this format\", it "
+"is \"which level is *this reading*\", and a format mixing all three is "
+"ordinary."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:7
+msgid "The rule"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:9
+msgid ""
+"**Start at the most constrained level that holds, and go down only where "
+"you must. When you go down, write why.**"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:12
+msgid ""
+"That last clause is the part that pays. A module whose first line says "
+"*what* configuration could not express is a module somebody can delete "
+"when the engine grows the cell; a module that says nothing is a module "
+"nobody dares touch."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:16
+msgid "What the levels can say"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "Level"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "The algorithm"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "Its parameters"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "Reach for it when"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "`structured`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "fixed, in the engine"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "columns of a CSV"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "the reading is the common shape of its datum"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "`semistructured`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "named, in the engine or yours"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "YAML"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "the reading needs a criterion a cell cannot hold, or an anchor overridden"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "`unstructured`"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "yours"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "Python"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "the reading is a **computation**, not a description"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:24
+#, python-brace-format
+msgid ""
+"The practical frontier between the first two is narrower than it sounds. "
+"A CSV cell cannot hold a mapping, so a selection written there uses the "
+"{doc}`compact grammar <../selections>`; the mapping form in YAML says "
+"three things the compact form cannot — the two set operations and "
+"`font_of` — and refuses a key it does not know, where a mistyped compact "
+"cell can only be caught by the shape of the whole string. A format that "
+"needs none of those is better off as a row."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:30
+msgid "Why the constrained level is worth the effort"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:32
+msgid ""
+"Because one algorithm with a few parameters covers far more documents "
+"than anybody expects, and the project has the count."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:35
+msgid ""
+"`PdfExtractInvestmentsStandard` did not start general. It accumulated "
+"logic and parameters to serve documents that kept differing, and today "
+"the holdings — the best-covered datum of all — come out like this:"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "measure"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "parameters of the algorithm"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "4, with a default that leaves only the first required"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "columns of parameters per format"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "9, in one CSV"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid "**formats covered**"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md
+msgid ""
+"**26** from the `structured` level, plus fifteen files at the other two "
+"calling the same pipe"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:45
+msgid ""
+"Twenty-six formats from one algorithm, at the price of four parameters. "
+"Had each variation produced an algorithm of its own, there would be "
+"twenty-six to maintain and no pattern for the next one to follow."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:49
+msgid "How to tell a parameter from an algorithm"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:51
+msgid "Three questions, in this order."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:53
+msgid ""
+"**Is the logic the same?** If the two cases do the same thing and differ "
+"in *where* they look or *how* the value is written, the difference is a "
+"**parameter**. If they do different things — reading a ticked box and "
+"reading a section heading — they are two algorithms, however many "
+"parameters you add."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:57
+msgid ""
+"**What does the new case cost, and how many does it bring?** One more "
+"parameter covering five formats is a bargain; one more branch covering "
+"one usually is not. The cost is measured on the **caller** as well: a "
+"parameter with a sensible default is not paid for where it is not needed."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:60
+msgid ""
+"**Does the parameter describe the variation, or the format?** A parameter"
+" called `table` or `company_index` describes the document and "
+"generalises. An `if format == \"ARCA-IT24\"` describes **who is "
+"calling**, not what is on the page, and never generalises: it is the sign"
+" that the grouping is wrong or that the right parameter is missing."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:65
+msgid ""
+"The limit past which you do not go: **when the algorithm can no longer be"
+" explained in a paragraph**, or when its parameters interact in ways that"
+" have to be tested in pairs, the complication has outgrown the gain. "
+"Split it there — and split it **by logic**, never by format."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:69
+msgid "Raising the level afterwards"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:71
+msgid ""
+"A reading written in Python because it had to be is not finished "
+"business. The project ran one sweep over every author pipeline it had, "
+"and the result is the best guide to what tends to move:"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:74
+msgid ""
+"**fifty-one** author pipelines were measured one at a time; **twenty-"
+"three** became configuration;"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:76
+msgid ""
+"the largest group was hidden behind a **name**: three formats were "
+"calling what looked like three algorithms and were writing the same "
+"twelve rows. Renaming it made the group visible, and five portfolio "
+"tables became configuration at once;"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:79
+msgid ""
+"the pieces that resisted were not the complicated ones. They were the "
+"ones that **compute** — a table whose geometry is recalculated per page —"
+" and the ones specific to two formats rather than to a kind of datum;"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:82
+msgid ""
+"what was expected to be delicate, a promise deposited in one segment and "
+"resolved in another, was not. What was actually hard is that **the pipes "
+"of a segment are concatenated, not composed**: a chain written inside one"
+" author function becomes **one** configured pipe with knobs, never three "
+"rows."
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:87
+msgid "Proving a promotion changed nothing"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:89
+msgid ""
+"A promotion is a rewrite of a reading that is supposed to read the same, "
+"so the burden is invariance, and the suite is not enough on its own:"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:92
+msgid ""
+"**a page fixture compares as a set.** Adding the configured pipe and "
+"forgetting to delete the author's one leaves duplicated, identical blocks"
+" that collapse, and the per-page tests pass with the pipe running twice. "
+"The whole-document test is what sees it;"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:95
+msgid ""
+"**a mechanical rewrite of selections is proven on every page, not on the "
+"frozen ones.** Build both forms in a script and compare them line by line"
+" — text *and* box — over every page of every test report of the formats "
+"involved, before running the suite;"
+msgstr ""
+
+#: ../../source/guides/formats/adding-a-datum/choosing-a-level.md:98
+msgid ""
+"**expect the `.log.csv` to move, and predict by how much.** A log line "
+"names the pipe that spoke, so promoting a pipe that warns moves that cell"
+" at identical message. Count the rows beforehand: on one sweep the count "
+"said seven and seven is what moved."
+msgstr ""
+

@@ -32,6 +32,9 @@ which row is nearly useless.
 
 **A header with no data rows produces no jobs**, which is not an error.
 
+**The `format` cell may be empty**, or the column absent: that row's job then detects its format
+from its documents. A row whose job cannot settle one fails alone; the other rows run.
+
 **`save pdf` is stricter here** than in the environment: literally `true` or `false`,
 case-insensitively, and nothing else. A batch file is written once and read by a program, not typed
 at a shell prompt, so the permissiveness that helps a shell script buys nothing here.

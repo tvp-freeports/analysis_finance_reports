@@ -11,7 +11,7 @@ Recognised case-insensitively, with spaces and underscores equivalent — `save 
 |---|---|
 | `url` | the report's URL |
 | `pdf` | one or more document specifiers, pipe-separated |
-| `format` | the format for this row |
+| `format` | the format for this row — optional: left empty, the job detects it from its documents |
 | `save pdf` | whether to keep a downloaded PDF: `true` or `false` |
 | `target list` | the target lists for this row, taken **whole** |
 

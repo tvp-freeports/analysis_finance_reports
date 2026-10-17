@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -62,7 +62,7 @@ msgid "`freeports-dev`"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`freeports-validate`"
 msgstr ""
 
@@ -161,27 +161,27 @@ msgid "The `dev` section"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "Key"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "Environment"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "Flag"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "Default"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "Means"
 msgstr ""
 
@@ -218,7 +218,7 @@ msgid "`--noconfirm`"
 msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`false`"
 msgstr ""
 
@@ -246,7 +246,91 @@ msgstr ""
 msgid "the page class `make-tests` and `inspect-page` assume"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:66
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`dev.text_width`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`FREEPORTS_DEV_TEXT_WIDTH`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`--text-width`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`100`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "how much of a line's text `inspect-page` and `find-text` print"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`dev.preview_columns`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`FREEPORTS_DEV_PREVIEW_COLUMNS`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`--preview-columns`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`20`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "how wide the ASCII preview of a page image is"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`dev.max_hits`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`FREEPORTS_DEV_MAX_HITS`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`--max-hits`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`50`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "how many hits `find-text` prints before stopping"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`dev.probes_dirs`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`FREEPORTS_DEV_PROBES_DIRS`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+msgid "`--probes-dir` (repeatable)"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+#: ../../source/reference/configuration/dev-and-validate.md:87
+msgid "none"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md
+#, python-brace-format
+msgid ""
+"directories of your own probes, searched before the shipped ones — see "
+"{ref}`probe-subcommand`"
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md:74
 msgid ""
 "As in the engine, **an absent flag is unset, not false**: `--noconfirm` "
 "can only ever switch the setting on, so a command line that does not "
@@ -255,7 +339,7 @@ msgid ""
 "`noconfirm: false`."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:70
+#: ../../source/reference/configuration/dev-and-validate.md:78
 msgid ""
 "And as in the engine, `FREEPORTS_DEV_TARGET_LIST` is **one** list, the "
 "whole raw value, never split: a list whose name contains a comma still "
@@ -263,7 +347,17 @@ msgid ""
 "or the YAML file."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:75
+#: ../../source/reference/configuration/dev-and-validate.md:82
+msgid ""
+"`FREEPORTS_DEV_PROBES_DIRS` is the exception, and for a reason: it holds "
+"**paths**, and a list of paths in an environment is written the way "
+"`PATH` is — separated by `:` (`;` on Windows). Each tier is resolved "
+"against where it was written: the flag and the variable against the "
+"working directory, a relative entry of `dev.probes_dirs` against the "
+"configuration file."
+msgstr ""
+
+#: ../../source/reference/configuration/dev-and-validate.md:88
 msgid ""
 "`dev.target_lists` decides what a repository's tests look for, and "
 "therefore what its reference output contains. Setting it in a **user- or "
@@ -272,87 +366,83 @@ msgid ""
 "repository's own `freeports-config.yaml`, next to the tests it governs."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:81
+#: ../../source/reference/configuration/dev-and-validate.md:94
 msgid "The `validate` section"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`validate.key_id`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`FREEPORTS_VALIDATE_KEY_ID`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`--key-id` / `-k`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
-msgid "none"
-msgstr ""
-
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "the GPG key that is your identity"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`validate.sources`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`FREEPORTS_VALIDATE_SOURCE`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`--source` / `-s`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "the published documentation"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "where methodology pages are resolved from"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`validate.offline`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`FREEPORTS_VALIDATE_OFFLINE`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`--offline` / `--no-offline`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "never fetch a page; answer from the cache"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`validate.deep`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`FREEPORTS_VALIDATE_DEEP`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`--deep` / `--no-deep`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "**`true`**"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "also follow what a methodology page pins"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:100
+#: ../../source/reference/configuration/dev-and-validate.md:113
 msgid ""
 "**The key is not required by every subcommand.** It says who is "
 "*speaking*, so it is asked for by the ones that speak in your name — "
@@ -363,7 +453,7 @@ msgid ""
 "machine of somebody auditing a repository they did not write."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:106
+#: ../../source/reference/configuration/dev-and-validate.md:119
 msgid ""
 "**`validate.sources` is the one setting whose tiers do not merge.** Every"
 " other setting in this project is resolved per setting, so naming one on "
@@ -378,14 +468,14 @@ msgid ""
 "and the environment does not."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:115
+#: ../../source/reference/configuration/dev-and-validate.md:128
 msgid ""
 "And as with `dev.target_lists`, `FREEPORTS_VALIDATE_SOURCE` is **one** "
 "source, the whole raw value, never split: every separator one might pick "
 "is a legal character in a URI or a path."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:118
+#: ../../source/reference/configuration/dev-and-validate.md:131
 #, python-brace-format
 msgid ""
 "A source is a pattern with exactly one `*`, standing for the "
@@ -398,14 +488,14 @@ msgid ""
 "every other URI, is left exactly as written."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:125
+#: ../../source/reference/configuration/dev-and-validate.md:138
 msgid ""
 "An empty list falls through to the next tier. `sources: []` is a tier "
 "declining to have an opinion, not a decision to have no methodologies at "
 "all — the latter would leave every check unresolvable."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:128
+#: ../../source/reference/configuration/dev-and-validate.md:141
 msgid ""
 "`validate.offline` and `validate.deep` are settings rather than one-off "
 "flags because each is a standing property of a machine or of a person: an"
@@ -416,7 +506,7 @@ msgid ""
 "disable that check for every future grant."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:134
+#: ../../source/reference/configuration/dev-and-validate.md:147
 msgid ""
 "**`validate.deep` is on unless something turns it off**, which is why it "
 "is the one flag in this project that has a negative form. A flag can "
@@ -426,7 +516,7 @@ msgid ""
 "its synonym `--shallow`, and `--no-offline` for symmetry."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:140
+#: ../../source/reference/configuration/dev-and-validate.md:153
 msgid ""
 "Both booleans distinguish **no** from **silence** at every tier. "
 "`FREEPORTS_VALIDATE_DEEP=0` beats a configuration file that says `true`: "
@@ -434,11 +524,11 @@ msgid ""
 " falls through to the next."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:144
+#: ../../source/reference/configuration/dev-and-validate.md:157
 msgid "Finding the repository"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:146
+#: ../../source/reference/configuration/dev-and-validate.md:159
 msgid ""
 "Both commands accept the engine's own spellings — `--repo`, `-r`, "
 "`--formats-directory`, `-F` — and read `FREEPORTS_FORMATS_REPO_PATH` and "
@@ -446,23 +536,23 @@ msgid ""
 "difference is intentional:"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "Falls back to"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "`freeports`, `freeports-dev`"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "the working directory"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:74
+#: ../../source/reference/configuration/dev-and-validate.md:87
 msgid "the enclosing Git repository, then the working directory"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:155
+#: ../../source/reference/configuration/dev-and-validate.md:168
 msgid ""
 "`freeports-validate` walks up because a validation document lives at the "
 "repository *root* while grants are issued from wherever in the tree the "
@@ -472,22 +562,22 @@ msgid ""
 "`metadata/formats.csv` exists and says so plainly when it does not."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:161
+#: ../../source/reference/configuration/dev-and-validate.md:174
 msgid "Reading the file needs the engine — for one of the two"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:163
+#: ../../source/reference/configuration/dev-and-validate.md:176
 msgid "`freeports-dev` requires `freeports` anyway, so it always reads the file."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:165
+#: ../../source/reference/configuration/dev-and-validate.md:178
 msgid ""
 "`freeports-validate` does not. Verifying somebody else's grants should "
 "not mean installing a PDF extractor, so the engine is an **optional** "
 "dependency there:"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:173
+#: ../../source/reference/configuration/dev-and-validate.md:186
 msgid ""
 "Without it, the command works exactly as before and simply has no file "
 "tier; `--config` then reports that it needs the engine rather than "
@@ -497,17 +587,17 @@ msgid ""
 "answer, and there is one of them."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:178
+#: ../../source/reference/configuration/dev-and-validate.md:191
 msgid "A complete example for a formats repository"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:179
+#: ../../source/reference/configuration/dev-and-validate.md:192
 msgid ""
 "One file, at the root of a formats repository, configuring all three "
 "commands:"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:198
+#: ../../source/reference/configuration/dev-and-validate.md:211
 msgid ""
 "Note the two `target_lists`. The top-level one is what a **real "
 "extraction** searches for; `dev`'s is what the **repository's own tests**"
@@ -516,11 +606,11 @@ msgid ""
 "job."
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:202
+#: ../../source/reference/configuration/dev-and-validate.md:215
 msgid "Unknown keys are errors here too"
 msgstr ""
 
-#: ../../source/reference/configuration/dev-and-validate.md:204
+#: ../../source/reference/configuration/dev-and-validate.md:217
 msgid ""
 "`dev.tagret_lists` fails, naming the full path of the key. The engine "
 "parses these sections even though it never reads them, precisely so that "

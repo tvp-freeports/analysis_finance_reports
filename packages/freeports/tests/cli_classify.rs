@@ -569,6 +569,75 @@ mod several_documents {
             "{err}"
         );
     }
+
+    /// User decision of 2026-10-17 (phase 11): the error names the documents by the label their
+    /// line on stdout carries, not by their position.
+    #[test]
+    fn the_disagreement_names_the_documents_by_their_label() {
+        let fixture = Fixture::new();
+        let output = fixture.classify_inputs(
+            &[
+                fixture.local("Amundi", AMUNDI),
+                fixture.local("Eurizon", EURIZON),
+            ],
+            &[],
+        );
+        assert_code(&output, 1);
+        let err = stderr(&output);
+        assert!(err.contains("Amundi is AMUNDI-EN24"), "{err}");
+        assert!(err.contains("Eurizon is EURIZON-EN23"), "{err}");
+        assert!(!err.contains("document 0"), "{err}");
+        assert!(!err.contains("document 1"), "{err}");
+    }
+
+    /// An unreadable document in between shifts nothing: the labels are the documents' own.
+    #[test]
+    fn an_unreadable_document_in_between_does_not_change_the_labels() {
+        let fixture = Fixture::new();
+        let output = fixture.classify_inputs(
+            &[
+                fixture.local("Amundi", AMUNDI),
+                fixture.not_a_pdf("Broken"),
+                fixture.local("Eurizon", EURIZON),
+            ],
+            &[],
+        );
+        assert_code(&output, 1);
+        let err = stderr(&output);
+        let message = err
+            .lines()
+            .find(|line| line.contains("documents disagree"))
+            .unwrap_or_else(|| panic!("no disagreement in:\n{err}"));
+        assert!(message.contains("Amundi is AMUNDI-EN24"), "{message}");
+        assert!(message.contains("Eurizon is EURIZON-EN23"), "{message}");
+        assert!(!message.contains("Broken"), "{message}");
+    }
+
+    /// A document given by its path alone is named by its path, as on its stdout line.
+    #[test]
+    fn a_document_given_by_path_alone_is_named_by_its_path() {
+        let fixture = Fixture::new();
+        let amundi = fixture.local("amundi", AMUNDI);
+        let amundi_path = amundi.rsplit_once(':').unwrap().0.to_string();
+        let eurizon = fixture.local("eurizon", EURIZON);
+        let eurizon_path = eurizon.rsplit_once(':').unwrap().0.to_string();
+        let output = fixture.classify_inputs(&[amundi_path.clone(), eurizon_path.clone()], &[]);
+        assert_code(&output, 1);
+        let lines = stdout_lines(&output);
+        assert!(
+            lines.contains(&format!("{amundi_path}: AMUNDI-EN24")),
+            "{lines:#?}"
+        );
+        let err = stderr(&output);
+        assert!(
+            err.contains(&format!("{amundi_path} is AMUNDI-EN24")),
+            "{err}"
+        );
+        assert!(
+            err.contains(&format!("{eurizon_path} is EURIZON-EN23")),
+            "{err}"
+        );
+    }
 }
 
 /// What a document that cannot be read costs.

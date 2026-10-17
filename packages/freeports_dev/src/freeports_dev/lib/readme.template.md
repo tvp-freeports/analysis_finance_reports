@@ -79,7 +79,7 @@ well. Each is a target you can run on its own:
 
 ```sh
 make test-fast        # the per-page suite, recorded as formats.single_page
-make test-slow        # the whole-document suite, recorded as formats.integration
+make test-slow        # the whole-document and classification suite, recorded as formats.integration
 make coverage         # how many documents are tested, and how
 make lint             # ruff's findings on content/, and the score out of ten
 make doc-coverage     # public objects carrying a docstring

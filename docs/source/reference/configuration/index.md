@@ -84,12 +84,14 @@ Only the merged result is validated, and the order is part of the behaviour:
 
 1. **require the target lists** — a pure presence check, so a run missing them fails immediately
    rather than after four minutes of PDF;
-2. **detect the format**, where none was given;
-3. **validate the document specifiers** ({doc}`../../guides/user/documents`);
-4. **set the archive flag**, which must come before the next step because it can change the output
+2. **validate the document specifiers** ({doc}`../../guides/user/documents`);
+3. **set the archive flag**, which must come before the next step because it can change the output
    path;
-5. **check that the output path's parent exists**;
-6. **check the single-file profile's path**, appending `out.csv` where needed.
+4. **check that the output path's parent exists**;
+5. **check the single-file profile's path**, appending `out.csv` where needed.
+
+The format is not on the list. It is settled later, by each job, against its own documents — the
+configured one, if any, is only the strongest of three sources ({doc}`options`, `format`).
 
 ## Unknown means error, everywhere
 

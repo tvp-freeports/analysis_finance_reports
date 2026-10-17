@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -50,10 +50,20 @@ msgid "One YAML file per segment carries the configuration, under `args/`:"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/semistructured.md:31
+#, python-brace-format
+msgid ""
+"A selection inside that YAML is a **mapping** of conditions, and it says "
+"everything the compact textual form does and three things more: the two "
+"set operations `any_of` and `all_of`, and `font_of` — see "
+"{doc}`../selections`. Writing it as a compact string in quotes also "
+"works, and is reasonable for a single condition."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:36
 msgid "The key that links a format to an algorithm"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:32
+#: ../../source/guides/formats/advanced/semistructured.md:37
 #, python-brace-format
 msgid ""
 "`{format}({pipeline})`, falling back to the bare `{format}` only for the "
@@ -63,18 +73,18 @@ msgid ""
 "configuration."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:36
+#: ../../source/guides/formats/advanced/semistructured.md:41
 msgid "Lists, and the counter that indexes them"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:38
+#: ../../source/guides/formats/advanced/semistructured.md:43
 msgid ""
 "Where a value is a **list**, the element used is chosen by **how many "
 "pipes have already been emitted for that pipeline and segment** — not by "
 "the row's position in the mapping table."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:48
+#: ../../source/guides/formats/advanced/semistructured.md:53
 msgid ""
 "An algorithm that returns three pipes advances that counter by **three**."
 " This is the rule that surprises people, and it is worth restating: the "
@@ -82,24 +92,24 @@ msgid ""
 "earlier in the same segment shifts every list index after it."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:52
+#: ../../source/guides/formats/advanced/semistructured.md:57
 msgid "Algorithm names of your own"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:53
+#: ../../source/guides/formats/advanced/semistructured.md:58
 msgid ""
 "An algorithm name may be implemented natively or by you, in your "
 "repository's Python."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:55
+#: ../../source/guides/formats/advanced/semistructured.md:60
 msgid ""
 "Defining the same name **both** ways is an **error**, not a precedence to"
 " be remembered. The check runs over every native name of the segment as "
 "soon as your module loads."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/semistructured.md:58
+#: ../../source/guides/formats/advanced/semistructured.md:63
 msgid ""
 "A collision is nearly always a typo, and letting one side win silently is"
 " what makes a typo expensive — you would be debugging an algorithm you "

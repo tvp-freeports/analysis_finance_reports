@@ -42,7 +42,7 @@ saying what the engine was doing when the line was emitted, coloured in four sha
 is visible without reading it word by word.
 
 ```text
- WARN run/job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]:
+ WARN job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]:
       expected text block not found near the matched company - row skipped coord_ref_1="Leonardo Spa Az Nom" coord_ref_2=Leonardo coord_1="row 12" coord_2="col 1"
 ```
 
@@ -95,7 +95,7 @@ configuration was still resolving is held in memory and poured into it in order 
 where the run started, not where the decision was taken.
 
 ```json
-{"time":"2026-08-31T09:14:02.118773Z","level":"WARN","activity":"run/job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]","target":"freeports::formats_utils::text_filter","message":"expected text block not found near the matched company - row skipped","coords":{"report":"EURIZON 2023","page":"16","first_ref":"Leonardo Spa Az Nom","second_ref":"Leonardo","first":"row 12","second":"col 1"}}
+{"time":"2026-08-31T09:14:02.118773Z","level":"WARN","activity":"job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]","target":"freeports::formats_utils::text_filter","message":"expected text block not found near the matched company - row skipped","coords":{"report":"EURIZON 2023","page":"16","first_ref":"Leonardo Spa Az Nom","second_ref":"Leonardo","first":"row 12","second":"col 1"}}
 ```
 
 JSON Lines rather than one JSON document, for two reasons that both come from the volume this file

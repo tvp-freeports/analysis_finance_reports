@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -25,16 +25,18 @@ msgstr "Gli strumenti da riga di comando"
 
 #: ../../source/reference/cli/index.md:3
 msgid ""
-"`freeports` extracts. The two other distributions do the jobs around it: `freeports-"
-"dev` is what a format author works in all day, and `freeports-validate` is how a "
-"claim about a file gets a name and a signature attached. Neither is needed to run an "
-"extraction; both are needed to maintain a formats repository."
+"`freeports` extracts. The two other distributions do the jobs around it: "
+"`freeports-dev` is what a format author works in all day, and `freeports-"
+"validate` is how a claim about a file gets a name and a signature "
+"attached. Neither is needed to run an extraction; both are needed to "
+"maintain a formats repository."
 msgstr ""
-"`freeports` estrae. Le altre due distribuzioni fanno i lavori che gli stanno attorno:"
-" `freeports-dev` è ciò in cui chi scrive formati lavora tutto il giorno, e "
-"`freeports-validate` è il modo in cui a un'affermazione su un file si attaccano un "
-"nome e una firma. Nessuno dei due serve per eseguire un'estrazione; servono entrambi "
-"per mantenere un repository di formati."
+"`freeports` estrae. Le altre due distribuzioni fanno i lavori che gli "
+"stanno attorno: `freeports-dev` è ciò in cui chi scrive formati lavora "
+"tutto il giorno, e `freeports-validate` è il modo in cui a "
+"un'affermazione su un file si attaccano un nome e una firma. Nessuno dei "
+"due serve per eseguire un'estrazione; servono entrambi per mantenere un "
+"repository di formati."
 
 #: ../../source/reference/cli/index.md
 msgid "Command"
@@ -53,7 +55,9 @@ msgid "`freeports-dev`"
 msgstr "`freeports-dev`"
 
 #: ../../source/reference/cli/index.md
-msgid "*what does the engine see on this page, and does it still see it tomorrow?*"
+msgid ""
+"*what does the engine see on this page, and does it still see it "
+"tomorrow?*"
 msgstr "*che cosa vede il motore in questa pagina, e domani lo vedrà ancora?*"
 
 #: ../../source/reference/cli/index.md
@@ -66,24 +70,28 @@ msgstr "`freeports-validate`"
 
 #: ../../source/reference/cli/index.md
 msgid ""
-"*who vouched for this file, under which published methodology, and is that still "
-"true?*"
-msgstr "*chi ha risposto di questo file, secondo quale metodologia pubblicata, e vale ancora?*"
+"*who vouched for this file, under which published methodology, and is "
+"that still true?*"
+msgstr ""
+"*chi ha risposto di questo file, secondo quale metodologia pubblicata, e "
+"vale ancora?*"
 
 #: ../../source/reference/cli/index.md
 msgid ""
-"GnuPG, `jq` and `curl`, plus two Python packages it installs itself. Not the engine, "
-"unless you want the configuration file"
+"GnuPG, `jq` and `curl`, plus two Python packages it installs itself. Not "
+"the engine, unless you want the configuration file"
 msgstr ""
-"GnuPG, `jq` e `curl`, più due pacchetti Python che installa da sé. Non il motore, a "
-"meno che tu non voglia il file di configurazione"
+"GnuPG, `jq` e `curl`, più due pacchetti Python che installa da sé. Non il"
+" motore, a meno che tu non voglia il file di configurazione"
 
 #: ../../source/reference/cli/index.md:13
 #, python-brace-format
 msgid "Both are installed from the source tree ({doc}`../../start/install`):"
-msgstr "Entrambi si installano dall'albero dei sorgenti ({doc}`../../start/install`):"
+msgstr ""
+"Entrambi si installano dall'albero dei sorgenti "
+"({doc}`../../start/install`):"
 
-#: ../../source/reference/cli/index.md:30
+#: ../../source/reference/cli/index.md:31
 msgid "What each page here covers"
 msgstr "Che cosa copre ciascuna pagina qui"
 
@@ -101,10 +109,21 @@ msgid "{doc}`freeports`"
 msgstr "{doc}`freeports`"
 
 #: ../../source/reference/cli/index.md:19
-msgid "every option of the extraction command, with its default and its validation"
+msgid ""
+"every option of the extraction command, with its default and its "
+"validation"
 msgstr ""
-"ogni opzione del comando di estrazione, con il suo valore predefinito e la sua "
-"validazione"
+"ogni opzione del comando di estrazione, con il suo valore predefinito e "
+"la sua validazione"
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`freeports-classify`"
+msgstr "{doc}`freeports-classify`"
+
+#: ../../source/reference/cli/index.md:19
+msgid "`freeports classify`: which format a document is, without extracting it"
+msgstr "`freeports classify`: di che formato è un documento, senza estrarlo"
 
 #: ../../source/reference/cli/index.md:19
 #, python-brace-format
@@ -113,7 +132,9 @@ msgstr "{doc}`freeports-dev`"
 
 #: ../../source/reference/cli/index.md:19
 msgid "the format author's loop: inspect, freeze, test, and creating a repository"
-msgstr "il ciclo di chi scrive formati: ispeziona, congela, prova, e crea un repository"
+msgstr ""
+"il ciclo di chi scrive formati: ispeziona, congela, prova, e crea un "
+"repository"
 
 #: ../../source/reference/cli/index.md:19
 #, python-brace-format
@@ -121,10 +142,12 @@ msgid "{doc}`freeports-validate`"
 msgstr "{doc}`freeports-validate`"
 
 #: ../../source/reference/cli/index.md:19
-msgid "keys, validation documents, granting, and checking what a repository claims"
+msgid ""
+"keys, validation documents, granting, and checking what a repository "
+"claims"
 msgstr ""
-"chiavi, documenti di validazione, attestazioni, e la verifica di ciò che un "
-"repository afferma"
+"chiavi, documenti di validazione, attestazioni, e la verifica di ciò che "
+"un repository afferma"
 
 #: ../../source/reference/cli/index.md:19
 #, python-brace-format
@@ -144,88 +167,96 @@ msgstr "{doc}`coverage-report`"
 msgid "`freeports-validate report`, and the shapes it renders"
 msgstr "`freeports-validate report`, e le forme in cui restituisce i risultati"
 
-#: ../../source/reference/cli/index.md:39
+#: ../../source/reference/cli/index.md:41
 #, python-brace-format
 msgid ""
-"These pages say *what each option does*. They do not say which of them you want — "
-"that is the job of whichever guide you came from: {doc}`../../guides/user/index` for "
-"running the engine, {doc}`../../guides/formats/index` for writing a format, "
+"These pages say *what each option does*. They do not say which of them "
+"you want — that is the job of whichever guide you came from: "
+"{doc}`../../guides/user/index` for running the engine, "
+"{doc}`../../guides/formats/index` for writing a format, "
 "{doc}`../../guides/grants/index` for vouching for one."
 msgstr ""
-"Queste pagine dicono *che cosa fa ciascuna opzione*. Non dicono quale ti serva — "
-"quello è il lavoro della guida da cui sei arrivato: {doc}`../../guides/user/index` "
-"per far girare il motore, {doc}`../../guides/formats/index` per scrivere un formato, "
+"Queste pagine dicono *che cosa fa ciascuna opzione*. Non dicono quale ti "
+"serva — quello è il lavoro della guida da cui sei arrivato: "
+"{doc}`../../guides/user/index` per far girare il motore, "
+"{doc}`../../guides/formats/index` per scrivere un formato, "
 "{doc}`../../guides/grants/index` per risponderne."
 
-#: ../../source/reference/cli/index.md:44
+#: ../../source/reference/cli/index.md:46
 msgid "Both commands need to find a formats repository"
 msgstr "Entrambi i comandi devono trovare un repository di formati"
 
-#: ../../source/reference/cli/index.md:46
+#: ../../source/reference/cli/index.md:48
 msgid ""
-"Every subcommand of either tool works *inside* a formats repository, and both resolve"
-" which one the way the engine resolves everything: **command line, then environment, "
-"then configuration file, then a default**."
+"Every subcommand of either tool works *inside* a formats repository, and "
+"both resolve which one the way the engine resolves everything: **command "
+"line, then environment, then configuration file, then a default**."
 msgstr ""
-"Ogni sottocomando dell'uno o dell'altro strumento lavora *dentro* un repository di "
-"formati, ed entrambi risolvono quale sia come il motore risolve tutto: **riga di "
-"comando, poi ambiente, poi file di configurazione, poi un valore predefinito**."
-
-#: ../../source/reference/cli/index.md:50
-msgid ""
-"`--repo` / `-r` / `--formats-directory` / `-F` — the engine's own four spellings, all"
-" accepted;"
-msgstr ""
-"`--repo` / `-r` / `--formats-directory` / `-F` — le quattro grafie del motore, tutte "
-"accettate;"
-
-#: ../../source/reference/cli/index.md:51
-msgid "`FREEPORTS_FORMATS_REPO_PATH` — again the engine's variable, not a second one;"
-msgstr "`FREEPORTS_FORMATS_REPO_PATH` — di nuovo la variabile del motore, non una seconda;"
+"Ogni sottocomando dell'uno o dell'altro strumento lavora *dentro* un "
+"repository di formati, ed entrambi risolvono quale sia come il motore "
+"risolve tutto: **riga di comando, poi ambiente, poi file di "
+"configurazione, poi un valore predefinito**."
 
 #: ../../source/reference/cli/index.md:52
-msgid "`formats_repo` in the configuration file;"
-msgstr "`formats_repo` nel file di configurazione;"
+msgid ""
+"`--repo` / `-r` / `--formats-directory` / `-F` — the engine's own four "
+"spellings, all accepted;"
+msgstr ""
+"`--repo` / `-r` / `--formats-directory` / `-F` — le quattro grafie del "
+"motore, tutte accettate;"
 
 #: ../../source/reference/cli/index.md:53
 msgid ""
-"the default: the working directory, except for `freeports-validate`, which first "
-"walks up to the enclosing Git repository."
+"`FREEPORTS_FORMATS_REPO_PATH` — again the engine's variable, not a second"
+" one;"
 msgstr ""
-"il valore predefinito: la cartella di lavoro, tranne che per `freeports-validate`, "
-"che prima risale al repository Git che la racchiude."
+"`FREEPORTS_FORMATS_REPO_PATH` — di nuovo la variabile del motore, non una"
+" seconda;"
 
-#: ../../source/reference/cli/index.md:56
+#: ../../source/reference/cli/index.md:54
+msgid "`formats_repo` in the configuration file;"
+msgstr "`formats_repo` nel file di configurazione;"
+
+#: ../../source/reference/cli/index.md:55
+msgid ""
+"the default: the working directory, except for `freeports-validate`, "
+"which first walks up to the enclosing Git repository."
+msgstr ""
+"il valore predefinito: la cartella di lavoro, tranne che per `freeports-"
+"validate`, che prima risale al repository Git che la racchiude."
+
+#: ../../source/reference/cli/index.md:58
 #, python-brace-format
 msgid ""
-"That is one path, written once, found by all three commands. {doc}`../configuration"
-"/dev-and-validate` is the full account — the two optional sections, the environment "
-"prefixes, the precedence."
+"That is one path, written once, found by all three commands. "
+"{doc}`../configuration/dev-and-validate` is the full account — the two "
+"optional sections, the environment prefixes, the precedence."
 msgstr ""
 "È un solo percorso, scritto una volta, trovato da tutti e tre i comandi. "
-"{doc}`../configuration/dev-and-validate` ne è il resoconto completo — le due sezioni "
-"facoltative, i prefissi d'ambiente, la precedenza."
+"{doc}`../configuration/dev-and-validate` ne è il resoconto completo — le "
+"due sezioni facoltative, i prefissi d'ambiente, la precedenza."
 
-#: ../../source/reference/cli/index.md:59
+#: ../../source/reference/cli/index.md:61
 msgid ""
 "`freeports-dev` additionally checks that the directory really is one — "
-"`metadata/formats.csv` has to exist — and refuses with a message naming the path "
-"rather than failing later and obscurely."
+"`metadata/formats.csv` has to exist — and refuses with a message naming "
+"the path rather than failing later and obscurely."
 msgstr ""
 "`freeports-dev` controlla in più che la cartella lo sia davvero — "
-"`metadata/formats.csv` deve esistere — e rifiuta con un messaggio che nomina il "
-"percorso, anziché fallire più tardi e in modo oscuro."
+"`metadata/formats.csv` deve esistere — e rifiuta con un messaggio che "
+"nomina il percorso, anziché fallire più tardi e in modo oscuro."
 
-#: ../../source/reference/cli/index.md:63
+#: ../../source/reference/cli/index.md:65
 msgid ""
-"`FREEPORTS_FORMATS_REPO`, without the `_PATH`, used to be a **second** variable "
-"meaning the same thing, so setting one left the other command falling back to the "
-"working directory. The two are now one, and the old name is **no longer read at all**"
-" — a profile still exporting it silently configures nothing."
+"`FREEPORTS_FORMATS_REPO`, without the `_PATH`, used to be a **second** "
+"variable meaning the same thing, so setting one left the other command "
+"falling back to the working directory. The two are now one, and the old "
+"name is **no longer read at all** — a profile still exporting it silently"
+" configures nothing."
 msgstr ""
-"`FREEPORTS_FORMATS_REPO`, senza il `_PATH`, era una **seconda** variabile che "
-"significava la stessa cosa, quindi impostarne una lasciava l'altro comando a "
-"ripiegare sulla cartella di lavoro. Adesso le due sono una sola, e il vecchio nome "
-"**non è più letto affatto** — un profilo che continui a esportarlo non configura "
-"niente, in silenzio."
+"`FREEPORTS_FORMATS_REPO`, senza il `_PATH`, era una **seconda** variabile"
+" che significava la stessa cosa, quindi impostarne una lasciava l'altro "
+"comando a ripiegare sulla cartella di lavoro. Adesso le due sono una "
+"sola, e il vecchio nome **non è più letto affatto** — un profilo che "
+"continui a esportarlo non configura niente, in silenzio."
 

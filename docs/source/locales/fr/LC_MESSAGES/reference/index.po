@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -38,7 +38,7 @@ msgid ""
 "question: {doc}`../guides/index`."
 msgstr ""
 
-#: ../../source/reference/index.md:22
+#: ../../source/reference/index.md:23
 msgid "What each part covers"
 msgstr ""
 
@@ -81,6 +81,17 @@ msgstr ""
 
 #: ../../source/reference/index.md:10
 #, python-brace-format
+msgid "{doc}`formats/index`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid ""
+"how formats are named, and the two files that let a repository recognise "
+"a document's format"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
 msgid "{doc}`../validation/index`"
 msgstr ""
 
@@ -108,11 +119,11 @@ msgstr ""
 msgid "whatever a section has not been written for yet"
 msgstr ""
 
-#: ../../source/reference/index.md:32
+#: ../../source/reference/index.md:34
 msgid "Two things to know about this column"
 msgstr ""
 
-#: ../../source/reference/index.md:33
+#: ../../source/reference/index.md:35
 msgid ""
 "**A reference page does not advise.** It says what an option does and "
 "stops. \"Which of these do I want\" is answered in the guide you came "
@@ -120,7 +131,7 @@ msgid ""
 "does not."
 msgstr ""
 
-#: ../../source/reference/index.md:37
+#: ../../source/reference/index.md:39
 #, python-brace-format
 msgid ""
 "**The validation pages are not editable prose.** They are content-"

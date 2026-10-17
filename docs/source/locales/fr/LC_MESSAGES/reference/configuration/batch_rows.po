@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -120,23 +120,30 @@ msgstr ""
 
 #: ../../source/reference/configuration/batch_rows.md:35
 msgid ""
+"**The `format` cell may be empty**, or the column absent: that row's job "
+"then detects its format from its documents. A row whose job cannot settle"
+" one fails alone; the other rows run."
+msgstr ""
+
+#: ../../source/reference/configuration/batch_rows.md:38
+msgid ""
 "**`save pdf` is stricter here** than in the environment: literally `true`"
 " or `false`, case-insensitively, and nothing else. A batch file is "
 "written once and read by a program, not typed at a shell prompt, so the "
 "permissiveness that helps a shell script buys nothing here."
 msgstr ""
 
-#: ../../source/reference/configuration/batch_rows.md:39
+#: ../../source/reference/configuration/batch_rows.md:42
 msgid "How `url` and `pdf` combine in a row"
 msgstr ""
 
-#: ../../source/reference/configuration/batch_rows.md:40
+#: ../../source/reference/configuration/batch_rows.md:43
 msgid ""
 "The `pdf` cell is always split on the pipe, even when it holds one "
 "element:"
 msgstr ""
 
-#: ../../source/reference/configuration/batch_rows.md:42
+#: ../../source/reference/configuration/batch_rows.md:45
 msgid ""
 "**one element** is treated as the *singular* specifier, and a `url` in "
 "the same row overrides its URL field. The two therefore can never "
@@ -144,13 +151,13 @@ msgid ""
 "in the other;"
 msgstr ""
 
-#: ../../source/reference/configuration/batch_rows.md:45
+#: ../../source/reference/configuration/batch_rows.md:48
 msgid ""
 "**several elements** are a genuine plural, and a `url` alongside them "
 "**is a conflict**, exactly as in the file and the environment."
 msgstr ""
 
-#: ../../source/reference/configuration/batch_rows.md:54
+#: ../../source/reference/configuration/batch_rows.md:57
 msgid ""
 "The first row downloads to `local.pdf`; the second runs two named "
 "documents as one job."

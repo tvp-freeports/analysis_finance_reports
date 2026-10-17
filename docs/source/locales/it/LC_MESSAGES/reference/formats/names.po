@@ -1,0 +1,722 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/formats/names.md:1
+msgid "How formats are named"
+msgstr "Come si danno i nomi ai formati"
+
+#: ../../source/reference/formats/names.md:3
+msgid ""
+"A format name such as `MEDIOLANUM-IT24.A` is a path down a tree. Each "
+"segment narrows the one before, and the segments are ordered by how "
+"likely a change in them is to change the shape of the PDF. This page is "
+"the prescription that names are expected to follow, the reasoning behind "
+"it, and — first, because it is the question the whole convention exists "
+"to answer — how to use it when you have a document and do not know which "
+"format reads it."
+msgstr ""
+"Un nome di formato come `MEDIOLANUM-IT24.A` è un percorso lungo un "
+"albero. Ogni segmento restringe il precedente, e i segmenti sono ordinati"
+" secondo quanto è probabile che un loro cambiamento cambi la forma del "
+"PDF. Questa pagina è la regola che i nomi devono seguire, il ragionamento"
+" che la sostiene e — per prima cosa, perché è la domanda a cui tutta la "
+"convenzione serve a rispondere — come usarla quando si ha un documento e "
+"non si sa quale formato lo legge."
+
+#: ../../source/reference/formats/names.md:9
+msgid "I have a document: which format do I use?"
+msgstr "Ho un documento: quale formato uso?"
+
+#: ../../source/reference/formats/names.md:11
+#, python-brace-format
+msgid ""
+"The situation is common. The document's URL is not in the repository's "
+"`url_mapping.csv`, the repository's own classification ({doc}`document-"
+"classify-yaml`) does not recognise it, and nobody has told you its "
+"format. The names are built so that you can guess, and so that your "
+"guesses come in a sensible order."
+msgstr ""
+"È una situazione comune. L'URL del documento non è nell'`url_mapping.csv`"
+" del repository, la classificazione del repository stesso ({doc"
+"}`document-classify-yaml`) non lo riconosce, e nessuno ti ha detto il suo"
+" formato. I nomi sono costruiti perché tu possa tirare a indovinare, e "
+"perché i tentativi vengano in un ordine sensato."
+
+#: ../../source/reference/formats/names.md:16
+msgid "The heuristic, in one paragraph"
+msgstr "L'euristica, in un paragrafo"
+
+#: ../../source/reference/formats/names.md:19
+msgid ""
+"Rebuild the name the document would have — **entity, language, year, and "
+"place of distribution if it says one** — from what its first and last "
+"pages show. Then try the formats whose names agree with it, from the most"
+" specific agreement to the least: every variant and every place under the"
+" same entity, language and year first; then the same entity and language "
+"in other years, nearest year below yours first; then outward. Stop at the"
+" first format whose output is right. If the repository runs out, the "
+"document needs a new format, and the one that came closest is where it "
+"starts."
+msgstr ""
+"Ricostruisci il nome che il documento avrebbe — **ente, lingua, anno, e "
+"luogo di distribuzione se ne dichiara uno** — da ciò che mostrano la "
+"prima e l'ultima pagina. Poi prova i formati il cui nome concorda con "
+"quello, dalla concordanza più stretta alla più larga: prima ogni variante"
+" e ogni luogo sotto lo stesso ente, la stessa lingua e lo stesso anno; "
+"poi lo stesso ente e la stessa lingua in altri anni, cominciando "
+"dall'anno più vicino sotto il tuo; poi sempre più lontano. Fermati al "
+"primo formato che dà un risultato giusto. Se il repository si esaurisce, "
+"il documento ha bisogno di un formato nuovo, e quello che si è avvicinato"
+" di più è il punto da cui partire."
+
+#: ../../source/reference/formats/names.md:28
+msgid "Step by step:"
+msgstr "Passo per passo:"
+
+#: ../../source/reference/formats/names.md:30
+msgid ""
+"**Rebuild the name.** Read off the four segments described in [the "
+"segments](#the-segments): the entity named at the start of the document, "
+"the language it is written in, its year of publication, and — only if the"
+" document addresses a particular country — that country."
+msgstr ""
+"**Ricostruisci il nome.** Leggi i quattro segmenti descritti in [i "
+"segmenti](#the-segments): l'ente nominato all'inizio del documento, la "
+"lingua in cui è scritto, l'anno di pubblicazione e — solo se il documento"
+" si rivolge a un paese in particolare — quel paese."
+
+#: ../../source/reference/formats/names.md:33
+msgid ""
+"**Same entity, language and year.** Try every format that differs from "
+"your rebuilt name only in the place or the variant: `FINECO-EN23@LUX` and"
+" `FINECO-EN23@IR`; `MEDIOLANUM-IT24.A` and `MEDIOLANUM-IT24.B`. The "
+"variant carries no meaning you could read off the document ([below](#the-"
+"segments)), so there is nothing to choose between variants except by "
+"trying them."
+msgstr ""
+"**Stesso ente, stessa lingua, stesso anno.** Prova ogni formato che "
+"differisce dal nome ricostruito solo per il luogo o per la variante: "
+"`FINECO-EN23@LUX` e `FINECO-EN23@IR`; `MEDIOLANUM-IT24.A` e `MEDIOLANUM-"
+"IT24.B`. La variante non ha un significato che si possa leggere sul "
+"documento ([sotto](#the-segments)), quindi fra due varianti non c'è altro"
+" modo di scegliere che provarle."
+
+#: ../../source/reference/formats/names.md:37
+msgid ""
+"**Same entity and language, another year.** A name carries the "
+"**earliest** year its recipe reads ([the year rule](#one-name-per-recipe-"
+"and-the-smallest-year)), so a recipe named for an earlier year is the one"
+" that may already extend to yours. For a 2022 document, with `EURIZON-"
+"EN21` and `EURIZON-EN25` in the repository, try `EN21` first and `EN25` "
+"second. If `EN25` turns out to read 2022, that is news worth reporting: "
+"the format should be renamed `EURIZON-EN22`."
+msgstr ""
+"**Stesso ente e stessa lingua, un altro anno.** Un nome porta l'anno "
+"**più vecchio** che la sua ricetta legge ([la regola dell'anno](#one-"
+"name-per-recipe-and-the-smallest-year)), quindi una ricetta che porta un "
+"anno precedente è quella che può già arrivare fino al tuo. Per un "
+"documento del 2022, con `EURIZON-EN21` ed `EURIZON-EN25` nel repository, "
+"prova prima `EN21` e poi `EN25`. Se risulta che `EN25` legge il 2022, è "
+"una notizia da segnalare: il formato andrebbe rinominato `EURIZON-EN22`."
+
+#: ../../source/reference/formats/names.md:42
+msgid ""
+"**Further out.** The same entity in another language; then entities whose"
+" names sit next to it. The odds fall with each step, and at this distance"
+" a format that works is less a find than a sign that two recipes might be"
+" one — something the repository's maintainers will want to hear."
+msgstr ""
+"**Più lontano.** Lo stesso ente in un'altra lingua; poi gli enti il cui "
+"nome gli sta accanto. Le probabilità calano a ogni passo, e a questa "
+"distanza un formato che funziona è meno una scoperta che il segno che due"
+" ricette potrebbero essere una sola — qualcosa che chi mantiene il "
+"repository vorrà sapere."
+
+#: ../../source/reference/formats/names.md:45
+msgid ""
+"**Nothing works.** The document needs a format of its own, and it is "
+"named by the rules [below](#naming-a-new-format). The format that came "
+"closest in the search is the one to copy from."
+msgstr ""
+"**Non funziona niente.** Il documento ha bisogno di un formato suo, e il "
+"nome si dà con le regole [più sotto](#naming-a-new-format). Il formato "
+"che si è avvicinato di più nella ricerca è quello da cui copiare."
+
+#: ../../source/reference/formats/names.md:48
+#, python-brace-format
+msgid ""
+"When the repository's own classification gets part of the way — it knows "
+"the entity and the language but cannot tell the variant — the engine's "
+"{doc}`classify <../cli/freeports-classify>` command prints that partial "
+"name together with the formats of the repository it still allows. That "
+"list *is* step 2 or 3 of this heuristic, already worked out for you."
+msgstr ""
+"Quando la classificazione del repository arriva solo a metà strada — "
+"conosce l'ente e la lingua ma non sa distinguere la variante — il comando"
+" {doc}`classify <../cli/freeports-classify>` del motore stampa quel nome "
+"parziale insieme ai formati del repository che ancora ammette. "
+"Quell'elenco *è* il passo 2 o 3 di questa euristica, già svolto per te."
+
+#: ../../source/reference/formats/names.md:53
+msgid "The segments"
+msgstr "I segmenti"
+
+#: ../../source/reference/formats/names.md:59
+msgid ""
+"Read as a tree, `[entity]/[language]/[year]/[@place]?/[.variant]?`, the "
+"way a file system would list it. Entity, language and year are always "
+"present; place and variant are optional."
+msgstr ""
+"Letto come albero, `[entity]/[language]/[year]/[@place]?/[.variant]?`, "
+"come lo elencherebbe un file system. Ente, lingua e anno ci sono sempre; "
+"luogo e variante sono facoltativi."
+
+#: ../../source/reference/formats/names.md:16
+msgid "Segment"
+msgstr "Segmento"
+
+#: ../../source/reference/formats/names.md:16
+msgid "Written"
+msgstr "Si scrive"
+
+#: ../../source/reference/formats/names.md:16
+msgid "Means"
+msgstr "Significa"
+
+#: ../../source/reference/formats/names.md:16
+msgid "Example"
+msgstr "Esempio"
+
+#: ../../source/reference/formats/names.md:16
+msgid "entity"
+msgstr "ente"
+
+#: ../../source/reference/formats/names.md:16
+msgid "any characters except `-`, `@`, `.`, `*` and spaces"
+msgstr "qualunque carattere tranne `-`, `@`, `.`, `*` e gli spazi"
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"the name the document is identified by — in practice the group behind the"
+" funds, as named at the start of the document"
+msgstr ""
+"il nome con cui il documento si identifica — in pratica il gruppo dietro "
+"i fondi, come è nominato all'inizio del documento"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`MEDIOLANUM`, `ANIMA_SGR`"
+msgstr "`MEDIOLANUM`, `ANIMA_SGR`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "language"
+msgstr "lingua"
+
+#: ../../source/reference/formats/names.md:16
+msgid "two capital letters"
+msgstr "due lettere maiuscole"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the language the document is written in"
+msgstr "la lingua in cui è scritto il documento"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`EN`, `IT`, `ES`"
+msgstr "`EN`, `IT`, `ES`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "year"
+msgstr "anno"
+
+#: ../../source/reference/formats/names.md:16
+msgid "two digits"
+msgstr "due cifre"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the year of publication"
+msgstr "l'anno di pubblicazione"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`23`, `24`"
+msgstr "`23`, `24`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "place"
+msgstr "luogo"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`@` and two or three capital letters"
+msgstr "`@` e due o tre lettere maiuscole"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the country the report is addressed to, when there is one"
+msgstr "il paese a cui la relazione si rivolge, quando ce n'è uno"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`@LUX`, `@IR`"
+msgstr "`@LUX`, `@IR`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "variant"
+msgstr "variante"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`.` and anything without `.` or `/`"
+msgstr "`.` e qualunque cosa senza `.` né `/`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "nothing: it only tells apart two recipes no other segment separates"
+msgstr ""
+"niente: serve solo a distinguere due ricette che nessun altro segmento "
+"separa"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`.A`, `.B`"
+msgstr "`.A`, `.B`"
+
+#: ../../source/reference/formats/names.md:70
+#, python-brace-format
+msgid ""
+"A repository never writes these names out: `metadata/formats.csv` lists "
+"the five segments in columns, and the name is synthesised from them "
+"({doc}`../../guides/formats/repository`). So a name and its parts cannot "
+"disagree."
+msgstr ""
+"Un repository non scrive mai questi nomi per esteso: "
+"`metadata/formats.csv` elenca i cinque segmenti in colonne, e il nome si "
+"compone a partire da quelli ({doc}`../../guides/formats/repository`). "
+"Così un nome e le sue parti non possono essere in disaccordo."
+
+#: ../../source/reference/formats/names.md:74
+msgid "The order: what is most likely to change the PDF"
+msgstr "L'ordine: ciò che più probabilmente cambia il PDF"
+
+#: ../../source/reference/formats/names.md:76
+msgid ""
+"The segments are ordered by the **supposed probability that a change in "
+"that segment changes the shape of the PDF**. That is a hypothesis about "
+"how reports are produced, stated as one; it was chosen because it is "
+"plausible, not because it was measured."
+msgstr ""
+"I segmenti sono ordinati secondo la **probabilità presunta che un "
+"cambiamento in quel segmento cambi la forma del PDF**. È un'ipotesi su "
+"come si producono le relazioni, e la si dichiara come tale: è stata "
+"scelta perché è plausibile, non perché sia stata misurata."
+
+#: ../../source/reference/formats/names.md:16
+msgid "Why it sits there"
+msgstr "Perché sta lì"
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"An issuer brings everything that shapes a document at once — its "
+"expertise and habits, the software that typesets its PDFs, the firm it "
+"outsources the work to, its internal policies. A different entity is the "
+"most likely source of a different layout, so it is the first cut."
+msgstr ""
+"Un emittente porta con sé in un colpo solo tutto ciò che dà forma a un "
+"documento — competenze e abitudini, il software che impagina i suoi PDF, "
+"la società a cui affida il lavoro, le sue politiche interne. Un ente "
+"diverso è la fonte più probabile di un layout diverso, ed è quindi il "
+"primo taglio."
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"Changing language changes every label, which matters to any recipe that "
+"reads labels. In principle it need not change the structure, so it comes "
+"after the entity."
+msgstr ""
+"Cambiare lingua cambia ogni etichetta, il che conta per qualunque ricetta"
+" che legga etichette. In linea di principio non serve che cambi la "
+"struttura, e per questo viene dopo l'ente."
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"Everything the entity contributes, and the regulation it answers to, "
+"drifts over time. Over several years that drift reaches the structure."
+msgstr ""
+"Tutto ciò che l'ente apporta, e la normativa a cui risponde, si sposta "
+"nel tempo. Nel giro di qualche anno lo spostamento arriva alla struttura."
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"A report produced for a different audience may differ in detail or "
+"emphasis, rarely in shape."
+msgstr ""
+"Una relazione prodotta per un pubblico diverso può differire nei dettagli"
+" o nell'enfasi, di rado nella forma."
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"Not a property of the document at all. It is there because there is "
+"exactly one recipe per name, and some recipes differ for technical "
+"reasons nothing on the cover reveals."
+msgstr ""
+"Non è affatto una proprietà del documento. C'è perché esiste esattamente "
+"una ricetta per nome, e certe ricette differiscono per ragioni tecniche "
+"che niente in copertina rivela."
+
+#: ../../source/reference/formats/names.md:88
+msgid "The three criteria the names answer to"
+msgstr "I tre criteri a cui i nomi rispondono"
+
+#: ../../source/reference/formats/names.md:90
+msgid "The segments were chosen by asking three things of a naming scheme:"
+msgstr "I segmenti sono stati scelti chiedendo tre cose a uno schema di nomi:"
+
+#: ../../source/reference/formats/names.md:92
+msgid ""
+"**Names that are close must mean recipes that are close.** Sorted "
+"alphabetically, as a file listing sorts them, similar documents should "
+"end up next to each other and different ones far apart."
+msgstr ""
+"**Nomi vicini devono voler dire ricette vicine.** In ordine alfabetico, "
+"come li ordina un elenco di file, i documenti simili dovrebbero finire "
+"uno accanto all'altro e quelli diversi lontani."
+
+#: ../../source/reference/formats/names.md:95
+msgid ""
+"**The rules for giving a name must be simple and unambiguous**, so that "
+"two people naming the same document arrive at the same name."
+msgstr ""
+"**Le regole per dare un nome devono essere semplici e univoche**, così "
+"che due persone che danno il nome allo stesso documento arrivino allo "
+"stesso nome."
+
+#: ../../source/reference/formats/names.md:97
+msgid ""
+"**What the name is made of must be evident in the document** — on its "
+"first or last pages, present, and not open to interpretation. A segment "
+"that could only be filled by reading the whole report would make the name"
+" useless for the question at the top of this page."
+msgstr ""
+"**Ciò di cui è fatto il nome dev'essere evidente nel documento** — nelle "
+"prime o nelle ultime pagine, presente e non soggetto a interpretazione. "
+"Un segmento che si potesse riempire solo leggendo l'intera relazione "
+"renderebbe il nome inutile per la domanda in cima a questa pagina."
+
+#: ../../source/reference/formats/names.md:101
+msgid ""
+"The first criterion is what gives the names their use beyond "
+"identification. If names are given well, two documents that differ only "
+"in their last segment are cousins, and two that differ in their entity "
+"are strangers. That gives the work on recipes a **locality**: when trying"
+" to merge two recipes, try neighbours first and distant names later; when"
+" one recipe has to be split, the split falls at the segment where the "
+"documents actually diverge. The name becomes an account of *why* two "
+"documents look alike or do not."
+msgstr ""
+"Il primo criterio è ciò che dà ai nomi un'utilità che va oltre "
+"l'identificazione. Se i nomi sono dati bene, due documenti che "
+"differiscono solo nell'ultimo segmento sono cugini, e due che "
+"differiscono nell'ente sono estranei. Questo dà al lavoro sulle ricette "
+"una **località**: quando si cerca di fondere due ricette, si provano "
+"prima le vicine e poi i nomi lontani; quando una ricetta va divisa, la "
+"divisione cade nel segmento in cui i documenti divergono davvero. Il nome"
+" diventa un resoconto del *perché* due documenti si somigliano o no."
+
+#: ../../source/reference/formats/names.md:108
+msgid ""
+"The third criterion is where the convention is weakest in practice. The "
+"entity is meant to be the evident name at the start, but the name a "
+"reader's colleagues use for the group is not always the largest word on "
+"the cover: in the repository, a cover reading `WILLERFUNDS` is a "
+"`FIDEURAM` format, `CHALLENGE FUNDS` a `MEDIOLANUM` one, `SIDERA FUNDS` a"
+" `CARNE` one. When rebuilding a name, if the cover's own name finds "
+"nothing, the name of the management company printed further in is the "
+"next thing to try."
+msgstr ""
+"Il terzo criterio è quello in cui la convenzione è più debole nella "
+"pratica. L'ente dovrebbe essere il nome evidente all'inizio, ma il nome "
+"con cui i colleghi di chi legge chiamano il gruppo non è sempre la parola"
+" più grande in copertina: nel repository, una copertina che dice "
+"`WILLERFUNDS` è un formato `FIDEURAM`, `CHALLENGE FUNDS` uno "
+"`MEDIOLANUM`, `SIDERA FUNDS` uno `CARNE`. Quando si ricostruisce un nome,"
+" se il nome della copertina non trova niente, la prossima cosa da provare"
+" è il nome della società di gestione stampato più avanti."
+
+#: ../../source/reference/formats/names.md:115
+msgid "One name per recipe, and the smallest year"
+msgstr "Un nome per ricetta, e l'anno più piccolo"
+
+#: ../../source/reference/formats/names.md:117
+msgid ""
+"**Names follow the recipe, not the document.** There is exactly one "
+"recipe per name, and a document is filed under the name of the recipe "
+"that reads it — whatever its own year or entity says. A 2022 document "
+"read by `EURIZON-EN21` is an `EURIZON-EN21` document; it does not earn a "
+"new name for being from 2022."
+msgstr ""
+"**I nomi seguono la ricetta, non il documento.** C'è esattamente una "
+"ricetta per nome, e un documento si archivia sotto il nome della ricetta "
+"che lo legge — qualunque cosa dicano il suo anno o il suo ente. Un "
+"documento del 2022 letto da `EURIZON-EN21` è un documento `EURIZON-EN21`;"
+" non si guadagna un nome nuovo per il fatto di essere del 2022."
+
+#: ../../source/reference/formats/names.md:122
+msgid "Two rules settle which name a recipe carries when its documents disagree:"
+msgstr ""
+"Due regole decidono quale nome porta una ricetta quando i suoi documenti "
+"non concordano:"
+
+#: ../../source/reference/formats/names.md:16
+msgid "When a recipe reads documents…"
+msgstr "Quando una ricetta legge documenti…"
+
+#: ../../source/reference/formats/names.md:16
+msgid "It is named for"
+msgstr "Prende il nome da"
+
+#: ../../source/reference/formats/names.md:16
+msgid "Why"
+msgstr "Perché"
+
+#: ../../source/reference/formats/names.md:16
+msgid "of several years"
+msgstr "di più anni"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the **earliest** of them"
+msgstr "il **più vecchio** fra questi"
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"The search above tries the nearest earlier year first. A recipe named for"
+" its first year is found by everyone whose document is from that year or "
+"later."
+msgstr ""
+"La ricerca descritta sopra prova per primo l'anno precedente più vicino. "
+"Una ricetta che porta il suo primo anno la trova chiunque abbia un "
+"documento di quell'anno o successivo."
+
+#: ../../source/reference/formats/names.md:16
+msgid "of several entities"
+msgstr "di più enti"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the **shortest** entity name; at equal length, the **most widely known**"
+msgstr ""
+"il nome di ente **più corto**; a parità di lunghezza, il **più "
+"conosciuto**"
+
+#: ../../source/reference/formats/names.md:16
+msgid ""
+"To maximise the chance that the name coincides with what the user reads "
+"on their own document."
+msgstr ""
+"Per massimizzare la probabilità che il nome coincida con ciò che l'utente"
+" legge sul proprio documento."
+
+#: ../../source/reference/formats/names.md:129
+msgid ""
+"It follows that a rename is a normal event. When a recipe named `EN25` is"
+" found to read a 2022 document too, it becomes `EN22`."
+msgstr ""
+"Ne segue che una rinomina è un evento normale. Quando si scopre che una "
+"ricetta chiamata `EN25` legge anche un documento del 2022, diventa "
+"`EN22`."
+
+#: ../../source/reference/formats/names.md:132
+msgid "Naming a new format"
+msgstr "Dare il nome a un formato nuovo"
+
+#: ../../source/reference/formats/names.md:134
+msgid ""
+"When a document needs a recipe of its own, rebuild its name as in the "
+"first step of the heuristic, then:"
+msgstr ""
+"Quando un documento ha bisogno di una ricetta sua, ricostruisci il suo "
+"nome come nel primo passo dell'euristica, poi:"
+
+#: ../../source/reference/formats/names.md:137
+msgid ""
+"If no format of the repository has the same **entity, language and "
+"year**, that is the name. No place, no variant."
+msgstr ""
+"Se nessun formato del repository ha lo stesso **ente, la stessa lingua e "
+"lo stesso anno**, quello è il nome. Niente luogo, niente variante."
+
+#: ../../source/reference/formats/names.md:139
+msgid ""
+"If one does, look at whether the two documents are addressed to "
+"**different places**. If they are, the place is what separates them: "
+"`FINECO-EN23@LUX` and `FINECO-EN23@IR`."
+msgstr ""
+"Se uno c'è, guarda se i due documenti si rivolgono a **luoghi diversi**. "
+"Se è così, è il luogo a separarli: `FINECO-EN23@LUX` e `FINECO-EN23@IR`."
+
+#: ../../source/reference/formats/names.md:141
+msgid ""
+"Otherwise nothing evident separates them, and the difference goes into "
+"the **variant**: `MEDIOLANUM-IT24.A` and `MEDIOLANUM-IT24.B`. In the "
+"repository, where a variant has been needed, every format of that entity,"
+" language and year carries one, so a bare name never sits beside its own "
+"variants."
+msgstr ""
+"Altrimenti niente di evidente li separa, e la differenza va nella "
+"**variante**: `MEDIOLANUM-IT24.A` e `MEDIOLANUM-IT24.B`. Nel repository, "
+"dove è servita una variante, ogni formato di quell'ente, lingua e anno ne"
+" porta una, così un nome nudo non sta mai accanto alle proprie varianti."
+
+#: ../../source/reference/formats/names.md:146
+msgid ""
+"The variant is the last resort on purpose. It is the only segment a user "
+"cannot read off a document, so every variant added is one more format to "
+"try blindly at step 2 of the heuristic."
+msgstr ""
+"La variante è l'ultima risorsa, e di proposito. È l'unico segmento che un"
+" utente non può leggere sul documento, quindi ogni variante aggiunta è un"
+" formato in più da provare alla cieca al passo 2 dell'euristica."
+
+#: ../../source/reference/formats/names.md:149
+msgid "Partial names"
+msgstr "Nomi parziali"
+
+#: ../../source/reference/formats/names.md:151
+#, python-brace-format
+msgid ""
+"The same grammar, cut short, names a **set** of formats rather than one. "
+"A partial name is how the repository's classification ({doc}`document-"
+"classify-yaml`, {doc}`document-classify-python`) and `url_mapping.csv` "
+"say *\"this much is certain\"* when they cannot say everything."
+msgstr ""
+"La stessa grammatica, troncata, nomina un **insieme** di formati invece "
+"di uno solo. Un nome parziale è il modo in cui la classificazione del "
+"repository ({doc}`document-classify-yaml`, {doc}`document-classify-"
+"python`) e `url_mapping.csv` dicono *\"fin qui è certo\"* quando non "
+"possono dire tutto."
+
+#: ../../source/reference/formats/names.md:16
+msgid "Stands for"
+msgstr "Sta per"
+
+#: ../../source/reference/formats/names.md:16
+msgid "entity alone"
+msgstr "solo l'ente"
+
+#: ../../source/reference/formats/names.md:16
+msgid "every format of that entity"
+msgstr "ogni formato di quell'ente"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`MEDIOLANUM`"
+msgstr "`MEDIOLANUM`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "entity and language"
+msgstr "ente e lingua"
+
+#: ../../source/reference/formats/names.md:16
+msgid "every year, place and variant under them"
+msgstr "ogni anno, luogo e variante sotto di essi"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`MEDIOLANUM-IT`"
+msgstr "`MEDIOLANUM-IT`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "ending in `@*`"
+msgstr "che finisce con `@*`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the formats that **have** a place, any place"
+msgstr "i formati che **hanno** un luogo, qualunque esso sia"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`FINECO-EN23@*`"
+msgstr "`FINECO-EN23@*`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "ending in `.*`"
+msgstr "che finisce con `.*`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "the formats that **have** a variant, any variant"
+msgstr "i formati che **hanno** una variante, qualunque essa sia"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`MEDIOLANUM-IT24.*`"
+msgstr "`MEDIOLANUM-IT24.*`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "ending in `@*.*`"
+msgstr "che finisce con `@*.*`"
+
+#: ../../source/reference/formats/names.md:16
+msgid "both open"
+msgstr "tutti e due aperti"
+
+#: ../../source/reference/formats/names.md:16
+msgid "`X-EN23@*.*`"
+msgstr "`X-EN23@*.*`"
+
+#: ../../source/reference/formats/names.md:163
+msgid "Three rules make the reading unambiguous:"
+msgstr "Tre regole rendono la lettura univoca:"
+
+#: ../../source/reference/formats/names.md:165
+msgid ""
+"**A name is cut only from the right.** `MEDIOLANUM-IT` is a partial name;"
+" `-IT24` and `MEDIOLANUM-24` are not names at all."
+msgstr ""
+"**Un nome si tronca solo da destra.** `MEDIOLANUM-IT` è un nome parziale;"
+" `-IT24` e `MEDIOLANUM-24` non sono affatto nomi."
+
+#: ../../source/reference/formats/names.md:167
+msgid ""
+"**Once the year is written, a missing place or variant means *none*.** "
+"`MEDIOLANUM-IT24` is a complete name, and it means the format with no "
+"place and no variant. In a repository that has only `.A` and `.B`, that "
+"name does not exist, and using it is an error; the set of both is written"
+" `MEDIOLANUM-IT24.*`. The `@*` and `.*` endings exist so that being "
+"partial is always said, never implied — which is also what lets a typo in"
+" a year be caught instead of quietly becoming a set."
+msgstr ""
+"**Una volta scritto l'anno, un luogo o una variante mancanti vogliono "
+"dire *nessuno*.** `MEDIOLANUM-IT24` è un nome completo, e indica il "
+"formato senza luogo e senza variante. In un repository che ha solo `.A` e"
+" `.B` quel nome non esiste, e usarlo è un errore; l'insieme dei due si "
+"scrive `MEDIOLANUM-IT24.*`. Le terminazioni `@*` e `.*` esistono perché "
+"l'essere parziale sia sempre detto, mai sottinteso — ed è anche ciò che "
+"permette di cogliere un refuso nell'anno invece di lasciarlo diventare in"
+" silenzio un insieme."
+
+#: ../../source/reference/formats/names.md:172
+msgid ""
+"**`*` is reserved.** No format may contain it, so a partial name can "
+"never be mistaken for a format."
+msgstr ""
+"**`*` è riservato.** Nessun formato può contenerlo, così un nome parziale"
+" non si può mai scambiare per un formato."
+
+#: ../../source/reference/formats/names.md:175
+msgid ""
+"A partial name is only useful if some format of the repository falls "
+"under it, and the engine checks that wherever one is written. An entity "
+"containing `-` is legal in a complete name but cannot be written in a "
+"partial one, because the cut would be ambiguous; none of the repository's"
+" formats has one."
+msgstr ""
+"Un nome parziale serve solo se qualche formato del repository vi ricade, "
+"e il motore lo verifica ovunque ne sia scritto uno. Un ente che contiene "
+"`-` è lecito in un nome completo ma non si può scrivere in uno parziale, "
+"perché il taglio sarebbe ambiguo; nessuno dei formati del repository ne "
+"ha uno."
+

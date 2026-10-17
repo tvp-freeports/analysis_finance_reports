@@ -328,33 +328,29 @@ impl TextFilterPipe for TextFilterManagmentCompanyInLine {
 ///
 /// The engine already has a constant-currency pipe, and this is the same thing for the management
 /// company: a value declared by the configuration instead of read from the document. The rule is
-/// then that the engine must say so, so this pipe **warns** — once per document, because once per
-/// document is the grain at which the fact holds.
+/// then that the engine must say so, so this pipe **warns** — on every page it runs on, like the
+/// constant-currency pipe and for the same reason: a single warning would land on whichever page
+/// ran first, which changes with the order the pages run in, and the `.log.csv` would change with
+/// it.
 ///
 /// It is for where the name is not there *in that role*: AMUNDI-IT24 writes it three times in prose,
 /// but in sentences about corporate control and the registered office, not about who manages the
 /// funds. Reading it there would rest an output value on a coincidence of words.
 pub struct TextFilterManagmentCompanyImposed {
     name: String,
-    warned: std::sync::atomic::AtomicBool,
 }
 
 impl TextFilterManagmentCompanyImposed {
     pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            warned: std::sync::atomic::AtomicBool::new(false),
-        }
+        Self { name: name.into() }
     }
 
     pub fn call(&self, data: &FilterData<'_>) -> Vec<TextBlock> {
-        if !self.warned.swap(true, std::sync::atomic::Ordering::Relaxed) {
-            tracing::warn!(
-                "the management company is not written in this report: imposed as \"{}\" - declared \
-                 by the format, which knows whose report this is",
-                self.name
-            );
-        }
+        tracing::warn!(
+            "the management company is not written in this report: imposed as \"{}\" - declared by \
+             the format, which knows whose report this is",
+            self.name
+        );
         let funds = resolved_funds(data);
         vec![standard_management_company_txt_blk_from_content(
             &self.name, &funds,
@@ -719,15 +715,25 @@ mod tests {
         }
 
         #[test]
-        fn it_warns_once_and_not_once_per_page() {
-            // The fact is about the format, not about the page: a document of forty pages would
-            // otherwise leave forty identical rows in the log.
+        fn every_page_it_runs_on_carries_the_warning() {
+            // A single warning would land on whichever page ran first, which is not the same page
+            // from one run to the next.
             let pipe = TextFilterManagmentCompanyImposed::new("Acme AM");
-            assert!(!pipe.warned.load(std::sync::atomic::Ordering::Relaxed));
-            pipe.call(&FilterData::EMPTY);
-            assert!(pipe.warned.load(std::sync::atomic::Ordering::Relaxed));
-            pipe.call(&FilterData::EMPTY);
-            assert!(pipe.warned.load(std::sync::atomic::Ordering::Relaxed));
+            let warnings: Vec<_> = crate::core::tracing_setup::capture::events(|| {
+                pipe.call(&FilterData::EMPTY);
+                pipe.call(&FilterData::EMPTY);
+            })
+            .into_iter()
+            .filter(|r| r.level == Some(tracing::Level::WARN))
+            .map(|r| r.message)
+            .collect();
+            assert_eq!(warnings.len(), 2, "found {warnings:?}");
+            assert!(
+                warnings
+                    .iter()
+                    .all(|m| m.contains("imposed as \"Acme AM\"")),
+                "found {warnings:?}"
+            );
         }
     }
 }

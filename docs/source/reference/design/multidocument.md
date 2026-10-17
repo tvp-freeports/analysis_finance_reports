@@ -68,6 +68,11 @@ pool, and the schedule processes them together, caring only about the class each
 For everything downstream, having several documents changes **nothing** except that each page
 carries the information of which document it came from.
 
+The page classification above is not the only one: before any of this, each document is also
+recognised as a format ({doc}`document-classification`). A job has **one** format, so the documents
+of one job must agree on it; when they do not, the job fails and names each document beside the
+format it was recognised as.
+
 ## Why that is the right shape
 The two halves of the rule are each forced, for opposite reasons.
 

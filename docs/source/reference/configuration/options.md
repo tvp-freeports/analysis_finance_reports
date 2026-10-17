@@ -84,16 +84,23 @@ pipe still works.
 | **YAML** | `format` |
 | **Batch column** | `format` |
 | **Type** | string |
-| **Default** | none — inferred, or an error |
-| **Validation** | inference from document URLs via the repository's `url_mapping.csv` |
+| **Default** | none — each job detects it from its documents |
+| **Validation** | none when the configuration is validated; the job checks it against its documents |
 | **Example** | `-f EURIZON-EN23` |
 
-Left unset, the engine infers it from the URL of each document: the longest matching prefix in the
-mapping wins, then the row with the more specific name, then the row that comes first in the file. Two documents inferring **different** formats
-is an error. An explicit format that **disagrees** with a successful inference is a warning, and the
-explicit one is used.
+The **configured** format, and the strongest of the three sources a job takes its format from. Left
+unset, the job detects the format from its documents: first from the repository's document
+classification, which reads their first pages, then from `url_mapping.csv`, which reads their URLs —
+so a local file can be recognised too, as long as the repository has rules for it. The job runs only
+with a complete format; a partial one, or none at all, fails that job alone.
 
-There is no inference for a local file: a path carries no evidence of who published it.
+Set, it is the format the job runs, but the document classification still runs and the URL is
+still looked up: a source that **disagrees** with the configured format is a `WARN`, which no setting
+switches off, and the configured format is used. A misspelt format is reported when the job loads
+its recipe, after its documents have been resolved.
+
+The full order of the sources, how they combine, and every crossing with its log level are in
+{doc}`../cli/freeports` ("Where the format comes from").
 
 ---
 
@@ -111,10 +118,8 @@ There is no inference for a local file: a path carries no evidence of who publis
 | **Validation** | read when formats are loaded; a repository without `metadata/formats.csv` fails there |
 | **Example** | `-r ~/work/formats-repo` |
 
-```{warning}
-`freeports-dev` and `freeports-validate` read **`FREEPORTS_FORMATS_REPO`** — a different variable
-name for the same thing. Export both. See {doc}`../cli/index`.
-```
+`freeports-dev` and `freeports-validate` read the same variable, `FREEPORTS_FORMATS_REPO_PATH`.
+The older `FREEPORTS_FORMATS_REPO` is no longer read by any of them. See {doc}`../cli/index`.
 
 ---
 

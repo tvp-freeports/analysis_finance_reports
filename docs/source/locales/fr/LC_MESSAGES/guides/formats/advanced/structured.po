@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-15 08:04+0200\n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -33,7 +33,7 @@ msgstr ""
 msgid ""
 "The algorithm is fixed and lives in the library; you supply its "
 "parameters as columns of a CSV. The tables live under "
-"`content/algorithms/structured/`, in two groups:"
+"`content/algorithms/structured/`, one directory per datum:"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
@@ -45,11 +45,7 @@ msgid "For"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
-msgid "`investments/`"
-msgstr ""
-
-#: ../../source/guides/formats/advanced/structured.md
-msgid "extracting a fund's holdings"
+msgid "Required cells"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
@@ -60,17 +56,77 @@ msgstr ""
 msgid "classifying pages"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:14
+#: ../../source/guides/formats/advanced/structured.md
+msgid "all three"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`investments/`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "a fund's holdings"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the body selection and the market value's column"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`fund_assets/`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "a statement of net assets"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the fund column and the three amounts"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`manco/`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the management company"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the label"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`sfdr/`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the periodic SFDR annex"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the language"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:17
+msgid ""
+"**A directory a repository does not need is a file it does not have.** "
+"Four of the five were added after the first, each when the same reading "
+"turned out to be the majority way of reading its datum — which is the "
+"condition for a datum to belong to this level at all."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:21
 msgid "The `ID` column"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:16
+#: ../../source/guides/formats/advanced/structured.md:23
 msgid ""
 "Every row is keyed by an `ID` saying which pipe of which pipeline of "
 "which format it configures. The full form is:"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:23
+#: ../../source/guides/formats/advanced/structured.md:30
 msgid ""
 "The pipeline and the index are almost always omitted and derived. The "
 "index in particular is derived from **the other rows of the same "
@@ -78,11 +134,11 @@ msgid ""
 " id describe one pipe, and consecutive groups get consecutive pipes."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:27
+#: ../../source/guides/formats/advanced/structured.md:34
 msgid "Extraction rows"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:29
+#: ../../source/guides/formats/advanced/structured.md:36
 msgid ""
 "An investments row supplies the selection identifying the table body, the"
 " one identifying the fund name, the one identifying the currency, and the"
@@ -90,7 +146,7 @@ msgid ""
 " acquisition cost:"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:38
+#: ../../source/guides/formats/advanced/structured.md:45
 #, python-brace-format
 msgid ""
 "The `set` columns are {doc}`../selections` in their compact textual form."
@@ -99,11 +155,11 @@ msgid ""
 " whose leading columns vary."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:42
+#: ../../source/guides/formats/advanced/structured.md:49
 msgid "`additional_args.csv`"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:44
+#: ../../source/guides/formats/advanced/structured.md:51
 msgid ""
 "A second table, joined onto the first by `ID`, holding the parameters a "
 "pipe usually leaves alone. **At most one row per pipe**, and no row at "
@@ -128,7 +184,7 @@ msgid "Default"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
-#: ../../source/guides/formats/advanced/structured.md:69
+#: ../../source/guides/formats/advanced/structured.md:84
 msgid "`Algorithm flags`"
 msgstr ""
 
@@ -161,6 +217,7 @@ msgid "`Row tolerance`"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
+#: ../../source/guides/formats/advanced/structured.md:109
 msgid "`Geometrical indexing`"
 msgstr ""
 
@@ -177,20 +234,25 @@ msgid "`TRUE`"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
-msgid "`Merge previous`"
-msgstr ""
-
-#: ../../source/guides/formats/advanced/structured.md
-msgid "`FALSE`"
-msgstr ""
-
-#: ../../source/guides/formats/advanced/structured.md
-#: ../../source/guides/formats/advanced/structured.md:84
+#: ../../source/guides/formats/advanced/structured.md:116
 msgid "`Interpret dash as zero`"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "nothing substituted"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+#: ../../source/guides/formats/advanced/structured.md:162
+msgid "`Remove from fund`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "one regular expression"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "nothing cut"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
@@ -202,10 +264,58 @@ msgid "`deserialize`"
 msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
+msgid "`FALSE`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
 msgid "`Interpret cost and value as int`"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:59
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Collapse`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "column indices, separated by `|`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "no column may break"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Collapse direction`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`down`/`up`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`down`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Collapse algorithm`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`pattern`/`geometry`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`pattern`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Quantity in name`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the quantity is a column"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:70
 msgid ""
 "The two tolerances say how far apart two cells may sit and still count as"
 " the same column, or the same row. They are **independent**: leaving one "
@@ -216,7 +326,15 @@ msgid ""
 "reuniting the names."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:65
+#: ../../source/guides/formats/advanced/structured.md:76
+msgid ""
+"A column the table does not take is refused when the repository loads, "
+"rather than ignored — a file written for an older engine would otherwise "
+"carry cells that silently do nothing. So is a column that only refines "
+"another one, filled without it."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:80
 msgid ""
 "Each column belongs to one segment, and that matters: a pipe that "
 "switches a segment **off** in `partial_pipes.csv` and then fills in one "
@@ -225,18 +343,58 @@ msgid ""
 "something to guess at."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:71
+#: ../../source/guides/formats/advanced/structured.md:86
 msgid ""
 "How the table-coordinates algorithm finds the grid, when its default "
 "choices do not suit a layout: `RETURN_ROWS`, `BIG_CELL_RULE`, "
 "`USE_RULER_AREA`, `USE_TEST_POS`."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:74
-msgid "`Geometrical indexing` and `Merge previous`"
+#: ../../source/guides/formats/advanced/structured.md:89
+msgid "The three `Collapse` cells"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:76
+#: ../../source/guides/formats/advanced/structured.md:91
+msgid ""
+"A name too long for its column wraps, and the remainder arrives as a line"
+" of its own with its own coordinates. Naming the column that may break "
+"**is** asking for the collapse — with the cell filled the `pdf_extract` "
+"emits one block per **cell** instead of one per line — and the other two "
+"cells say how:"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:96
+msgid ""
+"**`Collapse direction`** — `down` (the default) puts the pieces on the "
+"**first** row of the run, `up` on the last. Pick the one that leaves the "
+"cell beside **its own values**;"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:98
+msgid ""
+"**`Collapse algorithm`** — `pattern` (the default) takes every run of "
+"consecutive cells of the column; `geometry` only the runs whose rows "
+"carry nothing but the name."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:101
+msgid ""
+"Several columns, because a page often carries **two tables side by side**"
+" and then the column of names is two columns. The pieces are joined with "
+"nothing between them, which is not a choice: the page already says how "
+"they meet."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:105
+#, python-brace-format
+msgid ""
+"{doc}`../adding-a-datum/parameters` shows the case on the page that "
+"produced it, together with the trap — a heading in the column of names is"
+" geometrically indistinguishable from a wrapped name, and a format whose "
+"headings share the body's face wants no collapse at all."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:111
 msgid ""
 "`Geometrical indexing` decides what the numeric columns of `args.csv` "
 "mean. `TRUE`, the default, makes them **linear distances on the grid**, "
@@ -246,14 +404,7 @@ msgid ""
 "rarely what you want."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:81
-msgid ""
-"`Merge previous` says which way a cell split across two blocks is put "
-"back together: into the **preceding** block (`TRUE`) or the following "
-"one."
-msgstr ""
-
-#: ../../source/guides/formats/advanced/structured.md:86
+#: ../../source/guides/formats/advanced/structured.md:118
 msgid ""
 "Several reports print `-` where a number belongs — a frozen holding, a "
 "position too small to round to a visible percentage. That dash is not a "
@@ -261,7 +412,7 @@ msgid ""
 "field left empty (for the others), and the `.log.csv` says so."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:90
+#: ../../source/guides/formats/advanced/structured.md:122
 msgid ""
 "Where you have checked the report and the dash really does mean zero, "
 "this column says so, **one field at a time**:"
@@ -315,14 +466,14 @@ msgstr ""
 msgid "the four together"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:108
+#: ../../source/guides/formats/advanced/structured.md:140
 msgid ""
 "The expression is the same little language `Algorithm flags` uses — `|`, "
 "`&`, `^`, `~` and parentheses — so `ALL & ~QUANTITY` is the three fields "
 "other than the quantity."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:111
+#: ../../source/guides/formats/advanced/structured.md:143
 msgid ""
 "**Per field, and not one switch,** because the need really is per field: "
 "a report that prints `-` for a percentage it cannot show may print "
@@ -330,7 +481,7 @@ msgid ""
 "invent a quantity of zero there."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:115
+#: ../../source/guides/formats/advanced/structured.md:147
 msgid ""
 "**Only a dash.** The substitution recognises the dash family and nothing "
 "else — `-`, `–`, `—` and their kin, alone or repeated, with any "
@@ -343,13 +494,13 @@ msgid ""
 "unreadable cell into zero would bury them."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:122
+#: ../../source/guides/formats/advanced/structured.md:154
 msgid ""
 "There is no flag for the acquisition **currency**: a dash there says \"no"
 " currency\", and zero is not a currency. `ALL` does not touch it."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:125
+#: ../../source/guides/formats/advanced/structured.md:157
 #, python-brace-format
 msgid ""
 "The zero that results is a real value and behaves like one. It is on the "
@@ -360,29 +511,74 @@ msgid ""
 "before."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:130
+#: ../../source/guides/formats/advanced/structured.md:164
+msgid ""
+"One regular expression whose matches are cut out of the sub-fund's name "
+"before it becomes the sub-fund's identity. One cell and not a list: "
+"several cuts are one alternation, `\\(continued\\)|\\(cont\\.\\)`, and "
+"the space a cut leaves behind goes with it."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:168
+msgid ""
+"The commonest use is the **footnote mark**. Some reports hang a footnote "
+"on a sub-fund's name in the heading of its own pages — `Sidera Funds "
+"SICAV – Christian Equity*`, `European Corporate Green Bond*` — and print "
+"the note at the foot of the page. The mark is part of the heading's text,"
+" in the same font and the same size as the name, so no selection can "
+"leave it out: it has to come off here, where the name is read, with a cut"
+" **anchored at the end**:"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:180
+msgid ""
+"Anchored, because `A*B Fund` keeps its asterisk: that one is not a "
+"footnote. A report that uses several marks lists them in the class, "
+"`\\s*[*¹†]+\\s*$`; one that also writes `(continued)` on its continuation"
+" pages joins the two, `\\(continued\\)|\\s*[*]+\\s*$`."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:184
+msgid ""
+"It is not cosmetic. The name this pipe publishes *is* the sub-fund's "
+"identity: it goes into `funds.csv`, into the `fund` field of every "
+"holding on the page, and it is what every later phase — the statement of "
+"net assets, the investment managers, the SFDR article — looks the sub-"
+"fund up by. Those comparisons normalise the name, and normalisation does "
+"**not** remove an asterisk, so `Christian Equity*` and `Christian Equity`"
+" are two different sub-funds. A mark left on is therefore not a blemish "
+"in one column: it is a row that quietly matches nothing and disappears."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:191
+msgid ""
+"The same column exists for the statement of net assets, where the heading"
+" carries the same mark for the same reason."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/structured.md:194
 msgid "Classification rows"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:132
+#: ../../source/guides/formats/advanced/structured.md:196
 msgid ""
 "A classification row declares a page class and **one** header to look "
 "for. Rows sharing an id describe one pipe, and the page belongs to that "
 "class if it contains **all** of them:"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:141
+#: ../../source/guides/formats/advanced/structured.md:205
 msgid ""
 "Two rows, one id, both required. Splitting a conjunction across rows "
 "rather than packing it into one cell is what keeps these files editable "
 "in a spreadsheet."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:144
+#: ../../source/guides/formats/advanced/structured.md:208
 msgid "Partial pipelines"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:146
+#: ../../source/guides/formats/advanced/structured.md:210
 #, python-brace-format
 msgid ""
 "Each of the three segments can be switched off **individually**. That is "
@@ -393,17 +589,17 @@ msgid ""
 "({doc}`../../../reference/design/formats-as-plugins`)."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:151
+#: ../../source/guides/formats/advanced/structured.md:215
 msgid "Two conventions of the structured tables"
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:152
+#: ../../source/guides/formats/advanced/structured.md:216
 msgid ""
 "**An empty cell means *absent*, everywhere.** Not zero, not the default —"
 " absent. It is the same rule the output files follow."
 msgstr ""
 
-#: ../../source/guides/formats/advanced/structured.md:155
+#: ../../source/guides/formats/advanced/structured.md:219
 msgid ""
 "**Every validation error names the row number.** These files are edited "
 "in a spreadsheet by people who are not reading Rust backtraces, and an "
@@ -423,5 +619,30 @@ msgstr ""
 #~ "is the point: the holding is in"
 #~ " the output, where it was being "
 #~ "dropped before."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "The algorithm is fixed and lives "
+#~ "in the library; you supply its "
+#~ "parameters as columns of a CSV. "
+#~ "The tables live under "
+#~ "`content/algorithms/structured/`, in two groups:"
+#~ msgstr ""
+
+#~ msgid "extracting a fund's holdings"
+#~ msgstr ""
+
+#~ msgid "`Merge previous`"
+#~ msgstr ""
+
+#~ msgid "`Geometrical indexing` and `Merge previous`"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "`Merge previous` says which way a "
+#~ "cell split across two blocks is "
+#~ "put back together: into the "
+#~ "**preceding** block (`TRUE`) or the "
+#~ "following one."
 #~ msgstr ""
 

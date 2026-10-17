@@ -329,7 +329,7 @@ impl<'writer> FormatFields<'writer> for SpanValueFields {
 /// Event format of **stderr only**. One line:
 ///
 /// ```text
-/// DEBUG run/job[EURIZON-EN23]/page[353]: message key=value
+/// DEBUG job[EURIZON-EN23]/page[353]: message key=value
 /// ```
 ///
 /// Three deliberate differences from `tracing_subscriber`'s default `Format<Full>`:

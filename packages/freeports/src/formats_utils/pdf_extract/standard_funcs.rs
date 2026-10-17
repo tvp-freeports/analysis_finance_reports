@@ -348,35 +348,27 @@ impl PdfExtractPipe for PdfExtractDocClassifyStandard {
 /// A pipe declaring a constant currency, ignoring the page entirely: for formats where the currency
 /// is written nowhere but is known in advance.
 ///
-/// # It says so, once
+/// # It says so, on every page
 ///
 /// Nothing here is read: the currency comes from the format's configuration, and every holding of
 /// every page inherits it. That is allowed, and it must not be silent — so the pipe warns into the
 /// `.log.csv`.
 ///
-/// **Once per pipe, not once per page.** The fact is about the format, not about the page: a
-/// document of forty holdings pages would otherwise leave forty identical rows, which is the shape
-/// of noise rather than of an audit trail. The row lands on the first page the pipe runs on, and
-/// the wording says it holds for the rest.
-///
-/// A pipe lives for one job, and a job is one report — a batch builds one per row (`cli/run.rs`),
-/// and the several files of a multidocument format are one report between them. So "once per pipe"
-/// is "once per report", which is the granularity the audit trail wants: whoever reads one
-/// document's data finds the note in that document's rows.
+/// **Once per page the pipe runs on**, not once per pipe. The row belongs to the page whose
+/// holdings carry the imposed currency, so whoever reads one page's rows finds the note there. A
+/// pipe that warned only the first time would put its single row on whichever page happened to run
+/// first — a different page sequentially than in parallel, and in parallel a different page from
+/// one run to the next — and a `.log.csv` that changes between two runs of the same report cannot
+/// be a reference output.
 pub struct PdfExtractCurrencyConstant {
     currency: Currency,
     block: PdfBlock,
-    warned: std::sync::atomic::AtomicBool,
 }
 
 impl PdfExtractCurrencyConstant {
     pub fn new(currency: Currency) -> Self {
         let block = PdfBlock::bare(BlockType::CURRENCY_STATEMENT, currency.code());
-        Self {
-            currency,
-            block,
-            warned: std::sync::atomic::AtomicBool::new(false),
-        }
+        Self { currency, block }
     }
 
     pub fn currency(&self) -> Currency {
@@ -384,15 +376,11 @@ impl PdfExtractCurrencyConstant {
     }
 
     pub fn call(&self, _page: &Page) -> Vec<PdfBlock> {
-        // `swap` and not `load`+`store`: pages of one document run in parallel, and two threads
-        // arriving together must still produce one row, not two.
-        if !self.warned.swap(true, std::sync::atomic::Ordering::Relaxed) {
-            crate::core::tracing_setup::warn_imposed(
-                "currency",
-                self.currency.code(),
-                "declared by the format, not written in the report - holds for every page of it",
-            );
-        }
+        crate::core::tracing_setup::warn_imposed(
+            "currency",
+            self.currency.code(),
+            "declared by the format, not written in the report",
+        );
         vec![self.block.clone()]
     }
 }
@@ -1980,7 +1968,7 @@ mod tests {
             use pretty_assertions::assert_eq;
 
             #[test]
-            fn the_first_page_carries_the_warning() {
+            fn a_page_carries_the_warning() {
                 let record = one_event(|| {
                     PdfExtractCurrencyConstant::new(Currency::EUR).call(&page(Vec::new()));
                 });
@@ -2003,22 +1991,34 @@ mod tests {
                 assert_eq!(record.field("coord_ref_2"), Some("currency"));
             }
 
-            /// The fact is about the format, not about the page: forty holdings pages must not
-            /// leave forty identical rows.
+            /// Every page carries its own row: a single row would land on whichever page ran
+            /// first, which is not the same page from one run to the next.
             #[test]
-            fn it_warns_once_however_many_pages_the_pipe_runs_on() {
+            fn every_page_the_pipe_runs_on_carries_the_warning() {
                 let pipe = PdfExtractCurrencyConstant::new(Currency::USD);
                 let records = events(|| {
                     for _ in 0..40 {
                         pipe.call(&page(Vec::new()));
                     }
                 });
-                assert_eq!(records.len(), 1);
+                assert_eq!(records.len(), 40);
             }
 
-            /// Each document of a job builds its own pipes, so each says it again.
+            /// The row no longer claims to speak for the other pages: each says it for itself.
             #[test]
-            fn a_second_pipe_warns_again() {
+            fn the_warning_speaks_only_for_its_own_page() {
+                let record = one_event(|| {
+                    PdfExtractCurrencyConstant::new(Currency::EUR).call(&page(Vec::new()));
+                });
+                assert!(
+                    !record.message.contains("every page"),
+                    "found {:?}",
+                    record.message
+                );
+            }
+
+            #[test]
+            fn two_pipes_warn_once_each() {
                 let records = events(|| {
                     PdfExtractCurrencyConstant::new(Currency::EUR).call(&page(Vec::new()));
                     PdfExtractCurrencyConstant::new(Currency::USD).call(&page(Vec::new()));

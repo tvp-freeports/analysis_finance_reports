@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -30,10 +30,18 @@ msgid ""
 msgstr ""
 
 #: ../../source/reference/design/classification.md:5
+#, python-brace-format
+msgid ""
+"This is the classification of *pages*, within a format already settled. "
+"Which format a document is in the first place is decided before it, by "
+"{doc}`document-classification`."
+msgstr ""
+
+#: ../../source/reference/design/classification.md:8
 msgid "Classification is itself a pipeline"
 msgstr ""
 
-#: ../../source/reference/design/classification.md:7
+#: ../../source/reference/design/classification.md:10
 #, python-brace-format
 msgid ""
 "The same machinery as extraction, run for a different purpose. A format "
@@ -42,7 +50,7 @@ msgid ""
 " at any of the three levels ({doc}`formats-as-plugins`)."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:11
+#: ../../source/reference/design/classification.md:14
 msgid ""
 "The consequence worth stating: the structured level's page-classification"
 " table is *rows of a spreadsheet* — a page class, and the headers a page "
@@ -50,29 +58,29 @@ msgid ""
 "line of code."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:15
+#: ../../source/reference/design/classification.md:18
 msgid "Classified as nothing is normal"
 msgstr ""
 
-#: ../../source/reference/design/classification.md:17
+#: ../../source/reference/design/classification.md:20
 msgid ""
 "Most pages of an annual report are prose. They belong to no class, enter "
 "no step, and are never looked at again. That is the common case, not an "
 "error."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:20
+#: ../../source/reference/design/classification.md:23
 msgid "Classified as something no step wants **is** an error"
 msgstr ""
 
-#: ../../source/reference/design/classification.md:22
+#: ../../source/reference/design/classification.md:25
 msgid ""
 "A page assigned a class that no step in the schedule mentions means the "
 "format's **classifier and its schedule disagree**. One of the two is "
 "wrong, and the run says so rather than silently dropping the pages."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:26
+#: ../../source/reference/design/classification.md:29
 msgid ""
 "The asymmetry is deliberate. \"No class\" is a statement about the page: "
 "there was nothing here. \"A class nobody processes\" is a statement about"
@@ -81,18 +89,18 @@ msgid ""
 "which is the failure mode hardest to notice and most expensive to debug."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:31
+#: ../../source/reference/design/classification.md:34
 msgid "Classification runs per document, always"
 msgstr ""
 
-#: ../../source/reference/design/classification.md:32
+#: ../../source/reference/design/classification.md:35
 #, python-brace-format
 msgid ""
 "Classification runs **once per document**, even in a multi-document run, "
 "and this is not an implementation detail — see {doc}`multidocument`."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:35
+#: ../../source/reference/design/classification.md:38
 msgid ""
 "Where a format needs cross-page reasoning to classify — *\"this page is a"
 " continuation of the table that started earlier\"* — it supplies a "
@@ -100,7 +108,7 @@ msgid ""
 "classification **of one document** and returns the resolved one."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:39
+#: ../../source/reference/design/classification.md:42
 #, python-brace-format
 msgid ""
 "That is the whole of the engine's tolerance for sequence-dependent "
@@ -110,7 +118,7 @@ msgid ""
 "decided, and it stays per page ({doc}`pages`)."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:44
+#: ../../source/reference/design/classification.md:47
 msgid ""
 "Running the finalizer over the union of several documents would be wrong "
 "in an obvious way: page 40 of document B would be treated as following "
@@ -118,11 +126,11 @@ msgid ""
 "have nothing to do with each other."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:48
+#: ../../source/reference/design/classification.md:51
 msgid "What classification costs"
 msgstr ""
 
-#: ../../source/reference/design/classification.md:49
+#: ../../source/reference/design/classification.md:52
 msgid ""
 "Measured: classification is between one eighth and one hundred-and-"
 "fiftieth of the work of the extraction steps, and it weighs anything at "
@@ -131,7 +139,7 @@ msgid ""
 "it did not register."
 msgstr ""
 
-#: ../../source/reference/design/classification.md:54
+#: ../../source/reference/design/classification.md:57
 msgid ""
 "That measurement is why classification was **not** given its own "
 "parallelism level even though it is trivially parallel across pages. It "

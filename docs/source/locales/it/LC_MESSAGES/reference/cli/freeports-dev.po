@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -56,10 +56,12 @@ msgid "`init-input-db <path>`"
 msgstr "`init-input-db <percorso>`"
 
 #: ../../source/reference/cli/freeports-dev.md
-msgid "writes an empty input database at `<path>`, to maintain as its own repository"
+msgid ""
+"writes an empty input database at `<path>`, to maintain as its own "
+"repository"
 msgstr ""
-"scrive un database di ingresso vuoto in `<percorso>`, da mantenere come repository a "
-"sé"
+"scrive un database di ingresso vuoto in `<percorso>`, da mantenere come "
+"repository a sé"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`inspect-document`"
@@ -86,6 +88,16 @@ msgid "freezes one page's current behaviour as JSON fixtures"
 msgstr "congela come fixture JSON il comportamento attuale su una pagina"
 
 #: ../../source/reference/cli/freeports-dev.md
+msgid "`probe list`, `probe run`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"ready-made questions to ask a document before a format exists — see "
+"[below](probe-subcommand)"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
 msgid "`test`"
 msgstr "`test`"
 
@@ -93,51 +105,53 @@ msgstr "`test`"
 msgid "runs the repository's tests through pytest"
 msgstr "esegue i test del repository tramite pytest"
 
-#: ../../source/reference/cli/freeports-dev.md:14
+#: ../../source/reference/cli/freeports-dev.md:15
 #, python-brace-format
 msgid ""
-"They are meant to be used in that order the first time and in the `inspect-document →"
-" inspect-page → make-tests → test` loop after that; "
-"{doc}`../../guides/formats/writing-a-format` walks through the loop with a real "
-"format, and this page is the reference for the options."
+"They are meant to be used in that order the first time and in the "
+"`inspect-document → inspect-page → make-tests → test` loop after that; "
+"{doc}`../../guides/formats/writing-a-format` walks through the loop with "
+"a real format, and this page is the reference for the options."
 msgstr ""
-"Vanno usati in quell'ordine la prima volta e poi nel ciclo `inspect-document → "
-"inspect-page → make-tests → test`; {doc}`../../guides/formats/writing-a-format` "
-"percorre il ciclo con un formato vero, e questa pagina è il riferimento per le "
-"opzioni."
+"Vanno usati in quell'ordine la prima volta e poi nel ciclo `inspect-"
+"document → inspect-page → make-tests → test`; "
+"{doc}`../../guides/formats/writing-a-format` percorre il ciclo con un "
+"formato vero, e questa pagina è il riferimento per le opzioni."
 
-#: ../../source/reference/cli/freeports-dev.md:18
+#: ../../source/reference/cli/freeports-dev.md:19
 msgid "Creating an empty repository"
 msgstr "Creare un repository vuoto"
 
-#: ../../source/reference/cli/freeports-dev.md:25
+#: ../../source/reference/cli/freeports-dev.md:26
 #, python-brace-format
 msgid ""
-"`init-format-repo` writes `package.yaml`, the `metadata/` tables, the `content/` tree"
-" and an empty `tests/`, then validates the generated `package.yaml` against its JSON "
-"schema and says so. It is a skeleton, not a working repository: it supports no format"
-" until you add one. See {doc}`../../guides/formats/repository` for what each "
-"generated file is."
+"`init-format-repo` writes `package.yaml`, the `metadata/` tables, the "
+"`content/` tree and an empty `tests/`, then validates the generated "
+"`package.yaml` against its JSON schema and says so. It is a skeleton, not"
+" a working repository: it supports no format until you add one. See "
+"{doc}`../../guides/formats/repository` for what each generated file is."
 msgstr ""
-"`init-format-repo` scrive `package.yaml`, le tabelle di `metadata/`, l'albero "
-"`content/` e un `tests/` vuoto, poi valida il `package.yaml` generato contro il "
-"proprio schema JSON e lo dice. È uno scheletro, non un repository funzionante: non "
-"supporta alcun formato finché non ne aggiungi uno. Vedi "
-"{doc}`../../guides/formats/repository` per che cosa sia ciascun file generato."
+"`init-format-repo` scrive `package.yaml`, le tabelle di `metadata/`, "
+"l'albero `content/` e un `tests/` vuoto, poi valida il `package.yaml` "
+"generato contro il proprio schema JSON e lo dice. È uno scheletro, non un"
+" repository funzionante: non supporta alcun formato finché non ne "
+"aggiungi uno. Vedi {doc}`../../guides/formats/repository` per che cosa "
+"sia ciascun file generato."
 
-#: ../../source/reference/cli/freeports-dev.md:31
+#: ../../source/reference/cli/freeports-dev.md:32
 msgid "The README, the report and the hook"
 msgstr "Il README, il rapporto e l'hook"
 
-#: ../../source/reference/cli/freeports-dev.md:33
+#: ../../source/reference/cli/freeports-dev.md:34
 msgid ""
-"It also writes everything a repository needs to *show* what it has been vouched for, "
-"because the alternative is that each of those files gets invented separately by every"
-" person who ever makes a formats repository:"
+"It also writes everything a repository needs to *show* what it has been "
+"vouched for, because the alternative is that each of those files gets "
+"invented separately by every person who ever makes a formats repository:"
 msgstr ""
-"Scrive anche tutto ciò che serve a un repository per *mostrare* di che cosa si è "
-"risposto, perché l'alternativa è che ciascuno di quei file venga inventato a parte da"
-" ogni persona che mai faccia un repository di formati:"
+"Scrive anche tutto ciò che serve a un repository per *mostrare* di che "
+"cosa si è risposto, perché l'alternativa è che ciascuno di quei file "
+"venga inventato a parte da ogni persona che mai faccia un repository di "
+"formati:"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "Path"
@@ -153,11 +167,11 @@ msgstr "`README.md`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid ""
-"the repository's front page: the badges, both summary tables between their markers, "
-"and links to the pages below"
+"the repository's front page: the badges, both summary tables between "
+"their markers, and links to the pages below"
 msgstr ""
-"la prima pagina del repository: i badge, entrambe le tabelle di riassunto fra i loro "
-"marker, e i rimandi alle pagine sottostanti"
+"la prima pagina del repository: i badge, entrambe le tabelle di riassunto"
+" fra i loro marker, e i rimandi alle pagine sottostanti"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`validation/report/<table>.md`"
@@ -165,11 +179,11 @@ msgstr "`validation/report/<tabella>.md`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid ""
-"six pages, one per arrangement of the grants — named after the `--table` value that "
-"fills each one"
+"six pages, one per arrangement of the grants — named after the `--table` "
+"value that fills each one"
 msgstr ""
-"sei pagine, una per disposizione delle attestazioni — chiamate come il valore di "
-"`--table` che riempie ciascuna"
+"sei pagine, una per disposizione delle attestazioni — chiamate come il "
+"valore di `--table` che riempie ciascuna"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`validation/report/badges/`"
@@ -177,11 +191,11 @@ msgstr "`validation/report/badges/`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid ""
-"`grants-total`, `grants-coverage`, `check-grants`, each as an SVG and as shields.io "
-"endpoint JSON"
+"`grants-total`, `grants-coverage`, `check-grants`, each as an SVG and as "
+"shields.io endpoint JSON"
 msgstr ""
-"`grants-total`, `grants-coverage`, `check-grants`, ciascuno come SVG e come JSON "
-"endpoint di shields.io"
+"`grants-total`, `grants-coverage`, `check-grants`, ciascuno come SVG e "
+"come JSON endpoint di shields.io"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`ci/report/<table>.md`, `ci/report/badges/`, `ci/report/index.html`"
@@ -196,8 +210,12 @@ msgid "`ci.yaml`"
 msgstr "`ci.yaml`"
 
 #: ../../source/reference/cli/freeports-dev.md
-msgid "how the repository is gated: the branch classes, the thresholds, the key server"
-msgstr "come il repository è sottoposto a gate: le classi di ramo, le soglie, il key server"
+msgid ""
+"how the repository is gated: the branch classes, the thresholds, the key "
+"server"
+msgstr ""
+"come il repository è sottoposto a gate: le classi di ramo, le soglie, il "
+"key server"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`Makefile`, `make.bat`"
@@ -213,7 +231,9 @@ msgstr "`.gitignore`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "what a run leaves behind: `reports/`, the caches, a stray log"
-msgstr "ciò che un'esecuzione lascia dietro di sé: `reports/`, le cache, un log randagio"
+msgstr ""
+"ciò che un'esecuzione lascia dietro di sé: `reports/`, le cache, un log "
+"randagio"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`.githooks/pre-commit`"
@@ -223,103 +243,114 @@ msgstr "`.githooks/pre-commit`"
 msgid "names the Makefile target that is the commit gate"
 msgstr "nomina il target del Makefile che è il gate di commit"
 
-#: ../../source/reference/cli/freeports-dev.md:48
+#: ../../source/reference/cli/freeports-dev.md:49
 msgid ""
-"All nine are then **filled straight away**, by running the command once — so a "
-"repository never starts life with three broken images and six empty tables in it. "
-"That step is best-effort: if `freeports-validate` is not installed, or the "
-"methodology pages cannot be resolved from this machine, the initialisation says so, "
-"names the command to run later, and succeeds anyway. A skeleton that could not be "
-"created without a reachable documentation server would be a worse tool than one that "
-"leaves nine files to fill."
+"All nine are then **filled straight away**, by running the command once —"
+" so a repository never starts life with three broken images and six empty"
+" tables in it. That step is best-effort: if `freeports-validate` is not "
+"installed, or the methodology pages cannot be resolved from this machine,"
+" the initialisation says so, names the command to run later, and succeeds"
+" anyway. A skeleton that could not be created without a reachable "
+"documentation server would be a worse tool than one that leaves nine "
+"files to fill."
 msgstr ""
-"Tutti e nove sono poi **riempiti subito**, eseguendo una volta il comando — così che "
-"un repository non cominci mai la propria vita con dentro tre immagini rotte e sei "
-"tabelle vuote. Quel passo fa quel che può: se `freeports-validate` non è installato, "
-"o se da questa macchina le pagine di metodologia non si possono risolvere, "
-"l'inizializzazione lo dice, nomina il comando da eseguire più tardi, e riesce "
-"comunque. Uno scheletro che non si potesse creare senza un server di documentazione "
-"raggiungibile sarebbe uno strumento peggiore di uno che lascia nove file da riempire."
+"Tutti e nove sono poi **riempiti subito**, eseguendo una volta il comando"
+" — così che un repository non cominci mai la propria vita con dentro tre "
+"immagini rotte e sei tabelle vuote. Quel passo fa quel che può: se "
+"`freeports-validate` non è installato, o se da questa macchina le pagine "
+"di metodologia non si possono risolvere, l'inizializzazione lo dice, "
+"nomina il comando da eseguire più tardi, e riesce comunque. Uno scheletro"
+" che non si potesse creare senza un server di documentazione "
+"raggiungibile sarebbe uno strumento peggiore di uno che lascia nove file "
+"da riempire."
 
-#: ../../source/reference/cli/freeports-dev.md:55
+#: ../../source/reference/cli/freeports-dev.md:56
 msgid ""
-"**The hook runs one thing**: `make pre-commit` on a `dev` branch, `make ci-full` on a"
-" `prod` one. What the gate consists of is decided in the `Makefile`, so it can grow "
-"without the hook being edited — and every step of it is a target you can also run by "
-"hand, which is the property that makes a refused commit something you can reproduce "
-"rather than something that happened to you. What is left in the hook is the "
-"environment check, the branch class, the non-ASCII filename check, the staging of "
-"what the run rewrote, and the verdict."
+"**The hook runs one thing**: `make pre-commit` on a `dev` branch, `make "
+"ci-full` on a `prod` one. What the gate consists of is decided in the "
+"`Makefile`, so it can grow without the hook being edited — and every step"
+" of it is a target you can also run by hand, which is the property that "
+"makes a refused commit something you can reproduce rather than something "
+"that happened to you. What is left in the hook is the environment check, "
+"the branch class, the non-ASCII filename check, the staging of what the "
+"run rewrote, and the verdict."
 msgstr ""
-"**L'hook esegue una cosa sola**: `make pre-commit` su un ramo `dev`, `make ci-full` "
-"su uno `prod`. In che cosa consista il gate si decide nel `Makefile`, quindi può "
-"crescere senza che si metta mano all'hook — ed è proprio il fatto che ogni suo passo "
-"sia un target eseguibile anche a mano a rendere un commit rifiutato qualcosa che puoi"
-" riprodurre, e non qualcosa che ti è capitato. Nell'hook restano il controllo "
-"dell'ambiente, la classe del ramo, il controllo sui nomi di file non ASCII, la messa "
-"in stage di ciò che l'esecuzione ha riscritto, e il verdetto."
+"**L'hook esegue una cosa sola**: `make pre-commit` su un ramo `dev`, "
+"`make ci-full` su uno `prod`. In che cosa consista il gate si decide nel "
+"`Makefile`, quindi può crescere senza che si metta mano all'hook — ed è "
+"proprio il fatto che ogni suo passo sia un target eseguibile anche a mano"
+" a rendere un commit rifiutato qualcosa che puoi riprodurre, e non "
+"qualcosa che ti è capitato. Nell'hook restano il controllo dell'ambiente,"
+" la classe del ramo, il controllo sui nomi di file non ASCII, la messa in"
+" stage di ciò che l'esecuzione ha riscritto, e il verdetto."
 
-#: ../../source/reference/cli/freeports-dev.md:62
+#: ../../source/reference/cli/freeports-dev.md:63
 msgid ""
-"**No report can refuse a commit**, on any branch. The gate collects once, renders the"
-" artefacts, and the hook `git add`s the ones it actually rewrote, so the refresh is "
-"part of the same commit as the change that caused it. Everything about that is "
-"conditional: no `freeports-validate` on the path, no methodology it can resolve, or a"
-" page whose marker pair somebody removed, and the target says so on standard error "
-"and leaves the file alone. The figures depend on a network, and a committer on a "
-"train still has to be able to commit."
+"**No report can refuse a commit**, on any branch. The gate collects once,"
+" renders the artefacts, and the hook `git add`s the ones it actually "
+"rewrote, so the refresh is part of the same commit as the change that "
+"caused it. Everything about that is conditional: no `freeports-validate` "
+"on the path, no methodology it can resolve, or a page whose marker pair "
+"somebody removed, and the target says so on standard error and leaves the"
+" file alone. The figures depend on a network, and a committer on a train "
+"still has to be able to commit."
 msgstr ""
-"**Nessun rapporto può rifiutare un commit**, su nessun ramo. Il gate raccoglie una "
-"volta, produce gli artefatti, e l'hook fa `git add` di quelli che ha davvero "
-"riscritto, così che l'aggiornamento faccia parte dello stesso commit della modifica "
-"che l'ha causato. Tutto ciò è condizionale: `freeports-validate` non è nel PATH, non "
-"c'è metodologia che riesca a risolvere, oppure a una pagina qualcuno ha tolto la "
-"coppia di marker — e il target lo dice sullo standard error e lascia stare il file. I"
-" numeri dipendono da una rete, e chi fa commit su un treno deve comunque poter fare "
-"commit."
+"**Nessun rapporto può rifiutare un commit**, su nessun ramo. Il gate "
+"raccoglie una volta, produce gli artefatti, e l'hook fa `git add` di "
+"quelli che ha davvero riscritto, così che l'aggiornamento faccia parte "
+"dello stesso commit della modifica che l'ha causato. Tutto ciò è "
+"condizionale: `freeports-validate` non è nel PATH, non c'è metodologia "
+"che riesca a risolvere, oppure a una pagina qualcuno ha tolto la coppia "
+"di marker — e il target lo dice sullo standard error e lascia stare il "
+"file. I numeri dipendono da una rete, e chi fa commit su un treno deve "
+"comunque poter fare commit."
 
-#: ../../source/reference/cli/freeports-dev.md:69
+#: ../../source/reference/cli/freeports-dev.md:70
 #, python-brace-format
 msgid ""
-"To change what the gate does, edit the `Makefile` — `make help` lists every target, "
-"and {doc}`../../guides/devops/the-gate` explains which of them may refuse and on "
-"which branch."
+"To change what the gate does, edit the `Makefile` — `make help` lists "
+"every target, and {doc}`../../guides/devops/the-gate` explains which of "
+"them may refuse and on which branch."
 msgstr ""
-"Per cambiare ciò che fa il gate, modifica il `Makefile` — `make help` elenca ogni "
-"target, e {doc}`../../guides/devops/the-gate` spiega quali di essi possano rifiutare "
-"e su quale ramo."
+"Per cambiare ciò che fa il gate, modifica il `Makefile` — `make help` "
+"elenca ogni target, e {doc}`../../guides/devops/the-gate` spiega quali di"
+" essi possano rifiutare e su quale ramo."
 
-#: ../../source/reference/cli/freeports-dev.md:72
+#: ../../source/reference/cli/freeports-dev.md:73
 #, python-brace-format
 msgid ""
-"`setup-input-db` copies a minimal input database into `tests/input_db/`, with a "
-"single list named `TEST`. It exists so that the tests of a repository do not depend "
-"on a database maintained elsewhere — a format's test must fail because the *format* "
-"broke, never because someone edited a company list. For real runs you want a real "
-"database; see {doc}`../../guides/input-db/index`."
-msgstr ""
-"`setup-input-db` copia un database di ingresso minimo dentro `tests/input_db/`, con "
-"una sola lista chiamata `TEST`. Esiste perché i test di un repository non dipendano "
-"da un database mantenuto altrove — il test di un formato deve fallire perché si è "
-"rotto il *formato*, mai perché qualcuno ha modificato una lista di società. Per le "
-"esecuzioni vere ti serve un database vero; vedi {doc}`../../guides/input-db/index`."
-
-#: ../../source/reference/cli/freeports-dev.md:77
-#, python-brace-format
-msgid ""
-"`init-input-db` is the other half of that sentence and is not part of this loop: it "
-"starts a database you intend to maintain, at a path of your choosing, as its own "
-"repository rather than inside a formats repository. `--sample` fills its tables with "
-"the same example data `setup-input-db` copies, as something to edit down. See "
+"`setup-input-db` copies a minimal input database into `tests/input_db/`, "
+"with a single list named `TEST`. It exists so that the tests of a "
+"repository do not depend on a database maintained elsewhere — a format's "
+"test must fail because the *format* broke, never because someone edited a"
+" company list. For real runs you want a real database; see "
 "{doc}`../../guides/input-db/index`."
 msgstr ""
-"`init-input-db` è l'altra metà di quella frase e non fa parte di questo ciclo: avvia "
-"un database che intendi mantenere, in un percorso a tua scelta, come repository a sé "
-"anziché dentro un repository di formati. `--sample` ne riempie le tabelle con gli "
-"stessi dati di esempio che `setup-input-db` copia, come qualcosa da sfrondare. Vedi "
+"`setup-input-db` copia un database di ingresso minimo dentro "
+"`tests/input_db/`, con una sola lista chiamata `TEST`. Esiste perché i "
+"test di un repository non dipendano da un database mantenuto altrove — il"
+" test di un formato deve fallire perché si è rotto il *formato*, mai "
+"perché qualcuno ha modificato una lista di società. Per le esecuzioni "
+"vere ti serve un database vero; vedi {doc}`../../guides/input-db/index`."
+
+#: ../../source/reference/cli/freeports-dev.md:78
+#, python-brace-format
+msgid ""
+"`init-input-db` is the other half of that sentence and is not part of "
+"this loop: it starts a database you intend to maintain, at a path of your"
+" choosing, as its own repository rather than inside a formats repository."
+" `--sample` fills its tables with the same example data `setup-input-db` "
+"copies, as something to edit down. See {doc}`../../guides/input-"
+"db/index`."
+msgstr ""
+"`init-input-db` è l'altra metà di quella frase e non fa parte di questo "
+"ciclo: avvia un database che intendi mantenere, in un percorso a tua "
+"scelta, come repository a sé anziché dentro un repository di formati. "
+"`--sample` ne riempie le tabelle con gli stessi dati di esempio che "
+"`setup-input-db` copia, come qualcosa da sfrondare. Vedi "
 "{doc}`../../guides/input-db/index`."
 
-#: ../../source/reference/cli/freeports-dev.md:82
+#: ../../source/reference/cli/freeports-dev.md:83
 msgid "`inspect-document` — which page is what"
 msgstr "`inspect-document` — quale pagina è che cosa"
 
@@ -345,7 +376,9 @@ msgstr "`--page` / `-p`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "report only this page (1-based); omitted, every page is reported"
-msgstr "riferisci solo questa pagina (contando da uno); se omessa, si riferisce ogni pagina"
+msgstr ""
+"riferisci solo questa pagina (contando da uno); se omessa, si riferisce "
+"ogni pagina"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`--report`"
@@ -364,37 +397,39 @@ msgstr "`--repo` / `-r`, `--config`, `--db-directory` / `-I`"
 msgid "the shared options; see {doc}`../configuration/dev-and-validate`"
 msgstr "le opzioni condivise; vedi {doc}`../configuration/dev-and-validate`"
 
-#: ../../source/reference/cli/freeports-dev.md:98
+#: ../../source/reference/cli/freeports-dev.md:99
 msgid ""
-"Run this before anything else. A page that should be `investments` and comes back "
-"`unclassified` is a classification problem, and nothing downstream of it can be right"
-" until it is fixed — chasing the extraction of a page the engine never selected is "
-"the single most common way to lose an afternoon."
+"Run this before anything else. A page that should be `investments` and "
+"comes back `unclassified` is a classification problem, and nothing "
+"downstream of it can be right until it is fixed — chasing the extraction "
+"of a page the engine never selected is the single most common way to lose"
+" an afternoon."
 msgstr ""
-"Esegui questo prima di ogni altra cosa. Una pagina che dovrebbe essere `investments` "
-"e torna indietro come `unclassified` è un problema di classificazione, e niente a "
-"valle può essere giusto finché non è corretto — inseguire l'estrazione di una pagina "
-"che il motore non ha mai selezionato è il modo più comune in assoluto di perdere un "
-"pomeriggio."
+"Esegui questo prima di ogni altra cosa. Una pagina che dovrebbe essere "
+"`investments` e torna indietro come `unclassified` è un problema di "
+"classificazione, e niente a valle può essere giusto finché non è corretto"
+" — inseguire l'estrazione di una pagina che il motore non ha mai "
+"selezionato è il modo più comune in assoluto di perdere un pomeriggio."
 
-#: ../../source/reference/cli/freeports-dev.md:102
+#: ../../source/reference/cli/freeports-dev.md:103
 msgid ""
-"`--page` narrows what is **printed**, not what is classified: the whole document is "
-"classified either way. A format may supply a finalizer that rewrites the raw per-page"
-" answers looking at all of them together — *every page after the holdings header is "
-"holdings* is the usual shape — so a page classified on its own can get a different "
-"answer from the same page classified in its document, and the isolated one is the "
-"wrong one."
+"`--page` narrows what is **printed**, not what is classified: the whole "
+"document is classified either way. A format may supply a finalizer that "
+"rewrites the raw per-page answers looking at all of them together — "
+"*every page after the holdings header is holdings* is the usual shape — "
+"so a page classified on its own can get a different answer from the same "
+"page classified in its document, and the isolated one is the wrong one."
 msgstr ""
-"`--page` restringe ciò che viene **stampato**, non ciò che viene classificato: in "
-"ogni caso si classifica l'intero documento. Un formato può fornire un finalizzatore "
-"che riscrive le risposte grezze pagina per pagina guardandole tutte insieme — *ogni "
-"pagina dopo l'intestazione delle posizioni è posizioni* è la forma consueta — quindi "
-"una pagina classificata per conto proprio può ottenere una risposta diversa dalla "
-"stessa pagina classificata dentro il proprio documento, e quella isolata è la "
-"sbagliata."
+"`--page` restringe ciò che viene **stampato**, non ciò che viene "
+"classificato: in ogni caso si classifica l'intero documento. Un formato "
+"può fornire un finalizzatore che riscrive le risposte grezze pagina per "
+"pagina guardandole tutte insieme — *ogni pagina dopo l'intestazione delle"
+" posizioni è posizioni* è la forma consueta — quindi una pagina "
+"classificata per conto proprio può ottenere una risposta diversa dalla "
+"stessa pagina classificata dentro il proprio documento, e quella isolata "
+"è la sbagliata."
 
-#: ../../source/reference/cli/freeports-dev.md:108
+#: ../../source/reference/cli/freeports-dev.md:109
 msgid "`inspect-page` — what the engine sees, stage by stage"
 msgstr "`inspect-page` — che cosa vede il motore, stadio per stadio"
 
@@ -430,7 +465,9 @@ msgstr "`--strings`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "the strings to look for, **required** by the three line-set modes"
-msgstr "le stringhe da cercare, **obbligatoria** per le tre modalità di insieme di righe"
+msgstr ""
+"le stringhe da cercare, **obbligatoria** per le tre modalità di insieme "
+"di righe"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`--filter-data`"
@@ -439,8 +476,8 @@ msgstr "`--filter-data`"
 #: ../../source/reference/cli/freeports-dev.md
 msgid "a `.pkl` of filter data. Defaults to the repository's test companies"
 msgstr ""
-"un `.pkl` di dati di filtro. Il valore predefinito sono le società di prova del "
-"repository"
+"un `.pkl` di dati di filtro. Il valore predefinito sono le società di "
+"prova del repository"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`--target-list` / `-T`"
@@ -450,13 +487,13 @@ msgstr "`--target-list` / `-T`"
 msgid "which lists those test companies come from. Default `TEST`"
 msgstr "da quali liste vengano quelle società di prova. Predefinita `TEST`"
 
-#: ../../source/reference/cli/freeports-dev.md:126
+#: ../../source/reference/cli/freeports-dev.md:127
 msgid ""
-"The modes fall into three families, and choosing the right family is most of the "
-"skill:"
+"The modes fall into three families, and choosing the right family is most"
+" of the skill:"
 msgstr ""
-"Le modalità si dividono in tre famiglie, e scegliere la famiglia giusta è quasi tutta"
-" l'abilità:"
+"Le modalità si dividono in tre famiglie, e scegliere la famiglia giusta è"
+" quasi tutta l'abilità:"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`--mode`"
@@ -516,7 +553,9 @@ msgstr "i blocchi PDF resi come tabella"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "read a tabular page as a table, with its row and column metadata"
-msgstr "leggere una pagina tabellare come tabella, con i suoi metadati di riga e colonna"
+msgstr ""
+"leggere una pagina tabellare come tabella, con i suoi metadati di riga e "
+"colonna"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`structured`, `semistructured`, `unstructured`"
@@ -525,36 +564,272 @@ msgstr "`structured`, `semistructured`, `unstructured`"
 #: ../../source/reference/cli/freeports-dev.md
 msgid "which lines match `--strings`, as that level's selection sees them"
 msgstr ""
-"quali righe corrispondono a `--strings`, così come le vede la selezione di quel "
-"livello"
+"quali righe corrispondono a `--strings`, così come le vede la selezione "
+"di quel livello"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "learn what font, size and band a value is actually set in"
 msgstr "scoprire con quale font, corpo e banda sia composto davvero un valore"
 
-#: ../../source/reference/cli/freeports-dev.md:136
+#: ../../source/reference/cli/freeports-dev.md:137
 msgid ""
-"The first three are the diagnosis: running them in order tells you *which of the "
-"three segments* is wrong, which is a much smaller question than \"the page is "
-"wrong\". The line-set modes answer the question that comes before writing a selection"
-" at all:"
+"The first three are the diagnosis: running them in order tells you *which"
+" of the three segments* is wrong, which is a much smaller question than "
+"\"the page is wrong\". The line-set modes answer the question that comes "
+"before writing a selection at all:"
 msgstr ""
-"Le prime tre sono la diagnosi: eseguirle nell'ordine ti dice *quale dei tre segmenti*"
-" sia sbagliato, che è una domanda molto più piccola di \"la pagina è sbagliata\". Le "
-"modalità di insieme di righe rispondono alla domanda che viene prima ancora di "
-"scrivere una selezione:"
+"Le prime tre sono la diagnosi: eseguirle nell'ordine ti dice *quale dei "
+"tre segmenti* sia sbagliato, che è una domanda molto più piccola di \"la "
+"pagina è sbagliata\". Le modalità di insieme di righe rispondono alla "
+"domanda che viene prima ancora di scrivere una selezione:"
 
-#: ../../source/reference/cli/freeports-dev.md:144
+#: ../../source/reference/cli/freeports-dev.md:145
 msgid ""
-"`--page-type` matters even in the pipeline modes: it is what decides which pipeline "
-"the page is fed through, so inspecting a page as the wrong class shows you a correct "
-"answer to the wrong question."
+"`--page-type` matters even in the pipeline modes: it is what decides "
+"which pipeline the page is fed through, so inspecting a page as the wrong"
+" class shows you a correct answer to the wrong question."
 msgstr ""
-"`--page-type` conta anche nelle modalità di pipeline: è ciò che decide attraverso "
-"quale pipeline la pagina viene fatta passare, quindi ispezionare una pagina come "
-"classe sbagliata ti mostra una risposta corretta alla domanda sbagliata."
+"`--page-type` conta anche nelle modalità di pipeline: è ciò che decide "
+"attraverso quale pipeline la pagina viene fatta passare, quindi "
+"ispezionare una pagina come classe sbagliata ti mostra una risposta "
+"corretta alla domanda sbagliata."
 
-#: ../../source/reference/cli/freeports-dev.md:147
+#: ../../source/reference/cli/freeports-dev.md:149
+msgid "`probe` — ready-made questions to ask a document"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:151
+msgid ""
+"Before a format exists there is nothing for `inspect-page` to run, and "
+"the first questions are about the documents themselves: *what kind of "
+"report is this*, *where are the totals*, *who manages the investments*. A"
+" **probe** is a small script that asks one such question of one or more "
+"PDFs and prints what it found, with pages, positions and fonts. A few "
+"ship with the tool."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Probe"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "The question"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Its own arguments"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`doc_kind`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"what kind of document is this, and does it carry the SFDR periodic "
+"disclosure?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "—"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+#, fuzzy
+msgid "`assets`"
+msgstr "`--fast`"
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"where are the total assets, liabilities and net assets, and does the "
+"accounting equation hold?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`en` or `it`, the label profile"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`manco`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"what is printed under or beside the management company label, with its "
+"period of office?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`--max-pages N`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`inv_managers`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "is an investment manager declared, and are there exceptions per sub-fund?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`sfdr_title`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"which SFDR article does each disclosure declare, by its title and by its "
+"tick mark?"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`--summary`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:171
+msgid ""
+"`probe list` prints the same questions, read from each probe's docstring;"
+" `python <probe>.py` with no document prints the full description, "
+"including the **known limits** of that probe."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`NAME`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "the probe, with or without its `probe_` prefix"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "the probe's arguments, then `PDF-OR-DIR…`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the probe's own arguments **first**, then the documents; a directory is "
+"walked to the bottom"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "also run on the reports under `tests/formats/<FORMAT>/` of the repository"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`--probes-dir`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"a directory of probes of your own, searched before the shipped ones; "
+"repeatable. Also `dev.probes_dirs`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:182
+msgid ""
+"**What a probe answers is a lead, not a result.** Probes are deliberately"
+" rough: they take the first match, and the first match in a financial "
+"report is often the table of contents. A probe that says `-` has not "
+"proven that something is absent, only that it did not find it the way it "
+"looks; and a probe that finds a value has found *a* value, which the page"
+" still has to confirm. Their use is to tell you, across several reports "
+"of the same format at once, whether an anchor holds — which is the "
+"question that decides whether a format can be written at all."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:189
+msgid ""
+"**The tool's own options may appear anywhere**, before or after the "
+"probe's name; everything else after the name goes to the probe, in its "
+"order. The documents start at the first word that names an existing file "
+"or directory, and nothing may follow them."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:193
+msgid "Writing a probe of your own"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:195
+msgid ""
+"A probe is **one independent file** named `probe_<question>.py`. Put it "
+"in a directory and name the directory with `--probes-dir` or "
+"`dev.probes_dirs`; it then appears in `probe list`, and if it has the "
+"name of a shipped probe it stands in for it — `list` says so."
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Rule"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "Why"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"no probe imports another; depend only on `pymupdf` and "
+"`freeports.utils.pdf_extract`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the tool runs each probe as its own process and never imports it, so a "
+"probe is a file you can add, copy or delete without touching anything "
+"else"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "read lines with `pdflines_from_pagedict`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the lines have to be the ones the engine sees, with the same extraction "
+"flags"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the **first line of the docstring** is the question; a `Usage:` section "
+"and the known limits follow"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"it is what `probe list` shows, and what a person reads before trusting "
+"the output"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"the probe's own options first, the documents last; do not use `-f`, `-r`,"
+" `-F`, `-I`, `--config` or `--probes-dir`"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"that order is how the tool tells them apart, and those options belong to "
+"the tool"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "with no document, print the docstring and exit with 2"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "`python probe_x.py` alone should explain itself"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid ""
+"one block of output per document, starting with the path; `-` for \"not "
+"found\""
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md
+msgid "several reports side by side are the point"
+msgstr ""
+
+#: ../../source/reference/cli/freeports-dev.md:208
 msgid "`make-tests` — freeze a page"
 msgstr "`make-tests` — congelare una pagina"
 
@@ -567,10 +842,12 @@ msgid "as above. Both **required**"
 msgstr "come sopra. Entrambe **obbligatorie**"
 
 #: ../../source/reference/cli/freeports-dev.md
-msgid "as above. Optional: `dev.page_type` can supply it, and it defaults to `investments`"
-msgstr ""
-"come sopra. Facoltativa: `dev.page_type` può fornirla, e il valore predefinito è "
+msgid ""
+"as above. Optional: `dev.page_type` can supply it, and it defaults to "
 "`investments`"
+msgstr ""
+"come sopra. Facoltativa: `dev.page_type` può fornirla, e il valore "
+"predefinito è `investments`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`--document` / `-d`"
@@ -581,8 +858,12 @@ msgid "the document variant, for a format with several"
 msgstr "la variante di documento, per un formato che ne ha più d'una"
 
 #: ../../source/reference/cli/freeports-dev.md
-msgid "`--report`, `--filter-data`, `--target-list`, `--repo`, `--config`, `--db-directory`"
-msgstr "`--report`, `--filter-data`, `--target-list`, `--repo`, `--config`, `--db-directory`"
+msgid ""
+"`--report`, `--filter-data`, `--target-list`, `--repo`, `--config`, "
+"`--db-directory`"
+msgstr ""
+"`--report`, `--filter-data`, `--target-list`, `--repo`, `--config`, "
+"`--db-directory`"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "as above"
@@ -620,34 +901,37 @@ msgstr "`--noprint_results`"
 msgid "do not print the results while generating"
 msgstr "non stampare i risultati mentre genera"
 
-#: ../../source/reference/cli/freeports-dev.md:164
+#: ../../source/reference/cli/freeports-dev.md:225
 msgid ""
-"It writes the three per-page fixtures — the PDF blocks, the text blocks, the results "
-"— as JSON under `tests/formats/<FORMAT>/pages/`, after showing you what it is about "
-"to record and asking. Read what it prints before answering: `make-tests` records "
-"*what the code does now*, so confirming a wrong result promotes a bug into the "
-"specification, and the test will then defend it."
+"It writes the three per-page fixtures — the PDF blocks, the text blocks, "
+"the results — as JSON under `tests/formats/<FORMAT>/pages/`, after "
+"showing you what it is about to record and asking. Read what it prints "
+"before answering: `make-tests` records *what the code does now*, so "
+"confirming a wrong result promotes a bug into the specification, and the "
+"test will then defend it."
 msgstr ""
-"Scrive le tre fixture per pagina — i blocchi PDF, i blocchi di testo, i risultati — "
-"in JSON sotto `tests/formats/<FORMATO>/pages/`, dopo averti mostrato ciò che sta per "
-"registrare e aver chiesto. Leggi ciò che stampa prima di rispondere: `make-tests` "
-"registra *ciò che il codice fa adesso*, quindi confermare un risultato sbagliato "
-"promuove un bug a specifica, e da lì in poi sarà il test a difenderlo."
+"Scrive le tre fixture per pagina — i blocchi PDF, i blocchi di testo, i "
+"risultati — in JSON sotto `tests/formats/<FORMATO>/pages/`, dopo averti "
+"mostrato ciò che sta per registrare e aver chiesto. Leggi ciò che stampa "
+"prima di rispondere: `make-tests` registra *ciò che il codice fa adesso*,"
+" quindi confermare un risultato sbagliato promuove un bug a specifica, e "
+"da lì in poi sarà il test a difenderlo."
 
-#: ../../source/reference/cli/freeports-dev.md:169
+#: ../../source/reference/cli/freeports-dev.md:230
 msgid ""
-"`--noconfirm` is for regenerating fixtures you have already reviewed, not for "
-"generating new ones. As with the engine's boolean flags, the flag can only switch it "
-"**on**; to make it a standing choice set `dev.noconfirm` in the configuration file, "
-"and to switch that back off write `false` there — an absent flag says nothing, it "
-"does not say no."
+"`--noconfirm` is for regenerating fixtures you have already reviewed, not"
+" for generating new ones. As with the engine's boolean flags, the flag "
+"can only switch it **on**; to make it a standing choice set "
+"`dev.noconfirm` in the configuration file, and to switch that back off "
+"write `false` there — an absent flag says nothing, it does not say no."
 msgstr ""
-"`--noconfirm` serve a rigenerare fixture che hai già riesaminato, non a generarne di "
-"nuove. Come per le opzioni booleane del motore, l'opzione può solo **accenderla**; "
-"per farne una scelta permanente imposta `dev.noconfirm` nel file di configurazione, e"
-" per rispegnerla scrivi lì `false` — un'opzione assente non dice niente, non dice no."
+"`--noconfirm` serve a rigenerare fixture che hai già riesaminato, non a "
+"generarne di nuove. Come per le opzioni booleane del motore, l'opzione "
+"può solo **accenderla**; per farne una scelta permanente imposta "
+"`dev.noconfirm` nel file di configurazione, e per rispegnerla scrivi lì "
+"`false` — un'opzione assente non dice niente, non dice no."
 
-#: ../../source/reference/cli/freeports-dev.md:174
+#: ../../source/reference/cli/freeports-dev.md:235
 msgid "`test` — run the repository's tests"
 msgstr "`test` — eseguire i test del repository"
 
@@ -656,10 +940,12 @@ msgid "`--fast`"
 msgstr "`--fast`"
 
 #: ../../source/reference/cli/freeports-dev.md
-msgid "only the per-page tests, recorded as the suite `formats.single_page`. **The default**"
+msgid ""
+"only the per-page tests, recorded as the suite `formats.single_page`. "
+"**The default**"
 msgstr ""
-"solo i test per pagina, registrati come la suite `formats.single_page`. **Il valore "
-"predefinito**"
+"solo i test per pagina, registrati come la suite `formats.single_page`. "
+"**Il valore predefinito**"
 
 #: ../../source/reference/cli/freeports-dev.md
 msgid "`--slow`"
@@ -681,77 +967,99 @@ msgstr "entrambi"
 msgid "narrow the run to one format"
 msgstr "restringe l'esecuzione a un solo formato"
 
-#: ../../source/reference/cli/freeports-dev.md:193
+#: ../../source/reference/cli/freeports-dev.md:254
 msgid ""
-"**The three selections are the Makefile's three targets**: `--fast` is `make test-"
-"fast`, `--slow` is `make test-slow`, `--all` is `make test-all`, and the default "
-"matches `make test`. The two surfaces are one vocabulary on purpose — `make` is how "
-"you work on your own repository, this command is how you interrogate one that is not "
-"yours, and a person meets both. A `-m` of your own, after `--`, outranks all three "
-"and is left to stand alone: pytest takes the last `-m` on the line, so a second one "
-"added beside yours would silently replace the selection you asked for."
+"**The three selections are the Makefile's three targets**: `--fast` is "
+"`make test-fast`, `--slow` is `make test-slow`, `--all` is `make test-"
+"all`, and the default matches `make test`. The two surfaces are one "
+"vocabulary on purpose — `make` is how you work on your own repository, "
+"this command is how you interrogate one that is not yours, and a person "
+"meets both. A `-m` of your own, after `--`, outranks all three and is "
+"left to stand alone: pytest takes the last `-m` on the line, so a second "
+"one added beside yours would silently replace the selection you asked "
+"for."
 msgstr ""
-"**Le tre selezioni sono i tre target del Makefile**: `--fast` è `make test-fast`, "
-"`--slow` è `make test-slow`, `--all` è `make test-all`, e il valore predefinito "
-"corrisponde a `make test`. Le due superfici sono un solo vocabolario apposta — `make`"
-" è come lavori sul tuo repository, questo comando è come ne interroghi uno che non è "
-"tuo, e una persona li incontra entrambi. Un `-m` tuo, dopo `--`, prevale su tutte e "
-"tre ed è lasciato solo: pytest prende l'ultimo `-m` della riga, quindi un secondo "
-"aggiunto accanto al tuo sostituirebbe in silenzio la selezione che hai chiesto."
+"**Le tre selezioni sono i tre target del Makefile**: `--fast` è `make "
+"test-fast`, `--slow` è `make test-slow`, `--all` è `make test-all`, e il "
+"valore predefinito corrisponde a `make test`. Le due superfici sono un "
+"solo vocabolario apposta — `make` è come lavori sul tuo repository, "
+"questo comando è come ne interroghi uno che non è tuo, e una persona li "
+"incontra entrambi. Un `-m` tuo, dopo `--`, prevale su tutte e tre ed è "
+"lasciato solo: pytest prende l'ultimo `-m` della riga, quindi un secondo "
+"aggiunto accanto al tuo sostituirebbe in silenzio la selezione che hai "
+"chiesto."
 
-#: ../../source/reference/cli/freeports-dev.md:200
+#: ../../source/reference/cli/freeports-dev.md:261
 msgid ""
-"A run that leaves half the suite out **says so in its last line**. And a selection "
-"that matched nothing is not a failure: a repository with no formats in it yet, or one"
-" whose formats have no whole-document test, has nothing there to fail."
+"A run that leaves half the suite out **says so in its last line**. And a "
+"selection that matched nothing is not a failure: a repository with no "
+"formats in it yet, or one whose formats have no whole-document test, has "
+"nothing there to fail."
 msgstr ""
-"Un'esecuzione che lascia fuori metà della suite **lo dice nella propria ultima "
-"riga**. E una selezione che non ha corrisposto a niente non è un fallimento: un "
-"repository che non ha ancora formati dentro, o uno i cui formati non hanno un test "
-"sull'intero documento, lì non ha niente che possa fallire."
+"Un'esecuzione che lascia fuori metà della suite **lo dice nella propria "
+"ultima riga**. E una selezione che non ha corrisposto a niente non è un "
+"fallimento: un repository che non ha ancora formati dentro, o uno i cui "
+"formati non hanno un test sull'intero documento, lì non ha niente che "
+"possa fallire."
 
-#: ../../source/reference/cli/freeports-dev.md:204
+#: ../../source/reference/cli/freeports-dev.md:265
 msgid ""
-"It is pytest, with the `freeports_dev` plugin doing the collection: a directory named"
-" like a format in `metadata/formats.csv` becomes a test node, and the per-page "
-"fixtures and the `out/` reference become the tests under it. `--rootdir` is set to "
-"the repository, so the exit status is pytest's own and a CI job needs nothing else."
+"It is pytest, with the `freeports_dev` plugin doing the collection: a "
+"directory named like a format in `metadata/formats.csv` becomes a test "
+"node, and the per-page fixtures and the `out/` reference become the tests"
+" under it. `--rootdir` is set to the repository, so the exit status is "
+"pytest's own and a CI job needs nothing else."
 msgstr ""
-"È pytest, con il plugin `freeports_dev` che fa la raccolta: una cartella che porta il"
-" nome di un formato in `metadata/formats.csv` diventa un nodo di test, e le fixture "
-"per pagina e il riferimento in `out/` diventano i test che vi stanno sotto. "
-"`--rootdir` è impostato al repository, quindi lo stato di uscita è quello di pytest e"
-" un job di CI non ha bisogno di altro."
+"È pytest, con il plugin `freeports_dev` che fa la raccolta: una cartella "
+"che porta il nome di un formato in `metadata/formats.csv` diventa un nodo"
+" di test, e le fixture per pagina e il riferimento in `out/` diventano i "
+"test che vi stanno sotto. `--rootdir` è impostato al repository, quindi "
+"lo stato di uscita è quello di pytest e un job di CI non ha bisogno di "
+"altro."
 
-#: ../../source/reference/cli/freeports-dev.md:209
+#: ../../source/reference/cli/freeports-dev.md:270
 msgid ""
-"Two kinds of test live there and they cost very different amounts. The per-page tests"
-" are fast, and they are what you run every few minutes while working. The whole-"
-"document test replays the entire report and compares the output tables against "
-"`tests/formats/<FORMAT>/out/`; it is slow, it is marked `integration_tests`, and it "
-"is the one that actually says the format works. That marker is what `--fast` and "
-"`--slow` select on, and the flag is the one spelling of it — the marker string itself"
-" never needs to be written out by hand."
+"Two kinds of test live there and they cost very different amounts. The "
+"per-page tests are fast, and they are what you run every few minutes "
+"while working. The whole-document test replays the entire report and "
+"compares the output tables against `tests/formats/<FORMAT>/out/`; it is "
+"slow, it is marked `integration_tests`, and it is the one that actually "
+"says the format works. Next to it, every report variant also gets a "
+"classification test, marked `classification_tests`: it runs `freeports "
+"classify` on `report.pdf` and passes when the report is recognised as the"
+" format of its folder, or not recognised at all — recognised as another "
+"format is a failure. It opens the PDF, so it is slow too. Those two "
+"markers are what `--fast` and `--slow` select on (`--slow` takes both), "
+"and the flag is the one spelling of them — the marker strings never need "
+"to be written out by hand."
 msgstr ""
-"Lì vivono due tipi di test, e costano in modo molto diverso. I test per pagina sono "
-"rapidi, e sono quelli che esegui ogni pochi minuti mentre lavori. Il test sull'intero"
-" documento riesegue tutta la relazione e confronta le tabelle di risultato con "
-"`tests/formats/<FORMATO>/out/`; è lento, è marcato `integration_tests`, ed è quello "
-"che dice davvero se il formato funziona. È su quel marker che `--fast` e `--slow` "
-"selezionano, e l'opzione ne è l'unica grafia — la stringa del marker non serve mai "
-"scriverla a mano."
+"Lì vivono due tipi di test, e costano in modo molto diverso. I test per "
+"pagina sono rapidi, e sono quelli che esegui ogni pochi minuti mentre "
+"lavori. Il test sull'intero documento riesegue tutta la relazione e "
+"confronta le tabelle di risultato con `tests/formats/<FORMATO>/out/`; è "
+"lento, è marcato `integration_tests`, ed è quello che dice davvero se il "
+"formato funziona. Accanto a lui, ogni variante di relazione ha anche un "
+"test di classificazione, marcato `classification_tests`: lancia "
+"`freeports classify` su `report.pdf` e passa quando la relazione viene "
+"riconosciuta come il formato della sua cartella, o non viene riconosciuta"
+" affatto — riconosciuta come un altro formato è un fallimento. Apre il "
+"PDF, quindi è lento anche lui. Sono quei due marker che `--fast` e "
+"`--slow` selezionano (`--slow` li prende entrambi), e l'opzione ne è "
+"l'unica grafia — le stringhe dei marker non serve mai scriverle a mano."
 
-#: ../../source/reference/cli/freeports-dev.md:217
+#: ../../source/reference/cli/freeports-dev.md:281
 msgid ""
-"`tests/formats/<FORMAT>/out/**` is the repository's specification, not a snapshot. "
-"When a run diverges from it, the assumption is that the engine changed, not that the "
-"expectation was wrong. Regenerating one of those files is a deliberate act with a "
-"reason written down — never a way to turn a red test green — and it is also what the "
-"grants of the next section are *about*."
+"`tests/formats/<FORMAT>/out/**` is the repository's specification, not a "
+"snapshot. When a run diverges from it, the assumption is that the engine "
+"changed, not that the expectation was wrong. Regenerating one of those "
+"files is a deliberate act with a reason written down — never a way to "
+"turn a red test green — and it is also what the grants of the next "
+"section are *about*."
 msgstr ""
-"`tests/formats/<FORMATO>/out/**` è la specifica del repository, non uno snapshot. "
-"Quando un'esecuzione se ne discosta, si presume che sia cambiato il motore, non che "
-"l'aspettativa fosse sbagliata. Rigenerare uno di quei file è un atto deliberato con "
-"una motivazione messa per iscritto — mai un modo di far diventare verde un test rosso"
-" — ed è anche ciò *di cui parlano* le attestazioni della sezione successiva."
+"`tests/formats/<FORMATO>/out/**` è la specifica del repository, non uno "
+"snapshot. Quando un'esecuzione se ne discosta, si presume che sia "
+"cambiato il motore, non che l'aspettativa fosse sbagliata. Rigenerare uno"
+" di quei file è un atto deliberato con una motivazione messa per iscritto"
+" — mai un modo di far diventare verde un test rosso — ed è anche ciò *di "
+"cui parlano* le attestazioni della sezione successiva."
 

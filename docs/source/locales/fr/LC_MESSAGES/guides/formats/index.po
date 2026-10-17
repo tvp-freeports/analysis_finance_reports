@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -24,14 +24,17 @@ msgid "Formats"
 msgstr ""
 
 #: ../../source/guides/formats/index.md:3
+#, python-brace-format
 msgid ""
 "A **format** is the recipe for one report layout: `EURIZON-EN23`, "
-"`AMUNDI-IT24`. It carries the publication year because a layout is a "
-"snapshot — next year's report from the same issuer is a different format,"
-" not a revision of this one."
+"`AMUNDI-IT24`. Its name carries the issuer, the language and the "
+"**earliest** year of the reports it reads. Layouts drift over the years, "
+"so a later report from the same issuer often needs a format of its own; "
+"when it does not, the existing format reads it and keeps its name — names"
+" follow recipes, not documents ({doc}`../../reference/formats/names`)."
 msgstr ""
 
-#: ../../source/guides/formats/index.md:7
+#: ../../source/guides/formats/index.md:9
 #, python-brace-format
 msgid ""
 "Formats do not live in the engine. They live in a **formats repository**,"
@@ -39,79 +42,88 @@ msgid ""
 "they live outside is {doc}`../../reference/design/formats-as-plugins`."
 msgstr ""
 
-#: ../../source/guides/formats/index.md:26
+#: ../../source/guides/formats/index.md:29
 msgid "What each page here answers"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "Page"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "Answers"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`tutorials/index`"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid ""
 "walked-through examples: a first format, and diagnosing one that "
 "misbehaves"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`writing-a-format`"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "the whole path of adding support for a new report, as a checklist"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
+#, python-brace-format
+msgid "{doc}`adding-a-datum/index`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:16
+msgid "the format exists and reads its holdings: now add the next datum to it"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`dev-loop`"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "inspect-document → inspect-page → make-tests → test"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`selections`"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "how you say *where to look* on a page"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`repository`"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "the repository itself: layout, metadata, orchestration, versioning"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`advanced/index`"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "the three levels a format can be written at, and how to choose"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:36
+#: ../../source/guides/formats/index.md:40
 msgid "What is not here"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:37
+#: ../../source/guides/formats/index.md:41
 #, python-brace-format
 msgid ""
 "Every option of `freeports-dev`, subcommand by subcommand, is "
@@ -121,11 +133,11 @@ msgid ""
 "different job with a different tool, and it is {doc}`../grants/index`."
 msgstr ""
 
-#: ../../source/guides/formats/index.md:42
+#: ../../source/guides/formats/index.md:46
 msgid "Starting a formats repository"
 msgstr ""
 
-#: ../../source/guides/formats/index.md:49
+#: ../../source/guides/formats/index.md:53
 #, python-brace-format
 msgid ""
 "If you have never added a format, go to {doc}`tutorials/first-format`: it"
@@ -134,4 +146,14 @@ msgid ""
 "{doc}`writing-a-format` is the same path as a checklist, for when you "
 "have done it once."
 msgstr ""
+
+#~ msgid ""
+#~ "A **format** is the recipe for one"
+#~ " report layout: `EURIZON-EN23`, `AMUNDI-"
+#~ "IT24`. It carries the publication year"
+#~ " because a layout is a snapshot "
+#~ "— next year's report from the same"
+#~ " issuer is a different format, not"
+#~ " a revision of this one."
+#~ msgstr ""
 

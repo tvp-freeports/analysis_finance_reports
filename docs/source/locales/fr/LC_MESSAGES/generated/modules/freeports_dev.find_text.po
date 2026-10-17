@@ -1,0 +1,256 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:23+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:2
+msgid "freeports\\_dev.find\\_text"
+msgstr ""
+
+#: freeports_dev.find_text:1 of
+msgid ""
+"Finding the page, which is the question every other development command "
+"presupposes."
+msgstr ""
+
+#: freeports_dev.find_text:3 of
+msgid ""
+"``inspect-page`` starts from a page number and ``make-tests`` pins one. "
+"Nothing said where to get it: a merger note lives on one page of eleven "
+"hundred, and finding it meant leaving the tooling and opening the "
+"document by hand. That is the gap this module closes, and two decisions "
+"shape it."
+msgstr ""
+
+#: freeports_dev.find_text:7 of
+msgid ""
+"**A search may be a regular expression; a selection may not.** "
+":class:`PdfLineSelection` matches substrings with ``^`` and ``$`` anchors"
+" deliberately — its algebra has to decide whether one selection is a "
+"subset of, overlaps or is disjoint from another, and for regular "
+"expressions that question is undecidable. A search answers yes or no "
+"about one line and combines with nothing, so it is free to be a regular "
+"expression, and it should be: what one gropes for is precisely what one "
+"cannot yet name exactly. The two must not be confused, which is why "
+"``--text`` and ``--regex`` are two options rather than one that guesses "
+"from the shape of the argument."
+msgstr ""
+
+#: freeports_dev.find_text:15 of
+msgid ""
+"**A hit is yielded as it is found.** Six hundred documents is minutes of "
+"reading, and the first hit is usually the one wanted. Searching is "
+"therefore a generator and the caller prints as it goes, which is also why"
+" there is no progress meter here: output that arrives steadily is the "
+"progress meter."
+msgstr ""
+
+#: freeports_dev.find_text:20 of
+msgid ""
+"The pages are read through ``pdflines_from_pagedict``, the same function "
+"the engine reads them with. A development tool that sees a page "
+"differently from the engine sends its user looking for a difference that "
+"is in the tool."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ":py:obj:`display_path <freeports_dev.find_text.display_path>`\\ \\(path\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.display_path:1 of
+msgid ""
+"`path` relative to the working directory when it is under it, and whole "
+"otherwise."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ""
+":py:obj:`documents_to_search "
+"<freeports_dev.find_text.documents_to_search>`\\ \\(paths\\[\\, repo\\, "
+"format\\_name\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.documents_to_search:1 of
+msgid "The documents a search will read, in the order they were asked for."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ""
+":py:obj:`font_predicate <freeports_dev.find_text.font_predicate>`\\ "
+"\\(font\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.font_predicate:1 of
+msgid ""
+"A predicate over a line's font: a substring of the font name, or "
+"everything."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ""
+":py:obj:`format_hit <freeports_dev.find_text.format_hit>`\\ \\(hit\\[\\, "
+"show\\_font\\, text\\_width\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.format_hit:1 of
+msgid ""
+"One hit as one line of terminal output, starting with what to type into "
+"``inspect-page``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ""
+":py:obj:`page_numbers <freeports_dev.find_text.page_numbers>`\\ "
+"\\(page\\_range\\, total\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.page_numbers:1 of
+msgid ""
+"The one-based page numbers of `page_range` that a document of `total` "
+"pages actually has."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ":py:obj:`parse_pages <freeports_dev.find_text.parse_pages>`\\ \\(spec\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.parse_pages:1 of
+msgid ""
+"``\"7\"``, ``\"10-20\"``, ``\"900-\"``, ``\"-40\"`` or ``None`` as a one-"
+"based inclusive range."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ""
+":py:obj:`search <freeports_dev.find_text.search>`\\ \\(documents\\, "
+"match\\_text\\[\\, match\\_font\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.search:1 of
+msgid ""
+"Yield a :class:`Hit` for every matching line, document by document and "
+"page by page."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+msgid ""
+":py:obj:`text_predicate <freeports_dev.find_text.text_predicate>`\\ "
+"\\(\\[text\\, regex\\, ignore\\_case\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:20:<autosummary>:1
+#: freeports_dev.find_text.text_predicate:1 of
+msgid "A predicate over a line's text."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:22
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:26:<autosummary>:1
+msgid ""
+":py:obj:`Hit <freeports_dev.find_text.Hit>`\\ \\(document\\, page\\, "
+"line\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:26:<autosummary>:1
+#: freeports_dev.find_text.Hit:1 of
+msgid "One matching line, and where it was found."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:28
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:31:<autosummary>:1
+msgid ":py:obj:`SearchError <freeports_dev.find_text.SearchError>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.find_text.rst:31:<autosummary>:1
+#: freeports_dev.find_text.SearchError:1 of
+msgid ""
+"A search that cannot be run: a bad pattern, a bad range, nothing to "
+"search."
+msgstr ""
+
+#: freeports_dev.find_text.display_path:3 of
+msgid ""
+"A search prints one row per hit and the path is the widest column in it; "
+"an absolute path repeated fifty times pushes the text — the reason one is"
+" reading — off the right of the terminal. Relative only when the file "
+"really is below the working directory, because a path that cannot be "
+"pasted into the next command is worse than a long one."
+msgstr ""
+
+#: freeports_dev.find_text.documents_to_search:3 of
+msgid ""
+"A path names a PDF or a directory to walk; a format name resolves against"
+" the repository's own test corpus, which is where a format author's "
+"documents already are. A directory holding no PDF is an error, not an "
+"empty search: a search that silently reads nothing reports \"not found\" "
+"for a document it never opened, which is the one answer a search must "
+"never give wrongly."
+msgstr ""
+
+#: freeports_dev.find_text.font_predicate:3 of
+msgid ""
+"Case-insensitive, because the engine normalises font names to lower case "
+"in some paths and leaves them as the PDF wrote them in others, and a "
+"search is not the place to care which."
+msgstr ""
+
+#: freeports_dev.find_text.page_numbers:3 of
+msgid ""
+"One-based because every other command of this tool is, and a search whose"
+" answer had to be adjusted before being passed to ``inspect-page`` would "
+"be a search that causes the mistake it exists to prevent."
+msgstr ""
+
+#: freeports_dev.find_text.parse_pages:3 of
+msgid ""
+"The upper end may be absent, which means the end of the document — the "
+"shape wanted when looking for something one knows is in the back matter."
+msgstr ""
+
+#: freeports_dev.find_text.search:3 of
+msgid ""
+"`loader` opens a document and is a parameter so that the search can be "
+"exercised without a PDF; the default is PyMuPDF, which this package "
+"already depends on."
+msgstr ""
+
+#: freeports_dev.find_text.text_predicate:3 of
+msgid ""
+"Exactly one of `text` and `regex` is given. Neither is an error rather "
+"than a search matching every line, and both is an error rather than a "
+"precedence nobody would remember: a search that quietly ignored half of "
+"what it was asked is a search whose result means nothing."
+msgstr ""
+

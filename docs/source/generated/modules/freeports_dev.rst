@@ -12,6 +12,7 @@
    :recursive:
 
    ci
+   classification_check
    cli
    config
    create_test_page

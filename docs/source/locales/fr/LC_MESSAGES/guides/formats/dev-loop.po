@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -32,10 +32,34 @@ msgid ""
 msgstr ""
 
 #: ../../source/guides/formats/dev-loop.md:12
+msgid "0. Before the loop: ask the documents"
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:14
+msgid ""
+"The loop starts from a format that exists. Before that, the questions are"
+" about the reports: is this an annual or a semi-annual report, where are "
+"the totals, does the anchor you have in mind hold on the other reports of"
+" the same issuer? `freeports-dev probe` answers the common ones on "
+"several documents at once:"
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:25
+#, python-brace-format
+msgid ""
+"A probe gives leads, not results — it takes the first match, which in a "
+"financial report is often the table of contents. What it is good at is "
+"showing, side by side, whether a label, a font or a position is **the "
+"same in every report of the format**: an anchor that holds on one report "
+"only is not an anchor. See {ref}`probe-subcommand` for the probes that "
+"ship and for writing your own."
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:30
 msgid "1. `inspect-document` — which page is what"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:21
+#: ../../source/guides/formats/dev-loop.md:39
 msgid ""
 "**Run this first, and do not go past it until it is right.** If "
 "classification is wrong, nothing downstream can be: a page that should be"
@@ -44,11 +68,11 @@ msgid ""
 " way to lose an afternoon."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:26
+#: ../../source/guides/formats/dev-loop.md:44
 msgid "2. `inspect-page` — what the engine sees, stage by stage"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:34
+#: ../../source/guides/formats/dev-loop.md:52
 msgid ""
 "The three pipeline modes in order, and the order is the method: each "
 "shows what one segment made of the page, so the first one that looks "
@@ -90,29 +114,74 @@ msgstr ""
 msgid "the deserializer: types, columns, units"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:44
+#: ../../source/guides/formats/dev-loop.md:62
 msgid "Two more families of mode:"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:46
+#: ../../source/guides/formats/dev-loop.md:64
 msgid ""
 "`table_md` / `table_ascii` render the PDF blocks **as a table**, with "
 "their row and column metadata — which is how you check that the "
 "tabularizer read the columns the way you read them;"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:48
+#: ../../source/guides/formats/dev-loop.md:66
 msgid ""
 "`structured` / `semistructured` / `unstructured` take `--strings` and "
 "report which lines match, which is how you find out what font and size a "
 "value is set in before writing a selection at all."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:51
+#: ../../source/guides/formats/dev-loop.md:69
+msgid "What the last two modes are fed"
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:71
+msgid ""
+"`txt_blks` and `results` need a `filter_data` — what earlier iterations "
+"of the job already extracted — and a `text_filter` that keeps only what "
+"it can tie to a fund it has seen prints **nothing at all** when it is "
+"given the wrong one. An empty printout is then indistinguishable from a "
+"broken algorithm, which is the most expensive way this command can "
+"mislead you."
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:76
+msgid ""
+"It therefore takes the first of three that exists, and says on its first "
+"line which one it took:"
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:78
+msgid ""
+"`--filter-data`, which reads either a `.json` fixture — the same file the"
+" suite reads — or a dill `.pkl`;"
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:80
+msgid ""
+"the page type's own `tests/formats/<FORMAT>/[<n>/]pages/<page "
+"type>/filter_data.json`, so that an inspection sees what the test sees;"
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:82
+msgid ""
+"the target list of the input database, which is what a first-iteration "
+"page gets in a real run."
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:84
+msgid ""
+"If the file it names is not the one you meant — a format with several "
+"documents has one fixture per variant — name it with `--filter-data` "
+"instead of reading the empty output as a result."
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:87
 msgid "3. `make-tests` — freeze a page"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:57
+#: ../../source/guides/formats/dev-loop.md:93
 #, python-brace-format
 msgid ""
 "Writes the three per-page fixtures — PDF blocks, text blocks, results — "
@@ -121,36 +190,48 @@ msgid ""
 "({doc}`../../reference/design/blocks`)."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:62
+#: ../../source/guides/formats/dev-loop.md:98
 msgid ""
 "`make-tests` records **what the code does now**. It shows you what it is "
 "about to write and asks; read it. Confirming a wrong result promotes a "
 "bug into the specification, and from then on the test defends the bug."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:67
+#: ../../source/guides/formats/dev-loop.md:103
 msgid ""
 "Freeze a handful of representative pages, not every page: the first page "
 "of a table, a continuation page, a page with an awkward row. Those are "
 "where formats break."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:70
+#: ../../source/guides/formats/dev-loop.md:106
+msgid ""
+"`make-tests` is also the honest way to **run** a pipeline on a page, "
+"because it feeds the pipe exactly what the test will feed it. With "
+"`--noconfirm` it keeps every file that already exists, fixture and "
+"`filter_data.json` alike: to regenerate a page, delete its "
+"`<page>-txt_blks.json` and `<page>-results.json` first. That is "
+"deliberate in both directions — a hand-written `filter_data.json` can be "
+"put in place *before* the fixture exists, and it will be found rather "
+"than overwritten."
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:113
 msgid "4. `test` — run them"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:79
-msgid "Two kinds of test with very different costs:"
+#: ../../source/guides/formats/dev-loop.md:122
+msgid "Three kinds of test with very different costs:"
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:81
+#: ../../source/guides/formats/dev-loop.md:124
 msgid ""
 "**Per-page tests** replay one page through one segment against its "
 "fixture. Fast, run constantly, and they tell you *which segment of which "
 "page* changed."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:84
+#: ../../source/guides/formats/dev-loop.md:127
 msgid ""
 "**The whole-document test** replays the entire report and compares the "
 "output tables against `tests/formats/<FORMAT>/out/`. Slow, marked "
@@ -162,7 +243,17 @@ msgid ""
 "suite nobody ran at this commit as `NOT RUN` rather than as a pass."
 msgstr ""
 
-#: ../../source/guides/formats/dev-loop.md:92
+#: ../../source/guides/formats/dev-loop.md:134
+msgid ""
+"**The classification test** runs `freeports classify` on each "
+"`report.pdf` and passes when the report is recognised as the format of "
+"its folder, or not recognised at all; recognised as another format fails."
+" Slow, marked `classification_tests`, and part of `--slow` with the "
+"whole-document test. It is what tells you that a rule in "
+"`metadata/document_classify.yaml` has become too broad."
+msgstr ""
+
+#: ../../source/guides/formats/dev-loop.md:140
 #, python-brace-format
 msgid ""
 "`out/**` is the repository's **specification**, not a snapshot. If a run "
@@ -172,4 +263,7 @@ msgid ""
 " is also what the grants of {doc}`../../overview/trust` are *about*: a "
 "grant is a claim about the content of exactly those bytes."
 msgstr ""
+
+#~ msgid "Two kinds of test with very different costs:"
+#~ msgstr ""
 

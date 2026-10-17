@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -108,30 +108,32 @@ msgid ""
 msgstr ""
 
 #: ../../source/guides/user/inputs.md:26
+#, python-brace-format
 msgid ""
-"The repository is also what makes `--format` optional: it carries a "
-"mapping from URL prefixes to format names, so a document downloaded from "
-"a known address is read without being told which format it is. There is "
-"no such inference for a local file — a path carries no evidence of who "
-"published it."
-msgstr ""
-
-#: ../../source/guides/user/inputs.md:30
-msgid "The input database"
+"The repository is also what makes `--format` optional. Its document "
+"classification recognises a format from the first pages of a document, "
+"local file or download alike, and its mapping from URL prefixes to format"
+" names recognises a document downloaded from a known address. How the two"
+" are weighed against each other, and against a format you do give, is in "
+"{doc}`../../reference/cli/freeports`."
 msgstr ""
 
 #: ../../source/guides/user/inputs.md:32
+msgid "The input database"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:34
 msgid ""
 "Which companies a run is looking for, organised into named **lists**. "
 "`--target-list` names the lists to use, and a run with no list stops "
 "before opening anything."
 msgstr ""
 
-#: ../../source/guides/user/inputs.md:35
+#: ../../source/guides/user/inputs.md:37
 msgid "For testing, a minimal database with a single list called `TEST`:"
 msgstr ""
 
-#: ../../source/guides/user/inputs.md:41
+#: ../../source/guides/user/inputs.md:43
 msgid ""
 "It writes into `tests/input_db/` of the formats repository, deliberately:"
 " a format's tests must fail because the *format* broke, never because "
@@ -139,13 +141,13 @@ msgid ""
 "want a real database."
 msgstr ""
 
-#: ../../source/guides/user/inputs.md:45
+#: ../../source/guides/user/inputs.md:47
 msgid ""
 "Two properties of the database change what a run finds, and both surprise"
 " people:"
 msgstr ""
 
-#: ../../source/guides/user/inputs.md:47
+#: ../../source/guides/user/inputs.md:49
 msgid ""
 "**matching is first-match-wins, in file order.** The order of the file is"
 " meaningful, not incidental. A run that seems to attribute a holding to "
@@ -153,14 +155,26 @@ msgid ""
 "extraction one;"
 msgstr ""
 
-#: ../../source/guides/user/inputs.md:50
+#: ../../source/guides/user/inputs.md:52
 msgid ""
 "a company absent from every named list is simply not looked for. Nothing "
 "reports it, because nothing was asked about it."
 msgstr ""
 
-#: ../../source/guides/user/inputs.md:53
+#: ../../source/guides/user/inputs.md:55
 #, python-brace-format
 msgid "{doc}`../input-db/index` is the full description."
 msgstr ""
+
+#~ msgid ""
+#~ "The repository is also what makes "
+#~ "`--format` optional: it carries a "
+#~ "mapping from URL prefixes to format "
+#~ "names, so a document downloaded from "
+#~ "a known address is read without "
+#~ "being told which format it is. "
+#~ "There is no such inference for a"
+#~ " local file — a path carries no"
+#~ " evidence of who published it."
+#~ msgstr ""
 

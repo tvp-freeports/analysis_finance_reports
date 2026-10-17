@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pt_BR\n"
@@ -26,121 +26,150 @@ msgstr "Formatos"
 #: ../../source/guides/formats/index.md:3
 #, python-brace-format
 msgid ""
-"A **format** is the recipe for one report layout: `EURIZON-EN23`, `AMUNDI-IT24`. Its name carries the issuer, the language and the **earliest** year of the reports it reads. Layouts drift over the years, so a later report from the same issuer often needs a format of its own; when it does not, the existing format reads it and keeps its name — names follow recipes, not documents ({doc}`../../reference/formats/names`)."
+"A **format** is the recipe for one report layout: `EURIZON-EN23`, "
+"`AMUNDI-IT24`. Its name carries the issuer, the language and the "
+"**earliest** year of the reports it reads. Layouts drift over the years, "
+"so a later report from the same issuer often needs a format of its own; "
+"when it does not, the existing format reads it and keeps its name — names"
+" follow recipes, not documents ({doc}`../../reference/formats/names`)."
 msgstr ""
-"Um **formato** é a receita para o layout de um relatório: `EURIZON-EN23`, `AMUNDI-IT24`. O nome dele leva o emissor, o idioma e o ano **mais antigo** dos relatórios que lê. Os layouts mudam com os anos, então um relatório posterior do mesmo emissor muitas vezes precisa de um formato próprio; quando não precisa, o formato existente o lê e mantém o nome — os nomes seguem as receitas, não os documentos ({doc}`../../reference/formats/names`)."
+"Um **formato** é a receita para o layout de um relatório: `EURIZON-EN23`,"
+" `AMUNDI-IT24`. O nome dele leva o emissor, o idioma e o ano **mais "
+"antigo** dos relatórios que lê. Os layouts mudam com os anos, então um "
+"relatório posterior do mesmo emissor muitas vezes precisa de um formato "
+"próprio; quando não precisa, o formato existente o lê e mantém o nome — "
+"os nomes seguem as receitas, não os documentos "
+"({doc}`../../reference/formats/names`)."
 
-#: ../../source/guides/formats/index.md:7
+#: ../../source/guides/formats/index.md:9
 #, python-brace-format
 msgid ""
-"Formats do not live in the engine. They live in a **formats repository**, and this "
-"area is about what you put in one and how you work on it. Why they live outside is "
-"{doc}`../../reference/design/formats-as-plugins`."
+"Formats do not live in the engine. They live in a **formats repository**,"
+" and this area is about what you put in one and how you work on it. Why "
+"they live outside is {doc}`../../reference/design/formats-as-plugins`."
 msgstr ""
-"Os formatos não vivem no motor. Vivem num **repositório de formatos**, e esta área "
-"trata do que se põe dentro de um e de como se trabalha nele. Por que eles ficam do "
-"lado de fora está em {doc}`../../reference/design/formats-as-plugins`."
+"Os formatos não vivem no motor. Vivem num **repositório de formatos**, e "
+"esta área trata do que se põe dentro de um e de como se trabalha nele. "
+"Por que eles ficam do lado de fora está em {doc}`../../reference/design"
+"/formats-as-plugins`."
 
-#: ../../source/guides/formats/index.md:26
+#: ../../source/guides/formats/index.md:29
 msgid "What each page here answers"
 msgstr "O que cada página daqui responde"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "Page"
 msgstr "Página"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "Answers"
 msgstr "Responde a"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`tutorials/index`"
 msgstr "{doc}`tutorials/index`"
 
-#: ../../source/guides/formats/index.md:14
-msgid "walked-through examples: a first format, and diagnosing one that misbehaves"
-msgstr "exemplos passo a passo: um primeiro formato, e o diagnóstico de um que se comporta mal"
+#: ../../source/guides/formats/index.md:16
+msgid ""
+"walked-through examples: a first format, and diagnosing one that "
+"misbehaves"
+msgstr ""
+"exemplos passo a passo: um primeiro formato, e o diagnóstico de um que se"
+" comporta mal"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`writing-a-format`"
 msgstr "{doc}`writing-a-format`"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "the whole path of adding support for a new report, as a checklist"
-msgstr "o caminho inteiro para dar suporte a um relatório novo, em forma de checklist"
+msgstr ""
+"o caminho inteiro para dar suporte a um relatório novo, em forma de "
+"checklist"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
+#, fuzzy, python-brace-format
+msgid "{doc}`adding-a-datum/index`"
+msgstr "{doc}`advanced/index`"
+
+#: ../../source/guides/formats/index.md:16
+msgid "the format exists and reads its holdings: now add the next datum to it"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`dev-loop`"
 msgstr "{doc}`dev-loop`"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "inspect-document → inspect-page → make-tests → test"
 msgstr "inspect-document → inspect-page → make-tests → test"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`selections`"
 msgstr "{doc}`selections`"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "how you say *where to look* on a page"
 msgstr "como se diz *onde olhar* numa página"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`repository`"
 msgstr "{doc}`repository`"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "the repository itself: layout, metadata, orchestration, versioning"
 msgstr "o repositório em si: disposição, metadados, orquestração, versionamento"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 #, python-brace-format
 msgid "{doc}`advanced/index`"
 msgstr "{doc}`advanced/index`"
 
-#: ../../source/guides/formats/index.md:14
+#: ../../source/guides/formats/index.md:16
 msgid "the three levels a format can be written at, and how to choose"
 msgstr "os três níveis em que um formato pode ser escrito, e como escolher"
 
-#: ../../source/guides/formats/index.md:36
+#: ../../source/guides/formats/index.md:40
 msgid "What is not here"
 msgstr "O que não está aqui"
 
-#: ../../source/guides/formats/index.md:37
+#: ../../source/guides/formats/index.md:41
 #, python-brace-format
 msgid ""
 "Every option of `freeports-dev`, subcommand by subcommand, is "
-"{doc}`../../reference/cli/freeports-dev`. Configuring it the way the engine is "
-"configured is {doc}`../../reference/configuration/dev-and-validate`. Vouching for the"
-" reference output your tests freeze is a different job with a different tool, and it "
-"is {doc}`../grants/index`."
+"{doc}`../../reference/cli/freeports-dev`. Configuring it the way the "
+"engine is configured is {doc}`../../reference/configuration/dev-and-"
+"validate`. Vouching for the reference output your tests freeze is a "
+"different job with a different tool, and it is {doc}`../grants/index`."
 msgstr ""
 "Cada opção do `freeports-dev`, subcomando por subcomando, está em "
-"{doc}`../../reference/cli/freeports-dev`. Configurá-lo do jeito que o motor é "
-"configurado está em {doc}`../../reference/configuration/dev-and-validate`. Responder "
-"pelos resultados de referência que os seus testes congelam é outro trabalho, com "
-"outra ferramenta, e está em {doc}`../grants/index`."
+"{doc}`../../reference/cli/freeports-dev`. Configurá-lo do jeito que o "
+"motor é configurado está em {doc}`../../reference/configuration/dev-and-"
+"validate`. Responder pelos resultados de referência que os seus testes "
+"congelam é outro trabalho, com outra ferramenta, e está em "
+"{doc}`../grants/index`."
 
-#: ../../source/guides/formats/index.md:42
+#: ../../source/guides/formats/index.md:46
 msgid "Starting a formats repository"
 msgstr "Começar um repositório de formatos"
 
-#: ../../source/guides/formats/index.md:49
+#: ../../source/guides/formats/index.md:53
 #, python-brace-format
 msgid ""
-"If you have never added a format, go to {doc}`tutorials/first-format`: it does one "
-"real report from an empty repository to a passing test suite, and a simple format "
-"turns out to be a single row in a spreadsheet. {doc}`writing-a-format` is the same "
-"path as a checklist, for when you have done it once."
+"If you have never added a format, go to {doc}`tutorials/first-format`: it"
+" does one real report from an empty repository to a passing test suite, "
+"and a simple format turns out to be a single row in a spreadsheet. "
+"{doc}`writing-a-format` is the same path as a checklist, for when you "
+"have done it once."
 msgstr ""
-"Se você nunca acrescentou um formato, vá para {doc}`tutorials/first-format`: ele leva"
-" um relatório real de um repositório vazio até uma suíte de testes que passa, e um "
-"formato simples acaba se revelando uma única linha numa planilha. "
-"{doc}`writing-a-format` é o mesmo caminho em forma de checklist, para quando você já "
-"tiver feito isso uma vez."
+"Se você nunca acrescentou um formato, vá para {doc}`tutorials/first-"
+"format`: ele leva um relatório real de um repositório vazio até uma suíte"
+" de testes que passa, e um formato simples acaba se revelando uma única "
+"linha numa planilha. {doc}`writing-a-format` é o mesmo caminho em forma "
+"de checklist, para quando você já tiver feito isso uma vez."
 

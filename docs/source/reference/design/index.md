@@ -22,6 +22,7 @@ Every page here states what it describes and whether that thing **exists**:
 
 pages
 promises
+document-classification
 classification
 schedule
 multidocument
@@ -64,6 +65,7 @@ becomes*.
 
 | Page | Says |
 |---|---|
+| {doc}`document-classification` | which format a document is: read from its first pages, weighed against its URL and the configuration |
 | {doc}`classification` | what kind of page is this, and why classifying is itself a pipeline |
 | {doc}`schedule` | steps, and why a step's output is the next step's filter |
 | {doc}`multidocument` | several documents in one run: classified apart, scheduled together |

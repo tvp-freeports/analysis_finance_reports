@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/formats/index.md:1
+msgid "Format names and document classification"
+msgstr "Nomi dei formati e classificazione del documento"
+
+#: ../../source/reference/formats/index.md:3
+msgid ""
+"A format is chosen by name, and the name is not decoration: it is built "
+"from what a document shows on its first pages, in an order meant to put "
+"similar recipes next to each other. That is what makes it possible both "
+"to *guess* a format for a document nobody has classified and to let a "
+"formats repository *recognise* the format from the document itself."
+msgstr ""
+"Un formato si sceglie per nome, e il nome non è un ornamento: è costruito"
+" con ciò che un documento mostra nelle prime pagine, in un ordine pensato"
+" per mettere vicine le ricette simili. È questo che permette sia di "
+"*indovinare* il formato di un documento che nessuno ha classificato, sia "
+"di lasciare che un repository di formati *riconosca* il formato dal "
+"documento stesso."
+
+#: ../../source/reference/formats/index.md:8
+#, python-brace-format
+msgid ""
+"This section is the reference for both. How to lay out a formats "
+"repository as a whole is {doc}`../../guides/formats/repository`, where "
+"the two `metadata/document_classify` files sit beside `formats.csv` and "
+"`url_mapping.csv`."
+msgstr ""
+"Questa sezione è il riferimento per entrambe le cose. Come si organizza "
+"un repository di formati nel suo insieme è in "
+"{doc}`../../guides/formats/repository`, dove i due file "
+"`metadata/document_classify` stanno accanto a `formats.csv` e a "
+"`url_mapping.csv`."
+
+#: ../../source/reference/formats/index.md:25
+msgid "What each page here answers"
+msgstr "A che cosa risponde ogni pagina"
+
+#: ../../source/reference/formats/index.md:16
+msgid "Page"
+msgstr "Pagina"
+
+#: ../../source/reference/formats/index.md:16
+msgid "Answers"
+msgstr "Risponde a"
+
+#: ../../source/reference/formats/index.md:16
+#, python-brace-format
+msgid "{doc}`names`"
+msgstr "{doc}`names`"
+
+#: ../../source/reference/formats/index.md:16
+msgid ""
+"how a format is named, why in that order, and which format to try on a "
+"document nobody has classified"
+msgstr ""
+"come si dà il nome a un formato, perché in quell'ordine, e quale formato "
+"provare su un documento che nessuno ha classificato"
+
+#: ../../source/reference/formats/index.md:16
+#, python-brace-format
+msgid "{doc}`document-classify-yaml`"
+msgstr "{doc}`document-classify-yaml`"
+
+#: ../../source/reference/formats/index.md:16
+msgid ""
+"how `metadata/document_classify.yaml` is written: pages, steps, nesting, "
+"partial names, and what is refused when it is loaded"
+msgstr ""
+"come si scrive `metadata/document_classify.yaml`: pagine, passi, "
+"annidamento, nomi parziali, e che cosa viene rifiutato al caricamento"
+
+#: ../../source/reference/formats/index.md:16
+#, python-brace-format
+msgid "{doc}`document-classify-python`"
+msgstr "{doc}`document-classify-python`"
+
+#: ../../source/reference/formats/index.md:16
+msgid ""
+"what `metadata/document_classify.py` must define, and how it hands over "
+"to the YAML"
+msgstr ""
+"che cosa deve definire `metadata/document_classify.py`, e come passa la "
+"mano allo YAML"
+

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:37+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -182,14 +182,24 @@ msgid ""
 msgstr ""
 
 #: ../../source/reference/design/multidocument.md:71
+#, python-brace-format
+msgid ""
+"The page classification above is not the only one: before any of this, "
+"each document is also recognised as a format ({doc}`document-"
+"classification`). A job has **one** format, so the documents of one job "
+"must agree on it; when they do not, the job fails and names each document"
+" beside the format it was recognised as."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:76
 msgid "Why that is the right shape"
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:72
+#: ../../source/reference/design/multidocument.md:77
 msgid "The two halves of the rule are each forced, for opposite reasons."
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:74
+#: ../../source/reference/design/multidocument.md:79
 msgid ""
 "**Classification must be per document** because a continuation rule is a "
 "fact about *adjacent pages of one file*. Over a union, page 1 of document"
@@ -197,7 +207,7 @@ msgid ""
 " table\" would join tables that have nothing to do with each other."
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:78
+#: ../../source/reference/design/multidocument.md:83
 msgid ""
 "**The schedule must be over the union** because that is what makes "
 "several documents *one* extraction rather than several concatenated ones."
@@ -207,15 +217,15 @@ msgid ""
 "row, not two."
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:83
+#: ../../source/reference/design/multidocument.md:88
 msgid "This is the property that makes the two commands genuinely different:"
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:90
+#: ../../source/reference/design/multidocument.md:95
 msgid "Identifying a document"
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:92
+#: ../../source/reference/design/multidocument.md:97
 #, python-brace-format
 msgid ""
 "Every output row carries a **`Report`** column naming the document it "
@@ -263,11 +273,11 @@ msgstr ""
 msgid "`2024/<file name>` per document in it"
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:102
+#: ../../source/reference/design/multidocument.md:107
 msgid "What the `Report` column replaced"
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:103
+#: ../../source/reference/design/multidocument.md:108
 msgid ""
 "The `Report` column exists in **every** run, batch or not, and that "
 "uniformity is the point of the design. Before it, batch mode had a "
@@ -276,7 +286,7 @@ msgid ""
 " on which mode produced it."
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:108
+#: ../../source/reference/design/multidocument.md:113
 msgid ""
 "Making the name a property of the *document specifier* rather than of "
 "*batch mode* removed the column, removed the special case, and made one "
@@ -284,11 +294,11 @@ msgid ""
 "how the run was invoked."
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:112
+#: ../../source/reference/design/multidocument.md:117
 msgid "How this differs from batch mode"
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:113
+#: ../../source/reference/design/multidocument.md:118
 #, python-brace-format
 msgid ""
 "Several documents in one invocation is not the same as {doc}`batch mode "
@@ -301,7 +311,7 @@ msgid ""
 "split across files."
 msgstr ""
 
-#: ../../source/reference/design/multidocument.md:119
+#: ../../source/reference/design/multidocument.md:124
 msgid ""
 "A rule of thumb: if the files are pieces of one report, they belong to "
 "one job, several `-i`. If they are separate reports that merely happen to"

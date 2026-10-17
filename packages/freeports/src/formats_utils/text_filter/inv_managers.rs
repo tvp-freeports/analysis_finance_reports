@@ -32,7 +32,6 @@ pub mod blocks;
 pub mod reading;
 
 use std::collections::BTreeSet;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::core::classes::{BlockType, PdfBlock, TextBlock};
 use crate::core::match_fund::MatchFund;
@@ -103,12 +102,11 @@ pub struct TextFilterInvManagers {
     /// it: the sub-funds of its table enter the document even when no holding names them, and
     /// without the union their `funds.csv` rows would have no management company (`R26`).
     pub funds_include_assigned: bool,
-    /// Notes the format has to leave in the audit trail about its own nomenclature, warned once per
-    /// document. MEDIOLANUM-EN23 is the measured case: it names no management company and its
-    /// *Alternative Investment Fund Manager and Global Distributor* is read as one, which is an
-    /// interpretation the engine cannot make by itself and `R25` says must not stay unsaid.
+    /// Notes the format has to leave in the audit trail about its own nomenclature, warned on every
+    /// page the pipe runs on. MEDIOLANUM-EN23 is the measured case: it names no management company
+    /// and its *Alternative Investment Fund Manager and Global Distributor* is read as one, which
+    /// is an interpretation the engine cannot make by itself and `R25` says must not stay unsaid.
     pub notes: Vec<String>,
-    warned: AtomicBool,
 }
 
 impl TextFilterInvManagers {
@@ -126,7 +124,6 @@ impl TextFilterInvManagers {
             already_assigned: false,
             funds_include_assigned: false,
             notes: Vec::new(),
-            warned: AtomicBool::new(false),
         }
     }
 
@@ -174,10 +171,8 @@ impl TextFilterInvManagers {
     }
 
     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Vec<TextBlock> {
-        if !self.notes.is_empty() && !self.warned.swap(true, Ordering::Relaxed) {
-            for note in &self.notes {
-                tracing::warn!("{note}");
-            }
+        for note in &self.notes {
+            tracing::warn!("{note}");
         }
 
         let readable: Vec<&PdfBlock> = match &self.read_block_type {
@@ -552,7 +547,10 @@ mod tests {
                 Some(crate::core::classes::value::BlockValue::Set(names)) => names.len(),
                 _ => 0,
             };
-            assert_eq!(managed, 1, "`R26` wants the company over Alpha Fund too");
+            assert_eq!(
+                managed, 1,
+                "the funds another page took count as the document's too, so the company manages Alpha Fund"
+            );
         }
     }
 
@@ -617,16 +615,22 @@ mod tests {
         use super::*;
 
         #[test]
-        fn they_are_warned_once_and_not_once_per_page() {
+        fn every_page_the_pipe_runs_on_carries_them() {
+            // A single warning would land on whichever page ran first, which is not the same page
+            // from one run to the next.
+            let note = "this report calls the role by its own name";
             let previous = vec![holding("Alpha Fund")];
             let mut pipe = TextFilterInvManagers::new(vec![Reader::default()]);
-            pipe.notes = vec!["this report calls the role by its own name".to_string()];
+            pipe.notes = vec![note.to_string()];
             let data = FilterData::Previous(&previous);
-            pipe.call(&[manager_block("Acme AM")], &data);
-            assert!(pipe.warned.load(Ordering::Relaxed));
-            // The second page finds the flag already set, which is what "once per document" means.
-            pipe.call(&[manager_block("Acme AM")], &data);
-            assert!(pipe.warned.load(Ordering::Relaxed));
+            let notes = crate::core::tracing_setup::capture::events(|| {
+                pipe.call(&[manager_block("Acme AM")], &data);
+                pipe.call(&[manager_block("Acme AM")], &data);
+            })
+            .into_iter()
+            .filter(|r| r.message == note)
+            .count();
+            assert_eq!(notes, 2);
         }
     }
 }

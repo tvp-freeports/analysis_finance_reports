@@ -4,6 +4,9 @@ Every option, what it sets, and what happens when it is left out. The same setti
 from three other sources — see {doc}`../configuration/index` — and this page is the command-line view of
 them.
 
+`freeports` has one subcommand, `classify`, which reports the format of documents without
+extracting anything: {doc}`freeports-classify`. Everything on this page is the command without it.
+
 ## Every option at a glance
 ```text
 freeports  -i <document>…  -f <format>  -F <formats-repo>  -I <input-db>  -T <list>…
@@ -14,7 +17,7 @@ freeports  -i <document>…  -f <format>  -F <formats-repo>  -I <input-db>  -T <
 | Option | Sets | Absent means |
 |---|---|---|
 | `--input`, `--report`, `-i` | the documents | no document from this source |
-| `--format`, `-f` | the format | infer it from a URL, or fail |
+| `--format`, `-f` | the format | detect it from the documents, or the job fails |
 | `--formats-directory`, `--repo`, `-F`, `-r` | the formats repository | unset — the run fails |
 | `--db-directory`, `-I` | the input database | unset |
 | `--target-list`, `-T` | the target lists | unset — **the run fails first of all** |
@@ -49,22 +52,86 @@ or the environment can still supply the documents.
 ### `--format` / `-f`
 
 The format name, as `metadata/formats.csv` of the repository synthesises it — `EURIZON-EN23`,
-`FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`.
+`FINECO-EN23@LUX`, `MEDIOLANUM-IT24.A`. It is optional: left out, each job settles its format from
+its own documents. {doc}`../design/document-classification` explains why the run works this way;
+this section is what it does.
 
-Omit it and the engine tries to infer it from the URL of each document, using the repository's
-`url_mapping.csv`: the longest matching prefix wins, then the row with the more specific name, then
-the row that comes first. Inference works only for documents that *have* a
-URL. Two documents inferring **different** formats is an error rather than a choice made silently.
-Giving `-f` explicitly while inference also succeeds and disagrees is a warning, not an error: you
-were explicit, so you win, but you are told.
+#### Where the format comes from
+
+A job settles its format after its documents are resolved and before the format's recipe is loaded,
+from three sources in a fixed priority:
+
+1. **the configuration** — `-f`, or `format` from any other source ({doc}`../configuration/options`);
+2. **the document classification** — the repository's `metadata/document_classify.yaml` and
+   Python module ({doc}`../formats/document-classify-yaml`,
+   {doc}`../formats/document-classify-python`), applied to the first pages of each document;
+3. **the URL** — the repository's `url_mapping.csv`, applied to the URL of each document that has
+   one: the longest matching prefix wins, then the row with the more specific name, then the row
+   that comes first. A row may give a partial name ({doc}`../formats/names`), which narrows the
+   format without settling it; another source then has to complete it.
+
+The classification **runs even when the format is configured**: that is how the run can tell you
+that the format you gave is not the one the document looks like. It costs roughly 0.1–0.2 s per job.
+
+The two document sources are combined exactly as `freeports classify` combines them
+({doc}`freeports-classify`, "How the two sources combine"): two names agree when some format of
+the repository falls under both, and the result is the most precise name both allow. The documents
+of one job are combined source by source first, then the two sources compared.
+
+The job runs only with a **complete** format. A partial one — `MEDIOLANUM-IT24.*`, say — fails the
+job, and the error lists the formats it still allows; run `freeports classify` on the document, or
+see {doc}`../formats/names`, to choose one, then give it with `-f`.
+
+#### When the sources cross
+
+Every crossing is logged once per job, at the level below. The `WARN` lines are not something a
+setting can switch off, and since `.log.csv` always records `WARN` and above, they are there even
+under `-qq`.
+
+| What happens | Logged | The job |
+|---|---|---|
+| a format is configured, and the sources that answer agree with it | `DEBUG` *configured format confirmed by the document* | runs with the configured format |
+| a format is configured, and the classification disagrees with it | `WARN` *the configured format differs from the one the document classification finds; the configured one is used* | runs with the configured format |
+| a format is configured, and the URL disagrees with it | `WARN` *… differs from the one the report url maps to; the configured one is used* | runs with the configured format |
+| the classification and the URL disagree with each other | `ERROR` *the algorithm and the url disagree on the format* | runs with the configured format if there is one, otherwise with the classification's |
+| no format configured, and the sources settle a complete one | `INFO` *format detected*, with `by` = `algorithm`, `url` or `algorithm and url` | runs with that format |
+| no format configured, and only a partial one is settled | the job's error, listing the candidates | fails |
+| no format configured, and no source says anything | the job's error: *no format was configured, and neither the document classification nor the report url determines one* | fails |
+| the documents of the job disagree with each other on one source | the job's error, naming what that source said of each document by its label | fails, configured format or not |
+| the classification recognises a document | `INFO` *document classified as '…'* in that document's span, with the page and the step or pipeline; *… by exclusion* when the step is the unconditional *otherwise* of a block | — |
+
+When both sources disagree with a configured format, both `WARN` lines are written: they are two
+different facts.
+
+Classification can also **break**, and what that costs depends on whether there is a format to fall
+back on:
+
+| What breaks | With a configured format | Without one |
+|---|---|---|
+| the repository's classification will not load (an invalid `document_classify.yaml`, a module that will not import, a rule refused at load time) | `ERROR` *… could not be loaded, the configured format is used unchecked*; the job runs, checked against neither source | the job fails with the load error |
+| a document's classification fails at run time (a page that will not convert, a Python pipeline giving two names, a name that does not exist) | `ERROR` in that document's span; its classification counts as nothing, its URL still counts, and the job runs | the job fails, naming the document |
+| `url_mapping.csv` cannot be read, or a row is refused | `WARN` *cannot detect format from this report url*; the URL counts as nothing | the same |
+
+The run never falls back on the URL alone when the classification is broken: an author's rules that
+fail are not evidence for anything else.
+
+A job that cannot settle its format costs **that job**. In a batch the other rows run and the run
+exits `3`; a run in which no job succeeds exits `1` ([below](#what-the-exit-status-says)).
+
+```{note}
+Without a configured format, the events of settling it are logged under a bare `job` span —
+`job/document[<name>]` in the `Activity` column of `.log.csv` — because the format is not known
+yet. From the moment it is settled, events are under `job[<format>]` as usual. With `-f`, every
+event is under `job[<format>]` from the start.
+```
 
 ## Where things live
 
 ### `--formats-directory` / `--repo` / `-F` / `-r`
 
-The formats repository. Note that the two tooling commands read a **differently named** variable for
-the same thing — `FREEPORTS_FORMATS_REPO`, not `FREEPORTS_FORMATS_REPO_PATH`; see
-{doc}`index`.
+The formats repository. From the environment it is `FREEPORTS_FORMATS_REPO_PATH`, and
+`freeports-dev` and `freeports-validate` read the same variable and accept the same four spellings
+on their command lines; see {doc}`index`.
 
 ### `--db-directory` / `-I`
 

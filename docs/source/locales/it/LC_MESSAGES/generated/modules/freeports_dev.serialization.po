@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:2
+msgid "freeports\\_dev.serialization"
+msgstr ""
+
+#: freeports_dev.serialization:1 of
+msgid "Serializzazione delle fixture di test (JSON <-> oggetti `freeports`)."
+msgstr ""
+
+#: freeports_dev.serialization:3 of
+msgid ""
+"Porting di `freeports._internals.core.serialization`, che viveva dentro "
+"il pacchetto `freeports`. Il modulo **si sposta qui**, e non riappare "
+"come sottomodulo dell'estensione Rust, per due ragioni: "
+"`freeports._internals` non esiste piu' (era il livello di implementazione"
+" in Python puro, che nella riscrittura sta in Rust), e questa e' logica "
+"di *fixture di test*, il cui unico consumatore e' `freeports-dev` — non "
+"fa parte dell'API che un autore di formato usa."
+msgstr ""
+
+#: freeports_dev.serialization:10 of
+msgid ""
+"Rispetto all'originale spariscono i modelli Pydantic: gli oggetti da "
+"serializzare sono ora `#[pyclass]` Rust, non `BaseModel`, e i campi si "
+"enumerano con `__serialize_fields__()` (ricavato dalla forma serde "
+"dell'entita', vedi `python/output.rs`) invece che con `model_fields`. Lo "
+"schema JSON dei tag e' invariato, cosi' le fixture gia' registrate "
+"restano leggibili."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+msgid ":py:obj:`dump <freeports_dev.serialization.dump>`\\ \\(obj\\, fp\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+msgid ""
+":py:obj:`dumps <freeports_dev.serialization.dumps>`\\ \\(obj\\[\\, "
+"indent\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+msgid ""
+":py:obj:`from_serializable "
+"<freeports_dev.serialization.from_serializable>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+#: freeports_dev.serialization.from_serializable:1 of
+msgid "L'inverso di `to_serializable`."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+msgid ":py:obj:`load <freeports_dev.serialization.load>`\\ \\(fp\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+msgid ":py:obj:`loads <freeports_dev.serialization.loads>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+msgid ""
+":py:obj:`to_serializable <freeports_dev.serialization.to_serializable>`\\"
+" \\(obj\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:18:<autosummary>:1
+#: freeports_dev.serialization.to_serializable:1 of
+msgid "Un oggetto nella forma JSON-safe che `from_serializable` sa ricostruire."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:20
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`SerializationError "
+"<freeports_dev.serialization.SerializationError>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.serialization.rst:23:<autosummary>:1
+#: freeports_dev.serialization.SerializationError:1 of
+msgid "Un oggetto non e' serializzabile, o un tag non e' risolvibile."
+msgstr ""
+

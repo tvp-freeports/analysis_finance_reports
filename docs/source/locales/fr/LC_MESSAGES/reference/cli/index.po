@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-10-17 05:17+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -79,7 +79,7 @@ msgstr ""
 msgid "Both are installed from the source tree ({doc}`../../start/install`):"
 msgstr ""
 
-#: ../../source/reference/cli/index.md:30
+#: ../../source/reference/cli/index.md:31
 msgid "What each page here covers"
 msgstr ""
 
@@ -100,6 +100,15 @@ msgstr ""
 msgid ""
 "every option of the extraction command, with its default and its "
 "validation"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`freeports-classify`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid "`freeports classify`: which format a document is, without extracting it"
 msgstr ""
 
 #: ../../source/reference/cli/index.md:19
@@ -140,7 +149,7 @@ msgstr ""
 msgid "`freeports-validate report`, and the shapes it renders"
 msgstr ""
 
-#: ../../source/reference/cli/index.md:39
+#: ../../source/reference/cli/index.md:41
 #, python-brace-format
 msgid ""
 "These pages say *what each option does*. They do not say which of them "
@@ -150,40 +159,40 @@ msgid ""
 "{doc}`../../guides/grants/index` for vouching for one."
 msgstr ""
 
-#: ../../source/reference/cli/index.md:44
+#: ../../source/reference/cli/index.md:46
 msgid "Both commands need to find a formats repository"
 msgstr ""
 
-#: ../../source/reference/cli/index.md:46
+#: ../../source/reference/cli/index.md:48
 msgid ""
 "Every subcommand of either tool works *inside* a formats repository, and "
 "both resolve which one the way the engine resolves everything: **command "
 "line, then environment, then configuration file, then a default**."
 msgstr ""
 
-#: ../../source/reference/cli/index.md:50
+#: ../../source/reference/cli/index.md:52
 msgid ""
 "`--repo` / `-r` / `--formats-directory` / `-F` — the engine's own four "
 "spellings, all accepted;"
 msgstr ""
 
-#: ../../source/reference/cli/index.md:51
+#: ../../source/reference/cli/index.md:53
 msgid ""
 "`FREEPORTS_FORMATS_REPO_PATH` — again the engine's variable, not a second"
 " one;"
 msgstr ""
 
-#: ../../source/reference/cli/index.md:52
+#: ../../source/reference/cli/index.md:54
 msgid "`formats_repo` in the configuration file;"
 msgstr ""
 
-#: ../../source/reference/cli/index.md:53
+#: ../../source/reference/cli/index.md:55
 msgid ""
 "the default: the working directory, except for `freeports-validate`, "
 "which first walks up to the enclosing Git repository."
 msgstr ""
 
-#: ../../source/reference/cli/index.md:56
+#: ../../source/reference/cli/index.md:58
 #, python-brace-format
 msgid ""
 "That is one path, written once, found by all three commands. "
@@ -191,14 +200,14 @@ msgid ""
 "optional sections, the environment prefixes, the precedence."
 msgstr ""
 
-#: ../../source/reference/cli/index.md:59
+#: ../../source/reference/cli/index.md:61
 msgid ""
 "`freeports-dev` additionally checks that the directory really is one — "
 "`metadata/formats.csv` has to exist — and refuses with a message naming "
 "the path rather than failing later and obscurely."
 msgstr ""
 
-#: ../../source/reference/cli/index.md:63
+#: ../../source/reference/cli/index.md:65
 msgid ""
 "`FREEPORTS_FORMATS_REPO`, without the `_PATH`, used to be a **second** "
 "variable meaning the same thing, so setting one left the other command "
