@@ -23,6 +23,7 @@ to hold that false statement.
 companies change is a major bump and subsumes a lists one.
 """
 
+import hashlib
 import subprocess
 
 import pytest
@@ -119,6 +120,70 @@ class TestTheRecipe:
     def test_an_absent_directory_holds_no_files_rather_than_failing(self, tmp_path):
         assert fp.files_under(tmp_path, "nothing") == []
 
+    def test_caches_are_not_part_of_the_repository(self, tmp_path):
+        """`__pycache__` and hidden directories (`.ruff_cache`) differ from machine to machine."""
+        for cache in ("__pycache__", ".ruff_cache"):
+            (tmp_path / "d" / cache).mkdir(parents=True)
+            (tmp_path / "d" / cache / "x").write_text("machine-specific")
+        (tmp_path / "d" / "a.py").write_text("one")
+        assert fp.files_under(tmp_path, "d") == ["d/a.py"]
+
+    def test_but_a_hidden_file_is_kept(self, tmp_path):
+        """`.log.csv` is an expected output of a format test, not a cache."""
+        (tmp_path / "d").mkdir()
+        (tmp_path / "d" / ".log.csv").write_text("x")
+        assert fp.files_under(tmp_path, "d") == ["d/.log.csv"]
+
+    def test_the_listing_is_the_intermediate_stream_and_hashes_to_the_fingerprint(
+        self, tmp_path
+    ):
+        """So `sha256sum` of a saved listing is the fingerprint, and `sha256sum -c` checks it."""
+        (tmp_path / "a").write_text("one")
+        (tmp_path / "b").write_text("two")
+        text = fp.listing(tmp_path, ["b", "a"])
+        assert text == (
+            f"{fp.hash_file(tmp_path / 'a')}  a\n{fp.hash_file(tmp_path / 'b')}  b\n"
+        )
+        assert hashlib.sha256(text.encode()).hexdigest() == fp.fingerprint(
+            tmp_path, ["a", "b"]
+        )
+
+
+class TestComparingTwoListings:
+    """What the expected outputs of the format tests say about the kind of change."""
+
+    OLD = "1  tests/formats/A/out/x.csv\n2  tests/formats/A/out/y.csv\n"
+
+    def test_the_same_listing_is_no_change(self):
+        assert fp.listing_kind(self.OLD, self.OLD) is None
+
+    def test_only_new_files_is_a_minor_change(self):
+        """New fixtures cover behaviour that already existed: no earlier output changes."""
+        new = self.OLD + "3  tests/formats/B/out/x.csv\n"
+        assert fp.listing_kind(self.OLD, new) == fp.MINOR
+
+    def test_a_file_whose_hash_changed_is_a_major_change(self):
+        new = "1  tests/formats/A/out/x.csv\n9  tests/formats/A/out/y.csv\n"
+        assert fp.listing_kind(self.OLD, new) == fp.MAJOR
+
+    def test_a_removed_file_is_a_major_change(self):
+        assert fp.listing_kind(self.OLD, "1  tests/formats/A/out/x.csv\n") == fp.MAJOR
+
+    def test_an_addition_beside_a_change_is_still_major(self):
+        new = "1  tests/formats/A/out/x.csv\n9  tests/formats/A/out/y.csv\n3  z\n"
+        assert fp.listing_kind(self.OLD, new) == fp.MAJOR
+
+    def test_with_no_earlier_listing_nothing_can_be_said(self):
+        assert fp.listing_kind(None, self.OLD) is None
+
+    def test_the_changes_are_named(self):
+        new = "9  tests/formats/A/out/x.csv\n3  tests/formats/B/out/x.csv\n"
+        assert fp.listing_changes(self.OLD, new) == {
+            "added": ["tests/formats/B/out/x.csv"],
+            "changed": ["tests/formats/A/out/x.csv"],
+            "removed": ["tests/formats/A/out/y.csv"],
+        }
+
 
 class TestReadingWhatAGrantCovers:
     def test_the_files_come_from_the_repository_s_own_validation_documents(
@@ -154,18 +219,29 @@ class TestReadingWhatAGrantCovers:
 
 class TestTheBumpRules:
     def test_a_change_under_lists_is_a_minor_bump(self):
-        """A list change alters only which companies a list associates."""
-        assert fp.bump_kind({"lists"}) == fp.MINOR
+        """The typical list change adds companies: rows are added, none changed or removed."""
+        assert fp.INPUT_DB_KINDS["lists"] == fp.MINOR
         assert fp.bump((1, 2, 3), fp.MINOR) == (1, 3, 0)
 
     def test_a_change_under_companies_is_a_major_bump(self):
         """`companies/` decides what matches, so it changes the meaning of every run."""
-        assert fp.bump_kind({"companies"}) == fp.MAJOR
+        assert fp.INPUT_DB_KINDS["companies"] == fp.MAJOR
         assert fp.bump((1, 2, 3), fp.MAJOR) == (2, 0, 0)
 
     def test_both_together_is_still_a_major_bump(self):
         """A companies change subsumes a lists one rather than being a second change beside it."""
-        assert fp.bump_kind({"companies", "lists"}) == fp.MAJOR
+        assert fp.strongest([fp.MINOR, fp.MAJOR]) == fp.MAJOR
+
+    def test_the_strongest_of_several_kinds_wins(self):
+        assert fp.strongest([fp.PATCH, fp.MINOR, fp.PATCH]) == fp.MINOR
+        assert fp.strongest([fp.PATCH]) == fp.PATCH
+
+    def test_a_kind_nobody_could_classify_makes_the_whole_answer_unknown(self):
+        """One change this tool cannot read is enough to leave the choice to a person."""
+        assert fp.strongest([fp.MAJOR, None]) is None
+
+    def test_a_patch_bump_moves_only_the_patch(self):
+        assert fp.bump((1, 2, 3), fp.PATCH) == (1, 2, 4)
 
     def test_a_minor_bump_resets_the_patch(self):
         assert fp.bump((1, 2, 3), fp.MINOR) == (1, 3, 0)
@@ -174,7 +250,7 @@ class TestTheBumpRules:
         assert fp.bump((1, 2, 3), fp.MAJOR) == (2, 0, 0)
 
     def test_nothing_moved_proposes_nothing(self):
-        assert fp.bump_kind(set()) is None
+        assert fp.strongest([]) is None
 
     def test_the_v_prefix_is_kept_if_it_was_there_and_not_invented_if_it_was_not(self):
         assert fp.format_version((1, 0, 0), "v0.0.0") == "v1.0.0"
@@ -255,39 +331,169 @@ class TestTheRuleAgainstTheCommitAtHead:
         assert check.ok
 
 
-class TestAFormatsRepository:
-    def test_its_fingerprint_covers_every_granted_file(self, tmp_path):
-        (tmp_path / "metadata").mkdir()
-        (tmp_path / "metadata" / "formats.csv").write_text("Name,Locale,Year\n")
-        (tmp_path / "validation").mkdir()
-        (tmp_path / "a.json").write_text("{}")
-        (tmp_path / "validation" / "who.yaml").write_text(
-            "data:\n  - methodology: basic\n    files:\n      - path: a.json\n        sha256: x\n"
-        )
-        (tmp_path / "package.yaml").write_text(
-            'schema: v0.0.0\ninfo:\n  description: "d"\n  version: v0.0.0\n'
-            "  validation_sha256: nothing\n"
-        )
-        git(tmp_path, "init", "-q", "-b", "main")
-        commit(tmp_path)
-        _, check = fp.check_formats(tmp_path)
-        assert check.entries[0]["computed"] == fp.fingerprint(tmp_path, ["a.json"])
-        assert not check.ok
+def write_formats_manifest(root, version="v0.1.0"):
+    """`package.yaml` consistent with the tree as it is now, and the listing beside it."""
+    tests = fp.files_under(root, "tests/formats")
+    (root / fp.TESTS_LISTING).write_text(fp.listing(root, tests))
+    (root / "package.yaml").write_text(
+        'schema: v0.0.0\ninfo:\n  description: "d"\n'
+        f"  version: {version}\n"
+        f"  validation_sha256: {fp.fingerprint(root, fp.granted_files(root))}\n"
+        "sha256:\n"
+        f"  content: {fp.fingerprint(root, fp.files_under(root, 'content'))}\n"
+        f"  metadata: {fp.fingerprint(root, fp.files_under(root, 'metadata'))}\n"
+        f"  tests: {fp.fingerprint(root, tests)}\n"
+    )
 
-    def test_which_version_to_move_is_the_author_s_choice_so_nothing_is_proposed(
-        self, tmp_path
-    ):
-        """The change may be a correction or a whole new format, and only they know which."""
-        (tmp_path / "metadata").mkdir()
-        (tmp_path / "metadata" / "formats.csv").write_text("Name,Locale,Year\n")
-        (tmp_path / "package.yaml").write_text(
-            'schema: v0.0.0\ninfo:\n  description: "d"\n  version: v0.0.0\n'
-            "  validation_sha256: nothing\n"
+
+@pytest.fixture
+def formats(tmp_path):
+    """A formats repository with one format, committed, and consistent with itself."""
+    (tmp_path / "content" / "algorithms").mkdir(parents=True)
+    (tmp_path / "content" / "algorithms" / "a.yaml").write_text("a: 1\n")
+    (tmp_path / "metadata").mkdir()
+    (tmp_path / "metadata" / "formats.csv").write_text("Name,Locale,Year\n")
+    out = tmp_path / "tests" / "formats" / "A-EN24" / "out"
+    out.mkdir(parents=True)
+    (out / "investments.csv").write_text("x\n1\n")
+    (out / ".log.csv").write_text("l\n")
+    (tmp_path / "validation").mkdir()
+    (tmp_path / "validation" / "who.yaml").write_text(
+        "data:\n  - methodology: basic\n    files:\n"
+        "      - path: tests/formats/A-EN24/out/investments.csv\n        sha256: x\n"
+    )
+    write_formats_manifest(tmp_path)
+    git(tmp_path, "init", "-q", "-b", "main")
+    commit(tmp_path, "seed")
+    return tmp_path
+
+
+class TestAFormatsRepository:
+    def test_a_repository_consistent_with_itself_is_ok(self, formats):
+        _, check = fp.check_formats(formats)
+        assert check.ok
+        assert not check.moved
+
+    def test_its_groups_are_identity_and_certification(self, formats):
+        _, check = fp.check_formats(formats)
+        assert [e["name"] for e in check.entries] == [
+            "content",
+            "metadata",
+            "tests",
+            "validation",
+        ]
+
+    def test_the_tests_fingerprint_is_the_hash_of_the_saved_listing(self, formats):
+        """So the one value in the manifest can be checked with `sha256sum` alone."""
+        _, check = fp.check_formats(formats)
+        tests = next(e for e in check.entries if e["name"] == "tests")
+        saved = (formats / fp.TESTS_LISTING).read_bytes()
+        assert tests["computed"] == hashlib.sha256(saved).hexdigest()
+
+    def test_a_content_change_with_the_same_expected_outputs_is_a_patch(self, formats):
+        (formats / "content" / "algorithms" / "a.yaml").write_text("a: 2\n")
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.PATCH, "v0.1.1")
+
+    def test_a_metadata_change_alone_is_a_patch(self, formats):
+        (formats / "metadata" / "formats.csv").write_text("Name,Locale,Year\nB,EN,24\n")
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.PATCH, "v0.1.1")
+
+    def test_a_new_grant_alone_is_a_patch(self, formats):
+        """Certifying more files changes no output."""
+        (formats / "validation" / "who.yaml").write_text(
+            "data:\n  - methodology: basic\n    files:\n"
+            "      - path: tests/formats/A-EN24/out/investments.csv\n        sha256: x\n"
+            "      - path: tests/formats/A-EN24/out/.log.csv\n        sha256: y\n"
         )
-        git(tmp_path, "init", "-q", "-b", "main")
-        commit(tmp_path)
-        _, check = fp.check_formats(tmp_path)
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.PATCH, "v0.1.1")
+
+    def test_a_new_expected_output_is_a_minor_bump(self, formats):
+        new = formats / "tests" / "formats" / "B-EN24" / "out"
+        new.mkdir(parents=True)
+        (new / "investments.csv").write_text("x\n")
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.MINOR, "v0.2.0")
+
+    def test_a_changed_expected_output_is_a_major_bump(self, formats):
+        (
+            formats / "tests" / "formats" / "A-EN24" / "out" / "investments.csv"
+        ).write_text("x\n2\n")
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.MAJOR, "v1.0.0")
+
+    def test_a_removed_expected_output_is_a_major_bump(self, formats):
+        (formats / "tests" / "formats" / "A-EN24" / "out" / ".log.csv").unlink()
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.MAJOR, "v1.0.0")
+
+    def test_a_new_format_beside_a_code_change_is_still_minor(self, formats):
+        (formats / "content" / "algorithms" / "a.yaml").write_text("a: 2\n")
+        new = formats / "tests" / "formats" / "B-EN24" / "out"
+        new.mkdir(parents=True)
+        (new / "investments.csv").write_text("x\n")
+        _, check = fp.check_formats(formats)
+        assert check.proposal() == (fp.MINOR, "v0.2.0")
+
+    def test_the_changed_expected_outputs_are_named(self, formats):
+        (formats / "tests" / "formats" / "A-EN24" / "out" / ".log.csv").unlink()
+        _, check = fp.check_formats(formats)
+        tests = next(e for e in check.entries if e["name"] == "tests")
+        assert tests["changes"]["removed"] == ["tests/formats/A-EN24/out/.log.csv"]
+
+    def test_a_cache_left_by_python_moves_nothing(self, formats):
+        cache = formats / "content" / "algorithms" / "__pycache__"
+        cache.mkdir()
+        (cache / "a.pyc").write_bytes(b"\0")
+        _, check = fp.check_formats(formats)
+        assert not check.moved
+
+    def test_with_no_listing_at_head_the_tests_change_cannot_be_classified(
+        self, formats
+    ):
+        (formats / fp.TESTS_LISTING).unlink()
+        commit(formats, "listing removed")
+        (
+            formats / "tests" / "formats" / "A-EN24" / "out" / "investments.csv"
+        ).write_text("x\n2\n")
+        _, check = fp.check_formats(formats)
         assert check.proposal() is None
+
+    def test_writing_records_the_fingerprints_and_the_listing(self, formats):
+        target = formats / "tests" / "formats" / "A-EN24" / "out" / "investments.csv"
+        target.write_text("x\n2\n")
+        manifest, check = fp.check_formats(formats)
+        manifest.set(["info", "version"], "v1.0.0")
+        check.record(manifest)
+        _, again = fp.check_formats(formats)
+        assert again.ok
+        assert all(e["declared"] == e["computed"] for e in again.entries)
+        assert (formats / fp.TESTS_LISTING).read_text() == fp.listing(
+            formats, fp.files_under(formats, "tests/formats")
+        )
+
+    def test_a_missing_listing_is_stale_even_when_every_field_agrees(self, formats):
+        """`--update` must restore it, or the manifest's `tests` hash points at nothing."""
+        (formats / fp.TESTS_LISTING).unlink()
+        _, check = fp.check_formats(formats)
+        assert not check.moved
+        assert check.stale
+
+    def test_a_consistent_repository_is_not_stale(self, formats):
+        _, check = fp.check_formats(formats)
+        assert not check.stale
+
+    def test_the_saved_listing_checks_with_sha256sum(self, formats):
+        """The by-hand verification the documentation prints."""
+        done = subprocess.run(
+            ["sha256sum", "--quiet", "-c", fp.TESTS_LISTING],
+            cwd=str(formats),
+            capture_output=True,
+            text=True,
+        )
+        assert done.returncode == 0, done.stdout + done.stderr
 
 
 class TestRewritingAManifest:

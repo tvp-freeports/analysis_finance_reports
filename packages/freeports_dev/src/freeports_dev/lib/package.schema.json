@@ -22,13 +22,33 @@
                 },
                 "validation_sha256": {
                     "type": "string",
-                    "description": "SHA-256 hash for integrity verification."
+                    "description": "Hash of the hashes of every file a grant covers: certification, not identity."
                 }
             },
             "required": ["description", "version", "validation_sha256"],
             "additionalProperties": true
+        },
+        "sha256": {
+            "type": "object",
+            "description": "Identity fingerprints of the parts that produce data; when one moves, info.version must move.",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "description": "Hash of the hashes of every file under content/."
+                },
+                "metadata": {
+                    "type": "string",
+                    "description": "Hash of the hashes of every file under metadata/."
+                },
+                "tests": {
+                    "type": "string",
+                    "description": "Hash of the hashes of every file under tests/formats/ — the sha256 of tests/formats.sha256."
+                }
+            },
+            "required": ["content", "metadata", "tests"],
+            "additionalProperties": true
         }
     },
-    "required": ["schema", "info"],
+    "required": ["schema", "info", "sha256"],
     "additionalProperties": true
 }

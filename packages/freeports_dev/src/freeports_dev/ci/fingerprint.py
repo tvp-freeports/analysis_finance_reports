@@ -50,8 +50,11 @@ def hash_file(path):
     return digest.hexdigest()
 
 
-def fingerprint(root, relative_paths):
-    """The hash of the hashes, over a set of paths relative to ``root``.
+def listing(root, relative_paths):
+    """The recipe's intermediate stream: one ``"<hash>  <path>"`` line per file, sorted.
+
+    It is exactly what ``xargs sha256sum`` prints, so a saved listing is checked by hand with
+    ``sha256sum -c`` and its own ``sha256sum`` is the fingerprint.
 
     Sorted with :func:`sorted` over the raw strings, which is Python's byte-order comparison and
     therefore the same order ``LC_ALL=C sort`` produces. Naming the locale in the shell one-liner
@@ -59,12 +62,29 @@ def fingerprint(root, relative_paths):
     disagrees.
     """
     root = Path(root)
-    stream = hashlib.sha256()
-    for relative in sorted(str(p) for p in relative_paths):
-        stream.update(
-            _LINE.format(hash=hash_file(root / relative), path=relative).encode("utf-8")
-        )
-    return stream.hexdigest()
+    return "".join(
+        _LINE.format(hash=hash_file(root / relative), path=relative)
+        for relative in sorted(str(p) for p in relative_paths)
+    )
+
+
+def fingerprint(root, relative_paths):
+    """The hash of the hashes, over a set of paths relative to ``root``."""
+    return hash_text(listing(root, relative_paths))
+
+
+def hash_text(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _is_cache(part):
+    """A directory a tool left behind: ``__pycache__``, or a hidden one (``.ruff_cache``).
+
+    Their contents differ from machine to machine, so a fingerprint that counted them would differ
+    between two people looking at the same tree. Only *directories* are skipped: a hidden file such
+    as a format test's ``.log.csv`` is an expected output, not a cache.
+    """
+    return part == "__pycache__" or part.startswith(".")
 
 
 def files_under(root, directory):
@@ -72,14 +92,55 @@ def files_under(root, directory):
 
     Directories are not hashed and empty ones therefore do not exist as far as a fingerprint is
     concerned, which matches what git records and means the fingerprint does not move for a
-    difference git will not carry anyway.
+    difference git will not carry anyway. Cache directories (:func:`_is_cache`) are skipped.
     """
-    base = Path(root) / directory
+    root = Path(root)
+    base = root / directory
     if not base.is_dir():
         return []
     return sorted(
-        str(path.relative_to(root)) for path in base.rglob("*") if path.is_file()
+        str(path.relative_to(root))
+        for path in base.rglob("*")
+        if path.is_file()
+        and not any(_is_cache(part) for part in path.relative_to(base).parts[:-1])
     )
+
+
+def _parse_listing(text):
+    entries = {}
+    for line in (text or "").splitlines():
+        digest, _, path = line.partition("  ")
+        if path:
+            entries[path] = digest
+    return entries
+
+
+def listing_changes(old_text, new_text):
+    """Which paths two listings add, change and remove, each sorted."""
+    old, new = _parse_listing(old_text), _parse_listing(new_text)
+    return {
+        "added": sorted(set(new) - set(old)),
+        "changed": sorted(p for p in set(old) & set(new) if old[p] != new[p]),
+        "removed": sorted(set(old) - set(new)),
+    }
+
+
+def listing_kind(old_text, new_text):
+    """The bump a change of expected test outputs calls for.
+
+    Only new files: the new fixtures cover behaviour that already existed, and no earlier output
+    changes -- a minor bump. Any file changed or removed: what a run produced before is no longer
+    what it produces -- major. With no earlier listing there is nothing to compare, and this tool
+    does not guess.
+    """
+    if old_text is None:
+        return None
+    changes = listing_changes(old_text, new_text)
+    if changes["changed"] or changes["removed"]:
+        return MAJOR
+    if changes["added"]:
+        return MINOR
+    return None
 
 
 def granted_files(root):
@@ -132,42 +193,47 @@ def format_version(parts, like="v0.0.0"):
     return prefix + ".".join(str(part) for part in parts)
 
 
-#: A change under `lists/` alters only which companies a list associates; the meaning of a match is
-#: unchanged, so the minor component moves.
+#: Functional files changed and the observed behaviour did not: code in a formats repository whose
+#: expected test outputs are unchanged, or a new grant.
+PATCH = "patch"
+
+#: New capability, every earlier output unchanged: a format test added, a list extended.
 MINOR = "minor"
 
-#: A change under `companies/` changes what *matches*, and therefore the meaning of every run. The
-#: major component moves and the minor resets. Both directories changed is still a major bump,
-#: because a companies change subsumes a lists one.
+#: Earlier outputs change: an expected test output edited or removed, a company's matching changed.
 MAJOR = "major"
+
+_STRENGTH = {PATCH: 0, MINOR: 1, MAJOR: 2}
+
+#: An input database's bump is fixed per directory. `companies/` decides what *matches*, so a
+#: change there changes the meaning of every run. `lists/` is minor because the typical list change
+#: adds companies -- rows are added, none changed -- and a fingerprint cannot tell an addition from
+#: a removal, so a person who removed companies raises it to major by hand.
+INPUT_DB_KINDS = {"companies": MAJOR, "lists": MINOR}
 
 
 def bump(version, kind):
-    """The proposed next version, by the rule the two directories imply.
-
-    The patch component is deliberately never proposed: it is what a change that moves neither
-    fingerprint gets — a description, a README — and only a person knows they made one.
-    """
+    """The proposed next version for one kind of change."""
     major, minor, patch = version
     if kind == MAJOR:
         return (major + 1, 0, 0)
     if kind == MINOR:
         return (major, minor + 1, 0)
+    if kind == PATCH:
+        return (major, minor, patch + 1)
     return version
 
 
-def bump_kind(changed):
-    """Which component moves, given the set of directories whose fingerprint moved.
+def strongest(kinds):
+    """The kind a set of changes calls for together, or ``None`` when one of them is unknown.
 
-    ``companies`` wins whenever it is present: it decides what matches, while ``lists`` decides
-    only the association, so a change to both is a companies change with a lists change inside it
-    rather than two changes of equal weight.
+    One change this tool cannot classify is enough to leave the whole choice to a person: proposing
+    the strongest of the *others* would understate it.
     """
-    if "companies" in changed:
-        return MAJOR
-    if "lists" in changed:
-        return MINOR
-    return None
+    kinds = list(kinds)
+    if not kinds or any(kind is None for kind in kinds):
+        return None
+    return max(kinds, key=_STRENGTH.__getitem__)
 
 
 # -- the rule, per repository kind ------------------------------------------------------------
@@ -216,27 +282,53 @@ class FingerprintCheck:
         return {entry["name"] for entry in self.moved}
 
     def proposal(self):
-        """The version to move to, for an input database where the bump is mechanical.
+        """The version to move to: the strongest kind among the fingerprints that moved.
 
-        ``None`` where there is nothing to propose: nothing moved, the version already moved, or
-        the version is not a shape this tool should rewrite. A version somebody wrote as ``2024.3``
-        is a version this tool leaves alone rather than guesses at.
+        ``None`` where there is nothing to propose: nothing moved, the version already moved, a
+        change this tool cannot classify, or a version that is not a shape this tool should
+        rewrite. A version somebody wrote as ``2024.3`` is left alone rather than guessed at.
         """
         if not self.moved or self.version_moved:
             return None
-        kind = bump_kind(self.changed_directories)
+        kind = strongest(entry["kind"] for entry in self.moved)
         current = parse_version(self.version_now)
         if kind is None or current is None:
             return None
         return kind, format_version(bump(current, kind), self.version_now)
 
+    @property
+    def stale(self):
+        """Whether what is written down -- manifest fields, saved listings -- differs from now."""
+        for entry in self.entries:
+            if entry["declared"] != entry["computed"]:
+                return True
+            if entry.get("listing") is not None:
+                saved = Path(self.root) / entry["listing_path"]
+                if (
+                    not saved.is_file()
+                    or saved.read_text(encoding="utf-8") != entry["listing"]
+                ):
+                    return True
+        return False
 
-def committed_manifest(root, relative_path):
-    """The manifest as the commit at HEAD has it, or ``None`` when there is no such commit.
+    def record(self, manifest):
+        """Write every computed fingerprint, and any listing that goes with one, then the manifest.
 
-    ``None`` is not a failure. A repository with no commits, or one where the manifest is not yet
-    tracked, has made no earlier claim for the current one to contradict.
-    """
+        Only to be called when the manifest is entitled to the values -- the version moved, or a
+        proposal was accepted -- which is the caller's rule to apply, not this method's.
+        """
+        for entry in self.entries:
+            if entry["declared"] != entry["computed"]:
+                manifest.set(entry["keys"], entry["computed"])
+            if entry.get("listing") is not None:
+                (Path(self.root) / entry["listing_path"]).write_text(
+                    entry["listing"], encoding="utf-8"
+                )
+        manifest.write()
+
+
+def committed_text(root, relative_path):
+    """A file as the commit at HEAD has it, or ``None`` when there is no such commit or file."""
     import subprocess
 
     try:
@@ -248,12 +340,22 @@ def committed_manifest(root, relative_path):
         )
     except OSError:
         return None
-    if done.returncode != 0:
+    return done.stdout if done.returncode == 0 else None
+
+
+def committed_manifest(root, relative_path):
+    """The manifest as the commit at HEAD has it, or ``None`` when there is no such commit.
+
+    ``None`` is not a failure. A repository with no commits, or one where the manifest is not yet
+    tracked, has made no earlier claim for the current one to contradict.
+    """
+    text = committed_text(root, relative_path)
+    if text is None:
         return None
     import yaml
 
     try:
-        doc = yaml.safe_load(done.stdout)
+        doc = yaml.safe_load(text)
     except Exception:
         return None
     return doc if isinstance(doc, dict) else None
@@ -268,27 +370,72 @@ def _committed(doc, *keys):
     return node
 
 
+#: The saved listing of the expected test outputs, beside the directory it describes.
+TESTS_LISTING = "tests/formats.sha256"
+
+
 def check_formats(root):
-    """A formats repository: one fingerprint, over every file a grant covers."""
+    """A formats repository: three identity fingerprints and the certification one.
+
+    ``content/`` and ``metadata/`` say *how* documents are read; ``tests/formats/`` holds what
+    reading them is expected to produce, and is taken as the behavioural specification. So a code
+    change whose expected outputs are unchanged is a patch, and the expected outputs alone decide
+    between minor and major -- which needs to know whether files were only *added*, and that is why
+    their listing is saved in the repository (:data:`TESTS_LISTING`) rather than only its hash.
+
+    ``validation_sha256`` covers every granted file. It certifies rather than identifies, and a
+    new grant changes no output: a patch.
+    """
     from freeports_dev.ci.manifest import Manifest
 
     root = Path(root)
     manifest = Manifest(root / "package.yaml")
-    committed = committed_manifest(root, "package.yaml")
+    committed = committed_manifest(root, "package.yaml") or {}
+
+    def entry(name, keys, computed, kind, **extra):
+        return {
+            "name": name,
+            "keys": keys,
+            "computed": computed,
+            "declared": manifest.get(*keys),
+            "committed": _committed(committed, *keys),
+            "kind": kind,
+            **extra,
+        }
+
+    tests_listing = listing(root, files_under(root, "tests/formats"))
+    tests_before = committed_text(root, TESTS_LISTING)
+    entries = [
+        entry(name, ("sha256", name), fingerprint(root, files_under(root, name)), PATCH)
+        for name in ("content", "metadata")
+    ]
+    entries.append(
+        entry(
+            "tests",
+            ("sha256", "tests"),
+            hash_text(tests_listing),
+            listing_kind(tests_before, tests_listing),
+            listing=tests_listing,
+            listing_path=TESTS_LISTING,
+            changes=listing_changes(tests_before, tests_listing)
+            if tests_before is not None
+            else None,
+        )
+    )
+    entries.append(
+        entry(
+            "validation",
+            ("info", "validation_sha256"),
+            fingerprint(root, granted_files(root)),
+            PATCH,
+        )
+    )
     return manifest, FingerprintCheck(
         root,
-        [
-            {
-                "name": "validation",
-                "keys": ("info", "validation_sha256"),
-                "computed": fingerprint(root, granted_files(root)),
-                "declared": manifest.get("info", "validation_sha256"),
-                "committed": _committed(committed or {}, "info", "validation_sha256"),
-            }
-        ],
+        entries,
         ("info", "version"),
         manifest.get("info", "version"),
-        _committed(committed or {}, "info", "version"),
+        _committed(committed, "info", "version"),
     )
 
 
@@ -308,6 +455,7 @@ def check_input_db(root):
                 "computed": fingerprint(root, files_under(root, name)),
                 "declared": manifest.get("sha256", name),
                 "committed": _committed(committed or {}, "sha256", name),
+                "kind": INPUT_DB_KINDS[name],
             }
         )
     return manifest, FingerprintCheck(

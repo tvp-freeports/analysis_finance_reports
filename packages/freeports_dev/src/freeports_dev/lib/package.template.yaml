@@ -3,3 +3,7 @@ info:
   description: "<PLACEHOLDER>"
   version: v0.0.0
   validation_sha256: ""
+sha256:
+  content: ""
+  metadata: ""
+  tests: ""

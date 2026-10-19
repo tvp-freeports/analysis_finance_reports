@@ -85,7 +85,7 @@ Metric                                     Item                                 
 ``docs.rust``                              ``src/output/files_schema.rs``                                      13.8 %
 ``docs.rust``                              ``src/commons/sets/ast_simple.rs``                                  14.3 %
 ``docs.rust``                              ``src/formats_utils/pdf_extract/tabularizer/collapse.rs``           14.3 %
-``docs.python``                            ``docs.python.freeports_dev``                                       57.6 %
+``docs.python``                            ``docs.python.freeports_dev``                                       58.1 %
 ``docs.python``                            ``docs.python.freeports_validate``                                  64.0 %
 ``lint.rust``                              ``clippy::redundant_closure``                                       4
 ``lint.rust``                              ``clippy::result_large_err``                                        2

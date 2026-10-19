@@ -1170,6 +1170,12 @@ def _cmd_fingerprint(args):
         if moved:
             print(f"  committed  {entry['committed'] or '(nothing at HEAD)'}")
             print(f"  computed   {entry['computed']}")
+            for what, paths in (entry.get("changes") or {}).items():
+                if paths:
+                    print(
+                        f"  {what:<9}  {len(paths)}: {', '.join(paths[:3])}"
+                        f"{', …' if len(paths) > 3 else ''}"
+                    )
 
     if not check.moved:
         print(
@@ -1203,9 +1209,7 @@ def _cmd_fingerprint(args):
         answer = True if args.noconfirm else _ask(f"Set the version to {next_version}?")
         if answer:
             manifest.set(check.version_field, next_version)
-            for entry in check.entries:
-                manifest.set(entry["keys"], entry["computed"])
-            manifest.write()
+            check.record(manifest)
             print(f"wrote {manifest.path}")
             accepted = True
         elif answer is None:
@@ -1216,8 +1220,9 @@ def _cmd_fingerprint(args):
             print("Declined.")
     elif not proposal:
         print(
-            f"\nBump {'.'.join(check.version_field)} by hand: only you know whether this is a "
-            f"correction or a new format."
+            f"\nBump {'.'.join(check.version_field)} by hand: this change cannot be classified "
+            f"mechanically (no earlier listing to compare with, or a version this tool does not "
+            f"rewrite)."
         )
 
     if accepted:
@@ -1240,13 +1245,8 @@ def _maybe_write(args, manifest, check):
     """Write the computed fingerprints when the manifest is already entitled to hold them."""
     if not args.update:
         return
-    changed = False
-    for entry in check.entries:
-        if entry["declared"] != entry["computed"]:
-            manifest.set(entry["keys"], entry["computed"])
-            changed = True
-    if changed:
-        manifest.write()
+    if check.stale:
+        check.record(manifest)
         print(f"wrote {manifest.path}")
 
 

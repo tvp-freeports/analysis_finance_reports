@@ -157,9 +157,18 @@ workflow, {doc}`../../reference/cli/index` the option-by-option reference.
 schema: v0.0.0
 info:
   description: "Italy - 5 top groups"
-  version: v0.0.0
-  validation_sha256: 4dfe67c2…
+  version: v0.1.0
+  validation_sha256: 2f1543dd…
+sha256:
+  content: 9b4cf51c…
+  metadata: f06c7215…
+  tests: 3a3c3d0a…
 ```
 
-`validation_sha256` ties the repository to the validation document that vouches for its contents, so
-that a consumer can tell not only *what* they have but *what was claimed about it*.
+The `sha256` fields **identify** the repository: they are fingerprints of `content/`, `metadata/`
+and `tests/formats/`, and when one moves `info.version` must move with it. `validation_sha256`
+**certifies** it: it ties the repository to the validation documents that vouch for its contents,
+so that a consumer can tell not only *what* they have but *what was claimed about it*.
+`tests/formats.sha256` lists every expected test output with its hash; `freeports-dev fingerprint`
+writes it and reads it to tell an added test from a changed one.
+{doc}`../devops/fingerprints` has the rules.

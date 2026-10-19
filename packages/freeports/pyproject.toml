@@ -8,6 +8,9 @@ authors = [
     {name = "Oreste Sciacqualegni", email = "orestesciacqualegni@tutanota.com"},
 ]
 dependencies = [
+    # Left unpinned for development. PyMuPDF does the text extraction, so a different release can
+    # change the output under the same freeports version: a release pins the exact tested version,
+    # and every run record states the one it ran with (agent-memory/PLAN-traceability.md, phase 3).
     "PyMuPDF",
 ]
 

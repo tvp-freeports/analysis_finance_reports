@@ -28,13 +28,52 @@ currently create.
 A formats repository
 --------------------
 
-``info.validation_sha256`` in ``package.yaml`` covers **every file a grant covers**, read from the
-repository's own ``validation/*.yaml`` — not from ``freeports-validate collect``, because
-collecting resolves methodology pages over the network and a fingerprint that cannot be computed on
-a train is one the hook has to skip.
+Four fingerprints in ``package.yaml``. Three **identify** what produces data; one **certifies**:
 
-When it moves, ``info.version`` must move too. Which component is the author's choice: the change
-may be a correction or a whole new format, and only they know which.
+.. list-table::
+   :header-rows: 1
+   :widths: 26 30 44
+
+   * - Field
+     - Covers
+     - Proposal when it moves
+   * - ``sha256.content``
+     - ``content/``
+     - **patch**
+   * - ``sha256.metadata``
+     - ``metadata/``
+     - **patch**
+   * - ``sha256.tests``
+     - ``tests/formats/`` — the expected outputs
+     - only files added: **minor**; any file changed or removed: **major**
+   * - ``info.validation_sha256``
+     - every granted file
+     - **patch**
+
+Several moving together propose the strongest of them. The expected outputs are taken as the
+behavioural specification: a change to ``content/`` that leaves them identical is a patch, a new
+test (a new format, a new page fixture) adds coverage without changing any earlier output, and an
+edited or deleted expected output means a run no longer produces what it did.
+
+Telling an addition from an edit needs the earlier per-file hashes, not only their hash, so the
+recipe's intermediate stream is **saved in the repository** as ``tests/formats.sha256``. Its own
+``sha256sum`` is ``sha256.tests``, and it checks by hand:
+
+.. code-block:: console
+
+    sha256sum -c tests/formats.sha256      # every expected output still what was recorded
+    sha256sum tests/formats.sha256         # = sha256.tests
+
+It is written only when the manifest is, under the same rule below. With no listing at ``HEAD`` to
+compare with, the change cannot be classified and the bump is left to the author.
+
+``validation_sha256`` reads the granted files from the repository's own ``validation/*.yaml`` —
+not from ``freeports-validate collect``, because collecting resolves methodology pages over the
+network and a fingerprint that cannot be computed on a train is one the hook has to skip.
+
+**Cache directories are not part of a repository**: ``__pycache__`` and any hidden directory
+(``.ruff_cache``) are skipped, in every repository kind, because their contents differ from machine
+to machine. Hidden *files* are kept — a format test's ``.log.csv`` is an expected output.
 
 On ``dev`` the hook warns and **does not write the new fingerprint**. Writing it would leave the
 manifest claiming that version X covers content Y, which is a false statement — and the entire
@@ -55,13 +94,14 @@ recipe. Here the bump is **mechanical**, so the hook proposes it:
      - Why
    * - ``lists`` only
      - **minor + 1**
-     - a list change alters only the association between a company and a list
+     - the typical list change *adds* companies, which adds rows and changes none; a fingerprint
+       cannot tell an addition from a removal, so whoever removed companies raises it to major
    * - ``companies`` (± ``lists``)
      - **major + 1**
      - ``companies/`` decides what *matches*, so it changes the meaning of every run
 
-The patch component is never proposed: it is what a change moving neither fingerprint gets — a
-description, a README — and only a person knows they made one.
+In an input database the patch component is never proposed: it is what a change moving neither
+fingerprint gets — a description, a README — and only a person knows they made one.
 
 Interactive means interactive: the hook reopens the terminal and asks, showing both hashes and the
 proposed version. **Declined, or unanswerable, is no.** A rebase, a script, an editor's commit

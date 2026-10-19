@@ -37,7 +37,7 @@
 #
 # **What refuses, and on which branch.** `ci.yaml` at the root puts every branch in one of three
 # classes. On `prod` a missed threshold, a failing suite, a figure nobody could measure, or a
-# `validation_sha256` that moved without `info.version` moving refuses the commit. On `dev` all of
+# fingerprint that moved without `info.version` moving refuses the commit. On `dev` all of
 # that is measured and reported and nothing is refused — the Makefile's gates run the suites and the
 # grant checks in a mode that records rather than raises, precisely so that this decision is
 # `ci-check`'s alone. On `off` this hook returns immediately. `freeports-dev branch-class` prints the

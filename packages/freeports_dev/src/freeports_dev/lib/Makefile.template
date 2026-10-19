@@ -490,8 +490,8 @@ ci-check: ## The verdict table over whatever is already in reports/
 branch-class: ## Which class this branch is in, and the rule that put it there
 	@$(FREEPORTS_DEV) branch-class $(REPO)
 
-# `info.validation_sha256` is the hash of the hashes of every file a grant covers, and when it moves
-# `info.version` must move with it — otherwise the manifest claims that version X covers content Y,
+# `package.yaml` fingerprints `content/`, `metadata/`, `tests/formats/` and every granted file, and
+# when one moves `info.version` must move with it — otherwise the manifest claims that version X covers content Y,
 # which is false, and the point of the field is that it is not.
 #
 # `--update` writes the new fingerprint **only when the manifest is already entitled to hold it**,

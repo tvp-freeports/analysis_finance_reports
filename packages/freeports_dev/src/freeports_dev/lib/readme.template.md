@@ -67,7 +67,7 @@ put it there — run it first whenever the hook does something you did not expec
 
 | Branch class | What happens |
 |---|---|
-| `prod` — `main`, `release/*` | a missed threshold, a failing suite, or a `validation_sha256` that moved without `info.version` **refuses the commit** |
+| `prod` — `main`, `release/*` | a missed threshold, a failing suite, or a fingerprint that moved without `info.version` **refuses the commit** |
 | `dev` — the default | everything is measured and reported; nothing is refused |
 | `off` — `experimental`, `wip/*` | the hook does nothing at all |
 
@@ -113,16 +113,26 @@ an [HTML page](ci/report/index.html) carrying all three as tabs, and `freeports-
 
 ### The fingerprint, and the version
 
-`info.validation_sha256` in `package.yaml` is the hash of the hashes of **every file a grant
-covers**, in `LC_ALL=C` order, with the path inside each hashed line — so moving a file counts as
-much as editing it. You can check it by hand:
+`package.yaml` holds four fingerprints, each the hash of the hashes of a set of files, in
+`LC_ALL=C` order, with the path inside each hashed line — so moving a file counts as much as
+editing it:
+
+| Field | Covers | Proposed bump when it moves |
+|---|---|---|
+| `sha256.content` | `content/` | patch |
+| `sha256.metadata` | `metadata/` | patch |
+| `sha256.tests` | `tests/formats/` | files only added: minor; any changed or removed: major |
+| `info.validation_sha256` | every granted file | patch |
+
+`tests/formats.sha256` is the per-file list behind `sha256.tests`, and checks by hand:
 
 ```sh
-printf '%s\n' <the granted paths> | LC_ALL=C sort | xargs sha256sum | sha256sum
+sha256sum -c tests/formats.sha256    # the expected outputs are what was recorded
+sha256sum tests/formats.sha256       # equals sha256.tests
 ```
 
-When it moves, `info.version` must move too. Which component is your choice: the change may be a
-correction or a whole new format, and only you know which. On a `dev` branch the hook warns and
+When a fingerprint moves, `info.version` must move too; `freeports-dev fingerprint --propose`
+offers the bump above, and you can always choose another. On a `dev` branch the hook warns and
 does **not** write the new fingerprint — writing it would leave the manifest claiming that version
 X covers content Y, which is a false statement, and the point of the field is that it is not one.
 
